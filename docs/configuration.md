@@ -24,7 +24,7 @@ ImageEditorRequest(
 
 | 옵션 | 기본값 | 범위·규칙 |
 | --- | --- | --- |
-| `enabledTools` | `{CROP, ROTATE}` | 빠진 도구는 숨기고 해당 편집 요청도 거부. 빈 집합이면 미리보기와 저장만 가능 |
+| `enabledTools` | 전체 8종 | 빠진 도구는 숨기고 해당 편집 요청도 거부. 빈 집합이면 미리보기와 저장만 가능 |
 | `allowUndo` | `true` | |
 | `allowRedo` | `true` | `allowUndo = false`이면서 `true`이면 오류 |
 
@@ -34,25 +34,33 @@ ImageEditorRequest(
 | --- | --- |
 | `CROP` | 비율 선택(자유, 원본, 1:1, 4:3, 3:4, 16:9, 9:16, 3:2, 2:3), 핸들 드래그, 이동 |
 | `ROTATE` | 90° 회전, 좌우·상하 반전, 수평 맞추기 -45°..45° |
+| `ADJUST` | 보정 12종(슬라이더 -100..100 또는 0..100) |
+| `FILTER` | 템플릿·필터 프리셋과 강도 |
+| `TEXT` | 텍스트 추가·편집 |
+| `STICKER` | 표준 이모지 스티커 |
+| `DRAW` | 펜·마커·형광펜·지우개 |
+| `PRIVACY` | 모자이크·블러 |
 
-도구 하나를 열고 적용할 때까지의 모든 변경은 undo 한 단계입니다. undo 기록은 최대 50단계이며 이미지(Bitmap)가 아닌 편집 값만 저장합니다.
+자르기·회전·텍스트는 도구를 열고 적용할 때까지의 모든 변경이 undo 한 단계입니다. 보정·필터·스티커·그리기·가리기는 바로 반영되며, 슬라이더 드래그 1회·선택 1회·획 1개·마스크 1개가 각각 한 단계입니다. undo 기록은 최대 50단계이며 이미지(Bitmap)가 아닌 편집 값만 저장합니다.
 
 ## export: ImageExportConfig
 
 | 옵션 | 기본값 | 단위·범위 |
 | --- | --- | --- |
-| `format` | `JPEG` | `JPEG`, `PNG` |
-| `quality` | `92` | JPEG 품질 0..100. PNG에는 적용되지 않음 |
+| `format` | `JPEG` | `JPEG`, `PNG`, `WEBP_LOSSY`, `WEBP_LOSSLESS`(API 30+) |
+| `quality` | `92` | JPEG·손실 WEBP 품질 0..100. PNG·무손실 WEBP에는 적용되지 않음 |
 | `maxWidth` | `null` | 출력 폭 상한(px), 양수 |
 | `maxHeight` | `null` | 출력 높이 상한(px), 양수 |
 | `maxOutputPixels` | `16_000_000` | `width × height` 상한, 양수 |
-| `metadataPolicy` | `SAFE` | `SAFE`, `NONE` |
+| `metadataPolicy` | `SAFE` | `SAFE`, `NONE`, `ALL` |
 | `jpegBackgroundArgb` | `0xFF000000` | JPEG에서 투명 영역을 채울 색 |
 
 - 출력 크기는 자른 영역의 원본 픽셀 크기에서 시작해 상한에 맞게 비율을 유지하며 줄입니다. **확대하지 않습니다.**
 - 기기 메모리 예산(앱 memory class 기준)을 넘으면 `INSUFFICIENT_MEMORY`로 실패하며, 사용자 동의 없이 해상도를 낮추지 않습니다.
 - `SAFE`는 촬영 시각(DateTimeOriginal 등)과 카메라 설정(제조사, 모델, 노출, 조리개, ISO, 초점 거리, 플래시, 화이트밸런스)만 복사합니다. GPS, 소유자, 일련번호, 주석, 원본 썸네일은 복사하지 않고, orientation은 normal로, 크기는 새 값으로 기록합니다. PNG에는 메타데이터를 쓰지 않습니다.
 - `NONE`은 메타데이터를 쓰지 않습니다.
+- `ALL`은 사용자가 명시적으로 원할 때만 쓰세요. 위치·작성자·일련번호까지 복사합니다. 방향·크기·썸네일은 이 경우에도 새로 씁니다.
+- 무손실 WEBP는 API 30 미만에서 손실 압축으로 바꾸지 않고 `UNSUPPORTED_FORMAT`을 반환합니다.
 
 > 문서의 초기 설계에서는 `maxOutputPixels`를 편집기 설정에 두었지만, UI 없이 export하는 경우에도 같은 제한이 필요해 `ImageExportConfig`로 옮겼습니다.
 

@@ -23,7 +23,8 @@
 | --- | --- | --- |
 | JPEG | 지원 | 품질 0..100, 기본 92, 투명 영역은 `jpegBackgroundArgb` |
 | PNG | 지원 | 무손실, 투명도 유지 |
-| WEBP | 계획(v0.2) | |
+| WEBP 손실 | 지원 | 품질 0..100, 투명도 유지 |
+| WEBP 무손실 | 지원(API 30+) | 그 미만은 `UNSUPPORTED_FORMAT` |
 
 출력 최대 16MP(기본), 원본보다 확대하지 않음.
 
@@ -37,4 +38,5 @@ v0.3에서 Media3 기반으로 추가합니다. 필수 대상은 MP4(H.264/AAC)�
 | --- | --- |
 | Robolectric API 36 / API 27 | EXIF 1..8 디코딩, render, export 자동 테스트 통과 |
 | 에뮬레이터 API 36 (arm64 폴더블) | 실제 Picker → 편집 → 저장 흐름 확인 |
-| 실기기 | 미검증 |
+| Galaxy Z Fold7 (Android 16) | GL 색 보정 계측 테스트, 편집·저장·복원·108MP 수동 확인 |
+| API 26/27 실기기 | 미검증 |

@@ -1,6 +1,29 @@
 # Release Notes
 
-## 0.1.0 (개발 중)
+## 0.2.0 (개발 중)
+
+### 추가
+
+- 보정 12종과 필터·템플릿(화사하게 등) 15종, 강도 조절. OpenGL ES 3.0 렌더러와 같은 수식의 CPU 대체 경로
+- 텍스트(폰트·색·정렬·외곽선·배경·그림자), 표준 이모지 스티커, 그리기(펜·마커·형광펜·지우개)
+- 모자이크·블러 가리기(브러시·사각형·원)
+- WEBP 손실/무손실 저장, 메타데이터 ALL 정책
+- `ImageProcessor`·`ExportHandle`로 UI 없는 편집·저장
+- 큰 사진 방어: 250MP 상한, 자른 영역·띠 단위 디코딩
+- 폴드·태블릿 레이아웃(화면 크기·폴드 자세), CI 수정
+
+### 변경
+
+- `EditorErrorCode.SOURCE_TOO_LARGE` 추가(새 enum 값: `when` 분기 확인 필요)
+- `ImageTool`에 `ADJUST`, `FILTER`, `TEXT`, `STICKER`, `DRAW`, `PRIVACY` 추가
+
+### Known Issues
+
+- 캔버스 확대·이동 제스처 없음
+- 그리기 필압은 굵기에 반영하지 않음
+- 텍스트·스티커·그리기·가리기의 실기기 수동 확인 전
+
+## 0.1.0
 
 첫 vertical slice: Photo Picker → 이미지 표시 → 자르기·회전 → undo → JPEG/PNG 저장 → 호스트 결과 수신.
 

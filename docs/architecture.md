@@ -65,6 +65,19 @@ M_sourceToOutput = scaleOutput × cropTranslate × flip × straighten × quarter
 
 수평 맞추기로 생기는 빈 모서리는 `CropBoundsCalculator`가 막습니다. crop은 항상 회전된 이미지 사각형 안에 있어야 하며, 비율을 유지한 최대 crop과 clamp는 닫힌 식과 이분 탐색으로 계산합니다. 반전 후 회전은 모델에서 반대 방향 회전이 되므로 `GeometryOperations`가 화면 기준 동작으로 변환합니다.
 
+## 효과와 오버레이
+
+| 단계 | 구현 | 기준 공간 |
+| --- | --- | --- |
+| geometry | `CanvasGeometryRenderer` | 원본(S) → 출력 |
+| 보정·필터 | `ColorEffectSpec` → `GlColorEffectRenderer`(ES 3.0) / `CpuColorEffectRenderer` | 출력 캔버스 |
+| 가리기 | `PrivacyRenderer` | 출력 캔버스(C), 보정 결과에만 적용 |
+| 그리기·텍스트·스티커 | `OverlayRenderer` | 출력 캔버스(C), 목록 순서가 z-order |
+
+- `ColorEffectSpec`이 보정 순서·색공간·상수를 고정합니다. GL 셰이더와 CPU 기준 구현은 같은 상수와 정수 해시를 쓰고, 실기기 계측 테스트로 두 결과를 비교합니다.
+- GL 컨텍스트는 전용 스레드 하나가 소유하고, 미리보기·썸네일·저장이 같은 렌더러를 공유합니다.
+- 오버레이 크기는 모두 캔버스 비율이라 해상도와 무관하고, 같은 레이아웃 계산을 미리보기·저장·터치 판정이 함께 씁니다.
+
 ## 렌더링과 저장
 
 ```
