@@ -51,6 +51,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.naury.framekit.core.overlay.ImageOverlay
 import com.naury.framekit.ui.component.ApplyCancelBar
 import com.naury.framekit.ui.component.DiscardChangesDialog
 import com.naury.framekit.ui.component.EditorErrorView
@@ -66,7 +67,10 @@ import com.naury.framekit.ui.image.R
 import com.naury.framekit.ui.image.contract.ImageTool
 import com.naury.framekit.ui.image.tool.AdjustToolPanel
 import com.naury.framekit.ui.image.tool.CropToolPanel
+import com.naury.framekit.ui.image.tool.DrawToolPanel
 import com.naury.framekit.ui.image.tool.FilterToolPanel
+import com.naury.framekit.ui.image.tool.StickerToolPanel
+import com.naury.framekit.ui.image.tool.TextToolPanel
 import com.naury.framekit.ui.image.tool.RotateToolPanel
 import com.naury.framekit.ui.R as UiR
 
@@ -221,11 +225,7 @@ private fun CanvasArea(state: ImageEditorUiState.Ready, viewModel: ImageEditorVi
         ImageCanvas(
             state = state,
             rendered = rendered,
-            onViewportSize = viewModel::onViewportSize,
-            onBeginCropDrag = viewModel::beginCropDrag,
-            onDragCrop = viewModel::dragCrop,
-            onEndCropDrag = viewModel::endCropDrag,
-            onShowOriginal = viewModel::showOriginal,
+            actions = viewModel,
         )
         if (state.activeTool?.isDraft != true) {
             val history = state.transaction.history
@@ -276,6 +276,18 @@ private fun ToolArea(state: ImageEditorUiState.Ready, viewModel: ImageEditorView
                         onChangeFinished = viewModel::finishGesture,
                     )
                 }
+                ImageTool.TEXT -> ToolPanelWithActions(R.string.framekit_tool_text, viewModel, isDraft = true) {
+                    val editing = state.displayed.overlays.firstOrNull { it.id == state.editingTextId } as? ImageOverlay.Text
+                    if (editing != null) {
+                        TextToolPanel(text = editing, onText = viewModel::updateText, onStyle = viewModel::updateTextStyle)
+                    }
+                }
+                ImageTool.STICKER -> ToolPanelWithActions(R.string.framekit_tool_sticker, viewModel, isDraft = false) {
+                    StickerToolPanel(category = state.stickerCategory, onCategory = viewModel::selectStickerCategory, onAdd = viewModel::addSticker)
+                }
+                ImageTool.DRAW -> ToolPanelWithActions(R.string.framekit_tool_draw, viewModel, isDraft = false) {
+                    DrawToolPanel(brush = state.brush, onBrush = viewModel::updateBrush)
+                }
                 ImageTool.FILTER -> ToolPanelWithActions(R.string.framekit_tool_filter, viewModel, isDraft = false) {
                     val thumbnails by viewModel.filterThumbnails.collectAsStateWithLifecycle()
                     FilterToolPanel(
@@ -315,6 +327,9 @@ private fun ImageTool.railItem(): ToolRailItem<ImageTool> = when (this) {
     ImageTool.ROTATE -> ToolRailItem(this, stringResource(R.string.framekit_tool_rotate), painterResource(UiR.drawable.framekit_ic_rotate_right))
     ImageTool.ADJUST -> ToolRailItem(this, stringResource(R.string.framekit_tool_adjust), painterResource(UiR.drawable.framekit_ic_adjust))
     ImageTool.FILTER -> ToolRailItem(this, stringResource(R.string.framekit_tool_filter), painterResource(UiR.drawable.framekit_ic_filter))
+    ImageTool.TEXT -> ToolRailItem(this, stringResource(R.string.framekit_tool_text), painterResource(UiR.drawable.framekit_ic_text))
+    ImageTool.STICKER -> ToolRailItem(this, stringResource(R.string.framekit_tool_sticker), painterResource(UiR.drawable.framekit_ic_sticker))
+    ImageTool.DRAW -> ToolRailItem(this, stringResource(R.string.framekit_tool_draw), painterResource(UiR.drawable.framekit_ic_draw))
 }
 
 private const val TOOL_TRANSITION_MS = 200

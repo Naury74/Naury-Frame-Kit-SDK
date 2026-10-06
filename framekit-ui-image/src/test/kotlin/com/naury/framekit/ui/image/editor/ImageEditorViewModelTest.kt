@@ -20,6 +20,7 @@ import com.naury.framekit.android.source.SessionSourceRegistry
 import com.naury.framekit.core.effect.AdjustmentKind
 import com.naury.framekit.core.effect.FilterSelection
 import com.naury.framekit.core.geometry.CropAspectRatio
+import com.naury.framekit.core.overlay.ImageOverlay
 import com.naury.framekit.core.geometry.CropHandle
 import com.naury.framekit.image.export.ImageExportConfig
 import com.naury.framekit.image.export.ImageExportCoordinator
@@ -388,6 +389,96 @@ class ImageEditorViewModelTest {
 
         assertThat(ready(viewModel).activeTool).isNull()
         assertThat(ready(viewModel).displayed.adjustments.brightness).isWithin(1e-9).of(0.3)
+    }
+
+    @Test
+    fun `adding a sticker and moving it are separate undo steps with center snapping`() {
+        val viewModel = viewModel(EditorInput.FileSource(sourceFile.absolutePath))
+        viewModel.selectTool(ImageTool.STICKER)
+        viewModel.addSticker("🎉")
+        val id = checkNotNull(ready(viewModel).selectedOverlayId)
+        viewModel.closeTool()
+
+        viewModel.beginOverlayGesture(id)
+        viewModel.updateOverlayGesture(0.2, 0.0, 2.0, 1.0, 0.01, 0.01)
+        viewModel.updateOverlayGesture(0.3, 0.005, 2.0, 2.0, 0.01, 0.01)
+        viewModel.finishOverlayGesture()
+
+        val sticker = ready(viewModel).displayed.overlays.single()
+        assertThat(sticker.transform.center.x).isWithin(1e-9).of(0.8)
+        assertThat(sticker.transform.center.y).isEqualTo(0.5)
+        assertThat(sticker.transform.scale).isEqualTo(2.0)
+        assertThat(sticker.transform.rotationDegrees).isEqualTo(0.0)
+        assertThat(ready(viewModel).transaction.history.past).hasSize(2)
+    }
+
+    @Test
+    fun `duplicate and delete edit the overlay list`() {
+        val viewModel = viewModel(EditorInput.FileSource(sourceFile.absolutePath))
+        viewModel.selectTool(ImageTool.STICKER)
+        viewModel.addSticker("⭐")
+        viewModel.closeTool()
+        val id = checkNotNull(ready(viewModel).selectedOverlayId)
+
+        viewModel.duplicateOverlay(id)
+        assertThat(ready(viewModel).displayed.overlays).hasSize(2)
+        viewModel.deleteOverlay(id)
+
+        assertThat(ready(viewModel).displayed.overlays.map { it.id }).doesNotContain(id)
+        assertThat(ready(viewModel).displayed.overlays).hasSize(1)
+    }
+
+    @Test
+    fun `text edit session is one undo step and blank text is dropped`() {
+        val viewModel = viewModel(EditorInput.FileSource(sourceFile.absolutePath))
+
+        viewModel.selectTool(ImageTool.TEXT)
+        viewModel.applyTool()
+        assertThat(ready(viewModel).displayed.overlays).isEmpty()
+        assertThat(ready(viewModel).transaction.history.canUndo).isFalse()
+
+        viewModel.selectTool(ImageTool.TEXT)
+        viewModel.updateText("안")
+        viewModel.updateText("안녕")
+        viewModel.updateTextStyle { it.copy(colorArgb = Color.RED) }
+        viewModel.applyTool()
+
+        val text = ready(viewModel).displayed.overlays.single() as ImageOverlay.Text
+        assertThat(text.text).isEqualTo("안녕")
+        assertThat(text.style.colorArgb).isEqualTo(Color.RED)
+        assertThat(ready(viewModel).transaction.history.past).hasSize(1)
+
+        viewModel.editText(text.id)
+        viewModel.updateText("바뀜")
+        viewModel.cancelTool()
+        assertThat((ready(viewModel).displayed.overlays.single() as ImageOverlay.Text).text).isEqualTo("안녕")
+    }
+
+    @Test
+    fun `one stroke is one undo step and close points are skipped`() {
+        val viewModel = viewModel(EditorInput.FileSource(sourceFile.absolutePath))
+        viewModel.selectTool(ImageTool.DRAW)
+
+        viewModel.beginStroke(0.1, 0.1, 1.0)
+        viewModel.extendStroke(0.1001, 0.1001, 1.0, 0.01, 0.01)
+        viewModel.extendStroke(0.3, 0.3, 1.0, 0.01, 0.01)
+        viewModel.extendStroke(0.5, 0.2, 1.0, 0.01, 0.01)
+        viewModel.finishStroke()
+
+        val stroke = ready(viewModel).displayed.drawing.single()
+        assertThat(stroke.points).hasSize(3)
+        assertThat(ready(viewModel).transaction.history.past).hasSize(1)
+        viewModel.undo()
+        assertThat(ready(viewModel).displayed.drawing).isEmpty()
+    }
+
+    @Test
+    fun `rotation snaps to right angles within three degrees`() {
+        assertThat(OverlayEditing.snapRotation(88.0)).isEqualTo(90.0)
+        assertThat(OverlayEditing.snapRotation(-2.5)).isEqualTo(0.0)
+        assertThat(OverlayEditing.snapRotation(45.0)).isEqualTo(45.0)
+        assertThat(OverlayEditing.snapRotation(359.0)).isEqualTo(0.0)
+        assertThat(OverlayEditing.snapRotation(-178.0)).isEqualTo(180.0)
     }
 
     private fun viewModel(

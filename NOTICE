@@ -13,6 +13,10 @@ Apache License, Version 2.0:
   framekit-ui/src/main/res/drawable/framekit_ic_flip_vertical.xml
   framekit-ui/src/main/res/drawable/framekit_ic_adjust.xml
   framekit-ui/src/main/res/drawable/framekit_ic_filter.xml
+  framekit-ui/src/main/res/drawable/framekit_ic_text.xml
+  framekit-ui/src/main/res/drawable/framekit_ic_sticker.xml
+  framekit-ui/src/main/res/drawable/framekit_ic_draw.xml
+  framekit-ui/src/main/res/drawable/framekit_ic_duplicate.xml
 
 You may obtain a copy of the Apache License at
 http://www.apache.org/licenses/LICENSE-2.0

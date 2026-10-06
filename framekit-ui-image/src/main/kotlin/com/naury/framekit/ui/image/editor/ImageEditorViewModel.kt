@@ -26,6 +26,11 @@ import com.naury.framekit.core.effect.Adjustments
 import com.naury.framekit.core.effect.FilterCatalog
 import com.naury.framekit.core.effect.FilterSelection
 import com.naury.framekit.core.geometry.CropAspectRatio
+import com.naury.framekit.core.overlay.DrawingStroke
+import com.naury.framekit.core.overlay.EmojiCatalog
+import com.naury.framekit.core.overlay.ImageOverlay
+import com.naury.framekit.core.overlay.StrokePoint
+import com.naury.framekit.core.overlay.TextStyleSpec
 import com.naury.framekit.core.geometry.CropBoundsCalculator
 import com.naury.framekit.core.geometry.CropHandle
 import com.naury.framekit.core.geometry.CropHandleDrag
@@ -79,7 +84,7 @@ internal class ImageEditorViewModel(
     private val contentResolver: ContentResolver? = null,
     private val colorRenderer: ColorEffectRenderer = CpuColorEffectRenderer,
     renderDispatcher: CoroutineDispatcher = Dispatchers.Default.limitedParallelism(1),
-) : ViewModel() {
+) : ViewModel(), ImageCanvasActions {
 
     private val _state = MutableStateFlow<ImageEditorUiState>(ImageEditorUiState.Loading)
     val state: StateFlow<ImageEditorUiState> = _state.asStateFlow()
@@ -92,6 +97,7 @@ internal class ImageEditorViewModel(
     private var exportJob: Job? = null
     private var cropDragStart: Pair<CropHandle, RectN>? = null
     private var straightenStart: GeometryEdit? = null
+    private var overlayGestureStart: ImageOverlay? = null
     private val session = ImageSessionRecorder(sessionStore, savedState, viewModelScope, ioDispatcher, snapshotDebounceMillis)
 
     private val previewController = ImagePreviewController(viewModelScope, colorRenderer, renderDispatcher)
@@ -117,13 +123,13 @@ internal class ImageEditorViewModel(
 
     private fun requestPreview(ready: ImageEditorUiState.Ready) {
         val project = if (ready.showingOriginal) ready.displayed.copy(geometry = GeometryEdit(), adjustments = Adjustments(), filter = FilterSelection()) else ready.displayed
-        val mode = if (ready.activeTool?.isDraft == true) PreviewMode.UNCROPPED else PreviewMode.RESULT
+        val mode = if (ready.activeTool?.isGeometry == true) PreviewMode.UNCROPPED else PreviewMode.RESULT
         previewController.request(ready.preview, project, ready.source.metadata, mode)
         if (ready.activeTool == ImageTool.FILTER) previewController.ensureThumbnails(ready.preview)
     }
 
     /** Called by the canvas with its size in pixels; previews are rendered at this size. */
-    fun onViewportSize(width: Int, height: Int) = previewController.onViewport(width, height)
+    override fun onViewportSize(width: Int, height: Int) = previewController.onViewport(width, height)
 
     private fun start() {
         val pickedUri = savedState.get<Uri>(KEY_PICKED_URI)
@@ -219,23 +225,120 @@ internal class ImageEditorViewModel(
         if (ready.activeTool != null || ready.export != null || ready.transaction.isActive || tool !in config.enabledTools) {
             return@updateReady ready
         }
-        if (tool.isDraft) {
-            ready.copy(activeTool = tool, cropAspect = CropAspectRatio.Free, transaction = ready.transaction.begin())
-        } else {
-            ready.copy(activeTool = tool)
+        when {
+            tool == ImageTool.TEXT -> openText(ready, existingId = null)
+            tool.isDraft -> ready.copy(activeTool = tool, cropAspect = CropAspectRatio.Free, transaction = ready.transaction.begin(), selectedOverlayId = null)
+            else -> ready.copy(activeTool = tool)
         }
     }
 
-    /** Apply of a draft tool: the whole tool session becomes one undo step. */
+    /** Opens the text tool on an existing text overlay. */
+    override fun editText(id: String) = updateReady { ready ->
+        val canEdit = ready.activeTool == null && ready.export == null && !ready.transaction.isActive && ImageTool.TEXT in config.enabledTools
+        if (!canEdit || ready.displayed.overlays.none { it.id == id && it is ImageOverlay.Text }) ready else openText(ready, id)
+    }
+
+    private fun openText(ready: ImageEditorUiState.Ready, existingId: String?): ImageEditorUiState.Ready {
+        val begun = ready.transaction.begin()
+        val draft = checkNotNull(begun.draft)
+        val id = existingId ?: newId()
+        val project = if (existingId != null) draft else draft.copy(overlays = draft.overlays + ImageOverlay.Text(id, ""))
+        return ready.copy(activeTool = ImageTool.TEXT, transaction = begun.update(project), editingTextId = id, selectedOverlayId = id)
+    }
+
+    fun updateText(text: String) = updateEditingText { it.copy(text = text) }
+
+    fun updateTextStyle(transform: (TextStyleSpec) -> TextStyleSpec) = updateEditingText { it.copy(style = transform(it.style)) }
+
+    private fun updateEditingText(transform: (ImageOverlay.Text) -> ImageOverlay.Text) = updateReady { ready ->
+        val id = ready.editingTextId ?: return@updateReady ready
+        val draft = ready.transaction.draft ?: return@updateReady ready
+        val text = draft.overlays.firstOrNull { it.id == id } as? ImageOverlay.Text ?: return@updateReady ready
+        ready.copy(transaction = ready.transaction.update(OverlayEditing.replace(draft, transform(text))))
+    }
+
+    override fun selectOverlay(id: String?) = updateReady { ready ->
+        if (ready.activeTool?.isGeometry == true || ready.activeTool == ImageTool.TEXT) ready else ready.copy(selectedOverlayId = id)
+    }
+
+    override fun deleteOverlay(id: String) {
+        commitImmediate { OverlayEditing.remove(it, id) }
+        updateReady { if (it.selectedOverlayId == id) it.copy(selectedOverlayId = null) else it }
+    }
+
+    override fun duplicateOverlay(id: String) {
+        val copyId = newId()
+        commitImmediate { OverlayEditing.duplicate(it, id, copyId) }
+        updateReady { it.copy(selectedOverlayId = copyId) }
+    }
+
+    override fun beginOverlayGesture(id: String) {
+        val ready = _state.value as? ImageEditorUiState.Ready ?: return
+        overlayGestureStart = ready.displayed.overlays.firstOrNull { it.id == id }
+        updateReady { it.copy(selectedOverlayId = id) }
+    }
+
+    /** Pan in normalized canvas units, zoom as a factor and rotation in degrees, all since the gesture began. */
+    override fun updateOverlayGesture(panX: Double, panY: Double, zoom: Double, rotation: Double, snapX: Double, snapY: Double) {
+        val start = overlayGestureStart ?: return
+        updateGesture { _, project ->
+            OverlayEditing.replace(project, start.withTransform(OverlayEditing.transform(start.transform, panX, panY, zoom, rotation, snapX, snapY)))
+        }
+    }
+
+    override fun finishOverlayGesture() {
+        overlayGestureStart = null
+        finishGesture()
+    }
+
+    fun selectStickerCategory(category: EmojiCatalog.Category) = updateReady { it.copy(stickerCategory = category) }
+
+    /** Adds an emoji sticker at the canvas center as one undo step and selects it. */
+    fun addSticker(emoji: String) {
+        val id = newId()
+        commitImmediate { it.copy(overlays = it.overlays + ImageOverlay.Sticker(id, EmojiCatalog.assetId(emoji))) }
+        updateReady { it.copy(selectedOverlayId = id) }
+    }
+
+    fun updateBrush(transform: (BrushSettings) -> BrushSettings) = updateReady { it.copy(brush = transform(it.brush)) }
+
+    /** Starts a stroke at a normalized canvas point; the stroke is committed by [finishStroke]. */
+    override fun beginStroke(x: Double, y: Double, pressure: Double) = updateGesture { ready, project ->
+        val brush = ready.brush
+        val stroke = DrawingStroke(newId(), listOf(StrokePoint(x, y, pressure)), brush.widthShortEdgeRatio, brush.colorArgb, brush.opacity, brush.kind)
+        project.copy(drawing = project.drawing + stroke)
+    }
+
+    /** @param minDistanceX smallest movement recorded, in normalized units, to throttle samples. */
+    override fun extendStroke(x: Double, y: Double, pressure: Double, minDistanceX: Double, minDistanceY: Double) = updateGesture { _, project ->
+        val last = project.drawing.lastOrNull() ?: return@updateGesture project
+        val extended = OverlayEditing.appendPoint(last, StrokePoint(x, y, pressure), minDistanceX, minDistanceY)
+        if (extended === last) project else project.copy(drawing = project.drawing.dropLast(1) + extended)
+    }
+
+    override fun finishStroke() = finishGesture()
+
+    /** Apply of a draft tool: the whole tool session becomes one undo step. Empty text is dropped. */
     fun applyTool() = updateReady { ready ->
         if (ready.activeTool?.isDraft != true) return@updateReady ready
-        ready.copy(activeTool = null, transaction = ready.transaction.commit())
+        var transaction = ready.transaction
+        val editing = ready.editingTextId
+        val draft = transaction.draft
+        if (editing != null && draft != null) {
+            val text = draft.overlays.firstOrNull { it.id == editing } as? ImageOverlay.Text
+            if (text != null && text.text.isBlank()) transaction = transaction.update(OverlayEditing.remove(draft, editing))
+        }
+        val committed = transaction.commit()
+        val selected = ready.selectedOverlayId?.takeIf { id -> committed.history.current.overlays.any { it.id == id } }
+        ready.copy(activeTool = null, transaction = committed, editingTextId = null, selectedOverlayId = selected)
     }
 
     /** Cancel of a draft tool: the project returns to the state before the tool opened. */
     fun cancelTool() = updateReady { ready ->
         if (ready.activeTool?.isDraft != true) return@updateReady ready
-        ready.copy(activeTool = null, transaction = ready.transaction.cancel())
+        val cancelled = ready.transaction.cancel()
+        val selected = ready.selectedOverlayId?.takeIf { id -> cancelled.history.current.overlays.any { it.id == id } }
+        ready.copy(activeTool = null, transaction = cancelled, editingTextId = null, selectedOverlayId = selected)
     }
 
     /** Closes a tool whose changes are already committed (adjust, filter). */
@@ -291,7 +394,7 @@ internal class ImageEditorViewModel(
     }
 
     private fun updateGesture(transform: (ImageEditorUiState.Ready, ImageProject) -> ImageProject) = updateReady { ready ->
-        if (ready.activeTool?.isDraft != false || ready.export != null) return@updateReady ready
+        if (ready.activeTool?.isDraft == true || ready.export != null) return@updateReady ready
         val transaction = ready.transaction.begin()
         val draft = checkNotNull(transaction.draft)
         ready.copy(transaction = transaction.update(transform(ready, draft)))
@@ -307,7 +410,7 @@ internal class ImageEditorViewModel(
         updateDraft { ready, geometry -> GeometryOperations.withAspect(ready.source.metadata.uprightSize, geometry, aspect) }
     }
 
-    fun beginCropDrag(handle: CropHandle) {
+    override fun beginCropDrag(handle: CropHandle) {
         val ready = _state.value as? ImageEditorUiState.Ready ?: return
         if (ready.activeTool != ImageTool.CROP) return
         cropDragStart = handle to ready.displayed.geometry.crop
@@ -315,7 +418,7 @@ internal class ImageEditorViewModel(
     }
 
     /** @param dx total horizontal movement since [beginCropDrag], in normalized G units. */
-    fun dragCrop(dx: Double, dy: Double) {
+    override fun dragCrop(dx: Double, dy: Double) {
         val (handle, start) = cropDragStart ?: return
         updateDraft { ready, geometry ->
             val frame = frameOf(ready, geometry)
@@ -327,7 +430,7 @@ internal class ImageEditorViewModel(
         }
     }
 
-    fun endCropDrag() {
+    override fun endCropDrag() {
         cropDragStart = null
         updateReady { it.copy(draggingCrop = false) }
     }
@@ -358,7 +461,7 @@ internal class ImageEditorViewModel(
         if (!config.allowRedo || ready.export != null) ready else ready.copy(transaction = ready.transaction.redo())
     }
 
-    fun showOriginal(show: Boolean) = updateReady { it.copy(showingOriginal = show && it.activeTool == null) }
+    override fun showOriginal(show: Boolean) = updateReady { it.copy(showingOriginal = show && it.activeTool == null) }
 
     fun save() {
         val ready = _state.value as? ImageEditorUiState.Ready ?: return
@@ -461,6 +564,8 @@ internal class ImageEditorViewModel(
         val draft = ready.transaction.draft ?: return@updateReady ready
         ready.copy(transaction = ready.transaction.update(draft.copy(geometry = transform(ready, draft.geometry))))
     }
+
+    private fun newId(): String = UUID.randomUUID().toString()
 
     private fun frameOf(ready: ImageEditorUiState.Ready, geometry: GeometryEdit) =
         GeometryFrame(ready.source.metadata.uprightSize, geometry)

@@ -2,6 +2,8 @@ package com.naury.framekit.ui.image.editor
 
 import com.naury.framekit.android.result.EditorErrorCode
 import com.naury.framekit.core.effect.AdjustmentKind
+import com.naury.framekit.core.overlay.BrushKind
+import com.naury.framekit.core.overlay.EmojiCatalog
 import com.naury.framekit.core.geometry.CropAspectRatio
 import com.naury.framekit.core.history.HistoryTransaction
 import com.naury.framekit.core.model.ImageProject
@@ -31,6 +33,10 @@ internal sealed interface ImageEditorUiState {
         val draggingCrop: Boolean = false,
         val notice: SessionNotice? = null,
         val adjustKind: AdjustmentKind = AdjustmentKind.BRIGHTNESS,
+        val selectedOverlayId: String? = null,
+        val editingTextId: String? = null,
+        val brush: BrushSettings = BrushSettings(),
+        val stickerCategory: EmojiCatalog.Category = EmojiCatalog.Category.SMILEYS,
     ) : ImageEditorUiState {
         val displayed: ImageProject get() = transaction.displayed
         val isDirty: Boolean get() = transaction.history.isDirty
@@ -38,6 +44,14 @@ internal sealed interface ImageEditorUiState {
             get() = transaction.draft?.let { !it.sameContentAs(transaction.history.current) } == true
     }
 }
+
+/** Current drawing tool settings; they are UI state, not part of the project until a stroke is drawn. */
+internal data class BrushSettings(
+    val kind: BrushKind = BrushKind.PEN,
+    val colorArgb: Int = 0xFFFFFFFF.toInt(),
+    val widthShortEdgeRatio: Double = 0.012,
+    val opacity: Double = 1.0,
+)
 
 /** One-time message after a session was restored from disk. */
 internal enum class SessionNotice {

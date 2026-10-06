@@ -1,6 +1,8 @@
 package com.naury.framekit.ui.component
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -35,9 +37,15 @@ public fun <T> ToolRail(
     onSelect: (T) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    // 다섯 개까지는 폭을 고르게 나누고, 더 많으면 가로로 스크롤한다.
+    val scrolling = items.size > EVEN_ITEMS
     Row(
-        modifier = modifier.fillMaxWidth().padding(vertical = 8.dp).selectableGroup(),
-        horizontalArrangement = Arrangement.SpaceEvenly,
+        modifier = modifier
+            .fillMaxWidth()
+            .then(if (scrolling) Modifier.horizontalScroll(rememberScrollState()) else Modifier)
+            .padding(vertical = 8.dp, horizontal = if (scrolling) 8.dp else 0.dp)
+            .selectableGroup(),
+        horizontalArrangement = if (scrolling) Arrangement.spacedBy(4.dp) else Arrangement.SpaceEvenly,
     ) {
         items.forEach { item ->
             val isSelected = item.key == selected
@@ -69,3 +77,5 @@ public fun <T> ToolRail(
         }
     }
 }
+
+private const val EVEN_ITEMS = 5
