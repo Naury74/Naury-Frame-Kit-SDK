@@ -1,5 +1,7 @@
 package com.naury.framekit.ui.video.editor
 
+import com.naury.framekit.android.input.MediaKind
+import com.naury.framekit.android.capture.CaptureFiles
 import androidx.compose.runtime.CompositionLocalProvider
 import com.naury.framekit.ui.catalog.LocalCatalogUi
 import com.naury.framekit.ui.catalog.CatalogUi
@@ -30,6 +32,7 @@ import com.naury.framekit.android.session.EditorSessionStore
 import com.naury.framekit.android.result.EditorError
 import com.naury.framekit.android.result.EditorErrorCode
 import com.naury.framekit.android.result.FrameKitResult
+import com.naury.framekit.android.result.FrameKitResultCodec
 import com.naury.framekit.android.source.SessionSourceRegistry
 import com.naury.framekit.core.validation.ValidationResult
 import com.naury.framekit.ui.config.ThemeMode
@@ -127,6 +130,7 @@ internal class VideoEditorActivity : ComponentActivity() {
                 ioDispatcher = Dispatchers.IO,
                 closeables = listOf(loader),
                 sessionStore = EditorSessionStore(application),
+                captureFile = { CaptureFiles.create(application, MediaKind.VIDEO) },
             )
         }
     }
@@ -134,14 +138,8 @@ internal class VideoEditorActivity : ComponentActivity() {
     private fun deliver(result: FrameKitResult) {
         if (delivered) return
         delivered = true
-        when (result) {
-            is FrameKitResult.Success -> setResult(RESULT_OK, Intent().putExtra(VideoEditorContract.EXTRA_OUTPUT, result.output))
-            is FrameKitResult.Failure -> setResult(
-                VideoEditorContract.RESULT_FAILURE,
-                Intent().putExtra(VideoEditorContract.EXTRA_ERROR, result.error),
-            )
-            FrameKitResult.Cancelled -> setResult(RESULT_CANCELED)
-        }
+        val (code, data) = FrameKitResultCodec.encode(result)
+        setResult(code, data)
         finish()
     }
 }

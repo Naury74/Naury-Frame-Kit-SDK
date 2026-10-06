@@ -279,7 +279,7 @@ class VideoEditorViewModelTest {
 
     @Test
     fun `single clip editors cannot split or add`() {
-        val viewModel = viewModel(durationUs = 6_000_000)
+        val viewModel = viewModel(durationUs = 6_000_000, config = VideoEditorConfig(maxClipCount = 1))
         engine.seekTo(3_000_000)
 
         viewModel.splitAtPlayhead()

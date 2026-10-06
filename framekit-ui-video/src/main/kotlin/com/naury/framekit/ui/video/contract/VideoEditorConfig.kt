@@ -20,8 +20,8 @@ public data class VideoEditorConfig(
     val allowUndo: Boolean = true,
     val allowRedo: Boolean = true,
     val minClipDurationUs: Long = 1_000_000L,
-    val maxTimelineDurationUs: Long = 300_000_000L,
-    val maxClipCount: Int = 1,
+    val maxTimelineDurationUs: Long = 600_000_000L,
+    val maxClipCount: Int = 10,
 ) : Parcelable {
 
     public fun validate(): ValidationResult {

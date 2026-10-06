@@ -1,5 +1,6 @@
 package com.naury.framekit.ui.video.contract
 
+import com.naury.framekit.android.input.isSingleSource
 import com.naury.framekit.android.catalog.EditorCatalog
 import android.os.Parcelable
 import com.naury.framekit.android.input.EditorInput
@@ -29,8 +30,25 @@ public data class VideoEditorRequest(
     /** 요청의 모든 부분을 검증한다. 검증에 실패하면 에디터는 `INVALID_CONFIGURATION`을 반환한다. */
     public fun validate(): ValidationResult {
         val issues = mutableListOf<ValidationIssue>()
-        if (input is EditorInput.Pick && input.kind != MediaKind.VIDEO) {
-            issues += ValidationIssue(ValidationCode.OUT_OF_RANGE, "input.kind", "The video editor can only pick videos")
+        when (input) {
+            is EditorInput.Pick -> {
+                if (input.kind != MediaKind.VIDEO) issues += ValidationIssue(ValidationCode.OUT_OF_RANGE, "input.kind", "The video editor can only pick videos")
+                if (input.maxItems !in 1..config.maxClipCount) {
+                    issues += ValidationIssue(ValidationCode.OUT_OF_RANGE, "input.maxItems", "Expected 1..${config.maxClipCount}")
+                }
+            }
+            is EditorInput.Capture -> if (input.kind != MediaKind.VIDEO) {
+                issues += ValidationIssue(ValidationCode.OUT_OF_RANGE, "input.kind", "The video editor can only record videos")
+            }
+            is EditorInput.Multiple -> {
+                if (input.items.isEmpty() || input.items.size > config.maxClipCount) {
+                    issues += ValidationIssue(ValidationCode.OUT_OF_RANGE, "input.items", "Expected 1..${config.maxClipCount} items")
+                }
+                if (input.items.any { !it.isSingleSource }) {
+                    issues += ValidationIssue(ValidationCode.OUT_OF_RANGE, "input.items", "Items must be Uri or file sources")
+                }
+            }
+            is EditorInput.UriSource, is EditorInput.FileSource -> Unit
         }
         listOf(config.validate(), export.validate(), ui.validate(), catalog.validate()).forEach { result ->
             if (result is ValidationResult.Invalid) issues += result.issues

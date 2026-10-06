@@ -1,5 +1,7 @@
 package com.naury.framekit.ui.image.editor
 
+import com.naury.framekit.android.capture.CaptureFiles
+import com.naury.framekit.android.input.MediaKind
 import androidx.compose.runtime.CompositionLocalProvider
 import com.naury.framekit.ui.catalog.LocalCatalogUi
 import com.naury.framekit.ui.catalog.CatalogUi
@@ -25,6 +27,7 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.naury.framekit.android.result.EditorError
 import com.naury.framekit.android.result.EditorErrorCode
 import com.naury.framekit.android.result.FrameKitResult
+import com.naury.framekit.android.result.FrameKitResultCodec
 import com.naury.framekit.android.session.EditorSessionStore
 import com.naury.framekit.android.source.SessionSourceRegistry
 import com.naury.framekit.core.validation.ValidationResult
@@ -114,6 +117,7 @@ internal class ImageEditorActivity : ComponentActivity() {
                 colorRenderer = colorRenderer,
                 backgroundRemover = BackgroundRemovers.find(application),
                 assetFallback = ProjectAssetStore(File(application.cacheDir, "framekit/assets/${UUID.randomUUID()}")),
+                captureFile = { CaptureFiles.create(application, MediaKind.IMAGE) },
             )
         }
     }
@@ -121,14 +125,8 @@ internal class ImageEditorActivity : ComponentActivity() {
     private fun deliver(result: FrameKitResult) {
         if (delivered) return
         delivered = true
-        when (result) {
-            is FrameKitResult.Success -> setResult(RESULT_OK, Intent().putExtra(ImageEditorContract.EXTRA_OUTPUT, result.output))
-            is FrameKitResult.Failure -> setResult(
-                ImageEditorContract.RESULT_FAILURE,
-                Intent().putExtra(ImageEditorContract.EXTRA_ERROR, result.error),
-            )
-            FrameKitResult.Cancelled -> setResult(RESULT_CANCELED)
-        }
+        val (code, data) = FrameKitResultCodec.encode(result)
+        setResult(code, data)
         finish()
     }
 }

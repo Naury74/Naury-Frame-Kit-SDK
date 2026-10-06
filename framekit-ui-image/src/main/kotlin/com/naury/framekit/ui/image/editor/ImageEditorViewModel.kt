@@ -1,5 +1,11 @@
 package com.naury.framekit.ui.image.editor
 
+import java.io.File
+import com.naury.framekit.ui.image.editor.ImageSessionRecorder.Companion.toInput
+import com.naury.framekit.image.export.PdfPage
+import com.naury.framekit.image.export.ImageFormat
+import com.naury.framekit.android.result.EditedMedia
+import com.naury.framekit.android.capture.CaptureFiles
 import com.naury.framekit.ui.tool.PrivacyShape
 import com.naury.framekit.ui.tool.PrivacySettings
 import android.content.ContentResolver
@@ -89,13 +95,14 @@ internal class ImageEditorViewModel(
     private val exportCoordinator: ImageExportCoordinator,
     private val previewLongEdge: Int,
     private val ioDispatcher: CoroutineDispatcher,
-    sessionStore: EditorSessionStore,
-    snapshotDebounceMillis: Long = SNAPSHOT_DEBOUNCE_MILLIS,
+    private val sessionStore: EditorSessionStore,
+    private val snapshotDebounceMillis: Long = SNAPSHOT_DEBOUNCE_MILLIS,
     private val contentResolver: ContentResolver? = null,
     private val colorRenderer: ColorEffectRenderer = CpuColorEffectRenderer,
     renderDispatcher: CoroutineDispatcher = Dispatchers.Default.limitedParallelism(1),
     private val backgroundRemover: BackgroundRemover? = null,
     private val assetFallback: ProjectAssetStore? = null,
+    private val captureFile: (() -> Pair<File, Uri>)? = null,
 ) : ViewModel(), ImageCanvasActions {
 
     private val _state = MutableStateFlow<ImageEditorUiState>(ImageEditorUiState.Loading)
@@ -111,7 +118,28 @@ internal class ImageEditorViewModel(
     private var straightenStart: GeometryEdit? = null
     private var overlayGestureStart: ImageOverlay? = null
     private var maskAnchor: PointN? = null
-    private val session = ImageSessionRecorder(sessionStore, savedState, viewModelScope, ioDispatcher, snapshotDebounceMillis)
+    // 여러 장을 편집할 때 사진마다 따로 세션을 둔다. 첫 사진은 이전 버전과 같은 키를 쓴다.
+    private val recorders = mutableMapOf<String, ImageSessionRecorder>()
+    private var session: ImageSessionRecorder = recorderFor(MAIN_PAGE_ID)
+    private val pages = mutableListOf<Page>()
+    private var pageIndex = 0
+    private var pagesChanged = false
+
+    private val _pageThumbnails = MutableStateFlow<Map<String, Bitmap>>(emptyMap())
+
+    /** 여러 장 편집에서 쪽 id별 작은 미리보기. */
+    val pageThumbnails: StateFlow<Map<String, Bitmap>> = _pageThumbnails.asStateFlow()
+
+    /** 화면 쪽 목록에 보일 순서대로의 쪽 id. */
+    val pageIds: List<String> get() = pages.map { it.id }
+
+    /** 이 요청으로 편집할 수 있는 최대 사진 수. 2 이상이면 쪽 목록과 사진 추가가 보인다. */
+    val pageLimit: Int
+        get() = when (val input = request.input) {
+            is EditorInput.Pick -> minOf(input.maxItems, config.maxImageCount)
+            is EditorInput.Multiple -> config.maxImageCount
+            else -> 1
+        }
 
     private val previewController = ImagePreviewController(viewModelScope, colorRenderer, renderDispatcher)
 
@@ -136,7 +164,11 @@ internal class ImageEditorViewModel(
 
     init {
         viewModelScope.launch(ioDispatcher) { exportCoordinator.deleteStalePartials() }
-        if (savedState.contains(ImageSessionRecorder.KEY_SESSION_ID)) restore() else start()
+        when {
+            savedState.contains(KEY_PAGES) -> restorePages()
+            savedState.contains(ImageSessionRecorder.KEY_SESSION_ID) -> restore()
+            else -> start()
+        }
         viewModelScope.launch {
             state.collect { current ->
                 if (current is ImageEditorUiState.Ready) {
@@ -164,56 +196,173 @@ internal class ImageEditorViewModel(
     override fun onViewportSize(width: Int, height: Int) = previewController.onViewport(width, height)
 
     private fun start() {
-        val pickedUri = savedState.get<Uri>(KEY_PICKED_URI)
-        when {
-            request.input !is EditorInput.Pick -> load(request.input)
-            pickedUri != null -> load(EditorInput.UriSource(pickedUri))
-            else -> _state.value = ImageEditorUiState.AwaitingPick
+        when (val input = request.input) {
+            is EditorInput.UriSource, is EditorInput.FileSource -> setPages(listOf(input))
+            is EditorInput.Multiple -> setPages(input.items)
+            is EditorInput.Pick -> {
+                val picked = savedState.get<ArrayList<Uri>>(KEY_PICKED_URIS)
+                if (picked.isNullOrEmpty()) {
+                    _state.value = ImageEditorUiState.AwaitingSource(SourceMode.Pick(pageLimit))
+                } else {
+                    setPages(picked.map(EditorInput::UriSource))
+                }
+            }
+            is EditorInput.Capture -> {
+                val path = savedState.get<String>(KEY_CAPTURE_PATH)
+                if (path != null && CaptureFiles.isFilled(File(path))) {
+                    setPages(listOf(EditorInput.FileSource(path)))
+                } else {
+                    _state.value = ImageEditorUiState.AwaitingSource(SourceMode.Capture)
+                }
+            }
         }
     }
 
+    // 이전 버전(쪽 목록 없음)에서 남은 세션을 복원한다.
     private fun restore() {
         viewModelScope.launch {
             val previous = withContext(ioDispatcher) { session.loadPrevious() }
             if (previous == null) {
                 start()
             } else {
+                pages.clear()
+                pages += Page(MAIN_PAGE_ID, previous.source.toInput())
+                persistPages()
                 pendingRestore = previous
-                load(with(ImageSessionRecorder) { previous.source.toInput() })
+                load(pages.first())
             }
         }
     }
 
-    /** 피커 결과와 함께 호출된다. `null`은 사용자가 피커를 닫았다는 뜻이다. */
-    fun onPicked(uri: Uri?) {
-        if (uri == null) {
-            if (_state.value is ImageEditorUiState.AwaitingPick) finish(FrameKitResult.Cancelled)
+    private fun restorePages() {
+        val inputs = savedState.get<ArrayList<EditorInput>>(KEY_PAGES).orEmpty()
+        val ids = savedState.get<ArrayList<String>>(KEY_PAGE_IDS).orEmpty()
+        if (inputs.isEmpty() || inputs.size != ids.size) return start()
+        pages.clear()
+        inputs.forEachIndexed { index, input -> pages += Page(ids[index], input) }
+        pagesChanged = savedState.get<Boolean>(KEY_PAGES_CHANGED) == true
+        loadPage(savedState.get<Int>(KEY_PAGE_INDEX)?.coerceIn(pages.indices) ?: 0, stash = false)
+        loadPageThumbnails()
+    }
+
+    private fun setPages(inputs: List<EditorInput>) {
+        pages.clear()
+        inputs.forEachIndexed { index, input -> pages += Page(if (index == 0) MAIN_PAGE_ID else newId(), input) }
+        persistPages()
+        loadPage(0, stash = false)
+        loadPageThumbnails()
+    }
+
+    private fun persistPages() {
+        savedState[KEY_PAGES] = ArrayList(pages.map { it.input })
+        savedState[KEY_PAGE_IDS] = ArrayList(pages.map { it.id })
+        savedState[KEY_PAGE_INDEX] = pageIndex
+        savedState[KEY_PAGES_CHANGED] = pagesChanged
+    }
+
+    /** 다른 쪽으로 옮기기 전에 지금 쪽의 편집을 메모리에 둔다. 디스크 세션에는 이미 기록돼 있다. */
+    private fun stashCurrentPage() {
+        val ready = _state.value as? ImageEditorUiState.Ready ?: return
+        pages.getOrNull(pageIndex)?.let { page ->
+            page.transaction = ready.transaction
+            page.info = ready.source
+        }
+    }
+
+    private fun loadPage(index: Int, stash: Boolean = true) {
+        if (stash) stashCurrentPage()
+        pageIndex = index
+        savedState[KEY_PAGE_INDEX] = index
+        val page = pages[index]
+        session = recorderFor(page.id)
+        if (page.transaction != null || session.isAttached) {
+            load(page)
+        } else {
+            viewModelScope.launch {
+                pendingRestore = withContext(ioDispatcher) { session.loadPrevious() }
+                load(page)
+            }
+        }
+    }
+
+    private fun recorderFor(pageId: String): ImageSessionRecorder = recorders.getOrPut(pageId) {
+        val key = if (pageId == MAIN_PAGE_ID) ImageSessionRecorder.KEY_SESSION_ID else "${ImageSessionRecorder.KEY_SESSION_ID}_$pageId"
+        ImageSessionRecorder(sessionStore, savedState, viewModelScope, ioDispatcher, snapshotDebounceMillis, key)
+    }
+
+    /** picker 결과와 함께 호출된다. 빈 목록은 사용자가 picker를 닫았다는 뜻이다. */
+    fun onPicked(uris: List<Uri>) {
+        if (uris.isEmpty()) {
+            if (_state.value is ImageEditorUiState.AwaitingSource) finish(FrameKitResult.Cancelled)
             return
         }
-        savedState[KEY_PICKED_URI] = uri
-        load(EditorInput.UriSource(uri))
+        val limited = uris.take(pageLimit)
+        savedState[KEY_PICKED_URIS] = ArrayList(limited)
+        setPages(limited.map(EditorInput::UriSource))
     }
 
-    /** 소스를 열지 못한 뒤 피커로 돌아간다. */
+    /** 한 장 picker 결과. `null`은 picker를 닫았다는 뜻이다. */
+    fun onPicked(uri: Uri?) = onPicked(listOfNotNull(uri))
+
+    /**
+     * 촬영할 파일을 만들고 카메라 앱에 넘길 Uri를 돌려준다. 프로세스가 끝나도 이어 가도록 경로를 저장한다.
+     *
+     * @return 파일을 만들 수 없으면 `null`이고, 이때는 편집기를 실패로 닫는다.
+     */
+    fun prepareCapture(): Uri? {
+        val factory = captureFile ?: return null.also { finish(FrameKitResult.Failure(EditorError(EditorErrorCode.CAMERA_UNAVAILABLE))) }
+        return try {
+            val (file, uri) = factory()
+            savedState[KEY_CAPTURE_PATH] = file.absolutePath
+            uri
+        } catch (error: Exception) {
+            logFailure("capture", FrameKitException(EditorErrorCode.OUTPUT_WRITE_FAILED, cause = error))
+            finish(FrameKitResult.Failure(EditorError(EditorErrorCode.OUTPUT_WRITE_FAILED)))
+            null
+        }
+    }
+
+    /** 카메라 앱이 돌아왔다. 찍지 않고 돌아오면 취소로 닫는다. */
+    fun onCaptured(success: Boolean) {
+        val path = savedState.get<String>(KEY_CAPTURE_PATH)
+        if (success && path != null && CaptureFiles.isFilled(File(path))) {
+            setPages(listOf(EditorInput.FileSource(path)))
+        } else {
+            CaptureFiles.delete(path)
+            savedState.remove<String>(KEY_CAPTURE_PATH)
+            finish(FrameKitResult.Cancelled)
+        }
+    }
+
+    /** 카메라를 쓸 수 없거나 권한이 거부됐다. */
+    fun onCaptureFailed(code: EditorErrorCode) = finish(FrameKitResult.Failure(EditorError(code)))
+
+    /** 원본을 열지 못한 뒤 picker로 돌아간다. */
     fun chooseAnother() {
-        savedState.remove<Uri>(KEY_PICKED_URI)
-        _state.value = ImageEditorUiState.AwaitingPick
+        savedState.remove<ArrayList<Uri>>(KEY_PICKED_URIS)
+        savedState.remove<ArrayList<EditorInput>>(KEY_PAGES)
+        pages.clear()
+        _state.value = ImageEditorUiState.AwaitingSource(SourceMode.Pick(pageLimit))
     }
 
-    private fun load(input: EditorInput) {
+    private fun load(page: Page) {
         _state.value = ImageEditorUiState.Loading
         viewModelScope.launch {
             try {
                 val ready = withContext(ioDispatcher) {
-                    val sourceId = registry.register(input)
-                    val info = ImageMetadataReader(registry).read(sourceId)
+                    val (sourceId, info) = openPage(page)
                     val sample = SampleSize.forMinimumLongEdge(info.encodedSize, previewLongEdge)
                     val preview = BitmapDecoder(registry, contentResolver).decode(info, sample)
-                    val restored = session.attach(pendingRestore, input, info)
-                    pendingRestore = null
-                    restoredState(restored, sourceId, info, preview)
+                    val existing = page.transaction
+                    if (existing != null) {
+                        ImageEditorUiState.Ready(preview, info, existing)
+                    } else {
+                        val restored = session.attach(pendingRestore, page.input, info)
+                        pendingRestore = null
+                        restoredState(restored, sourceId, info, preview)
+                    }
                 }
-                _state.value = ready
+                _state.value = ready.copy(pageIndex = pageIndex, pageCount = pages.size)
             } catch (error: FrameKitException) {
                 logFailure("load", error)
                 _state.value = ImageEditorUiState.LoadFailed(error.code, canChooseAnother = request.input is EditorInput.Pick)
@@ -222,9 +371,90 @@ internal class ImageEditorViewModel(
             } catch (error: Exception) {
                 logFailure("load", FrameKitException(EditorErrorCode.UNKNOWN, cause = error))
                 _state.value = ImageEditorUiState.LoadFailed(EditorErrorCode.UNKNOWN, canChooseAnother = request.input is EditorInput.Pick)
+            } catch (error: OutOfMemoryError) {
+                logFailure("load", FrameKitException(EditorErrorCode.INSUFFICIENT_MEMORY, cause = error))
+                _state.value = ImageEditorUiState.LoadFailed(EditorErrorCode.INSUFFICIENT_MEMORY, canChooseAnother = request.input is EditorInput.Pick)
             }
         }
     }
+
+    // IO 스레드에서 쪽 원본을 한 번만 등록하고 읽는다. 프로젝트의 SourceId가 바뀌지 않게 다시 쓰지 않는다.
+    private fun openPage(page: Page): Pair<SourceId, ImageSourceInfo> {
+        val sourceId = page.sourceId ?: registry.register(page.input).also { page.sourceId = it }
+        val info = page.info ?: ImageMetadataReader(registry).read(sourceId).also { page.info = it }
+        return sourceId to info
+    }
+
+    // ---- 여러 장 ----
+
+    /** [index]번째 사진으로 옮긴다. 도구가 열려 있거나 저장 중이면 무시한다. */
+    fun selectPage(index: Int) {
+        val ready = _state.value as? ImageEditorUiState.Ready ?: return
+        if (index == pageIndex || index !in pages.indices || ready.activeTool != null || ready.transaction.isActive || ready.export != null) return
+        loadPage(index)
+    }
+
+    /** 사진을 끝에 더한다. 최대 개수를 넘는 사진은 버린다. */
+    fun addPages(uris: List<Uri>) {
+        val ready = _state.value as? ImageEditorUiState.Ready ?: return
+        if (uris.isEmpty() || ready.export != null) return
+        val room = pageLimit - pages.size
+        if (room <= 0) return updateReady { it.copy(notice = SessionNotice.PAGE_LIMIT) }
+        uris.take(room).forEach { pages += Page(newId(), EditorInput.UriSource(it)) }
+        if (uris.size > room) updateReady { it.copy(notice = SessionNotice.PAGE_LIMIT) }
+        pagesChanged = true
+        persistPages()
+        updateReady { it.copy(pageCount = pages.size) }
+        loadPageThumbnails()
+    }
+
+    /** 지금 사진을 앞(-1)이나 뒤(+1)로 옮긴다. PDF와 결과 순서가 바뀐다. */
+    fun moveCurrentPage(delta: Int) {
+        val target = pageIndex + delta
+        val ready = _state.value as? ImageEditorUiState.Ready ?: return
+        if (target !in pages.indices || ready.export != null) return
+        val page = pages.removeAt(pageIndex)
+        pages.add(target, page)
+        pageIndex = target
+        pagesChanged = true
+        persistPages()
+        updateReady { it.copy(pageIndex = target) }
+        _pageThumbnails.value = _pageThumbnails.value.toMap()
+    }
+
+    /** 지금 사진을 빼고 이웃 사진을 연다. 마지막 한 장은 뺄 수 없다. */
+    fun removeCurrentPage() {
+        val ready = _state.value as? ImageEditorUiState.Ready ?: return
+        if (pages.size <= 1 || ready.export != null || ready.transaction.isActive) return
+        val removed = pages.removeAt(pageIndex)
+        recorders.remove(removed.id)?.end()
+        _pageThumbnails.value = _pageThumbnails.value - removed.id
+        pagesChanged = true
+        val next = pageIndex.coerceAtMost(pages.lastIndex)
+        persistPages()
+        loadPage(next, stash = false)
+    }
+
+    private fun loadPageThumbnails() {
+        if (pages.size <= 1 && pageLimit <= 1) return
+        viewModelScope.launch {
+            pages.toList().forEach { page ->
+                if (page.id in _pageThumbnails.value) return@forEach
+                val thumbnail = withContext(ioDispatcher) {
+                    runCatching {
+                        val (_, info) = openPage(page)
+                        BitmapDecoder(registry, contentResolver).decode(info, SampleSize.forMinimumLongEdge(info.encodedSize, PAGE_THUMBNAIL_PX)).bitmap
+                    }.getOrNull()
+                } ?: return@forEach
+                _pageThumbnails.update { it + (page.id to thumbnail) }
+            }
+        }
+    }
+
+    /** 지금 사진 말고도 편집했거나 사진 목록을 바꿨으면 `true`. */
+    private fun anyPageDirty(ready: ImageEditorUiState.Ready): Boolean =
+        ready.isDirty || ready.hasDraftChanges || pagesChanged ||
+            pages.withIndex().any { (index, page) -> index != pageIndex && page.transaction?.history?.isDirty == true }
 
     private fun restoredState(
         restored: SessionRecord?,
@@ -587,6 +817,7 @@ internal class ImageEditorViewModel(
         }
         // 결과를 이미 보냈거나 export가 진행 중이면 두 번째 저장 요청은 무시한다.
         if (_result.value != null || ready.export != null || exportJob?.isActive == true) return
+        if (pages.size > 1 || request.export.format == ImageFormat.PDF) return saveAll(ready)
         val snapshot = ready.transaction.history.current
         updateReady { it.copy(export = ExportUiState.Running(ExportStageUi.PREPARING)) }
         exportJob = viewModelScope.launch {
@@ -618,6 +849,56 @@ internal class ImageEditorViewModel(
         }
     }
 
+    /**
+     * 모든 쪽을 저장한다. PDF면 문서로 묶고(설정에 따라 쪽마다), 아니면 사진마다 파일을 만든다. 하나라도
+     * 실패하거나 취소되면 이번에 만든 파일을 모두 지워 결과가 일부만 남지 않게 한다.
+     */
+    private fun saveAll(ready: ImageEditorUiState.Ready) {
+        stashCurrentPage()
+        updateReady { it.copy(export = ExportUiState.Running(ExportStageUi.PREPARING)) }
+        exportJob = viewModelScope.launch {
+            val produced = mutableListOf<EditedMedia>()
+            try {
+                val jobs = withContext(ioDispatcher) {
+                    pages.map { page ->
+                        val (sourceId, info) = openPage(page)
+                        val project = page.transaction?.history?.current
+                            ?: ImageProject(ProjectId(newId()), sourceId, grainSeed = Random.nextLong())
+                        PdfPage(project, info, recorders[page.id]?.assets() ?: assetFallback)
+                    }
+                }
+                val total = jobs.size
+                fun progress(index: Int, stage: ImageExportStage) = updateReady { current ->
+                    if (current.export is ExportUiState.Running && current.export.stage != ExportStageUi.CANCELLING) {
+                        current.copy(export = ExportUiState.Running(stage.toUi(), (index + if (stage == ImageExportStage.FINALIZING) 1f else 0.5f) / total))
+                    } else {
+                        current
+                    }
+                }
+                if (request.export.format == ImageFormat.PDF) {
+                    produced += exportCoordinator.exportPdf(jobs, request.export, request.output) { index, _, stage -> progress(index, stage) }
+                } else {
+                    jobs.forEachIndexed { index, job ->
+                        produced += exportCoordinator.export(job.project, job.source, request.export, request.output, job.assets) { stage -> progress(index, stage) }
+                    }
+                }
+                finish(FrameKitResult.Success(produced.first(), produced.toList()))
+            } catch (cancelled: CancellationException) {
+                withContext(NonCancellable) { exportCoordinator.deleteOutputs(produced) }
+                updateReady { it.copy(export = null) }
+                throw cancelled
+            } catch (error: FrameKitException) {
+                logFailure("export", error)
+                exportCoordinator.deleteOutputs(produced)
+                updateReady { it.copy(export = ExportUiState.Failed(error.code)) }
+            } catch (error: Exception) {
+                logFailure("export", FrameKitException(EditorErrorCode.UNKNOWN, cause = error))
+                exportCoordinator.deleteOutputs(produced)
+                updateReady { it.copy(export = ExportUiState.Failed(EditorErrorCode.UNKNOWN)) }
+            }
+        }
+    }
+
     fun cancelExport() {
         val job = exportJob ?: return
         if (!job.isActive) return
@@ -634,7 +915,7 @@ internal class ImageEditorViewModel(
         when (val current = _state.value) {
             is ImageEditorUiState.Ready -> when {
                 current.export is ExportUiState.Running -> cancelExport()
-                current.isDirty || current.hasDraftChanges -> updateReady { it.copy(showDiscardDialog = true) }
+                anyPageDirty(current) -> updateReady { it.copy(showDiscardDialog = true) }
                 else -> finish(FrameKitResult.Cancelled)
             }
             is ImageEditorUiState.LoadFailed -> finish(FrameKitResult.Failure(EditorError(current.code)))
@@ -659,7 +940,9 @@ internal class ImageEditorViewModel(
     private fun finish(result: FrameKitResult) {
         if (_result.value != null) return
         pendingRestore?.let(session::discard)
-        session.end()
+        recorders.values.forEach(ImageSessionRecorder::end)
+        // 카메라로 찍은 임시 원본은 결과를 만든 뒤에는 필요 없다.
+        CaptureFiles.delete(savedState.get<String>(KEY_CAPTURE_PATH))
         _result.value = result
     }
 
@@ -692,7 +975,7 @@ internal class ImageEditorViewModel(
     }
 
     override fun onCleared() {
-        if (_result.value == null) session.detach()
+        if (_result.value == null) recorders.values.forEach(ImageSessionRecorder::detach)
         colorRenderer.release()
     }
 
@@ -705,8 +988,22 @@ internal class ImageEditorViewModel(
 
     private companion object {
         const val TAG = "FrameKit"
-        const val KEY_PICKED_URI = "framekit_picked_uri"
+        const val KEY_PICKED_URIS = "framekit_picked_uris"
+        const val KEY_CAPTURE_PATH = "framekit_capture_path"
+        const val KEY_PAGES = "framekit_pages"
+        const val KEY_PAGE_IDS = "framekit_page_ids"
+        const val KEY_PAGE_INDEX = "framekit_page_index"
+        const val KEY_PAGES_CHANGED = "framekit_pages_changed"
+        const val MAIN_PAGE_ID = "main"
+        const val PAGE_THUMBNAIL_PX = 200
         const val SNAPSHOT_DEBOUNCE_MILLIS = 300L
         const val MIN_MASK_SIZE = 0.01
     }
+}
+
+/** 여러 장 편집의 한 쪽. 아직 열지 않은 쪽은 [transaction]이 `null`이다. */
+private class Page(val id: String, val input: EditorInput) {
+    var sourceId: SourceId? = null
+    var info: ImageSourceInfo? = null
+    var transaction: HistoryTransaction<ImageProject>? = null
 }

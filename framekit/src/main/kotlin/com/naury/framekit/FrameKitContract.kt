@@ -1,14 +1,10 @@
 package com.naury.framekit
 
-import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import androidx.activity.result.contract.ActivityResultContract
-import androidx.core.content.IntentCompat
-import com.naury.framekit.android.result.EditedMedia
-import com.naury.framekit.android.result.EditorError
-import com.naury.framekit.android.result.EditorErrorCode
 import com.naury.framekit.android.result.FrameKitResult
+import com.naury.framekit.android.result.FrameKitResultCodec
 
 /**
  * 소스에 맞춰 사진 편집기 또는 영상 편집기를 열고 [FrameKitResult]를 정확히 하나 반환한다.
@@ -27,20 +23,9 @@ public class FrameKitContract : ActivityResultContract<FrameKitRequest, FrameKit
     override fun createIntent(context: Context, input: FrameKitRequest): Intent =
         Intent(context, FrameKitActivity::class.java).putExtra(EXTRA_REQUEST, input)
 
-    override fun parseResult(resultCode: Int, intent: Intent?): FrameKitResult = when (resultCode) {
-        Activity.RESULT_OK -> intent?.let { IntentCompat.getParcelableExtra(it, EXTRA_OUTPUT, EditedMedia::class.java) }
-            ?.let(FrameKitResult::Success)
-            ?: FrameKitResult.Failure(EditorError(EditorErrorCode.RESULT_UNAVAILABLE))
-        RESULT_FAILURE -> intent?.let { IntentCompat.getParcelableExtra(it, EXTRA_ERROR, EditorError::class.java) }
-            ?.let(FrameKitResult::Failure)
-            ?: FrameKitResult.Failure(EditorError(EditorErrorCode.RESULT_UNAVAILABLE))
-        else -> FrameKitResult.Cancelled
-    }
+    override fun parseResult(resultCode: Int, intent: Intent?): FrameKitResult = FrameKitResultCodec.decode(resultCode, intent)
 
     internal companion object {
         const val EXTRA_REQUEST = "com.naury.framekit.extra.FRAMEKIT_REQUEST"
-        const val EXTRA_OUTPUT = "com.naury.framekit.extra.OUTPUT"
-        const val EXTRA_ERROR = "com.naury.framekit.extra.ERROR"
-        const val RESULT_FAILURE = Activity.RESULT_FIRST_USER + 1
     }
 }

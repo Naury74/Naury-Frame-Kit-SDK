@@ -25,8 +25,8 @@ internal data class LoadedVideo(val info: VideoSourceInfo, val location: SourceL
 internal data class LoadedAudio(val info: AudioSourceInfo, val location: SourceLocation, val reference: SourceReference?, val name: String?)
 
 internal sealed interface VideoEditorUiState {
-    /** 시스템 picker를 기다리는 중. */
-    data object AwaitingPick : VideoEditorUiState
+    /** 시스템 picker나 카메라 앱을 기다리는 중. */
+    data class AwaitingSource(val mode: VideoSourceMode) : VideoEditorUiState
 
     data object Loading : VideoEditorUiState
 
@@ -70,6 +70,15 @@ internal sealed interface VideoEditorUiState {
         val hasDraftChanges: Boolean
             get() = transaction.draft?.let { !it.sameContentAs(transaction.history.current) } == true
     }
+}
+
+/** 원본을 받아 올 방법. */
+internal sealed interface VideoSourceMode {
+    /** 영상 picker. [maxItems]가 2 이상이면 여러 개를 고른다. */
+    data class Pick(val maxItems: Int) : VideoSourceMode
+
+    /** 카메라 앱으로 녹화. */
+    data object Capture : VideoSourceMode
 }
 
 /** 스낵바로 한 번 보여 줄 안내. */

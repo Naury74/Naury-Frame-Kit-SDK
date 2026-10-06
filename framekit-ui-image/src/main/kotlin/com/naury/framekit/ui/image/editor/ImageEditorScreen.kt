@@ -1,5 +1,7 @@
 package com.naury.framekit.ui.image.editor
 
+import com.naury.framekit.android.input.MediaKind
+import com.naury.framekit.ui.source.rememberSourceLaunchers
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -82,20 +84,31 @@ import com.naury.framekit.ui.R as UiR
 @Composable
 internal fun ImageEditorScreen(viewModel: ImageEditorViewModel, posture: FoldPosture = FoldPosture.Flat) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    var pickerLaunched by rememberSaveable { mutableStateOf(false) }
-    val picker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
-        pickerLaunched = false
-        viewModel.onPicked(uri)
-    }
+    // 화면 회전으로 다시 그려질 때 picker·카메라가 두 번 열리지 않도록 실행 여부를 저장해 둔다.
+    var sourceLaunched by rememberSaveable { mutableStateOf(false) }
+    val launchers = rememberSourceLaunchers(
+        maxItems = viewModel.pageLimit,
+        onPicked = { uris ->
+            sourceLaunched = false
+            viewModel.onPicked(uris)
+        },
+        onCaptured = { ok ->
+            sourceLaunched = false
+            viewModel.onCaptured(ok)
+        },
+        onFailed = viewModel::onCaptureFailed,
+    )
     BackHandler { viewModel.onBack() }
 
     Box(Modifier.fillMaxSize().background(FrameKitTheme.colors.background)) {
         when (val current = state) {
-            ImageEditorUiState.AwaitingPick -> LaunchedEffect(Unit) {
-                // 화면 회전으로 다시 그려질 때 picker가 두 번 열리지 않도록 실행 여부를 저장해 둔다.
-                if (!pickerLaunched) {
-                    pickerLaunched = true
-                    picker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+            is ImageEditorUiState.AwaitingSource -> LaunchedEffect(current.mode) {
+                if (!sourceLaunched) {
+                    sourceLaunched = true
+                    when (val mode = current.mode) {
+                        is SourceMode.Pick -> launchers.pick(MediaKind.IMAGE, mode.maxItems)
+                        SourceMode.Capture -> launchers.capture(MediaKind.IMAGE, viewModel::prepareCapture)
+                    }
                 }
             }
             ImageEditorUiState.Loading -> EditorLoadingView(Modifier.windowInsetsPadding(WindowInsets.safeDrawing))
@@ -125,6 +138,7 @@ private fun ReadyContent(state: ImageEditorUiState.Ready, viewModel: ImageEditor
             when (it) {
                 SessionNotice.RESTORED -> UiR.string.framekit_session_restored
                 SessionNotice.EXPORT_INTERRUPTED -> UiR.string.framekit_export_interrupted
+                SessionNotice.PAGE_LIMIT -> R.string.framekit_page_limit
             },
         )
     }
@@ -215,7 +229,7 @@ private fun ReadyContent(state: ImageEditorUiState.Ready, viewModel: ImageEditor
     }
 
     when (val export = state.export) {
-        is ExportUiState.Running -> ExportOverlay(stage = export.stage, onCancel = viewModel::cancelExport)
+        is ExportUiState.Running -> ExportOverlay(stage = export.stage, onCancel = viewModel::cancelExport, progress = export.progress)
         is ExportUiState.Failed -> ExportErrorDialog(code = export.code, onRetry = {
             viewModel.dismissExportError()
             viewModel.save()
@@ -320,14 +334,40 @@ private fun ToolArea(state: ImageEditorUiState.Ready, viewModel: ImageEditorView
                         onIntensityFinished = viewModel::finishGesture,
                     )
                 }
-                null -> when {
-                    tools.isEmpty() -> Unit
-                    wide -> ToolGrid(items = tools.map { it.railItem() }, onSelect = viewModel::selectTool)
-                    else -> ToolRail(items = tools.map { it.railItem() }, selected = null, onSelect = viewModel::selectTool)
+                null -> {
+                    if (viewModel.pageLimit > 1) PagesRow(state, viewModel)
+                    when {
+                        tools.isEmpty() -> Unit
+                        wide -> ToolGrid(items = tools.map { it.railItem() }, onSelect = viewModel::selectTool)
+                        else -> ToolRail(items = tools.map { it.railItem() }, selected = null, onSelect = viewModel::selectTool)
+                    }
                 }
             }
         }
     }
+}
+
+/** 여러 장 편집에서 도구 목록 위에 두는 쪽 목록. */
+@Composable
+private fun PagesRow(state: ImageEditorUiState.Ready, viewModel: ImageEditorViewModel) {
+    val thumbnails by viewModel.pageThumbnails.collectAsStateWithLifecycle()
+    val adder = rememberSourceLaunchers(
+        maxItems = viewModel.pageLimit - state.pageCount,
+        onPicked = viewModel::addPages,
+        onCaptured = {},
+        onFailed = {},
+    )
+    PageStrip(
+        pageIds = viewModel.pageIds,
+        selected = state.pageIndex,
+        thumbnails = thumbnails,
+        canAdd = state.pageCount < viewModel.pageLimit,
+        enabled = state.export == null && !state.transaction.isActive,
+        onSelect = viewModel::selectPage,
+        onAdd = { adder.pick(MediaKind.IMAGE, viewModel.pageLimit - state.pageCount) },
+        onMove = viewModel::moveCurrentPage,
+        onRemove = viewModel::removeCurrentPage,
+    )
 }
 
 @Composable

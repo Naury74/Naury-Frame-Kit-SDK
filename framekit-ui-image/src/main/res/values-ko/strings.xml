@@ -14,4 +14,11 @@
     <string name="framekit_cutout_description">피사체만 남기고 배경을 투명하게 만듭니다. JPEG로 저장하면 배경은 단색으로 채워지니 투명하게 남기려면 PNG나 WEBP를 쓰세요.</string>
     <string name="framekit_cutout_unavailable">배경 제거 모델을 준비하고 있습니다. 잠시 후 다시 시도해 주세요.</string>
     <string name="framekit_cutout_failed">배경을 제거하지 못했습니다. 다시 시도해 주세요.</string>
+    <string name="framekit_page_limit">더는 사진을 추가할 수 없어요.</string>
+    <string name="framekit_page_position">%2$d장 중 %1$d번째</string>
+    <string name="framekit_page_label">%1$d번째 사진</string>
+    <string name="framekit_page_add">사진 추가</string>
+    <string name="framekit_page_move_earlier">앞으로</string>
+    <string name="framekit_page_move_later">뒤로</string>
+    <string name="framekit_page_remove">이 사진 빼기</string>
 </resources>

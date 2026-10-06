@@ -15,8 +15,8 @@ import com.naury.framekit.ui.component.ExportStageUi
 import com.naury.framekit.ui.image.contract.ImageTool
 
 internal sealed interface ImageEditorUiState {
-    /** 시스템 피커를 기다리는 중. */
-    data object AwaitingPick : ImageEditorUiState
+    /** 시스템 picker나 카메라 앱을 기다리는 중. */
+    data class AwaitingSource(val mode: SourceMode) : ImageEditorUiState
 
     data object Loading : ImageEditorUiState
 
@@ -41,12 +41,23 @@ internal sealed interface ImageEditorUiState {
         val stickerCategory: EmojiCatalog.Category? = EmojiCatalog.Category.SMILEYS,
         val privacy: PrivacySettings = PrivacySettings(),
         val cutoutStatus: CutoutStatus? = null,
+        val pageIndex: Int = 0,
+        val pageCount: Int = 1,
     ) : ImageEditorUiState {
         val displayed: ImageProject get() = transaction.displayed
         val isDirty: Boolean get() = transaction.history.isDirty
         val hasDraftChanges: Boolean
             get() = transaction.draft?.let { !it.sameContentAs(transaction.history.current) } == true
     }
+}
+
+/** 원본을 받아 올 방법. */
+internal sealed interface SourceMode {
+    /** 사진 picker. [maxItems]가 2 이상이면 여러 장을 고른다. */
+    data class Pick(val maxItems: Int) : SourceMode
+
+    /** 카메라 앱으로 촬영. */
+    data object Capture : SourceMode
 }
 
 /** 현재 그리기 도구 설정. UI 상태이며 획을 그리기 전까지는 프로젝트에 포함되지 않는다. */
@@ -70,9 +81,13 @@ internal enum class SessionNotice {
 
     /** 저장 중 프로세스가 종료되었다. 파일이 만들어지지 않았으므로 다시 저장해야 한다. */
     EXPORT_INTERRUPTED,
+
+    /** 더 넣으면 최대 사진 수를 넘어 일부만 더했다. */
+    PAGE_LIMIT,
 }
 
 internal sealed interface ExportUiState {
-    data class Running(val stage: ExportStageUi) : ExportUiState
+    /** @property progress 여러 장을 저장할 때 전체 진행률 `0..1`. */
+    data class Running(val stage: ExportStageUi, val progress: Float? = null) : ExportUiState
     data class Failed(val code: EditorErrorCode) : ExportUiState
 }

@@ -56,4 +56,22 @@ class FrameKitRoutingTest {
         assertThat(request.validate()).isEqualTo(ValidationResult.Valid)
         assertThat(request.copy(video = VideoEditorConfig(allowUndo = false)).validate()).isInstanceOf(ValidationResult.Invalid::class.java)
     }
+
+    @Test
+    fun `pick counts are clamped to each editor and mixed lists do not resolve`() {
+        shadowOf(MimeTypeMap.getSingleton()).apply {
+            addExtensionMimeTypeMapping("mp4", "video/mp4")
+            addExtensionMimeTypeMapping("jpg", "image/jpeg")
+        }
+        val request = FrameKitRequest(EditorInput.Pick(MediaKind.ANY, maxItems = 50), image = ImageEditorConfig(maxImageCount = 5))
+
+        assertThat(request.forImage(request.input).input).isEqualTo(EditorInput.Pick(MediaKind.IMAGE, 5))
+        assertThat(request.forVideo(request.input).input).isEqualTo(EditorInput.Pick(MediaKind.VIDEO, 10))
+        val mixed = EditorInput.Multiple(listOf(EditorInput.FileSource("/a.jpg"), EditorInput.FileSource("/b.mp4")))
+        val photos = EditorInput.Multiple(listOf(EditorInput.FileSource("/a.jpg"), EditorInput.FileSource("/c.jpg")))
+        assertThat(MediaKindResolver.resolve(mixed, resolver)).isNull()
+        assertThat(MediaKindResolver.resolve(photos, resolver)).isEqualTo(MediaKind.IMAGE)
+        assertThat(MediaKindResolver.resolve(EditorInput.Capture(MediaKind.VIDEO), resolver)).isEqualTo(MediaKind.VIDEO)
+        assertThat(FrameKitRequest(EditorInput.Capture(MediaKind.ANY)).validate()).isInstanceOf(ValidationResult.Invalid::class.java)
+    }
 }

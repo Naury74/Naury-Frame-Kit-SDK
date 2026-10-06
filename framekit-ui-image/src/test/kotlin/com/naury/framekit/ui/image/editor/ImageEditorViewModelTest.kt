@@ -167,7 +167,7 @@ class ImageEditorViewModelTest {
     @Test
     fun `Q01 dismissing the picker returns cancelled once`() {
         val viewModel = viewModel(EditorInput.Pick())
-        assertThat(viewModel.state.value).isEqualTo(ImageEditorUiState.AwaitingPick)
+        assertThat(viewModel.state.value).isEqualTo(ImageEditorUiState.AwaitingSource(SourceMode.Pick(1)))
 
         viewModel.onPicked(null)
         viewModel.onPicked(null)
@@ -581,12 +581,88 @@ class ImageEditorViewModelTest {
         assertThat(OverlayEditing.snapRotation(-178.0)).isEqualTo(180.0)
     }
 
+    private fun secondPhoto(): File = File(context.cacheDir, "second.png").also { file ->
+        val bitmap = Bitmap.createBitmap(120, 240, Bitmap.Config.ARGB_8888).apply { eraseColor(Color.GREEN) }
+        file.outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
+    }
+
+    @Test
+    fun `several photos keep their own edits when switching pages and save one file each`() {
+        val inputs = EditorInput.Multiple(listOf(EditorInput.FileSource(sourceFile.absolutePath), EditorInput.FileSource(secondPhoto().absolutePath)))
+        val viewModel = viewModel(inputs)
+        assertThat(ready(viewModel).pageCount).isEqualTo(2)
+
+        viewModel.selectTool(ImageTool.CROP)
+        viewModel.selectAspect(CropAspectRatio.Fixed(1, 1))
+        viewModel.applyTool()
+        viewModel.selectPage(1)
+        assertThat(ready(viewModel).pageIndex).isEqualTo(1)
+        assertThat(ready(viewModel).isDirty).isFalse()
+        viewModel.selectPage(0)
+        assertThat(ready(viewModel).isDirty).isTrue()
+
+        viewModel.save()
+
+        val result = viewModel.result.value as FrameKitResult.Success
+        assertThat(result.outputs.map { it.width to it.height }).containsExactly(200 to 200, 120 to 240).inOrder()
+        assertThat(publishedFiles()).hasSize(2)
+    }
+
+    @Test
+    fun `pages can be reordered removed and combined into one pdf`() {
+        val inputs = EditorInput.Multiple(listOf(EditorInput.FileSource(sourceFile.absolutePath), EditorInput.FileSource(secondPhoto().absolutePath)))
+        val viewModel = viewModel(inputs, export = ImageExportConfig(format = ImageFormat.PDF))
+        viewModel.moveCurrentPage(1)
+        assertThat(ready(viewModel).pageIndex).isEqualTo(1)
+
+        viewModel.save()
+
+        val result = viewModel.result.value as FrameKitResult.Success
+        assertThat(result.outputs).hasSize(1)
+        assertThat(result.output.pageCount).isEqualTo(2)
+        assertThat(result.output.mimeType).isEqualTo("application/pdf")
+        // 순서를 바꿔 세로 사진(120×240)이 첫 쪽이므로 A4 세로다.
+        assertThat(result.output.height).isGreaterThan(result.output.width)
+    }
+
+    @Test
+    fun `removing a page keeps at least one and marks the session changed`() {
+        val inputs = EditorInput.Multiple(listOf(EditorInput.FileSource(sourceFile.absolutePath), EditorInput.FileSource(secondPhoto().absolutePath)))
+        val viewModel = viewModel(inputs)
+
+        viewModel.removeCurrentPage()
+        viewModel.removeCurrentPage()
+
+        assertThat(ready(viewModel).pageCount).isEqualTo(1)
+        viewModel.requestClose()
+        assertThat(ready(viewModel).showDiscardDialog).isTrue()
+    }
+
+    @Test
+    fun `captured photo opens and an empty capture cancels`() {
+        val target = File(context.cacheDir, "framekit/captures/test.jpg").apply { parentFile?.mkdirs(); delete() }
+        val viewModel = viewModel(EditorInput.Capture(), captureFile = { target to Uri.fromFile(target) })
+        assertThat(viewModel.state.value).isEqualTo(ImageEditorUiState.AwaitingSource(SourceMode.Capture))
+        assertThat(viewModel.prepareCapture()).isEqualTo(Uri.fromFile(target))
+        sourceFile.copyTo(target, overwrite = true)
+
+        viewModel.onCaptured(true)
+        assertThat(ready(viewModel).source.metadata.uprightSize.width).isEqualTo(400)
+
+        val empty = viewModel(EditorInput.Capture(), captureFile = { target to Uri.fromFile(target) })
+        empty.prepareCapture()
+        target.delete()
+        empty.onCaptured(false)
+        assertThat(empty.result.value).isEqualTo(FrameKitResult.Cancelled)
+    }
+
     private fun viewModel(
         input: EditorInput,
         savedState: SavedStateHandle = SavedStateHandle(),
         config: ImageEditorConfig = ImageEditorConfig(),
         export: ImageExportConfig = ImageExportConfig(),
         remover: BackgroundRemover? = null,
+        captureFile: (() -> Pair<File, Uri>)? = null,
     ): ImageEditorViewModel {
         val registry = SessionSourceRegistry(context)
         return ImageEditorViewModel(
@@ -601,6 +677,7 @@ class ImageEditorViewModelTest {
             renderDispatcher = Dispatchers.Unconfined,
             backgroundRemover = remover,
             assetFallback = ProjectAssetStore(File(context.cacheDir, "assets-test")),
+            captureFile = captureFile,
         )
     }
 

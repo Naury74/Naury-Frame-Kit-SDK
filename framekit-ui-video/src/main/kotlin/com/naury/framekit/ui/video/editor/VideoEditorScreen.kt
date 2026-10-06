@@ -1,5 +1,7 @@
 package com.naury.framekit.ui.video.editor
 
+import com.naury.framekit.ui.source.rememberSourceLaunchers
+import com.naury.framekit.android.input.MediaKind
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
@@ -112,20 +114,31 @@ import com.naury.framekit.ui.video.tool.SpeedToolPanel
 @Composable
 internal fun VideoEditorScreen(viewModel: VideoEditorViewModel, posture: FoldPosture = FoldPosture.Flat) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    var pickerLaunched by rememberSaveable { mutableStateOf(false) }
-    val picker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
-        pickerLaunched = false
-        viewModel.onPicked(uri)
-    }
+    // 화면 회전으로 다시 그려질 때 picker·카메라가 두 번 열리지 않도록 실행 여부를 저장해 둔다.
+    var sourceLaunched by rememberSaveable { mutableStateOf(false) }
+    val launchers = rememberSourceLaunchers(
+        maxItems = viewModel.config.maxClipCount,
+        onPicked = { uris ->
+            sourceLaunched = false
+            viewModel.onPicked(uris)
+        },
+        onCaptured = { ok ->
+            sourceLaunched = false
+            viewModel.onCaptured(ok)
+        },
+        onFailed = viewModel::onCaptureFailed,
+    )
     BackHandler { viewModel.onBack() }
 
     Box(Modifier.fillMaxSize().background(FrameKitTheme.colors.background)) {
         when (val current = state) {
-            VideoEditorUiState.AwaitingPick -> LaunchedEffect(Unit) {
-                // 화면 회전으로 다시 그려질 때 picker가 두 번 열리지 않도록 실행 여부를 저장해 둔다.
-                if (!pickerLaunched) {
-                    pickerLaunched = true
-                    picker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.VideoOnly))
+            is VideoEditorUiState.AwaitingSource -> LaunchedEffect(current.mode) {
+                if (!sourceLaunched) {
+                    sourceLaunched = true
+                    when (val mode = current.mode) {
+                        is VideoSourceMode.Pick -> launchers.pick(MediaKind.VIDEO, mode.maxItems)
+                        VideoSourceMode.Capture -> launchers.capture(MediaKind.VIDEO, viewModel::prepareCapture)
+                    }
                 }
             }
             VideoEditorUiState.Loading -> EditorLoadingView(Modifier.windowInsetsPadding(WindowInsets.safeDrawing))

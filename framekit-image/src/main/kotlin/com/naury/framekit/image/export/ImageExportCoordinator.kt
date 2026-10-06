@@ -351,6 +351,11 @@ public class ImageExportCoordinator(
         if (read != 5 || String(head, Charsets.US_ASCII) != "%PDF-") throw FrameKitException(EditorErrorCode.ENCODE_FAILED, "PDF header is missing")
     }
 
+    /** 이 coordinator가 만든 결과 파일을 지운다. 여러 장 저장이 중간에 실패했을 때 쓴다. */
+    public fun deleteOutputs(outputs: List<EditedMedia>) {
+        outputs.forEach { runCatching { outputStore.delete(it.uri) } }
+    }
+
     /** 중단된 내보내기가 남긴 지 하루가 넘은 partial 파일을 삭제한다. */
     public fun deleteStalePartials() {
         outputStore.deleteStalePartials()

@@ -1,5 +1,7 @@
 package com.naury.framekit.ui.video.editor
 
+import java.io.File
+import com.naury.framekit.android.capture.CaptureFiles
 import android.graphics.Bitmap
 import android.net.Uri
 import android.util.Log
@@ -129,6 +131,7 @@ internal class VideoEditorViewModel(
     snapshotDebounceMillis: Long = SNAPSHOT_DEBOUNCE_MILLIS,
     private val readAudio: (SourceId) -> AudioSourceInfo = { throw FrameKitException(EditorErrorCode.UNSUPPORTED_OPERATION, "No audio reader") },
     private val describe: (Uri) -> String? = { null },
+    private val captureFile: (() -> Pair<File, Uri>)? = null,
 ) : ViewModel(), VideoCanvasActions {
 
     private val _state = MutableStateFlow<VideoEditorUiState>(VideoEditorUiState.Loading)
@@ -189,12 +192,33 @@ internal class VideoEditorViewModel(
 
     // ---- 열기·복원 ----
 
+    /** 이 요청으로 처음에 고를 수 있는 최대 영상 수. */
+    private val pickLimit: Int
+        get() = when (val input = request.input) {
+            is EditorInput.Pick -> minOf(input.maxItems, config.maxClipCount)
+            else -> 1
+        }
+
     private fun start() {
-        val pickedUri = savedState.get<Uri>(KEY_PICKED_URI)
-        when {
-            request.input !is EditorInput.Pick -> load(request.input)
-            pickedUri != null -> load(EditorInput.UriSource(pickedUri))
-            else -> _state.value = VideoEditorUiState.AwaitingPick
+        when (val input = request.input) {
+            is EditorInput.UriSource, is EditorInput.FileSource -> load(input)
+            is EditorInput.Multiple -> load(input.items.first(), then = input.items.drop(1))
+            is EditorInput.Pick -> {
+                val picked = savedState.get<ArrayList<Uri>>(KEY_PICKED_URIS)
+                if (picked.isNullOrEmpty()) {
+                    _state.value = VideoEditorUiState.AwaitingSource(VideoSourceMode.Pick(pickLimit))
+                } else {
+                    load(EditorInput.UriSource(picked.first()), then = picked.drop(1).map(EditorInput::UriSource))
+                }
+            }
+            is EditorInput.Capture -> {
+                val path = savedState.get<String>(KEY_CAPTURE_PATH)
+                if (path != null && CaptureFiles.isFilled(File(path))) {
+                    load(EditorInput.FileSource(path))
+                } else {
+                    _state.value = VideoEditorUiState.AwaitingSource(VideoSourceMode.Capture)
+                }
+            }
         }
     }
 
@@ -210,32 +234,68 @@ internal class VideoEditorViewModel(
         }
     }
 
-    /** picker 결과와 함께 호출된다. `null`은 사용자가 picker를 닫았다는 뜻이다. */
-    fun onPicked(uri: Uri?) {
-        if (uri == null) {
-            if (_state.value is VideoEditorUiState.AwaitingPick) finish(FrameKitResult.Cancelled)
+    /** picker 결과와 함께 호출된다. 빈 목록은 사용자가 picker를 닫았다는 뜻이다. */
+    fun onPicked(uris: List<Uri>) {
+        if (uris.isEmpty()) {
+            if (_state.value is VideoEditorUiState.AwaitingSource) finish(FrameKitResult.Cancelled)
             return
         }
-        savedState[KEY_PICKED_URI] = uri
-        load(EditorInput.UriSource(uri))
+        val limited = uris.take(maxOf(1, pickLimit))
+        savedState[KEY_PICKED_URIS] = ArrayList(limited)
+        load(EditorInput.UriSource(limited.first()), then = limited.drop(1).map(EditorInput::UriSource))
     }
+
+    /** 한 개 picker 결과. `null`은 picker를 닫았다는 뜻이다. */
+    fun onPicked(uri: Uri?) = onPicked(listOfNotNull(uri))
+
+    /** 촬영 파일을 만들고 카메라 앱에 넘길 Uri를 돌려준다. 만들 수 없으면 실패로 닫고 `null`. */
+    fun prepareCapture(): Uri? {
+        val factory = captureFile ?: return null.also { finish(FrameKitResult.Failure(EditorError(EditorErrorCode.CAMERA_UNAVAILABLE))) }
+        return try {
+            val (file, uri) = factory()
+            savedState[KEY_CAPTURE_PATH] = file.absolutePath
+            uri
+        } catch (error: Exception) {
+            logFailure("capture", FrameKitException(EditorErrorCode.OUTPUT_WRITE_FAILED, cause = error))
+            finish(FrameKitResult.Failure(EditorError(EditorErrorCode.OUTPUT_WRITE_FAILED)))
+            null
+        }
+    }
+
+    /** 카메라 앱이 돌아왔다. 찍지 않고 돌아오면 취소로 닫는다. */
+    fun onCaptured(success: Boolean) {
+        val path = savedState.get<String>(KEY_CAPTURE_PATH)
+        if (success && path != null && CaptureFiles.isFilled(File(path))) {
+            load(EditorInput.FileSource(path))
+        } else {
+            CaptureFiles.delete(path)
+            savedState.remove<String>(KEY_CAPTURE_PATH)
+            finish(FrameKitResult.Cancelled)
+        }
+    }
+
+    /** 카메라를 쓸 수 없거나 권한이 거부됐다. */
+    fun onCaptureFailed(code: EditorErrorCode) = finish(FrameKitResult.Failure(EditorError(code)))
 
     /** 원본을 열지 못한 뒤 picker로 돌아간다. */
     fun chooseAnother() {
-        savedState.remove<Uri>(KEY_PICKED_URI)
-        _state.value = VideoEditorUiState.AwaitingPick
+        savedState.remove<ArrayList<Uri>>(KEY_PICKED_URIS)
+        _state.value = VideoEditorUiState.AwaitingSource(VideoSourceMode.Pick(pickLimit))
     }
 
-    private fun load(input: EditorInput) {
+    /** @param then 처음 영상 뒤에 이어 붙일 영상. 처음 상태(기준)로 들어가 실행 취소 대상이 아니다. */
+    private fun load(input: EditorInput, then: List<EditorInput> = emptyList()) {
         _state.value = VideoEditorUiState.Loading
         viewModelScope.launch {
             try {
+                val restoring = pendingRestore != null
                 _state.value = withContext(ioDispatcher) {
                     val (sourceId, loaded) = openVideo(input)
                     val previous = session?.attach(pendingRestore, input, sourceId, loaded.info)
                     pendingRestore = null
                     restoredState(previous, sourceId, loaded)
                 }
+                if (then.isNotEmpty() && !restoring) addClipInputs(then, asBaseline = true)
             } catch (error: FrameKitException) {
                 logFailure("load", error)
                 _state.value = VideoEditorUiState.LoadFailed(error.code, canChooseAnother = request.input is EditorInput.Pick)
@@ -514,18 +574,26 @@ internal class VideoEditorViewModel(
 
     /** 고른 영상을 끝에 붙인다. 클립 수·전체 길이 제한을 넘는 영상은 붙이지 않는다. 한 번에 한 단계다. */
     fun addClips(uris: List<Uri>) {
+        if (!multiClip) return
+        addClipInputs(uris.map(EditorInput::UriSource), asBaseline = false)
+    }
+
+    /** @param asBaseline `true`면 처음 연 상태로 넣어 실행 취소 기록을 남기지 않는다(여러 개를 한 번에 열 때). */
+    private fun addClipInputs(inputs: List<EditorInput>, asBaseline: Boolean) {
         val ready = _state.value as? VideoEditorUiState.Ready ?: return
-        if (uris.isEmpty() || !multiClip || ready.busy || ready.transaction.isActive) return
+        if (inputs.isEmpty() || ready.busy || ready.transaction.isActive) return
         engine.pause()
         updateReady { it.copy(busy = true) }
         viewModelScope.launch {
             var notice: VideoNotice? = null
             val opened = withContext(ioDispatcher) {
-                uris.mapNotNull { uri ->
+                inputs.mapNotNull { input ->
                     try {
-                        openVideo(EditorInput.UriSource(uri))
-                    } catch (error: FrameKitException) {
-                        logFailure("add", error)
+                        openVideo(input)
+                    } catch (cancelled: CancellationException) {
+                        throw cancelled
+                    } catch (error: Exception) {
+                        logFailure("add", error as? FrameKitException ?: FrameKitException(EditorErrorCode.DECODE_FAILED, cause = error))
                         notice = VideoNotice.ADD_FAILED
                         null
                     }
@@ -549,7 +617,9 @@ internal class VideoEditorViewModel(
                 }
             }
             updateReady { it.copy(sources = it.sources + opened.toMap(), busy = false, notice = notice ?: it.notice) }
-            if (added.isNotEmpty()) {
+            if (added.isNotEmpty() && asBaseline) {
+                updateReady { it.copy(transaction = HistoryTransaction.start(Edit.append(it.transaction.history.current, added))) }
+            } else if (added.isNotEmpty()) {
                 commitImmediate { Edit.append(it, added) }
                 updateReady { it.copy(selectedClipId = added.first().id) }
                 (_state.value as? VideoEditorUiState.Ready)?.let { seekTo(it.clipStartUs) }
@@ -1067,6 +1137,8 @@ internal class VideoEditorViewModel(
         engine.pause()
         pendingRestore?.let { session?.discard(it) }
         session?.end()
+        // 카메라로 찍은 임시 원본은 결과를 만든 뒤에는 필요 없다.
+        CaptureFiles.delete(savedState.get<String>(KEY_CAPTURE_PATH))
         _result.value = result
     }
 
@@ -1122,7 +1194,8 @@ internal class VideoEditorViewModel(
 
     private companion object {
         const val TAG = "FrameKit"
-        const val KEY_PICKED_URI = "framekit_picked_video_uri"
+        const val KEY_PICKED_URIS = "framekit_picked_video_uris"
+        const val KEY_CAPTURE_PATH = "framekit_capture_video_path"
         const val PREVIEW_DEBOUNCE_MILLIS = 120L
         const val SNAPSHOT_DEBOUNCE_MILLIS = 300L
         const val PREVIEW_SHORT_SIDE = 720

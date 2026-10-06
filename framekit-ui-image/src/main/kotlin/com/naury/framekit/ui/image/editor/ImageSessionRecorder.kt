@@ -30,14 +30,15 @@ internal class ImageSessionRecorder(
     private val scope: CoroutineScope,
     private val ioDispatcher: CoroutineDispatcher,
     private val debounceMillis: Long,
+    private val key: String = KEY_SESSION_ID,
 ) {
     private var sessionId: String? = null
     private var pendingSave: Job? = null
 
     /** 이전 프로세스가 남긴 세션, 없으면 `null`. 백그라운드 스레드에서 호출한다. */
     fun loadPrevious(): SessionRecord? {
-        val id = savedState.get<String>(KEY_SESSION_ID) ?: return null
-        return store.load(id).also { if (it == null) savedState.remove<String>(KEY_SESSION_ID) }
+        val id = savedState.get<String>(key) ?: return null
+        return store.load(id).also { if (it == null) savedState.remove<String>(key) }
     }
 
     /**
@@ -55,7 +56,7 @@ internal class ImageSessionRecorder(
             previous?.let { store.delete(it.sessionId) }
             sessionId = input.toReference()?.let { store.create(it, fingerprint) }
         }
-        savedState[KEY_SESSION_ID] = sessionId
+        savedState[key] = sessionId
         store.deleteStale()
         return matched
     }
@@ -82,11 +83,14 @@ internal class ImageSessionRecorder(
         pendingSave?.cancel()
         sessionId?.let(store::deleteAsync)
         sessionId = null
-        savedState.remove<String>(KEY_SESSION_ID)
+        savedState.remove<String>(key)
     }
 
     /** 현재 세션의 에셋 저장소. 세션을 만들지 못했으면 `null`. */
     fun assets(): ProjectAssetStore? = sessionId?.let(store::assets)
+
+    /** 이 화면이 세션에 연결돼 있으면 `true`. */
+    val isAttached: Boolean get() = sessionId != null
 
     /** 다시 열 수 없어 복원하지 않을 이전 세션을 삭제한다. */
     fun discard(record: SessionRecord) {

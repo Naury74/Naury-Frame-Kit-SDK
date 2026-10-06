@@ -14,4 +14,11 @@
     <string name="framekit_cutout_description">Keeps the subject and makes the background transparent. JPEG output fills it with a solid color; choose PNG or WEBP to keep transparency.</string>
     <string name="framekit_cutout_unavailable">The background removal model is still being prepared. Try again in a moment.</string>
     <string name="framekit_cutout_failed">The background could not be removed. Try again.</string>
+    <string name="framekit_page_limit">No more photos can be added.</string>
+    <string name="framekit_page_position">Photo %1$d of %2$d</string>
+    <string name="framekit_page_label">Photo %1$d</string>
+    <string name="framekit_page_add">Add photos</string>
+    <string name="framekit_page_move_earlier">Move earlier</string>
+    <string name="framekit_page_move_later">Move later</string>
+    <string name="framekit_page_remove">Remove this photo</string>
 </resources>
