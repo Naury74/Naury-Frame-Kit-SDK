@@ -4,7 +4,10 @@ import com.naury.framekit.core.overlay.DrawingStroke
 import com.naury.framekit.core.overlay.EmojiCatalog
 import com.naury.framekit.core.overlay.FontCatalog
 import com.naury.framekit.core.overlay.ImageOverlay
+import com.naury.framekit.core.overlay.MaskShape
 import com.naury.framekit.core.overlay.OverlayTransform
+import com.naury.framekit.core.overlay.PrivacyEffect
+import com.naury.framekit.core.overlay.PrivacyMask
 
 /** Validation of text, stickers and drawing strokes. */
 internal object OverlayValidator {
@@ -50,6 +53,29 @@ internal object OverlayValidator {
             if (!positive(stroke.widthShortEdgeRatio) || stroke.opacity !in 0.0..1.0) {
                 issues += ValidationIssue(ValidationCode.OUT_OF_RANGE, path, "Width must be positive and opacity 0..1")
             }
+        }
+    }
+
+    fun validatePrivacy(masks: List<PrivacyMask>, issues: MutableList<ValidationIssue>) {
+        masks.map { it.id }.groupingBy { it }.eachCount().filterValues { it > 1 }.keys.forEach { id ->
+            issues += ValidationIssue(ValidationCode.DUPLICATE_ID, "privacyMasks", "Duplicate id $id")
+        }
+        masks.forEachIndexed { index, mask ->
+            val path = "privacyMasks[$index]"
+            val ratio = when (val effect = mask.effect) {
+                is PrivacyEffect.Blur -> effect.radiusShortEdgeRatio
+                is PrivacyEffect.Mosaic -> effect.blockShortEdgeRatio
+            }
+            if (!positive(ratio) || ratio > PrivacyEffect.MAX_RATIO) {
+                issues += ValidationIssue(ValidationCode.OUT_OF_RANGE, "$path.effect", "Expected 0..${PrivacyEffect.MAX_RATIO}")
+            }
+            val valid = when (val shape = mask.shape) {
+                is MaskShape.Brush -> shape.points.isNotEmpty() && shape.points.size <= DrawingStroke.MAX_POINTS &&
+                    shape.points.all { it.isFinite } && positive(shape.widthShortEdgeRatio)
+                is MaskShape.Rectangle -> shape.rect.isFinite && shape.rect.width > 0 && shape.rect.height > 0
+                is MaskShape.Ellipse -> shape.rect.isFinite && shape.rect.width > 0 && shape.rect.height > 0
+            }
+            if (!valid) issues += ValidationIssue(ValidationCode.INVALID_RECT, "$path.shape", "Shape must be finite and non-empty")
         }
     }
 

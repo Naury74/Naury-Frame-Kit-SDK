@@ -6,6 +6,7 @@ import com.naury.framekit.core.effect.FilterSelection
 import com.naury.framekit.core.geometry.GeometryEdit
 import com.naury.framekit.core.overlay.DrawingStroke
 import com.naury.framekit.core.overlay.ImageOverlay
+import com.naury.framekit.core.overlay.PrivacyMask
 
 /**
  * Final edit state of one image.
@@ -18,6 +19,7 @@ import com.naury.framekit.core.overlay.ImageOverlay
  * @property geometry rotation, flip, straighten and crop applied to the upright source.
  * @property adjustments color and tone adjustments, applied after geometry.
  * @property filter preset and intensity, applied after the adjustments.
+ * @property privacyMasks blur and mosaic areas, applied after color and before the drawing layer.
  * @property overlays text and stickers in z-order, last on top, positioned in the output canvas.
  * @property drawing strokes of the drawing layer, drawn below [overlays]. The eraser only affects
  *   this layer.
@@ -30,6 +32,7 @@ public data class ImageProject(
     val geometry: GeometryEdit = GeometryEdit(),
     val adjustments: Adjustments = Adjustments(),
     val filter: FilterSelection = FilterSelection(),
+    val privacyMasks: List<PrivacyMask> = emptyList(),
     val overlays: List<ImageOverlay> = emptyList(),
     val drawing: List<DrawingStroke> = emptyList(),
     val grainSeed: Long = 0L,
@@ -43,6 +46,6 @@ public data class ImageProject(
 
     override fun sameContentAs(other: ImageProject): Boolean =
         id == other.id && source == other.source && geometry == other.geometry &&
-            adjustments == other.adjustments && filter == other.filter && overlays == other.overlays &&
+            adjustments == other.adjustments && filter == other.filter && privacyMasks == other.privacyMasks && overlays == other.overlays &&
             drawing == other.drawing && grainSeed == other.grainSeed
 }

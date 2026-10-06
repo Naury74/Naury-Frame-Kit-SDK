@@ -24,6 +24,7 @@ public object ImageProjectValidator {
         validateGeometry(project.geometry, issues)
         validateEffects(project, issues)
         OverlayValidator.validate(project.overlays, project.drawing, issues)
+        OverlayValidator.validatePrivacy(project.privacyMasks, issues)
         if (issues.isEmpty()) validateCropArea(project.geometry, metadata, issues)
         return ValidationResult.of(issues)
     }

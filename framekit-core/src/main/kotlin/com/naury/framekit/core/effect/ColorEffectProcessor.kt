@@ -1,5 +1,7 @@
 package com.naury.framekit.core.effect
 
+import kotlin.math.ceil
+import kotlin.math.exp
 import kotlin.math.floor
 import kotlin.math.min
 import kotlin.math.pow
@@ -141,6 +143,16 @@ public object ColorEffectProcessor {
             result[y * width + x] = pack(pixels[y * width + x], acc)
         }
         return result
+    }
+
+    /** Normalized 1D Gaussian weights for [sigma] pixels, from the center tap outwards. */
+    public fun gaussianWeights(sigma: Float, maxRadius: Int = ColorEffectSpec.MAX_BLUR_RADIUS): FloatArray {
+        val safeSigma = maxOf(0.5f, sigma)
+        val radius = min(maxRadius, ceil(3f * safeSigma).toInt())
+        val weights = FloatArray(radius + 1) { i -> exp(-(i * i) / (2f * safeSigma * safeSigma)) }
+        val total = weights[0] + 2f * weights.drop(1).sum()
+        for (i in weights.indices) weights[i] /= total
+        return weights
     }
 
     /** Integer hash shared bit for bit with the shader; returns `0..1`. */

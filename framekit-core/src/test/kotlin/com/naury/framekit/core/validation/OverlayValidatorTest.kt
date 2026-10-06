@@ -2,6 +2,10 @@ package com.naury.framekit.core.validation
 
 import com.google.common.truth.Truth.assertThat
 import com.naury.framekit.core.geometry.PointN
+import com.naury.framekit.core.geometry.RectN
+import com.naury.framekit.core.overlay.MaskShape
+import com.naury.framekit.core.overlay.PrivacyEffect
+import com.naury.framekit.core.overlay.PrivacyMask
 import com.naury.framekit.core.model.ImageProject
 import com.naury.framekit.core.model.MediaType
 import com.naury.framekit.core.model.PixelSize
@@ -68,6 +72,17 @@ class OverlayValidatorTest {
         )
 
         assertThat(codes(broken)).containsExactly(ValidationCode.NOT_FINITE, ValidationCode.OUT_OF_RANGE)
+    }
+
+    @Test
+    fun `privacy masks need a finite shape and a bounded strength`() {
+        val masks = listOf(
+            PrivacyMask("ok", MaskShape.Rectangle(RectN(0.1, 0.1, 0.4, 0.3)), PrivacyEffect.Mosaic()),
+            PrivacyMask("big", MaskShape.Ellipse(RectN(0.1, 0.1, 0.4, 0.3)), PrivacyEffect.Blur(0.5)),
+            PrivacyMask("empty", MaskShape.Brush(emptyList(), 0.05), PrivacyEffect.Blur()),
+        )
+
+        assertThat(codes(project.copy(privacyMasks = masks))).containsExactly(ValidationCode.OUT_OF_RANGE, ValidationCode.INVALID_RECT)
     }
 
     @Test

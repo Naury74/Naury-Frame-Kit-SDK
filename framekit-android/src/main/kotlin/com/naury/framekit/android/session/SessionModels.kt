@@ -5,17 +5,20 @@ import com.naury.framekit.core.effect.FilterCatalog
 import com.naury.framekit.core.effect.FilterSelection
 import com.naury.framekit.core.geometry.GeometryEdit
 import com.naury.framekit.core.geometry.PointN
+import com.naury.framekit.core.geometry.RectN
 import com.naury.framekit.core.overlay.BackgroundSpec
 import com.naury.framekit.core.overlay.BrushKind
 import com.naury.framekit.core.overlay.DrawingStroke
 import com.naury.framekit.core.overlay.ImageOverlay
+import com.naury.framekit.core.overlay.MaskShape
 import com.naury.framekit.core.overlay.OverlayTransform
+import com.naury.framekit.core.overlay.PrivacyEffect
+import com.naury.framekit.core.overlay.PrivacyMask
 import com.naury.framekit.core.overlay.ShadowSpec
 import com.naury.framekit.core.overlay.StrokePoint
 import com.naury.framekit.core.overlay.StrokeSpec
 import com.naury.framekit.core.overlay.TextAlignment
 import com.naury.framekit.core.overlay.TextStyleSpec
-import com.naury.framekit.core.geometry.RectN
 import com.naury.framekit.core.model.ImageProject
 import com.naury.framekit.core.model.ProjectId
 import com.naury.framekit.core.model.SourceId
@@ -76,6 +79,7 @@ public data class ImageProjectSnapshot(
     val grainSeed: Long = 0L,
     val overlays: List<OverlaySnapshot> = emptyList(),
     val drawing: List<StrokeSnapshot> = emptyList(),
+    val privacyMasks: List<PrivacyMaskSnapshot> = emptyList(),
 ) {
     public fun toProject(source: SourceId): ImageProject = ImageProject(
         id = ProjectId(projectId),
@@ -92,6 +96,7 @@ public data class ImageProjectSnapshot(
         grainSeed = grainSeed,
         overlays = overlays.map(OverlaySnapshot::toModel),
         drawing = drawing.map(StrokeSnapshot::toModel),
+        privacyMasks = privacyMasks.map(PrivacyMaskSnapshot::toModel),
         revision = revision,
     )
 
@@ -114,6 +119,7 @@ public data class ImageProjectSnapshot(
                 grainSeed = project.grainSeed,
                 overlays = project.overlays.map(OverlaySnapshot::of),
                 drawing = project.drawing.map(StrokeSnapshot::of),
+                privacyMasks = project.privacyMasks.map(PrivacyMaskSnapshot::of),
             )
         }
     }
@@ -280,6 +286,47 @@ public data class StrokeSnapshot(
             opacity = stroke.opacity,
             brush = stroke.brush.name,
         )
+    }
+}
+
+/**
+ * Stored form of a [PrivacyMask]. [shape] is `brush`, `rectangle` or `ellipse`; [values] holds the
+ * rectangle edges or the brush points as x, y pairs; [effect] is `blur` or `mosaic`.
+ */
+@Serializable
+public data class PrivacyMaskSnapshot(
+    val id: String,
+    val shape: String,
+    val values: List<Double>,
+    val brushWidth: Double = 0.0,
+    val effect: String,
+    val strength: Double,
+) {
+    public fun toModel(): PrivacyMask {
+        val maskShape = when (shape) {
+            "brush" -> MaskShape.Brush(values.chunked(2).filter { it.size == 2 }.map { PointN(it[0], it[1]) }, brushWidth)
+            "ellipse" -> MaskShape.Ellipse(rectOf(values))
+            else -> MaskShape.Rectangle(rectOf(values))
+        }
+        val maskEffect = if (effect == "blur") PrivacyEffect.Blur(strength) else PrivacyEffect.Mosaic(strength)
+        return PrivacyMask(id, maskShape, maskEffect)
+    }
+
+    private fun rectOf(v: List<Double>) = if (v.size >= 4) RectN(v[0], v[1], v[2], v[3]) else RectN(0.0, 0.0, 0.0, 0.0)
+
+    public companion object {
+        public fun of(mask: PrivacyMask): PrivacyMaskSnapshot {
+            val (shape, values, width) = when (val s = mask.shape) {
+                is MaskShape.Brush -> Triple("brush", s.points.flatMap { listOf(it.x, it.y) }, s.widthShortEdgeRatio)
+                is MaskShape.Rectangle -> Triple("rectangle", listOf(s.rect.left, s.rect.top, s.rect.right, s.rect.bottom), 0.0)
+                is MaskShape.Ellipse -> Triple("ellipse", listOf(s.rect.left, s.rect.top, s.rect.right, s.rect.bottom), 0.0)
+            }
+            val (effect, strength) = when (val e = mask.effect) {
+                is PrivacyEffect.Blur -> "blur" to e.radiusShortEdgeRatio
+                is PrivacyEffect.Mosaic -> "mosaic" to e.blockShortEdgeRatio
+            }
+            return PrivacyMaskSnapshot(mask.id, shape, values, width, effect, strength)
+        }
     }
 }
 
