@@ -82,6 +82,9 @@ public object FilterCatalog {
             FilterGrade(temperature = 0.35, contrast = -0.05, saturation = -0.35, shadowTint = RgbShift(0.03, 0.01, 0.0), fade = 0.35),
         ),
         FilterPreset("cinema", 1, FilterGrade(contrast = 0.2, saturation = -0.1, shadowTint = RgbShift(0.0, 0.03, 0.05), highlightTint = RgbShift(0.05, 0.02, -0.02))),
+        // 종이 문서를 찍은 사진용. 배경을 밝게 하고 글자 대비를 높인다. PDF로 만들 때 쓰기 좋다.
+        FilterPreset("document", 1, FilterGrade(brightness = 0.1, contrast = 0.4, saturation = -0.3, highlightTint = RgbShift(0.03, 0.03, 0.03))),
+        FilterPreset("document-bw", 1, FilterGrade(brightness = 0.12, contrast = 0.6, saturation = -1.0, highlightTint = RgbShift(0.04, 0.04, 0.04))),
     )
 
     @Volatile

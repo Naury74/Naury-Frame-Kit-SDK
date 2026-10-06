@@ -126,4 +126,6 @@
     <string name="framekit_privacy_help">블러는 복원될 수 있어요. 개인정보는 모자이크를 권장해요.</string>
     <string name="framekit_sticker_custom">내 스티커</string>
     <string name="framekit_error_camera_unavailable">사용할 수 있는 카메라 앱이 없어요. 사진이나 영상을 골라 주세요.</string>
+    <string name="framekit_filter_document">문서</string>
+    <string name="framekit_filter_document_bw">문서 흑백</string>
 </resources>

@@ -39,5 +39,7 @@ public fun filterLabelRes(presetId: String): Int? = when (presetId) {
     "fade" -> R.string.framekit_filter_fade
     "vintage" -> R.string.framekit_filter_vintage
     "cinema" -> R.string.framekit_filter_cinema
+    "document" -> R.string.framekit_filter_document
+    "document-bw" -> R.string.framekit_filter_document_bw
     else -> null
 }

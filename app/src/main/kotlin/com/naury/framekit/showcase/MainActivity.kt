@@ -28,7 +28,7 @@ class MainActivity : ComponentActivity() {
             ShowcaseTheme {
                 val context = LocalContext.current
                 val resources = LocalResources.current
-                var result by rememberSaveable { mutableStateOf<EditedMedia?>(null) }
+                var result by rememberSaveable { mutableStateOf<ArrayList<EditedMedia>?>(null) }
                 var elapsedMs by rememberSaveable { mutableLongStateOf(0L) }
                 var lastMessage by rememberSaveable { mutableStateOf<String?>(null) }
                 var launchedAt by rememberSaveable { mutableLongStateOf(0L) }
@@ -38,7 +38,7 @@ class MainActivity : ComponentActivity() {
                     when (outcome) {
                         is FrameKitResult.Success -> {
                             elapsedMs = SystemClock.elapsedRealtime() - launchedAt
-                            result = outcome.output
+                            result = ArrayList(outcome.outputs)
                             lastMessage = null
                         }
                         FrameKitResult.Cancelled -> lastMessage = resources.getString(R.string.result_cancelled)
@@ -72,11 +72,11 @@ class MainActivity : ComponentActivity() {
                 } else {
                     BackHandler { result = null }
                     ResultScreen(
-                        media = current,
+                        outputs = current,
                         elapsedMs = elapsedMs,
                         onBack = { result = null },
-                        onDelete = {
-                            FrameKitOutputs.deleteOutput(context, current.uri)
+                        onDeleteAll = {
+                            current.forEach { FrameKitOutputs.deleteOutput(context, it.uri) }
                             result = null
                             lastMessage = resources.getString(R.string.result_deleted)
                         },

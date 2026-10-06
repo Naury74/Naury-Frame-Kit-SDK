@@ -74,4 +74,17 @@
     <string name="playground_invalid">These settings are rejected by the SDK:</string>
     <string name="playground_launch">Open editor</string>
     <string name="playground_reset">Reset</string>
+    <string name="result_count">%1$d result(s) · %2$d ms</string>
+    <string name="result_pages">Pages</string>
+    <string name="result_document">PDF document</string>
+    <string name="example_multi_photo_title">Several photos</string>
+    <string name="example_multi_photo_description">Pick up to 10 photos, edit each, save one file per photo</string>
+    <string name="example_document_title">Photos to PDF</string>
+    <string name="example_document_description">Pick up to 20 pages, crop and use the Document filter, save one A4 PDF</string>
+    <string name="example_camera_photo_title">Take a photo</string>
+    <string name="example_camera_photo_description">Open the camera app and edit the photo just taken</string>
+    <string name="example_camera_video_title">Record a video</string>
+    <string name="example_camera_video_description">Record with the camera app and edit the clip</string>
+    <string name="example_mixed_title">Photos or videos (many)</string>
+    <string name="example_mixed_description">Pick several; all photos open the photo editor, all videos the video editor</string>
 </resources>

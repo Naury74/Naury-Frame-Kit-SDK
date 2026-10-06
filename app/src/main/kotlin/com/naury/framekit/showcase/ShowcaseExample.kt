@@ -10,6 +10,8 @@ import com.naury.framekit.android.input.EditorInput
 import com.naury.framekit.android.input.MediaKind
 import com.naury.framekit.image.export.ImageExportConfig
 import com.naury.framekit.image.export.ImageFormat
+import com.naury.framekit.image.export.PdfOptions
+import com.naury.framekit.core.pdf.PdfPageSize
 import com.naury.framekit.ui.config.EditorUiConfig
 import com.naury.framekit.ui.config.ThemeMode
 import com.naury.framekit.ui.image.contract.ImageEditorConfig
@@ -38,6 +40,35 @@ enum class ShowcaseExample(
         R.string.example_any_title,
         R.string.example_any_description,
         FrameKitRequest(EditorInput.Pick(MediaKind.ANY)),
+    ),
+    MULTI_PHOTO(
+        R.string.example_multi_photo_title,
+        R.string.example_multi_photo_description,
+        FrameKitRequest(EditorInput.Pick(MediaKind.IMAGE, maxItems = 10)),
+    ),
+    DOCUMENT_PDF(
+        R.string.example_document_title,
+        R.string.example_document_description,
+        FrameKitRequest(
+            EditorInput.Pick(MediaKind.IMAGE, maxItems = 20),
+            image = ImageEditorConfig(enabledTools = setOf(ImageTool.CROP, ImageTool.ROTATE, ImageTool.ADJUST, ImageTool.FILTER, ImageTool.PRIVACY)),
+            imageExport = ImageExportConfig(format = ImageFormat.PDF, quality = 85, pdf = PdfOptions(pageSize = PdfPageSize.A4, marginMm = 8.0)),
+        ),
+    ),
+    CAMERA_PHOTO(
+        R.string.example_camera_photo_title,
+        R.string.example_camera_photo_description,
+        FrameKitRequest(EditorInput.Capture(MediaKind.IMAGE)),
+    ),
+    CAMERA_VIDEO(
+        R.string.example_camera_video_title,
+        R.string.example_camera_video_description,
+        FrameKitRequest(EditorInput.Capture(MediaKind.VIDEO)),
+    ),
+    MIXED_PICK(
+        R.string.example_mixed_title,
+        R.string.example_mixed_description,
+        FrameKitRequest(EditorInput.Pick(MediaKind.ANY, maxItems = 10)),
     ),
     SHORT_CLIP(
         R.string.example_short_clip_title,

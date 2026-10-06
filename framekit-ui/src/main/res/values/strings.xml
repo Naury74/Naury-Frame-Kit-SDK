@@ -126,4 +126,6 @@
     <string name="framekit_privacy_help">Blur can sometimes be reversed. Use mosaic for personal information.</string>
     <string name="framekit_sticker_custom">My stickers</string>
     <string name="framekit_error_camera_unavailable">No camera app is available. Choose a photo or video instead.</string>
+    <string name="framekit_filter_document">Document</string>
+    <string name="framekit_filter_document_bw">Document B&amp;W</string>
 </resources>
