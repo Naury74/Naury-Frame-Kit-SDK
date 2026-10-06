@@ -7,19 +7,28 @@ This project includes vector path data from Material Icons
 (https://github.com/google/material-design-icons), licensed under the
 Apache License, Version 2.0:
 
-  framekit-ui/src/main/res/drawable/framekit_ic_undo.xml
-  framekit-ui/src/main/res/drawable/framekit_ic_redo.xml
-  framekit-ui/src/main/res/drawable/framekit_ic_crop.xml
-  framekit-ui/src/main/res/drawable/framekit_ic_rotate_left.xml
-  framekit-ui/src/main/res/drawable/framekit_ic_rotate_right.xml
-  framekit-ui/src/main/res/drawable/framekit_ic_flip_horizontal.xml
-  framekit-ui/src/main/res/drawable/framekit_ic_flip_vertical.xml
   framekit-ui/src/main/res/drawable/framekit_ic_adjust.xml
-  framekit-ui/src/main/res/drawable/framekit_ic_filter.xml
-  framekit-ui/src/main/res/drawable/framekit_ic_text.xml
-  framekit-ui/src/main/res/drawable/framekit_ic_sticker.xml
+  framekit-ui/src/main/res/drawable/framekit_ic_aspect.xml
+  framekit-ui/src/main/res/drawable/framekit_ic_crop.xml
+  framekit-ui/src/main/res/drawable/framekit_ic_cutout.xml
   framekit-ui/src/main/res/drawable/framekit_ic_draw.xml
   framekit-ui/src/main/res/drawable/framekit_ic_duplicate.xml
+  framekit-ui/src/main/res/drawable/framekit_ic_filter.xml
+  framekit-ui/src/main/res/drawable/framekit_ic_flip_horizontal.xml
+  framekit-ui/src/main/res/drawable/framekit_ic_flip_vertical.xml
+  framekit-ui/src/main/res/drawable/framekit_ic_pause.xml
+  framekit-ui/src/main/res/drawable/framekit_ic_play.xml
+  framekit-ui/src/main/res/drawable/framekit_ic_privacy.xml
+  framekit-ui/src/main/res/drawable/framekit_ic_redo.xml
+  framekit-ui/src/main/res/drawable/framekit_ic_rotate_left.xml
+  framekit-ui/src/main/res/drawable/framekit_ic_rotate_right.xml
+  framekit-ui/src/main/res/drawable/framekit_ic_speed.xml
+  framekit-ui/src/main/res/drawable/framekit_ic_sticker.xml
+  framekit-ui/src/main/res/drawable/framekit_ic_text.xml
+  framekit-ui/src/main/res/drawable/framekit_ic_trim.xml
+  framekit-ui/src/main/res/drawable/framekit_ic_undo.xml
+  framekit-ui/src/main/res/drawable/framekit_ic_volume.xml
+  framekit-ui/src/main/res/drawable/framekit_ic_volume_off.xml
 
 You may obtain a copy of the Apache License at
 http://www.apache.org/licenses/LICENSE-2.0
