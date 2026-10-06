@@ -69,6 +69,7 @@ import com.naury.framekit.ui.image.tool.AdjustToolPanel
 import com.naury.framekit.ui.image.tool.CropToolPanel
 import com.naury.framekit.ui.image.tool.DrawToolPanel
 import com.naury.framekit.ui.image.tool.FilterToolPanel
+import com.naury.framekit.ui.image.tool.PrivacyToolPanel
 import com.naury.framekit.ui.image.tool.StickerToolPanel
 import com.naury.framekit.ui.image.tool.TextToolPanel
 import com.naury.framekit.ui.image.tool.RotateToolPanel
@@ -288,6 +289,9 @@ private fun ToolArea(state: ImageEditorUiState.Ready, viewModel: ImageEditorView
                 ImageTool.DRAW -> ToolPanelWithActions(R.string.framekit_tool_draw, viewModel, isDraft = false) {
                     DrawToolPanel(brush = state.brush, onBrush = viewModel::updateBrush)
                 }
+                ImageTool.PRIVACY -> ToolPanelWithActions(R.string.framekit_tool_privacy, viewModel, isDraft = false) {
+                    PrivacyToolPanel(settings = state.privacy, onChange = viewModel::updatePrivacy)
+                }
                 ImageTool.FILTER -> ToolPanelWithActions(R.string.framekit_tool_filter, viewModel, isDraft = false) {
                     val thumbnails by viewModel.filterThumbnails.collectAsStateWithLifecycle()
                     FilterToolPanel(
@@ -330,6 +334,7 @@ private fun ImageTool.railItem(): ToolRailItem<ImageTool> = when (this) {
     ImageTool.TEXT -> ToolRailItem(this, stringResource(R.string.framekit_tool_text), painterResource(UiR.drawable.framekit_ic_text))
     ImageTool.STICKER -> ToolRailItem(this, stringResource(R.string.framekit_tool_sticker), painterResource(UiR.drawable.framekit_ic_sticker))
     ImageTool.DRAW -> ToolRailItem(this, stringResource(R.string.framekit_tool_draw), painterResource(UiR.drawable.framekit_ic_draw))
+    ImageTool.PRIVACY -> ToolRailItem(this, stringResource(R.string.framekit_tool_privacy), painterResource(UiR.drawable.framekit_ic_privacy))
 }
 
 private const val TOOL_TRANSITION_MS = 200

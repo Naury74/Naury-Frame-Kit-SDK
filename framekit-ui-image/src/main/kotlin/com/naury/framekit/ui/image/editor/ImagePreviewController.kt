@@ -26,6 +26,9 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
+/** `true` when the preview must be rendered off screen: color effects or privacy masks are present. */
+internal val ImageProject.needsRenderedPreview: Boolean get() = !colorSpec.isIdentity || privacyMasks.isNotEmpty()
+
 /** Preview bitmap for one project snapshot. */
 internal data class RenderedPreview(val bitmap: Bitmap, val project: ImageProject, val mode: PreviewMode)
 
@@ -58,7 +61,7 @@ internal class ImagePreviewController(
         scope.launch {
             combine(requests.filterNotNull(), viewport.filterNotNull()) { request, size -> request to size }
                 .collectLatest { (request, size) ->
-                    if (request.project.colorSpec.isIdentity) {
+                    if (!request.project.needsRenderedPreview) {
                         _rendered.value = null
                         return@collectLatest
                     }

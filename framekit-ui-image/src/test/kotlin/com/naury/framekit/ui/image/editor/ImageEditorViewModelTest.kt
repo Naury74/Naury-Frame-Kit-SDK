@@ -20,7 +20,9 @@ import com.naury.framekit.android.source.SessionSourceRegistry
 import com.naury.framekit.core.effect.AdjustmentKind
 import com.naury.framekit.core.effect.FilterSelection
 import com.naury.framekit.core.geometry.CropAspectRatio
+import com.naury.framekit.core.geometry.RectN
 import com.naury.framekit.core.overlay.ImageOverlay
+import com.naury.framekit.core.overlay.MaskShape
 import com.naury.framekit.core.geometry.CropHandle
 import com.naury.framekit.image.export.ImageExportConfig
 import com.naury.framekit.image.export.ImageExportCoordinator
@@ -470,6 +472,48 @@ class ImageEditorViewModelTest {
         assertThat(ready(viewModel).transaction.history.past).hasSize(1)
         viewModel.undo()
         assertThat(ready(viewModel).displayed.drawing).isEmpty()
+    }
+
+    @Test
+    fun `privacy rectangle is one undo step and tiny rectangles are ignored`() {
+        val viewModel = viewModel(EditorInput.FileSource(sourceFile.absolutePath))
+        viewModel.selectTool(ImageTool.PRIVACY)
+        viewModel.updatePrivacy { it.copy(shape = PrivacyShape.RECTANGLE) }
+
+        viewModel.beginStroke(0.5, 0.5, 1.0)
+        viewModel.extendStroke(0.502, 0.501, 1.0, 0.0, 0.0)
+        viewModel.finishStroke()
+        assertThat(ready(viewModel).displayed.privacyMasks).isEmpty()
+        assertThat(ready(viewModel).transaction.history.canUndo).isFalse()
+
+        viewModel.beginStroke(0.6, 0.6, 1.0)
+        viewModel.extendStroke(0.3, 0.2, 1.0, 0.0, 0.0)
+        viewModel.finishStroke()
+
+        val mask = ready(viewModel).displayed.privacyMasks.single()
+        assertThat((mask.shape as MaskShape.Rectangle).rect).isEqualTo(RectN(0.3, 0.2, 0.6, 0.6))
+        assertThat(ready(viewModel).transaction.history.past).hasSize(1)
+    }
+
+    @Test
+    fun `mosaic mask is applied to the exported file`() {
+        val viewModel = viewModel(EditorInput.FileSource(sourceFile.absolutePath))
+        viewModel.selectTool(ImageTool.PRIVACY)
+        viewModel.updatePrivacy { it.copy(shape = PrivacyShape.RECTANGLE, mosaic = true, strength = 1.0) }
+        // 왼쪽 빨강과 오른쪽 파랑 경계를 가로지르는 사각형: 경계 블록은 두 색의 평균이 된다.
+        viewModel.beginStroke(0.0, 0.0, 1.0)
+        viewModel.extendStroke(1.0, 1.0, 1.0, 0.0, 0.0)
+        viewModel.finishStroke()
+        viewModel.closeTool()
+
+        viewModel.save()
+
+        val exported = BitmapFactory.decodeFile(publishedFiles().single().absolutePath)
+        // 블록 16px(짧은 변 200 × 0.08). x=192..207 블록은 빨강(<200)과 파랑(≥200)이 반씩 섞인다.
+        val mixed = exported.getPixel(200, 100)
+        assertThat(Color.red(mixed)).isIn(90..170)
+        assertThat(Color.blue(mixed)).isIn(90..170)
+        assertThat(exported.getPixel(193, 100)).isEqualTo(exported.getPixel(206, 100))
     }
 
     @Test

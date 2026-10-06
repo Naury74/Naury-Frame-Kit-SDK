@@ -81,14 +81,14 @@ internal fun ImageCanvas(
     val metadata = state.source.metadata
     val toolMode = state.activeTool?.isGeometry == true
     val project = if (state.showingOriginal) {
-        state.displayed.copy(geometry = GeometryEdit(), adjustments = Adjustments(), filter = FilterSelection())
+        state.displayed.copy(geometry = GeometryEdit(), adjustments = Adjustments(), filter = FilterSelection(), privacyMasks = emptyList())
     } else {
         state.displayed
     }
     val mode = if (toolMode) PreviewMode.UNCROPPED else PreviewMode.RESULT
     // 색 효과가 있으면 같은 형태(geometry)로 렌더된 미리보기를 쓴다. 새 값이 렌더되는 동안에는 직전 결과를 보여 준다.
     val effectedBitmap = rendered
-        ?.takeIf { !project.colorSpec.isIdentity && it.mode == mode && it.project.geometry == project.geometry }
+        ?.takeIf { project.needsRenderedPreview && it.mode == mode && it.project.geometry == project.geometry }
         ?.bitmap
     val previewLongEdge = maxOf(state.preview.bitmap.width, state.preview.bitmap.height)
     val plan = remember(project, toolMode) {
@@ -116,7 +116,7 @@ internal fun ImageCanvas(
         val overlayRenderer = remember { OverlayRenderer() }
         val showOverlays = !toolMode && !state.showingOriginal
         val selected = state.selectedOverlayId?.let { id -> project.overlays.firstOrNull { it.id == id } }
-            ?.takeIf { showOverlays && state.activeTool != ImageTool.TEXT && state.activeTool != ImageTool.DRAW }
+            ?.takeIf { showOverlays && state.activeTool != ImageTool.TEXT && state.activeTool != ImageTool.DRAW && state.activeTool != ImageTool.PRIVACY }
         val selectionCorners = selected?.let { overlay ->
             overlayRenderer.corners(overlay, plan.outputSize).map { outputToViewport.map(it) }
         }
@@ -158,7 +158,7 @@ internal fun ImageCanvas(
                     )
                 }
             ImageTool.ROTATE, ImageTool.TEXT -> Modifier
-            ImageTool.DRAW -> Modifier.pointerInput(Unit) {
+            ImageTool.DRAW, ImageTool.PRIVACY -> Modifier.pointerInput(Unit) {
                 val minDistance = 2.dp.toPx().toDouble()
                 awaitEachGesture {
                     val down = awaitFirstDown()

@@ -77,4 +77,13 @@
     <string name="framekit_sticker_objects">사물</string>
     <string name="framekit_sticker_symbols">기호</string>
     <string name="framekit_color_swatch">색상 %1$s</string>
+    <string name="framekit_tool_privacy">가리기</string>
+    <string name="framekit_privacy_mosaic">모자이크</string>
+    <string name="framekit_privacy_blur">블러</string>
+    <string name="framekit_privacy_brush">브러시</string>
+    <string name="framekit_privacy_rectangle">사각형</string>
+    <string name="framekit_privacy_ellipse">원</string>
+    <string name="framekit_privacy_strength">강도</string>
+    <string name="framekit_privacy_brush_size">브러시 크기</string>
+    <string name="framekit_privacy_help">블러는 복원될 수 있어요. 개인정보는 모자이크를 권장해요.</string>
 </resources>

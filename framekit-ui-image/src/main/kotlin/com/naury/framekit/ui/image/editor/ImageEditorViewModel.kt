@@ -26,7 +26,11 @@ import com.naury.framekit.core.effect.Adjustments
 import com.naury.framekit.core.effect.FilterCatalog
 import com.naury.framekit.core.effect.FilterSelection
 import com.naury.framekit.core.geometry.CropAspectRatio
+import com.naury.framekit.core.geometry.PointN
+import com.naury.framekit.core.geometry.RectN
 import com.naury.framekit.core.overlay.DrawingStroke
+import com.naury.framekit.core.overlay.MaskShape
+import com.naury.framekit.core.overlay.PrivacyMask
 import com.naury.framekit.core.overlay.EmojiCatalog
 import com.naury.framekit.core.overlay.ImageOverlay
 import com.naury.framekit.core.overlay.StrokePoint
@@ -37,7 +41,6 @@ import com.naury.framekit.core.geometry.CropHandleDrag
 import com.naury.framekit.core.geometry.GeometryEdit
 import com.naury.framekit.core.geometry.GeometryFrame
 import com.naury.framekit.core.geometry.GeometryOperations
-import com.naury.framekit.core.geometry.RectN
 import com.naury.framekit.core.history.HistoryTransaction
 import com.naury.framekit.core.model.ImageProject
 import com.naury.framekit.core.model.ProjectId
@@ -63,6 +66,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.UUID
+import kotlin.math.abs
 import kotlin.random.Random
 
 /**
@@ -98,6 +102,7 @@ internal class ImageEditorViewModel(
     private var cropDragStart: Pair<CropHandle, RectN>? = null
     private var straightenStart: GeometryEdit? = null
     private var overlayGestureStart: ImageOverlay? = null
+    private var maskAnchor: PointN? = null
     private val session = ImageSessionRecorder(sessionStore, savedState, viewModelScope, ioDispatcher, snapshotDebounceMillis)
 
     private val previewController = ImagePreviewController(viewModelScope, colorRenderer, renderDispatcher)
@@ -122,7 +127,11 @@ internal class ImageEditorViewModel(
     }
 
     private fun requestPreview(ready: ImageEditorUiState.Ready) {
-        val project = if (ready.showingOriginal) ready.displayed.copy(geometry = GeometryEdit(), adjustments = Adjustments(), filter = FilterSelection()) else ready.displayed
+        val project = if (ready.showingOriginal) {
+            ready.displayed.copy(geometry = GeometryEdit(), adjustments = Adjustments(), filter = FilterSelection(), privacyMasks = emptyList())
+        } else {
+            ready.displayed
+        }
         val mode = if (ready.activeTool?.isGeometry == true) PreviewMode.UNCROPPED else PreviewMode.RESULT
         previewController.request(ready.preview, project, ready.source.metadata, mode)
         if (ready.activeTool == ImageTool.FILTER) previewController.ensureThumbnails(ready.preview)
@@ -302,21 +311,65 @@ internal class ImageEditorViewModel(
 
     fun updateBrush(transform: (BrushSettings) -> BrushSettings) = updateReady { it.copy(brush = transform(it.brush)) }
 
-    /** Starts a stroke at a normalized canvas point; the stroke is committed by [finishStroke]. */
+    /**
+     * Starts a stroke at a normalized canvas point; [finishStroke] commits it. With the privacy tool
+     * open, the stroke paints a brush mask or spans a rectangle or ellipse instead.
+     */
     override fun beginStroke(x: Double, y: Double, pressure: Double) = updateGesture { ready, project ->
+        if (ready.activeTool == ImageTool.PRIVACY) {
+            maskAnchor = PointN(x, y)
+            val settings = ready.privacy
+            val shape = when (settings.shape) {
+                PrivacyShape.BRUSH -> MaskShape.Brush(listOf(PointN(x, y)), settings.brushWidthShortEdgeRatio)
+                PrivacyShape.RECTANGLE -> MaskShape.Rectangle(RectN(x, y, x, y))
+                PrivacyShape.ELLIPSE -> MaskShape.Ellipse(RectN(x, y, x, y))
+            }
+            return@updateGesture project.copy(privacyMasks = project.privacyMasks + PrivacyMask(newId(), shape, settings.effect()))
+        }
         val brush = ready.brush
         val stroke = DrawingStroke(newId(), listOf(StrokePoint(x, y, pressure)), brush.widthShortEdgeRatio, brush.colorArgb, brush.opacity, brush.kind)
         project.copy(drawing = project.drawing + stroke)
     }
 
     /** @param minDistanceX smallest movement recorded, in normalized units, to throttle samples. */
-    override fun extendStroke(x: Double, y: Double, pressure: Double, minDistanceX: Double, minDistanceY: Double) = updateGesture { _, project ->
+    override fun extendStroke(x: Double, y: Double, pressure: Double, minDistanceX: Double, minDistanceY: Double) = updateGesture { ready, project ->
+        if (ready.activeTool == ImageTool.PRIVACY) return@updateGesture extendMask(project, x, y, minDistanceX, minDistanceY)
         val last = project.drawing.lastOrNull() ?: return@updateGesture project
         val extended = OverlayEditing.appendPoint(last, StrokePoint(x, y, pressure), minDistanceX, minDistanceY)
         if (extended === last) project else project.copy(drawing = project.drawing.dropLast(1) + extended)
     }
 
-    override fun finishStroke() = finishGesture()
+    override fun finishStroke() {
+        val ready = _state.value as? ImageEditorUiState.Ready
+        val mask = ready?.transaction?.draft?.privacyMasks?.lastOrNull()
+        // 손가락을 거의 움직이지 않은 사각형·원은 의도한 마스크가 아니므로 추가하지 않는다.
+        val degenerate = ready?.activeTool == ImageTool.PRIVACY && mask != null && when (val shape = mask.shape) {
+            is MaskShape.Rectangle -> shape.rect.width < MIN_MASK_SIZE || shape.rect.height < MIN_MASK_SIZE
+            is MaskShape.Ellipse -> shape.rect.width < MIN_MASK_SIZE || shape.rect.height < MIN_MASK_SIZE
+            is MaskShape.Brush -> false
+        }
+        maskAnchor = null
+        if (degenerate) updateReady { it.copy(transaction = it.transaction.cancel()) } else finishGesture()
+    }
+
+    private fun extendMask(project: ImageProject, x: Double, y: Double, minDistanceX: Double, minDistanceY: Double): ImageProject {
+        val last = project.privacyMasks.lastOrNull() ?: return project
+        val anchor = maskAnchor ?: return project
+        val rect = RectN(minOf(anchor.x, x), minOf(anchor.y, y), maxOf(anchor.x, x), maxOf(anchor.y, y))
+        val shape = when (val current = last.shape) {
+            is MaskShape.Brush -> {
+                val previous = current.points.last()
+                val farEnough = abs(previous.x - x) >= minDistanceX || abs(previous.y - y) >= minDistanceY
+                if (!farEnough || current.points.size >= DrawingStroke.MAX_POINTS) return project
+                current.copy(points = current.points + PointN(x, y))
+            }
+            is MaskShape.Rectangle -> MaskShape.Rectangle(rect)
+            is MaskShape.Ellipse -> MaskShape.Ellipse(rect)
+        }
+        return project.copy(privacyMasks = project.privacyMasks.dropLast(1) + last.copy(shape = shape))
+    }
+
+    fun updatePrivacy(transform: (PrivacySettings) -> PrivacySettings) = updateReady { it.copy(privacy = transform(it.privacy)) }
 
     /** Apply of a draft tool: the whole tool session becomes one undo step. Empty text is dropped. */
     fun applyTool() = updateReady { ready ->
@@ -591,5 +644,6 @@ internal class ImageEditorViewModel(
         const val TAG = "FrameKit"
         const val KEY_PICKED_URI = "framekit_picked_uri"
         const val SNAPSHOT_DEBOUNCE_MILLIS = 300L
+        const val MIN_MASK_SIZE = 0.01
     }
 }

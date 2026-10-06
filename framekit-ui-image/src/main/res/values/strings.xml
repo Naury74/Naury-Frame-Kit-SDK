@@ -77,4 +77,13 @@
     <string name="framekit_sticker_objects">Objects</string>
     <string name="framekit_sticker_symbols">Symbols</string>
     <string name="framekit_color_swatch">Color %1$s</string>
+    <string name="framekit_tool_privacy">Privacy</string>
+    <string name="framekit_privacy_mosaic">Mosaic</string>
+    <string name="framekit_privacy_blur">Blur</string>
+    <string name="framekit_privacy_brush">Brush</string>
+    <string name="framekit_privacy_rectangle">Rectangle</string>
+    <string name="framekit_privacy_ellipse">Ellipse</string>
+    <string name="framekit_privacy_strength">Strength</string>
+    <string name="framekit_privacy_brush_size">Brush size</string>
+    <string name="framekit_privacy_help">Blur can sometimes be reversed. Use mosaic for personal information.</string>
 </resources>

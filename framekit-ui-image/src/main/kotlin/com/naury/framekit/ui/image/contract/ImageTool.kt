@@ -22,6 +22,9 @@ public enum class ImageTool(internal val isDraft: Boolean) {
 
     /** Pen, marker, highlighter and eraser. Each stroke is one undo step. */
     DRAW(isDraft = false),
+
+    /** Mosaic and blur with brush, rectangle or ellipse. Each mask is one undo step. */
+    PRIVACY(isDraft = false),
     ;
 
     /** Tools that show the whole rotated image instead of the cropped result. */
@@ -29,6 +32,6 @@ public enum class ImageTool(internal val isDraft: Boolean) {
 
     public companion object {
         /** Tools available in this version, in rail order. */
-        public val defaults: Set<ImageTool> = linkedSetOf(CROP, ROTATE, ADJUST, FILTER, TEXT, STICKER, DRAW)
+        public val defaults: Set<ImageTool> = linkedSetOf(CROP, ROTATE, ADJUST, FILTER, TEXT, STICKER, DRAW, PRIVACY)
     }
 }
