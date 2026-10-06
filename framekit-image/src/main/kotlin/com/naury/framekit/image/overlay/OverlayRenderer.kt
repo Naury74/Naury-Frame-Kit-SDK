@@ -17,6 +17,7 @@ import com.naury.framekit.core.model.PixelSize
 import com.naury.framekit.core.overlay.BrushKind
 import com.naury.framekit.core.overlay.DrawingStroke
 import com.naury.framekit.core.overlay.EmojiCatalog
+import com.naury.framekit.image.catalog.CatalogAssets
 import com.naury.framekit.core.overlay.ImageOverlay
 import com.naury.framekit.core.overlay.TextAlignment
 import com.naury.framekit.core.overlay.TextStyleSpec
@@ -55,7 +56,9 @@ public class OverlayRenderer {
         }
         is ImageOverlay.Sticker -> {
             val side = (overlay.widthRatio * canvas.width * overlay.transform.scale).toFloat()
-            OverlayLayout(side, side)
+            // 호스트 이미지 스티커는 이미지 비율을 지키고, 이모지는 정사각형이다.
+            val image = CatalogAssets.sticker(overlay.assetId)
+            OverlayLayout(side, if (image != null) side * image.height / image.width else side)
         }
     }
 
@@ -153,6 +156,10 @@ public class OverlayRenderer {
     }
 
     private fun drawSticker(canvas: Canvas, overlay: ImageOverlay.Sticker, box: OverlayLayout) {
+        CatalogAssets.sticker(overlay.assetId)?.let { image ->
+            canvas.drawBitmap(image, null, RectF(0f, 0f, box.width, box.height), STICKER_PAINT)
+            return
+        }
         val emoji = EmojiCatalog.emojiOf(overlay.assetId) ?: return
         val paint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
             textSize = REFERENCE_TEXT_SIZE
@@ -252,7 +259,7 @@ public class OverlayRenderer {
         return max(stroke + shadow, background).toFloat()
     }
 
-    private fun typefaceOf(fontId: String): Typeface = when (fontId) {
+    private fun typefaceOf(fontId: String): Typeface = CatalogAssets.typeface(fontId) ?: when (fontId) {
         "sans-bold" -> Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD)
         "serif" -> Typeface.SERIF
         "serif-bold" -> Typeface.create(Typeface.SERIF, Typeface.BOLD)
@@ -267,5 +274,6 @@ public class OverlayRenderer {
         const val TEXT_CACHE_SIZE = 32
         const val REFERENCE_TEXT_SIZE = 100f
         const val HIGHLIGHTER_ALPHA = 0.4f
+        val STICKER_PAINT = Paint(Paint.FILTER_BITMAP_FLAG or Paint.ANTI_ALIAS_FLAG)
     }
 }

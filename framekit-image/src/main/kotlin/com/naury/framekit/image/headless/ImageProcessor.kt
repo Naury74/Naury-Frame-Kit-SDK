@@ -1,5 +1,7 @@
 package com.naury.framekit.image.headless
 
+import com.naury.framekit.android.catalog.EditorCatalog
+import com.naury.framekit.image.catalog.CatalogAssets
 import android.content.Context
 import android.graphics.Bitmap
 import android.net.Uri
@@ -66,6 +68,8 @@ public class ImageSource internal constructor(
  *
  * 에디터와 같은 decoder, renderer, 내보내기 파이프라인을 쓰므로 같은 프로젝트를 headless로 내보내든
  * UI로 내보내든 결과가 같다. GPU context와 가져온 bitmap을 해제하려면 [close]를 호출한다.
+ *
+ * @param catalog 호스트 필터·스티커·폰트. 프로젝트가 호스트 항목 id를 쓰면 같은 카탈로그를 넘긴다.
  */
 public class ImageProcessor(
     context: Context,
@@ -73,9 +77,10 @@ public class ImageProcessor(
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
     exportDispatcher: CoroutineDispatcher = Dispatchers.Default,
     backgroundRemover: BackgroundRemover? = null,
+    catalog: EditorCatalog = EditorCatalog(),
 ) : AutoCloseable {
 
-    private val appContext = context.applicationContext
+    private val appContext = context.applicationContext.also { CatalogAssets.install(it, catalog) }
     private val registry = SessionSourceRegistry(appContext)
     private val outputStore = AppFileOutputStore(appContext)
     private val coordinator = ImageExportCoordinator(
