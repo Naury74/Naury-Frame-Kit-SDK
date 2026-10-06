@@ -7,6 +7,7 @@ import com.naury.framekit.core.model.ImageProject
 import com.naury.framekit.core.model.SourceMetadata
 import com.naury.framekit.image.decode.DecodedImage
 import com.naury.framekit.image.effect.ColorEffectRenderer
+import com.naury.framekit.image.overlay.PrivacyRenderer
 
 /** What the preview shows. */
 public enum class PreviewMode {
@@ -18,8 +19,9 @@ public enum class PreviewMode {
 }
 
 /**
- * Renders a screen-sized preview with the same plan factory, geometry renderer and color renderer as
- * export, so what the user sees is what gets saved.
+ * Renders a screen-sized preview with the same plan factory, geometry, color and privacy renderers as
+ * export, so what the user sees is what gets saved. Text, stickers and drawings are drawn by the
+ * caller on top, with the same overlay renderer.
  */
 public class ImagePreviewRenderer(private val colorRenderer: ColorEffectRenderer) {
 
@@ -51,6 +53,8 @@ public class ImagePreviewRenderer(private val colorRenderer: ColorEffectRenderer
         }
         val bitmap = CanvasGeometryRenderer.render(source, plan, backgroundArgb = null)
         colorRenderer.apply(bitmap, project.colorSpec, includeCanvasEffects = mode == PreviewMode.RESULT)
+        // 가리기는 출력 캔버스 기준이라 crop 전체 보기에서는 적용하지 않는다.
+        if (mode == PreviewMode.RESULT) PrivacyRenderer.apply(bitmap, project.privacyMasks)
         return bitmap
     }
 }

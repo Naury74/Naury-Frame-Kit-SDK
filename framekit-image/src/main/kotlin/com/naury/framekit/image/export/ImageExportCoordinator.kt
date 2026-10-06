@@ -25,6 +25,7 @@ import com.naury.framekit.image.decode.SampleSize
 import com.naury.framekit.image.effect.ColorEffectRenderer
 import com.naury.framekit.image.effect.CpuColorEffectRenderer
 import com.naury.framekit.image.overlay.OverlayRenderer
+import com.naury.framekit.image.overlay.PrivacyRenderer
 import com.naury.framekit.image.render.CanvasGeometryRenderer
 import com.naury.framekit.image.render.ImageRenderPlanFactory
 import kotlinx.coroutines.CoroutineDispatcher
@@ -90,7 +91,10 @@ public class ImageExportCoordinator(
         val plan = ImageRenderPlanFactory.create(project, metadata, outputSize)
         val decodePlan = decodePlan(source, project, outputSize)
         val colorSpec = project.colorSpec
-        val colorBytes = colorRenderer.workingBytes(outputSize.width, outputSize.height, colorSpec)
+        val colorBytes = maxOf(
+            colorRenderer.workingBytes(outputSize.width, outputSize.height, colorSpec),
+            PrivacyRenderer.workingBytes(outputSize.width, outputSize.height, project.privacyMasks),
+        )
         val strategy = renderStrategy(source, decodePlan, outputSize, colorBytes)
         checkStorage(outputSize, config.format)
 
@@ -132,6 +136,12 @@ public class ImageExportCoordinator(
             } catch (error: OutOfMemoryError) {
                 rendered.recycle()
                 throw FrameKitException(EditorErrorCode.INSUFFICIENT_MEMORY, "Color effects did not fit in memory", error)
+            }
+            try {
+                PrivacyRenderer.apply(rendered, project.privacyMasks)
+            } catch (error: OutOfMemoryError) {
+                rendered.recycle()
+                throw FrameKitException(EditorErrorCode.INSUFFICIENT_MEMORY, "Privacy masks did not fit in memory", error)
             }
             if (project.overlays.isNotEmpty() || project.drawing.isNotEmpty()) {
                 overlayRenderer.draw(Canvas(rendered), outputSize, project.overlays, project.drawing)
