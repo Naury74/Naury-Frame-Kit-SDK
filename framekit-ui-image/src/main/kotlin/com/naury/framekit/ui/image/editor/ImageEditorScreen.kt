@@ -408,9 +408,17 @@ private fun ColumnScope.ToolPanelWithActions(title: Int, viewModel: ImageEditorV
         title = stringResource(title),
         onCancel = if (isDraft) viewModel::cancelTool else null,
         onApply = if (isDraft) viewModel::applyTool else viewModel::closeTool,
-        onReset = viewModel::resetTool,
+        // 되돌릴 기준이 분명한 도구에만 초기화를 둔다. 텍스트·스티커·그리기 등에서는 눌러도 아무 일이 없어 혼란스럽다.
+        onReset = if (title in RESETTABLE_TOOL_TITLES) viewModel::resetTool else null,
     )
 }
+
+private val RESETTABLE_TOOL_TITLES = setOf(
+    UiR.string.framekit_tool_crop,
+    UiR.string.framekit_tool_rotate,
+    UiR.string.framekit_tool_adjust,
+    UiR.string.framekit_tool_filter,
+)
 
 @Composable
 private fun ImageTool.railItem(): ToolRailItem<ImageTool> = when (this) {

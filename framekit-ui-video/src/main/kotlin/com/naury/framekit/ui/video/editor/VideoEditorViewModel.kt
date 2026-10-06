@@ -521,9 +521,19 @@ internal class VideoEditorViewModel(
             VideoTool.ADJUST -> commitImmediate { Edit.updateClip(it, id) { c -> c.copy(effects = c.effects.copy(adjustments = Adjustments())) } }
             VideoTool.FILTER -> commitImmediate { Edit.updateClip(it, id) { c -> c.copy(effects = c.effects.copy(filter = FilterSelection())) } }
             VideoTool.SPEED -> selectSpeed(1.0)
-            VideoTool.AUDIO -> commitImmediate { Edit.setMusic(Edit.updateClip(it, id) { c -> c.copy(muted = false, volume = 1.0) }, null) }
-            VideoTool.PRIVACY -> commitImmediate { it.copy(timeline = it.timeline.copy(privacyMasks = emptyList())) }
-            VideoTool.STICKER -> commitImmediate { p -> p.copy(timeline = p.timeline.copy(overlays = p.timeline.overlays.filterNot { it.overlay is ImageOverlay.Sticker })) }
+            VideoTool.AUDIO -> {
+                val hadMusic = ready.displayed.timeline.audioClips.isNotEmpty()
+                commitImmediate { Edit.setMusic(Edit.updateClip(it, id) { c -> c.copy(muted = false, volume = 1.0) }, null) }
+                if (hadMusic) notifyCleared()
+            }
+            VideoTool.PRIVACY -> if (ready.displayed.timeline.privacyMasks.isNotEmpty()) {
+                commitImmediate { it.copy(timeline = it.timeline.copy(privacyMasks = emptyList())) }
+                notifyCleared()
+            }
+            VideoTool.STICKER -> if (ready.displayed.timeline.overlays.any { it.overlay is ImageOverlay.Sticker }) {
+                commitImmediate { p -> p.copy(timeline = p.timeline.copy(overlays = p.timeline.overlays.filterNot { it.overlay is ImageOverlay.Sticker })) }
+                notifyCleared()
+            }
             VideoTool.TEXT -> updateEditingText { it.copy(style = TextStyleSpec()) }
             VideoTool.TRIM -> updateDraftClip { r, clip ->
                 clip.copy(sourceRange = TimeRangeUs(0, min(r.sourceDurationUs, (maxClipOutputUs(r, clip) * clip.speed).roundToLong())))
@@ -537,6 +547,9 @@ internal class VideoEditorViewModel(
             null -> Unit
         }
     }
+
+    // 여러 항목을 한 번에 지운 초기화는 되돌리기 쉽도록 실행 취소를 안내한다.
+    private fun notifyCleared() = updateReady { it.copy(notice = VideoNotice.CLEARED) }
 
     // ---- 클립 ----
 

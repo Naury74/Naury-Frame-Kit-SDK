@@ -62,7 +62,9 @@ import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -180,12 +182,16 @@ private fun ReadyContent(state: VideoEditorUiState.Ready, viewModel: VideoEditor
         VideoNotice.SPLIT_UNAVAILABLE -> stringResource(R.string.framekit_split_unavailable)
         VideoNotice.ADD_FAILED -> stringResource(R.string.framekit_add_failed)
         VideoNotice.PARTIALLY_RESTORED -> stringResource(R.string.framekit_partially_restored)
+        VideoNotice.CLEARED -> stringResource(R.string.framekit_cleared)
         null -> null
     }
+    val undoLabel = stringResource(UiR.string.framekit_action_undo)
     LaunchedEffect(state.notice) {
         if (noticeText != null) {
+            val offerUndo = state.notice == VideoNotice.CLEARED
             viewModel.dismissNotice()
-            snackbar.showSnackbar(noticeText)
+            val result = snackbar.showSnackbar(noticeText, actionLabel = if (offerUndo) undoLabel else null, duration = SnackbarDuration.Short)
+            if (offerUndo && result == SnackbarResult.ActionPerformed) viewModel.undo()
         }
     }
     val view = LocalView.current

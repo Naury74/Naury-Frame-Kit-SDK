@@ -97,6 +97,9 @@ internal enum class VideoNotice {
     /** 설정한 최대 클립 수에 도달했다. */
     CLIP_LIMIT,
 
+    /** 초기화로 여러 항목(가리기·스티커·배경 음악)을 한 번에 지웠다. 실행 취소를 함께 제안한다. */
+    CLEARED,
+
     /** 더 붙이면 최대 길이를 넘는다. */
     TIMELINE_FULL,
 

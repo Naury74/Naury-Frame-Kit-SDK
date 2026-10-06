@@ -54,4 +54,5 @@
     <string name="framekit_canvas_help">모양이 다른 클립은 검은 여백을 두고 맞추거나, 가장자리를 잘라 화면을 채워요.</string>
     <string name="framekit_preview_unavailable">지금은 미리보기를 보여 줄 수 없어요.</string>
     <string name="framekit_speed_result">길이 %1$s → %2$s</string>
+    <string name="framekit_cleared">모두 지웠어요</string>
 </resources>
