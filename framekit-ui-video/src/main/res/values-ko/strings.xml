@@ -14,6 +14,7 @@
     <string name="framekit_speed_too_long">이 속도로는 허용된 길이보다 길어져요.</string>
     <string name="framekit_speed_too_short">이 속도로는 허용된 길이보다 짧아져요.</string>
     <string name="framekit_audio_mute">음소거</string>
+    <string name="framekit_audio_unmute">음소거 해제</string>
     <string name="framekit_audio_volume">볼륨</string>
     <string name="framekit_audio_none">이 영상에는 소리가 없어요.</string>
     <string name="framekit_mask_help">영상 위를 끌어 가릴 영역을 지정하세요. 재생 위치부터 3초 동안 가려져요.</string>
