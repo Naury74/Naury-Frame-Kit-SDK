@@ -107,9 +107,9 @@ public class GlColorEffectRenderer : ColorEffectRenderer {
         surface = EGL14.eglCreatePbufferSurface(display, config, intArrayOf(EGL14.EGL_WIDTH, 1, EGL14.EGL_HEIGHT, 1, EGL14.EGL_NONE), 0)
         check(EGL14.eglMakeCurrent(display, surface, surface, context)) { "eglMakeCurrent failed" }
 
-        colorProgram = linkProgram(GlShaders.COLOR)
-        blurProgram = linkProgram(GlShaders.BLUR)
-        finishProgram = linkProgram(GlShaders.FINISH)
+        colorProgram = linkProgram(ColorEffectShaders.COLOR)
+        blurProgram = linkProgram(ColorEffectShaders.BLUR)
+        finishProgram = linkProgram(ColorEffectShaders.FINISH)
         val ids = IntArray(1)
         GLES30.glGenFramebuffers(1, ids, 0)
         framebuffer = ids[0]
@@ -134,7 +134,7 @@ public class GlColorEffectRenderer : ColorEffectRenderer {
             drawInto(base) {
                 GLES30.glUseProgram(colorProgram)
                 bindTexture(colorProgram, "uInput", input, 0)
-                setColorUniforms(spec)
+                ColorEffectUniforms.setColor(colorProgram, spec)
             }
             GLES30.glDeleteTextures(1, intArrayOf(input), 0)
             textures.remove(input)
@@ -152,14 +152,7 @@ public class GlColorEffectRenderer : ColorEffectRenderer {
                 bindTexture(finishProgram, "uBase", base, 0)
                 bindTexture(finishProgram, "uBlur", if (blurred != 0) blurred else base, 1)
                 uniform1i(finishProgram, "uHasBlur", if (blurred != 0) 1 else 0)
-                uniform1f(finishProgram, "uSharpen", spec.sharpenAmount)
-                uniform1f(finishProgram, "uFade", spec.fadeLift)
-                uniform1i(finishProgram, "uCanvas", if (includeCanvasEffects) 1 else 0)
-                uniform1f(finishProgram, "uVignette", spec.vignetteStrength)
-                uniform1f(finishProgram, "uGrain", spec.grainAmount)
-                uniform1i(finishProgram, "uSeed", spec.grainSeed)
-                uniform1f(finishProgram, "uCells", ColorEffectSpec.GRAIN_CELLS_SHORT_EDGE / min(width, height).toFloat())
-                GLES30.glUniform2i(location(finishProgram, "uSize"), width, height)
+                ColorEffectUniforms.setFinish(finishProgram, spec, width, height, includeCanvasEffects)
             }
             readBack(scratch, bitmap)
             checkGlError("render")
@@ -177,29 +170,6 @@ public class GlColorEffectRenderer : ColorEffectRenderer {
             uniform1i(blurProgram, "uRadius", weights.size - 1)
             GLES30.glUniform2i(location(blurProgram, "uDirection"), if (horizontal) 1 else 0, if (horizontal) 0 else 1)
             GLES30.glUniform2i(location(blurProgram, "uSize"), width, height)
-        }
-    }
-
-    private fun setColorUniforms(spec: ColorEffectSpec) {
-        val p = colorProgram
-        uniform1f(p, "uExposure", spec.exposureGain)
-        GLES30.glUniform3f(location(p, "uWhiteBalance"), spec.whiteBalance.red, spec.whiteBalance.green, spec.whiteBalance.blue)
-        uniform1f(p, "uShadows", spec.shadows)
-        uniform1f(p, "uHighlights", spec.highlights)
-        uniform1f(p, "uBrightness", spec.brightnessOffset)
-        uniform1f(p, "uContrast", spec.contrastFactor)
-        uniform1f(p, "uSaturation", spec.saturationFactor)
-        val grade = spec.grade
-        uniform1i(p, "uHasGrade", if (grade != null) 1 else 0)
-        uniform1f(p, "uIntensity", spec.filterIntensity)
-        if (grade != null) {
-            GLES30.glUniform3f(location(p, "uGradeGains"), grade.gains.red, grade.gains.green, grade.gains.blue)
-            uniform1f(p, "uGradeBrightness", grade.brightnessOffset)
-            uniform1f(p, "uGradeContrast", grade.contrastFactor)
-            uniform1f(p, "uGradeSaturation", grade.saturationFactor)
-            GLES30.glUniform3f(location(p, "uShadowTint"), grade.shadowTint.red, grade.shadowTint.green, grade.shadowTint.blue)
-            GLES30.glUniform3f(location(p, "uHighlightTint"), grade.highlightTint.red, grade.highlightTint.green, grade.highlightTint.blue)
-            uniform1f(p, "uGradeFade", grade.fadeLift)
         }
     }
 
@@ -273,7 +243,7 @@ public class GlColorEffectRenderer : ColorEffectRenderer {
 
     private fun linkProgram(fragment: String): Int {
         val program = GLES30.glCreateProgram()
-        val vertexShader = compile(GLES30.GL_VERTEX_SHADER, GlShaders.VERTEX)
+        val vertexShader = compile(GLES30.GL_VERTEX_SHADER, ColorEffectShaders.VERTEX)
         val fragmentShader = compile(GLES30.GL_FRAGMENT_SHADER, fragment)
         GLES30.glAttachShader(program, vertexShader)
         GLES30.glAttachShader(program, fragmentShader)
@@ -298,7 +268,6 @@ public class GlColorEffectRenderer : ColorEffectRenderer {
 
     private fun location(program: Int, name: String): Int = GLES30.glGetUniformLocation(program, name)
 
-    private fun uniform1f(program: Int, name: String, value: Float) = GLES30.glUniform1f(location(program, name), value)
 
     private fun uniform1i(program: Int, name: String, value: Int) = GLES30.glUniform1i(location(program, name), value)
 
