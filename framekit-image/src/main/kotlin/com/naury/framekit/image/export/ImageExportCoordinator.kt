@@ -4,6 +4,7 @@ import android.content.ContentResolver
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Canvas
 import com.naury.framekit.android.output.AppFileOutputStore
 import com.naury.framekit.android.output.OutputTarget
 import com.naury.framekit.android.result.EditedMedia
@@ -23,6 +24,7 @@ import com.naury.framekit.image.decode.ImageSourceInfo
 import com.naury.framekit.image.decode.SampleSize
 import com.naury.framekit.image.effect.ColorEffectRenderer
 import com.naury.framekit.image.effect.CpuColorEffectRenderer
+import com.naury.framekit.image.overlay.OverlayRenderer
 import com.naury.framekit.image.render.CanvasGeometryRenderer
 import com.naury.framekit.image.render.ImageRenderPlanFactory
 import kotlinx.coroutines.CoroutineDispatcher
@@ -59,6 +61,7 @@ public class ImageExportCoordinator(
     )
 
     private val decoder = BitmapDecoder(resolver, contentResolver)
+    private val overlayRenderer = OverlayRenderer()
     private val exifWriter = SafeExifWriter(resolver)
 
     /**
@@ -129,6 +132,9 @@ public class ImageExportCoordinator(
             } catch (error: OutOfMemoryError) {
                 rendered.recycle()
                 throw FrameKitException(EditorErrorCode.INSUFFICIENT_MEMORY, "Color effects did not fit in memory", error)
+            }
+            if (project.overlays.isNotEmpty() || project.drawing.isNotEmpty()) {
+                overlayRenderer.draw(Canvas(rendered), outputSize, project.overlays, project.drawing)
             }
 
             coroutineContext.ensureActive()

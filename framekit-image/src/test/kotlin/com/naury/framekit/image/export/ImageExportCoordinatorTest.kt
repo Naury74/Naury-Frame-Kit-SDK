@@ -14,6 +14,13 @@ import com.naury.framekit.android.result.FrameKitException
 import com.naury.framekit.core.effect.Adjustments
 import com.naury.framekit.core.effect.FilterSelection
 import com.naury.framekit.core.geometry.ExifOrientation
+import com.naury.framekit.core.geometry.PointN
+import com.naury.framekit.core.overlay.BrushKind
+import com.naury.framekit.core.overlay.DrawingStroke
+import com.naury.framekit.core.overlay.ImageOverlay
+import com.naury.framekit.core.overlay.OverlayTransform
+import com.naury.framekit.core.overlay.StrokePoint
+import com.naury.framekit.core.overlay.TextStyleSpec
 import com.naury.framekit.core.geometry.GeometryEdit
 import com.naury.framekit.core.geometry.GeometryOperations
 import com.naury.framekit.core.geometry.RectN
@@ -215,6 +222,21 @@ class ImageExportCoordinatorTest {
         for (y in 0 until 100 step 7) for (x in 0 until 200 step 7) {
             assertThat(preview.getPixel(x, y)).isEqualTo(exported.getPixel(x, y))
         }
+    }
+
+    @Test
+    fun `drawing and overlays are drawn into the exported file`() = runBlocking {
+        writePng(TestImages.quadrants(200, 100))
+        val stroke = DrawingStroke("d", listOf(StrokePoint(0.1, 0.1), StrokePoint(0.4, 0.1)), 0.08, Color.BLACK, 1.0, BrushKind.PEN)
+        val text = ImageOverlay.Text("t", "Hi", TextStyleSpec(colorArgb = Color.BLACK, fontSizeHeightRatio = 0.3), OverlayTransform(PointN(0.75, 0.75)))
+
+        coordinator.export(project.copy(drawing = listOf(stroke), overlays = listOf(text)), info(), ImageExportConfig(format = ImageFormat.PNG))
+
+        val output = decodeOutput()
+        assertThat(output.getPixel(50, 10)).isEqualTo(Color.BLACK)
+        var dark = 0
+        for (y in 55 until 95) for (x in 110 until 190) if (Color.red(output.getPixel(x, y)) < 100) dark++
+        assertThat(dark).isGreaterThan(20)
     }
 
     @Test
