@@ -32,7 +32,10 @@ internal class VideoSessionRecorder(
     private val debounceMillis: Long,
 ) {
     private var sessionId: String? = null
-    private var sources: List<SourceId> = emptyList()
+    private val sources = mutableListOf<SourceId>()
+    private val extraReferences = mutableListOf<SourceReference>()
+    private val audio = mutableListOf<SourceId>()
+    private val audioReferences = mutableListOf<SourceReference>()
     private var pendingSave: Job? = null
 
     /** 이전 프로세스가 남긴 세션. 없으면 `null`. 백그라운드 스레드에서 호출한다. */
@@ -50,7 +53,11 @@ internal class VideoSessionRecorder(
     fun attach(previous: SessionRecord?, input: EditorInput, sourceId: SourceId, info: VideoSourceInfo): SessionRecord? {
         val fingerprint = info.fingerprint()
         val matched = previous?.takeIf { it.fingerprint == fingerprint }
-        sources = listOf(sourceId)
+        sources.clear()
+        sources += sourceId
+        extraReferences.clear()
+        audio.clear()
+        audioReferences.clear()
         if (matched != null) {
             sessionId = matched.sessionId
         } else {
@@ -62,9 +69,43 @@ internal class VideoSessionRecorder(
         return matched
     }
 
-    /** 이전 세션의 편집을 지금 등록한 원본 키로 바꿔 돌려준다. 맞지 않으면 `null`. */
-    fun restoredProject(record: SessionRecord?): VideoProject? =
-        record?.videoSnapshot?.let { runCatching { it.toProject(sources) }.getOrNull() }
+    /** 세션을 연 영상 뒤에 붙인 영상 원본을 기록한다. 다시 열 방법이 없으면 복원 때 그 클립은 빠진다. */
+    fun addSource(id: SourceId, reference: SourceReference?) {
+        if (id in sources) return
+        sources += id
+        extraReferences += reference ?: MISSING
+    }
+
+    /** 배경 음악 원본을 기록한다. */
+    fun addAudio(id: SourceId, reference: SourceReference?) {
+        if (id in audio) return
+        audio += id
+        audioReferences += reference ?: MISSING
+    }
+
+    /**
+     * 이전 세션의 편집을 지금 등록한 원본 키로 바꿔 돌려준다.
+     *
+     * @param extra 이전 세션의 추가 영상 원본을 다시 등록한 키. 열지 못한 원본은 `null`이고, 그 원본의
+     *   클립과 음악은 결과에서 빠진다.
+     * @return 복원한 프로젝트와 빠진 것이 있는지 여부. 복원할 것이 없으면 `null`.
+     */
+    fun restoredProject(record: SessionRecord?, extra: List<Pair<SourceId, SourceReference>?>, music: List<Pair<SourceId, SourceReference>?>): Pair<VideoProject, Boolean>? {
+        val snapshot = record?.videoSnapshot ?: return null
+        val placeholders = mutableSetOf<SourceId>()
+        fun resolve(entry: Pair<SourceId, SourceReference>?, index: Int, kind: String): SourceId =
+            entry?.first ?: SourceId("missing-$kind-$index").also(placeholders::add)
+        val videoIds = listOf(sources.first()) + extra.mapIndexed { i, e -> resolve(e, i, "video") }
+        val audioIds = music.mapIndexed { i, e -> resolve(e, i, "audio") }
+        val project = runCatching { snapshot.toProject(videoIds, audioIds) }.getOrNull() ?: return null
+        val clips = project.timeline.videoClips.filterNot { it.source in placeholders }
+        val audioClips = project.timeline.audioClips.filterNot { it.source in placeholders }
+        if (clips.isEmpty()) return null
+        extra.forEach { entry -> entry?.let { addSource(it.first, it.second) } }
+        music.forEach { entry -> entry?.let { addAudio(it.first, it.second) } }
+        val partial = clips.size != project.timeline.videoClips.size || audioClips.size != project.timeline.audioClips.size
+        return project.copy(timeline = project.timeline.copy(videoClips = clips, audioClips = audioClips)) to partial
+    }
 
     /** 확정된 편집을 debounce 뒤에 쓴다. 대기 중인 쓰기는 대체된다. */
     fun saveCommitted(project: VideoProject) {
@@ -101,13 +142,10 @@ internal class VideoSessionRecorder(
         sessionId?.let(store::release)
     }
 
-    private fun snapshotOf(project: VideoProject) = runCatching { VideoProjectSnapshot.of(project, sources) }.getOrNull()
+    private fun snapshotOf(project: VideoProject) = runCatching {
+        VideoProjectSnapshot.of(project, sources, audio).copy(extraSources = extraReferences.toList(), audioSources = audioReferences.toList())
+    }.getOrNull()
 
-    private fun EditorInput.toReference(): SourceReference? = when (this) {
-        is EditorInput.UriSource -> SourceReference.Content(uri.toString())
-        is EditorInput.FileSource -> SourceReference.LocalFile(absolutePath)
-        is EditorInput.Pick -> null
-    }
 
     private fun VideoSourceInfo.fingerprint() = SourceFingerprint(
         mimeType = metadata.mimeType,
@@ -119,6 +157,15 @@ internal class VideoSessionRecorder(
 
     companion object {
         const val KEY_SESSION_ID = "framekit_video_session_id"
+
+        // 다시 열 방법이 없는 원본 자리. 복원 때 열리지 않으므로 그 클립은 빠진다.
+        private val MISSING = SourceReference.LocalFile("")
+
+        fun EditorInput.toReference(): SourceReference? = when (this) {
+            is EditorInput.UriSource -> SourceReference.Content(uri.toString())
+            is EditorInput.FileSource -> SourceReference.LocalFile(absolutePath)
+            is EditorInput.Pick -> null
+        }
 
         fun SourceReference.toInput(): EditorInput = when (this) {
             is SourceReference.Content -> EditorInput.UriSource(uri.toUri())

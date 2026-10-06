@@ -1,5 +1,20 @@
 package com.naury.framekit.ui.video.editor
 
+import androidx.compose.foundation.gestures.calculatePan
+import androidx.compose.foundation.gestures.calculateRotation
+import androidx.compose.foundation.gestures.calculateZoom
+import androidx.compose.runtime.remember
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.input.pointer.positionChanged
+import androidx.core.graphics.withMatrix
+import com.naury.framekit.core.geometry.Affine2D
+import com.naury.framekit.core.model.PixelSize
+import com.naury.framekit.core.overlay.ImageOverlay
+import com.naury.framekit.image.overlay.OverlayRenderer
+import com.naury.framekit.image.render.toAndroidMatrix
+import kotlin.math.abs
 import android.view.SurfaceView
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -82,6 +97,24 @@ internal fun VideoCanvas(
             emptyList()
         }
         val currentMasks by rememberUpdatedState(visibleMasks)
+        // 텍스트·스티커 도구에서는 플레이어 대신 화면이 오버레이를 그려 손가락을 바로 따라가게 한다.
+        val overlayMode = state.activeTool == VideoTool.TEXT || state.activeTool == VideoTool.STICKER
+        val visibleOverlays = if (overlayMode) {
+            state.displayed.timeline.overlays
+                .filter { positionUs in it.range || it.overlay.id == state.selectedOverlayId || it.overlay.id == state.editingTextId }
+                .map { it.overlay }
+        } else {
+            emptyList()
+        }
+        val outputSize = PixelSize(size.first, size.second)
+        val outputToViewport = viewport.contentToViewport * Affine2D.scale(1.0 / size.first, 1.0 / size.second)
+        val overlayRenderer = remember { OverlayRenderer() }
+        val selectedOverlay = visibleOverlays.firstOrNull { it.id == state.selectedOverlayId }
+        val selectionCorners = selectedOverlay?.let { overlay -> overlayRenderer.corners(overlay, outputSize).map { outputToViewport.map(it) } }
+        val currentOverlays by rememberUpdatedState(visibleOverlays)
+        val currentOutputToViewport by rememberUpdatedState(outputToViewport)
+        val currentOutputSize by rememberUpdatedState(outputSize)
+        val currentSelectedOverlay by rememberUpdatedState(state.selectedOverlayId)
         val touchRadius = with(density) { 24.dp.toPx().toDouble() }
 
         AndroidView(
@@ -140,6 +173,40 @@ internal fun VideoCanvas(
                     actions.finishMask()
                 }
             }
+            VideoTool.TEXT, VideoTool.STICKER -> Modifier.pointerInput(state.activeTool) {
+                val slopPx = 12.dp.toPx().toDouble()
+                val snap = 6.dp.toPx().toDouble()
+                awaitEachGesture {
+                    val down = awaitFirstDown(requireUnconsumed = false)
+                    val output = currentOutputToViewport.inverted().map(down.position.x.toDouble(), down.position.y.toDouble())
+                    val hit = overlayRenderer.hitTest(currentOverlays, output.x, output.y, currentOutputSize, slopPx = slopPx)
+                    if (hit == null) {
+                        actions.selectOverlay(null)
+                        return@awaitEachGesture
+                    }
+                    val wasSelected = hit == currentSelectedOverlay
+                    actions.beginOverlayGesture(hit)
+                    val fitted = currentViewport.fittedSize
+                    var pan = Offset.Zero
+                    var zoom = 1f
+                    var rotation = 0f
+                    var moved = false
+                    do {
+                        val event = awaitPointerEvent()
+                        pan += event.calculatePan()
+                        zoom *= event.calculateZoom()
+                        rotation += event.calculateRotation()
+                        if (!moved && (pan.getDistance() > viewConfiguration.touchSlop || abs(zoom - 1f) > 0.02f || abs(rotation) > 2f)) moved = true
+                        if (moved) {
+                            actions.updateOverlayGesture(pan.x / fitted.width, pan.y / fitted.height, zoom.toDouble(), rotation.toDouble(), snap / fitted.width, snap / fitted.height)
+                            event.changes.forEach { if (it.positionChanged()) it.consume() }
+                        }
+                    } while (event.changes.any { it.pressed })
+                    actions.finishOverlayGesture()
+                    val overlay = currentOverlays.firstOrNull { it.id == hit }
+                    if (!moved && wasSelected && overlay is ImageOverlay.Text) actions.editText(hit)
+                }
+            }
             null -> Modifier
                 .semantics { contentDescription = timelineDescription }
                 .pointerInput(state.activeTool) { detectTapGestures(onTap = { onTap() }) }
@@ -156,6 +223,22 @@ internal fun VideoCanvas(
                 )
             }
             visibleMasks.forEach { drawMask(it, viewport, selected = it.mask.id == state.selectedMaskId, accent = colors.accent) }
+            if (visibleOverlays.isNotEmpty()) {
+                drawIntoCanvas { canvas ->
+                    canvas.nativeCanvas.withMatrix(outputToViewport.toAndroidMatrix()) {
+                        overlayRenderer.draw(this, outputSize, visibleOverlays, emptyList())
+                    }
+                }
+            }
+            selectionCorners?.let { corners ->
+                val path = Path().apply {
+                    moveTo(corners[0].x.toFloat(), corners[0].y.toFloat())
+                    corners.drop(1).forEach { lineTo(it.x.toFloat(), it.y.toFloat()) }
+                    close()
+                }
+                drawPath(path, Color.Black.copy(alpha = 0.4f), style = Stroke(3.dp.toPx()))
+                drawPath(path, colors.accent, style = Stroke(1.5.dp.toPx()))
+            }
         }
     }
 }

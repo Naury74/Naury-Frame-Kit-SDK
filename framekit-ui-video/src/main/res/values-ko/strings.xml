@@ -25,4 +25,26 @@
     <plurals name="framekit_mask_limit">
         <item quantity="other">마스크는 최대 %1$d개까지 추가할 수 있어요.</item>
     </plurals>
+    <string name="framekit_clip_add">클립 추가</string>
+    <string name="framekit_clip_split">나누기</string>
+    <string name="framekit_clip_move_left">앞으로</string>
+    <string name="framekit_clip_move_right">뒤로</string>
+    <string name="framekit_clip_delete">클립 삭제</string>
+    <plurals name="framekit_clip_limit">
+        <item quantity="other">클립은 최대 %1$d개까지 쓸 수 있어요.</item>
+    </plurals>
+    <string name="framekit_timeline_full">더 붙이면 허용된 길이를 넘어요.</string>
+    <string name="framekit_split_unavailable">여기서는 나눌 수 없어요. 클립 경계에서 조금 떨어진 곳으로 옮겨 주세요.</string>
+    <string name="framekit_add_failed">고른 파일을 열 수 없어요.</string>
+    <string name="framekit_partially_restored">일부 파일을 열 수 없어 그 부분을 빼고 이어서 편집해요.</string>
+    <string name="framekit_original_sound">원본 소리</string>
+    <string name="framekit_music">배경 음악</string>
+    <string name="framekit_music_add">음악 추가</string>
+    <string name="framekit_music_remove">음악 삭제</string>
+    <string name="framekit_music_loop">반복</string>
+    <string name="framekit_music_start_here">재생 위치에서 시작</string>
+    <string name="framekit_music_offset">곡 시작 위치</string>
+    <string name="framekit_music_untitled">음악</string>
+    <string name="framekit_sticker_help">스티커는 재생 위치부터 3초 동안 보여요. 끌어서 옮기고 두 손가락으로 크기와 각도를 바꿔요.</string>
+    <string name="framekit_item_delete">삭제</string>
 </resources>

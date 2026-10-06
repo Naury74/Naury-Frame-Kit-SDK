@@ -1,5 +1,27 @@
 package com.naury.framekit.ui.video.editor
 
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.foundation.layout.size
+import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
+import com.naury.framekit.core.overlay.ImageOverlay
+import com.naury.framekit.core.video.TimeRangeUs
+import com.naury.framekit.core.video.TimelineTimeMapper
+import com.naury.framekit.ui.tool.StickerToolPanel
+import com.naury.framekit.ui.tool.TextToolPanel
+import com.naury.framekit.ui.video.contract.VideoEditorConfig
+import com.naury.framekit.ui.video.timeline.MultiClipTimeline
+import com.naury.framekit.ui.video.timeline.TimelineClip
+import com.naury.framekit.ui.video.timeline.TimelineItem
+import com.naury.framekit.ui.video.timeline.TimelineItemKind
+import com.naury.framekit.ui.video.tool.MusicUi
+import com.naury.framekit.ui.video.tool.TimedRangeRow
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -84,7 +106,6 @@ import com.naury.framekit.ui.video.timeline.TrimSelection
 import com.naury.framekit.ui.video.timeline.VideoTimeline
 import com.naury.framekit.ui.video.timeline.formatTime
 import com.naury.framekit.ui.video.tool.AudioToolPanel
-import com.naury.framekit.ui.video.tool.MaskRangeRow
 import com.naury.framekit.ui.video.tool.SpeedToolPanel
 
 @Composable
@@ -134,6 +155,11 @@ private fun ReadyContent(state: VideoEditorUiState.Ready, viewModel: VideoEditor
         VideoNotice.SPEED_TOO_SHORT -> stringResource(R.string.framekit_speed_too_short)
         VideoNotice.RESTORED -> stringResource(UiR.string.framekit_session_restored)
         VideoNotice.EXPORT_INTERRUPTED -> stringResource(UiR.string.framekit_export_interrupted)
+        VideoNotice.CLIP_LIMIT -> pluralStringResource(R.plurals.framekit_clip_limit, viewModel.config.maxClipCount, viewModel.config.maxClipCount)
+        VideoNotice.TIMELINE_FULL -> stringResource(R.string.framekit_timeline_full)
+        VideoNotice.SPLIT_UNAVAILABLE -> stringResource(R.string.framekit_split_unavailable)
+        VideoNotice.ADD_FAILED -> stringResource(R.string.framekit_add_failed)
+        VideoNotice.PARTIALLY_RESTORED -> stringResource(R.string.framekit_partially_restored)
         null -> null
     }
     LaunchedEffect(state.notice) {
@@ -266,6 +292,7 @@ private fun PreviewColumn(state: VideoEditorUiState.Ready, viewModel: VideoEdito
         if (state.activeTool?.isGeometry != true) {
             PlaybackRow(state, viewModel)
             TimelineRow(state, viewModel)
+            if (state.activeTool == null) ClipActionBar(state, viewModel)
         }
     }
 }
@@ -291,6 +318,7 @@ private fun ControlArea(state: VideoEditorUiState.Ready, viewModel: VideoEditorV
             if (state.activeTool?.isGeometry != true) {
                 PlaybackRow(state, viewModel)
                 TimelineRow(state, viewModel)
+                if (state.activeTool == null) ClipActionBar(state, viewModel)
             }
             ToolArea(state, viewModel, wide = false)
         }
@@ -332,23 +360,23 @@ private fun PlaybackRow(state: VideoEditorUiState.Ready, viewModel: VideoEditorV
 @Composable
 private fun TimelineRow(state: VideoEditorUiState.Ready, viewModel: VideoEditorViewModel) {
     val playback by viewModel.playback.collectAsStateWithLifecycle()
-    val clip = state.clip
-    val upright = state.source.metadata.uprightSize
-    val aspect = upright.width.toFloat() / upright.height
     val description = stringResource(R.string.framekit_timeline)
     if (state.activeTool == VideoTool.TRIM) {
-        // 구간 편집 중에는 원본 전체를 보여 주고, 남길 구간을 손잡이로 고른다.
+        // 구간 편집 중에는 선택한 클립의 원본 전체를 보여 주고, 남길 구간을 손잡이로 고른다.
+        val clip = state.clip
+        val upright = state.source.metadata.uprightSize
         val total = state.sourceDurationUs.toDouble()
         val range = clip.sourceRange
+        val clipStart = state.clipStartUs
         VideoTimeline(
-            frameKey = state.sourceDurationUs,
+            frameKey = clip.source to state.sourceDurationUs,
             frameTimeAt = { fraction -> (fraction * total).toLong() },
-            frameAspect = aspect,
-            loadFrame = viewModel::timelineFrame,
-            playhead = ((range.startUs + playback.positionUs * clip.speed) / total).toFloat(),
+            frameAspect = upright.width.toFloat() / upright.height,
+            loadFrame = { time, height -> viewModel.timelineFrame(clip.source, time, height) },
+            playhead = ((range.startUs + (playback.positionUs - clipStart) * clip.speed) / total).toFloat(),
             onScrub = { fraction ->
-                val output = ((fraction * total - range.startUs) / clip.speed).toLong()
-                viewModel.seekTo(output, scrubbing = true)
+                val output = clipStart + ((fraction * total - range.startUs) / clip.speed).toLong()
+                viewModel.seekTo(output.coerceIn(clipStart, clipStart + clip.outputDurationUs), scrubbing = true)
             },
             onScrubEnd = viewModel::finishScrub,
             description = description,
@@ -366,18 +394,77 @@ private fun TimelineRow(state: VideoEditorUiState.Ready, viewModel: VideoEditorV
             style = MaterialTheme.typography.bodySmall,
             modifier = Modifier.padding(horizontal = 20.dp),
         )
-    } else {
-        val duration = state.durationUs.toDouble().coerceAtLeast(1.0)
-        VideoTimeline(
-            frameKey = clip.sourceRange to clip.speed,
-            frameTimeAt = { fraction -> clip.sourceRange.startUs + (fraction * clip.sourceRange.durationUs).toLong() },
-            frameAspect = aspect,
-            loadFrame = viewModel::timelineFrame,
-            playhead = (playback.positionUs / duration).toFloat(),
-            onScrub = { fraction -> viewModel.seekTo((fraction * duration).toLong(), scrubbing = true) },
-            onScrubEnd = viewModel::finishScrub,
-            description = description,
-        )
+        return
+    }
+    val project = state.displayed
+    val starts = TimelineTimeMapper.clipStarts(project.timeline)
+    val clips = project.timeline.videoClips.mapIndexed { index, clip ->
+        val size = state.sources[clip.source]?.info?.metadata?.uprightSize
+        TimelineClip(clip.id, clip.source, clip.sourceRange, clip.speed, starts[index], clip.outputDurationUs, size?.let { it.width.toFloat() / it.height } ?: 1f)
+    }
+    val items = buildList {
+        project.timeline.overlays.forEach { add(TimelineItem(TimelineItemKind.OVERLAY, it.overlay.id, it.range, it.overlay.id == state.selectedOverlayId)) }
+        project.timeline.privacyMasks.forEach { add(TimelineItem(TimelineItemKind.MASK, it.mask.id, it.range, it.mask.id == state.selectedMaskId)) }
+        project.timeline.audioClips.forEach { music ->
+            val end = (music.timelineStartUs + if (music.loop) state.durationUs else music.sourceRange.durationUs).coerceAtMost(state.durationUs)
+            add(TimelineItem(TimelineItemKind.MUSIC, music.id, TimeRangeUs(music.timelineStartUs, end), false))
+        }
+    }
+    MultiClipTimeline(
+        clips = clips,
+        selectedClipId = state.clip.id,
+        items = items,
+        durationUs = state.durationUs,
+        positionUs = playback.positionUs,
+        loadFrame = viewModel::timelineFrame,
+        onScrub = { viewModel.seekTo(it, scrubbing = true) },
+        onScrubEnd = {
+            viewModel.finishScrub()
+            viewModel.selectClipAtPlayhead()
+        },
+        onSelectClip = { viewModel.selectClip(it) },
+        onSelectItem = { kind, id ->
+            when (kind) {
+                TimelineItemKind.OVERLAY -> viewModel.selectOverlay(id)
+                TimelineItemKind.MASK -> viewModel.selectMask(id)
+                TimelineItemKind.MUSIC -> Unit
+            }
+        },
+        description = description,
+    )
+}
+
+/** 여러 클립을 쓸 수 있을 때 타임라인 아래에 두는 클립 추가·나누기·이동·삭제 버튼. */
+@Composable
+private fun ClipActionBar(state: VideoEditorUiState.Ready, viewModel: VideoEditorViewModel) {
+    if (!viewModel.multiClip) return
+    val colors = FrameKitTheme.colors
+    val picker = rememberLauncherForActivityResult(
+        ActivityResultContracts.PickMultipleVisualMedia(maxOf(2, VideoEditorConfig.MAX_CLIPS)),
+    ) { uris -> viewModel.addClips(uris) }
+    val index = state.clips.indexOfFirst { it.id == state.clip.id }
+    val enabled = state.export == null && !state.busy
+    Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp), horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically) {
+        ClipAction(Icons.Filled.Add, R.string.framekit_clip_add, enabled && state.clips.size < viewModel.config.maxClipCount) {
+            picker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.VideoOnly))
+        }
+        ClipAction(painterResource(UiR.drawable.framekit_ic_trim), R.string.framekit_clip_split, enabled, viewModel::splitAtPlayhead)
+        ClipAction(Icons.AutoMirrored.Filled.ArrowBack, R.string.framekit_clip_move_left, enabled && index > 0) { viewModel.moveSelectedClip(-1) }
+        ClipAction(Icons.AutoMirrored.Filled.ArrowForward, R.string.framekit_clip_move_right, enabled && index in 0 until state.clips.size - 1) { viewModel.moveSelectedClip(1) }
+        ClipAction(Icons.Filled.Delete, R.string.framekit_clip_delete, enabled && state.clips.size > 1, viewModel::deleteSelectedClip)
+        if (state.busy) CircularProgressIndicator(Modifier.size(20.dp), color = colors.accent, strokeWidth = 2.dp)
+    }
+}
+
+@Composable
+private fun ClipAction(icon: ImageVector, label: Int, enabled: Boolean, onClick: () -> Unit) =
+    ClipAction(rememberVectorPainter(icon), label, enabled, onClick)
+
+@Composable
+private fun ClipAction(icon: Painter, label: Int, enabled: Boolean, onClick: () -> Unit) {
+    val colors = FrameKitTheme.colors
+    IconButton(onClick = onClick, enabled = enabled) {
+        Icon(icon, contentDescription = stringResource(label), tint = if (enabled) colors.foreground else colors.foregroundMuted.copy(alpha = 0.4f))
     }
 }
 
@@ -427,10 +514,13 @@ private fun ToolArea(state: VideoEditorUiState.Ready, viewModel: VideoEditorView
                         onIntensityFinished = viewModel::finishGesture,
                     )
                 }
-                VideoTool.SPEED -> ToolPanelWithActions(R.string.framekit_tool_speed, viewModel, isDraft = false) {
+                VideoTool.SPEED -> ToolPanelWithActions(R.string.framekit_tool_speed, viewModel, isDraft = true) {
                     SpeedToolPanel(speed = state.clip.speed, onSelect = viewModel::selectSpeed)
                 }
                 VideoTool.AUDIO -> ToolPanelWithActions(R.string.framekit_tool_audio, viewModel, isDraft = false) {
+                    val music = state.displayed.timeline.audioClips.firstOrNull()
+                    val loaded = music?.let { state.music[it.source] }
+                    val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri -> viewModel.addMusic(uri) }
                     AudioToolPanel(
                         hasAudio = state.source.metadata.hasAudio,
                         muted = state.clip.muted,
@@ -438,12 +528,49 @@ private fun ToolArea(state: VideoEditorUiState.Ready, viewModel: VideoEditorView
                         onMuted = viewModel::setMuted,
                         onVolume = viewModel::changeVolume,
                         onVolumeFinished = viewModel::finishGesture,
+                        music = music?.let {
+                            MusicUi(
+                                name = loaded?.name,
+                                volume = it.volume,
+                                loop = it.loop,
+                                startUs = it.timelineStartUs,
+                                offsetUs = it.sourceRange.startUs,
+                                songDurationUs = loaded?.info?.metadata?.durationUs ?: it.sourceRange.endExclusiveUs,
+                            )
+                        },
+                        busy = state.busy,
+                        onAddMusic = { picker.launch(arrayOf("audio/*")) },
+                        onMusicVolume = viewModel::changeMusicVolume,
+                        onMusicLoop = viewModel::setMusicLoop,
+                        onMusicStartHere = viewModel::startMusicHere,
+                        onMusicOffset = viewModel::changeMusicOffset,
+                        onRemoveMusic = viewModel::removeMusic,
+                        onGestureFinished = viewModel::finishGesture,
                     )
+                }
+                VideoTool.TEXT -> ToolPanelWithActions(UiR.string.framekit_tool_text, viewModel, isDraft = true) {
+                    val editing = state.displayed.timeline.overlays.firstOrNull { it.overlay.id == state.editingTextId }
+                    val text = editing?.overlay as? ImageOverlay.Text
+                    if (text != null) {
+                        TextToolPanel(text = text, onText = viewModel::updateText, onStyle = viewModel::updateTextStyle)
+                    }
+                }
+                VideoTool.STICKER -> ToolPanelWithActions(UiR.string.framekit_tool_sticker, viewModel, isDraft = false) {
+                    val selected = state.displayed.timeline.overlays.firstOrNull { it.overlay.id == state.selectedOverlayId }
+                    TimedRangeRow(
+                        range = selected?.range,
+                        hint = stringResource(R.string.framekit_sticker_help),
+                        onStartHere = { selected?.let { viewModel.setOverlayEdge(it.overlay.id, start = true) } },
+                        onEndHere = { selected?.let { viewModel.setOverlayEdge(it.overlay.id, start = false) } },
+                        onDelete = { selected?.let { viewModel.deleteOverlay(it.overlay.id) } },
+                    )
+                    StickerToolPanel(category = state.stickerCategory, onCategory = viewModel::selectStickerCategory, onAdd = viewModel::addSticker)
                 }
                 VideoTool.PRIVACY -> ToolPanelWithActions(UiR.string.framekit_tool_privacy, viewModel, isDraft = false) {
                     val selected = state.displayed.timeline.privacyMasks.firstOrNull { it.mask.id == state.selectedMaskId }
-                    MaskRangeRow(
-                        mask = selected,
+                    TimedRangeRow(
+                        range = selected?.range,
+                        hint = stringResource(R.string.framekit_mask_help),
                         onStartHere = { selected?.let { viewModel.setMaskEdge(it.mask.id, start = true) } },
                         onEndHere = { selected?.let { viewModel.setMaskEdge(it.mask.id, start = false) } },
                         onDelete = { selected?.let { viewModel.deleteMask(it.mask.id) } },
@@ -484,6 +611,8 @@ private fun VideoTool.railItem(): ToolRailItem<VideoTool> = when (this) {
     VideoTool.FILTER -> ToolRailItem(this, stringResource(UiR.string.framekit_tool_filter), painterResource(UiR.drawable.framekit_ic_filter))
     VideoTool.SPEED -> ToolRailItem(this, stringResource(R.string.framekit_tool_speed), painterResource(UiR.drawable.framekit_ic_speed))
     VideoTool.AUDIO -> ToolRailItem(this, stringResource(R.string.framekit_tool_audio), painterResource(UiR.drawable.framekit_ic_volume))
+    VideoTool.TEXT -> ToolRailItem(this, stringResource(UiR.string.framekit_tool_text), painterResource(UiR.drawable.framekit_ic_text))
+    VideoTool.STICKER -> ToolRailItem(this, stringResource(UiR.string.framekit_tool_sticker), painterResource(UiR.drawable.framekit_ic_sticker))
     VideoTool.PRIVACY -> ToolRailItem(this, stringResource(UiR.string.framekit_tool_privacy), painterResource(UiR.drawable.framekit_ic_privacy))
 }
 

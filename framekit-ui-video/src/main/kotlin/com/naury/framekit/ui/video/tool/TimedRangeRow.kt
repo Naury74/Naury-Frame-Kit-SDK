@@ -16,15 +16,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import com.naury.framekit.core.video.TimedPrivacyMask
+import com.naury.framekit.core.video.TimeRangeUs
 import com.naury.framekit.ui.design.FrameKitTheme
 import com.naury.framekit.ui.video.R
 import com.naury.framekit.ui.video.timeline.formatTime
 
-/** 선택한 마스크의 시간 범위. 선택한 마스크가 없으면 안내 문구. */
+/**
+ * 고른 구간 항목(마스크·텍스트·스티커)의 표시 구간과 시작·끝 조정, 삭제 버튼. 고른 것이 없으면 [hint]를 보여 준다.
+ */
 @Composable
-internal fun MaskRangeRow(
-    mask: TimedPrivacyMask?,
+internal fun TimedRangeRow(
+    range: TimeRangeUs?,
+    hint: String,
     onStartHere: () -> Unit,
     onEndHere: () -> Unit,
     onDelete: () -> Unit,
@@ -32,19 +35,19 @@ internal fun MaskRangeRow(
 ) {
     val colors = FrameKitTheme.colors
     Column(modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
-        if (mask == null) {
-            Text(stringResource(R.string.framekit_mask_help), color = colors.foregroundMuted, style = MaterialTheme.typography.bodySmall)
+        if (range == null) {
+            Text(hint, color = colors.foregroundMuted, style = MaterialTheme.typography.bodySmall)
             return@Column
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
-                stringResource(R.string.framekit_mask_range, formatTime(mask.range.startUs), formatTime(mask.range.endExclusiveUs)),
+                stringResource(R.string.framekit_mask_range, formatTime(range.startUs), formatTime(range.endExclusiveUs)),
                 color = colors.foreground,
                 style = MaterialTheme.typography.labelLarge,
                 modifier = Modifier.weight(1f),
             )
             IconButton(onClick = onDelete) {
-                Icon(Icons.Filled.Delete, contentDescription = stringResource(R.string.framekit_mask_delete), tint = colors.foregroundMuted)
+                Icon(Icons.Filled.Delete, contentDescription = stringResource(R.string.framekit_item_delete), tint = colors.foregroundMuted)
             }
         }
         Row {

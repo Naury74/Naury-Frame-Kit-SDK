@@ -1,6 +1,9 @@
 package com.naury.framekit.ui.video.editor
 
+import android.content.ContentResolver
 import android.content.Intent
+import android.net.Uri
+import android.provider.OpenableColumns
 import android.graphics.Color
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -90,12 +93,15 @@ internal class VideoEditorActivity : ComponentActivity() {
             val registry = SessionSourceRegistry(application)
             val coordinator = VideoExportCoordinator(application, AppFileOutputStore(application))
             val loader = VideoThumbnailLoader(application)
+            val reader = VideoMetadataReader(application, registry)
             VideoEditorViewModel(
                 request = request,
                 savedState = createSavedStateHandle(),
                 registry = registry,
-                readSource = VideoMetadataReader(application, registry)::read,
-                exporter = { project, sources, locations, onProgress ->
+                readSource = reader::read,
+                readAudio = reader::readAudio,
+                describe = { uri -> displayName(application.contentResolver, uri) },
+                exporter = { project, sources, locations, audioSources, onProgress ->
                     coordinator.export(
                         project = project,
                         sources = sources,
@@ -103,6 +109,7 @@ internal class VideoEditorActivity : ComponentActivity() {
                         config = request.export,
                         target = request.output,
                         minClipOutputDurationUs = request.config.minClipDurationUs,
+                        audioSources = audioSources,
                         onProgress = onProgress,
                     )
                 },
@@ -129,3 +136,10 @@ internal class VideoEditorActivity : ComponentActivity() {
         finish()
     }
 }
+
+// 배경 음악 이름 표시용. 파일 이름을 읽지 못하면 이름 없이 표시한다.
+private fun displayName(resolver: ContentResolver, uri: Uri): String? = runCatching {
+    resolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->
+        if (cursor.moveToFirst()) cursor.getString(0) else null
+    }
+}.getOrNull()

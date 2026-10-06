@@ -26,4 +26,27 @@
         <item quantity="one">Up to %1$d mask can be added.</item>
         <item quantity="other">Up to %1$d masks can be added.</item>
     </plurals>
+    <string name="framekit_clip_add">Add clip</string>
+    <string name="framekit_clip_split">Split</string>
+    <string name="framekit_clip_move_left">Move earlier</string>
+    <string name="framekit_clip_move_right">Move later</string>
+    <string name="framekit_clip_delete">Delete clip</string>
+    <plurals name="framekit_clip_limit">
+        <item quantity="one">Up to %1$d clip can be used.</item>
+        <item quantity="other">Up to %1$d clips can be used.</item>
+    </plurals>
+    <string name="framekit_timeline_full">Adding more would make the video longer than allowed.</string>
+    <string name="framekit_split_unavailable">Can\'t split here. Move a little away from the clip edge.</string>
+    <string name="framekit_add_failed">The selected file couldn\'t be opened.</string>
+    <string name="framekit_partially_restored">Some files couldn\'t be opened, so editing continues without them.</string>
+    <string name="framekit_original_sound">Original sound</string>
+    <string name="framekit_music">Background music</string>
+    <string name="framekit_music_add">Add music</string>
+    <string name="framekit_music_remove">Remove music</string>
+    <string name="framekit_music_loop">Loop</string>
+    <string name="framekit_music_start_here">Start at playhead</string>
+    <string name="framekit_music_offset">Start in song</string>
+    <string name="framekit_music_untitled">Music</string>
+    <string name="framekit_sticker_help">Stickers show for 3 seconds from the playhead. Drag to move; use two fingers to resize or rotate.</string>
+    <string name="framekit_item_delete">Delete</string>
 </resources>

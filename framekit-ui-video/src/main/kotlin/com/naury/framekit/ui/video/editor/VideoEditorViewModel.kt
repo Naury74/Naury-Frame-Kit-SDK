@@ -1,12 +1,9 @@
 package com.naury.framekit.ui.video.editor
 
-import com.naury.framekit.core.validation.VideoProjectValidator
-import com.naury.framekit.core.history.EditHistory
-import com.naury.framekit.android.session.SessionRecord
-import com.naury.framekit.android.session.EditorSessionStore
 import android.graphics.Bitmap
 import android.net.Uri
 import android.util.Log
+import android.view.SurfaceHolder
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -16,6 +13,8 @@ import com.naury.framekit.android.result.EditorError
 import com.naury.framekit.android.result.EditorErrorCode
 import com.naury.framekit.android.result.FrameKitException
 import com.naury.framekit.android.result.FrameKitResult
+import com.naury.framekit.android.session.EditorSessionStore
+import com.naury.framekit.android.session.SessionRecord
 import com.naury.framekit.android.source.SessionSourceRegistry
 import com.naury.framekit.android.source.SourceLocation
 import com.naury.framekit.core.effect.AdjustmentKind
@@ -32,12 +31,19 @@ import com.naury.framekit.core.geometry.GeometryFrame
 import com.naury.framekit.core.geometry.GeometryOperations
 import com.naury.framekit.core.geometry.PointN
 import com.naury.framekit.core.geometry.RectN
+import com.naury.framekit.core.history.EditHistory
 import com.naury.framekit.core.history.HistoryTransaction
 import com.naury.framekit.core.model.ProjectId
 import com.naury.framekit.core.model.SourceId
+import com.naury.framekit.core.overlay.EmojiCatalog
+import com.naury.framekit.core.overlay.ImageOverlay
 import com.naury.framekit.core.overlay.MaskShape
 import com.naury.framekit.core.overlay.PrivacyMask
+import com.naury.framekit.core.overlay.TextStyleSpec
+import com.naury.framekit.core.validation.VideoProjectValidator
+import com.naury.framekit.core.video.AudioClip
 import com.naury.framekit.core.video.TimeRangeUs
+import com.naury.framekit.core.video.TimedOverlay
 import com.naury.framekit.core.video.TimedPrivacyMask
 import com.naury.framekit.core.video.Timeline
 import com.naury.framekit.core.video.TimelineTimeMapper
@@ -46,14 +52,19 @@ import com.naury.framekit.core.video.VideoProject
 import com.naury.framekit.image.effect.ColorEffectRenderer
 import com.naury.framekit.image.effect.CpuColorEffectRenderer
 import com.naury.framekit.ui.component.ExportStageUi
+import com.naury.framekit.ui.tool.OverlayGestures
 import com.naury.framekit.ui.tool.PrivacySettings
 import com.naury.framekit.ui.tool.PrivacyShape
 import com.naury.framekit.ui.video.contract.VideoEditorRequest
 import com.naury.framekit.ui.video.contract.VideoTool
+import com.naury.framekit.ui.video.editor.VideoSessionRecorder.Companion.toInput
+import com.naury.framekit.ui.video.editor.VideoSessionRecorder.Companion.toReference
+import com.naury.framekit.ui.video.editor.VideoTimelineEditing as Edit
 import com.naury.framekit.video.VideoPlanFactory
 import com.naury.framekit.video.export.VideoExportProgress
 import com.naury.framekit.video.preview.VideoPlaybackState
 import com.naury.framekit.video.preview.VideoPreviewEngine
+import com.naury.framekit.video.source.AudioSourceInfo
 import com.naury.framekit.video.source.VideoSourceInfo
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
@@ -70,23 +81,25 @@ import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.io.Closeable
 import java.util.UUID
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToLong
 import kotlin.random.Random
 
-/** 편집된 영상을 기록한다. 프로덕션에서는 [VideoExportCoordinator][com.naury.framekit.video.export.VideoExportCoordinator]를 쓴다. */
+/** 편집한 영상을 저장한다. 실제 앱에서는 [VideoExportCoordinator][com.naury.framekit.video.export.VideoExportCoordinator]다. */
 internal fun interface VideoExporter {
     suspend fun export(
         project: VideoProject,
         sources: Map<SourceId, VideoSourceInfo>,
         locations: Map<SourceId, SourceLocation>,
+        audioSources: Map<SourceId, AudioSourceInfo>,
         onProgress: (VideoExportProgress) -> Unit,
     ): EditedMedia
 }
 
-/** 타임라인 프레임. 프로덕션에서는 [VideoThumbnailLoader][com.naury.framekit.video.thumbnail.VideoThumbnailLoader]를 쓴다. */
+/** 타임라인 프레임. 실제 앱에서는 [VideoThumbnailLoader][com.naury.framekit.video.thumbnail.VideoThumbnailLoader]다. */
 internal fun interface VideoFrameSource {
     suspend fun frame(location: SourceLocation, sourceKey: String, timeUs: Long, heightPx: Int): Bitmap?
 }
@@ -94,10 +107,10 @@ internal fun interface VideoFrameSource {
 /**
  * 영상 편집 세션 하나의 상태 홀더.
  *
- * 편집 방식은 사진 에디터를 따른다. 초안 도구(트림, 자르기, 회전)는 세션당 실행 취소 한 단계,
- * 슬라이더 제스처는 드래그당 한 단계다. 미리보기 플레이어는 표시 중인 프로젝트를 보여주며,
- * 슬라이더를 드래그할 때 매 프레임 플레이어를 준비하지 않도록 짧은 디바운스 후에 다시 구성한다.
- * 내보내기는 항상 커밋된 스냅샷을 사용한다.
+ * 편집 방식은 사진 편집기를 따른다. 초안 도구(구간·자르기·회전·속도·텍스트)는 도구를 열고 적용할 때까지가
+ * 실행 취소 한 단계이고, 슬라이더는 드래그당, 클립 나누기·순서 변경·추가·삭제는 각각 한 단계다. 클립 단위
+ * 도구는 선택한 클립을 고친다. 미리보기는 표시 중인 프로젝트를 짧게 모았다가 다시 구성하고, 저장은 항상
+ * 확정된 프로젝트를 쓴다.
  */
 internal class VideoEditorViewModel(
     private val request: VideoEditorRequest,
@@ -110,9 +123,11 @@ internal class VideoEditorViewModel(
     private val ioDispatcher: CoroutineDispatcher,
     private val colorRenderer: ColorEffectRenderer = CpuColorEffectRenderer,
     private val previewDebounceMillis: Long = PREVIEW_DEBOUNCE_MILLIS,
-    private val closeables: List<java.io.Closeable> = emptyList(),
+    private val closeables: List<Closeable> = emptyList(),
     sessionStore: EditorSessionStore? = null,
     snapshotDebounceMillis: Long = SNAPSHOT_DEBOUNCE_MILLIS,
+    private val readAudio: (SourceId) -> AudioSourceInfo = { throw FrameKitException(EditorErrorCode.UNSUPPORTED_OPERATION, "No audio reader") },
+    private val describe: (Uri) -> String? = { null },
 ) : ViewModel(), VideoCanvasActions {
 
     private val _state = MutableStateFlow<VideoEditorUiState>(VideoEditorUiState.Loading)
@@ -125,12 +140,12 @@ internal class VideoEditorViewModel(
 
     private val engine = previewEngineFactory(viewModelScope)
 
-    /** 미리보기의 재생 위치와 상태(출력 시간 기준). */
+    /** 미리보기의 재생 위치와 상태(미리보기 타임라인의 출력 시간 기준). */
     val playback: StateFlow<VideoPlaybackState> = engine.state
 
     private val _previewSize = MutableStateFlow<Pair<Int, Int>?>(null)
 
-    /** 미리보기가 보여주는 프레임 크기. 출력 캔버스이며, 자르는 중에는 자르기 전 프레임이다. */
+    /** 미리보기가 보여 주는 프레임 크기. 출력 캔버스이며, 자르는 중에는 선택한 클립의 자르기 전 프레임이다. */
     val previewSize: StateFlow<Pair<Int, Int>?> = _previewSize.asStateFlow()
 
     private val _filterThumbnails = MutableStateFlow<Map<String, Bitmap>>(emptyMap())
@@ -138,10 +153,12 @@ internal class VideoEditorViewModel(
 
     private var exportJob: Job? = null
     private var thumbnailJob: Job? = null
+    private var thumbnailClipSource: SourceId? = null
     private var cropDragStart: Pair<CropHandle, RectN>? = null
     private var straightenStart: GeometryEdit? = null
     private var trimEdge: TrimEdge? = null
     private var maskAnchor: PointN? = null
+    private var overlayGestureStart: ImageOverlay? = null
     private var planRevision = 0L
     private var lastPreviewProject: VideoProject? = null
     private var pendingSeekUs: Long? = null
@@ -152,6 +169,9 @@ internal class VideoEditorViewModel(
     private var pendingRestore: SessionRecord? = null
 
     val config get() = request.config
+
+    /** 클립을 더 붙이거나 나눌 수 있는 설정이면 `true`. */
+    val multiClip: Boolean get() = config.maxClipCount > 1
 
     init {
         if (savedState.contains(VideoSessionRecorder.KEY_SESSION_ID) && session != null) restore() else start()
@@ -165,6 +185,8 @@ internal class VideoEditorViewModel(
             }
         }
     }
+
+    // ---- 열기·복원 ----
 
     private fun start() {
         val pickedUri = savedState.get<Uri>(KEY_PICKED_URI)
@@ -182,12 +204,12 @@ internal class VideoEditorViewModel(
                 start()
             } else {
                 pendingRestore = previous
-                load(with(VideoSessionRecorder) { previous.source.toInput() })
+                load(previous.source.toInput())
             }
         }
     }
 
-    /** 피커 결과와 함께 호출된다. `null`은 사용자가 피커를 닫았다는 뜻이다. */
+    /** picker 결과와 함께 호출된다. `null`은 사용자가 picker를 닫았다는 뜻이다. */
     fun onPicked(uri: Uri?) {
         if (uri == null) {
             if (_state.value is VideoEditorUiState.AwaitingPick) finish(FrameKitResult.Cancelled)
@@ -197,7 +219,7 @@ internal class VideoEditorViewModel(
         load(EditorInput.UriSource(uri))
     }
 
-    /** 소스를 열지 못한 뒤 피커로 돌아간다. */
+    /** 원본을 열지 못한 뒤 picker로 돌아간다. */
     fun chooseAnother() {
         savedState.remove<Uri>(KEY_PICKED_URI)
         _state.value = VideoEditorUiState.AwaitingPick
@@ -208,17 +230,10 @@ internal class VideoEditorViewModel(
         viewModelScope.launch {
             try {
                 _state.value = withContext(ioDispatcher) {
-                    val sourceId = registry.register(input)
-                    val info = readSource(sourceId)
-                    val location = registry.location(sourceId)
-                        ?: throw FrameKitException(EditorErrorCode.SOURCE_UNAVAILABLE, "Source has no location")
-                    val duration = info.metadata.durationUs ?: 0L
-                    if (duration < config.minClipDurationUs) {
-                        throw FrameKitException(EditorErrorCode.INVALID_SOURCE, "Video is shorter than the minimum clip")
-                    }
-                    val previous = session?.attach(pendingRestore, input, sourceId, info)
+                    val (sourceId, loaded) = openVideo(input)
+                    val previous = session?.attach(pendingRestore, input, sourceId, loaded.info)
                     pendingRestore = null
-                    restoredState(previous, sourceId, info, location, duration)
+                    restoredState(previous, sourceId, loaded)
                 }
             } catch (error: FrameKitException) {
                 logFailure("load", error)
@@ -232,32 +247,62 @@ internal class VideoEditorViewModel(
         }
     }
 
-    private fun restoredState(
-        previous: SessionRecord?,
-        sourceId: SourceId,
-        info: VideoSourceInfo,
-        location: SourceLocation,
-        durationUs: Long,
-    ): VideoEditorUiState.Ready {
-        val restored = session?.restoredProject(previous)?.takeIf {
-            VideoProjectValidator.validate(it, mapOf(sourceId to info.metadata), config.minClipDurationUs).isValid &&
-                TimelineTimeMapper.durationUs(it.timeline) <= config.maxTimelineDurationUs
+    /** IO 스레드에서 영상 원본을 등록하고 읽는다. */
+    private fun openVideo(input: EditorInput): Pair<SourceId, LoadedVideo> {
+        val sourceId = registry.register(input)
+        val info = readSource(sourceId)
+        val location = registry.location(sourceId) ?: throw FrameKitException(EditorErrorCode.SOURCE_UNAVAILABLE, "Source has no location")
+        if ((info.metadata.durationUs ?: 0L) < config.minClipDurationUs) {
+            throw FrameKitException(EditorErrorCode.INVALID_SOURCE, "Video is shorter than the minimum clip")
+        }
+        return sourceId to LoadedVideo(info, location, input.toReference())
+    }
+
+    private fun openAudio(input: EditorInput, name: String?): Pair<SourceId, LoadedAudio> {
+        val sourceId = registry.register(input)
+        val info = readAudio(sourceId)
+        val location = registry.location(sourceId) ?: throw FrameKitException(EditorErrorCode.SOURCE_UNAVAILABLE, "Source has no location")
+        return sourceId to LoadedAudio(info, location, input.toReference(), name)
+    }
+
+    private fun restoredState(previous: SessionRecord?, mainId: SourceId, main: LoadedVideo): VideoEditorUiState.Ready {
+        val sources = mutableMapOf(mainId to main)
+        val music = mutableMapOf<SourceId, LoadedAudio>()
+        val snapshot = previous?.videoSnapshot
+        // 이전 세션에서 붙였던 원본을 다시 연다. 열지 못한 원본의 클립은 빼고 복원한다.
+        val extra = snapshot?.extraSources.orEmpty().map { reference ->
+            runCatching { openVideo(reference.toInput()) }.getOrNull()?.let { (id, loaded) ->
+                sources[id] = loaded
+                id to reference
+            }
+        }
+        val audio = snapshot?.audioSources.orEmpty().map { reference ->
+            runCatching { openAudio(reference.toInput(), null) }.getOrNull()?.let { (id, loaded) ->
+                music[id] = loaded
+                id to reference
+            }
+        }
+        val restoredPair = session?.restoredProject(previous, extra, audio)
+        val restored = restoredPair?.first?.takeIf { project ->
+            val metadata = sources.mapValues { it.value.info.metadata } + music.mapValues { it.value.info.metadata }
+            VideoProjectValidator.validate(project, metadata, config.minClipDurationUs).isValid &&
+                TimelineTimeMapper.durationUs(project.timeline) <= config.maxTimelineDurationUs &&
+                project.timeline.videoClips.size <= config.maxClipCount
         }
         // 허용 길이보다 긴 영상은 앞부분만 남긴 채로 열고, 사용자가 구간을 옮겨 고른다.
-        val clip = VideoClip(restored?.timeline?.videoClips?.first()?.id ?: newId(), sourceId, TimeRangeUs(0, min(durationUs, config.maxTimelineDurationUs)))
-        val baseline = VideoProject(
-            restored?.id ?: ProjectId(newId()),
-            Timeline(listOf(clip)),
-            grainSeed = restored?.grainSeed ?: Random.nextLong(),
-        )
+        val duration = main.info.metadata.durationUs ?: 0L
+        val firstClipId = restored?.timeline?.videoClips?.firstOrNull { it.source == mainId }?.id ?: newId()
+        val clip = VideoClip(firstClipId, mainId, TimeRangeUs(0, min(duration, config.maxTimelineDurationUs)))
+        val baseline = VideoProject(restored?.id ?: ProjectId(newId()), Timeline(listOf(clip)), grainSeed = restored?.grainSeed ?: Random.nextLong())
         val transaction = if (restored != null) HistoryTransaction(EditHistory.restore(baseline, restored)) else HistoryTransaction.start(baseline)
         val notice = when {
             previous?.exportWasInterrupted == true -> VideoNotice.EXPORT_INTERRUPTED
+            restored != null && restoredPair.second -> VideoNotice.PARTIALLY_RESTORED
             restored != null && !restored.sameContentAs(baseline) -> VideoNotice.RESTORED
             else -> null
         }
-        if (previous?.exportWasInterrupted == true) session?.saveCommitted(transaction.history.current)
-        return VideoEditorUiState.Ready(info, location, transaction, notice = notice)
+        if (previous?.exportWasInterrupted == true || restoredPair?.second == true) session?.saveCommitted(transaction.history.current)
+        return VideoEditorUiState.Ready(sources, transaction, transaction.history.current.timeline.videoClips.first().id, music = music, notice = notice)
     }
 
     // ---- 미리보기 ----
@@ -270,9 +315,18 @@ internal class VideoEditorViewModel(
     }
 
     private fun previewProject(ready: VideoEditorUiState.Ready): VideoProject {
-        if (ready.activeTool?.isGeometry != true) return ready.displayed
-        // 자르기·회전 중에는 잘리기 전 전체 프레임을 보여 주고 그 위에 crop 프레임을 그린다.
-        return ready.displayed.updateClip { it.copy(effects = it.effects.copy(geometry = it.effects.geometry.copy(crop = RectN.Full))) }
+        val project = ready.displayed
+        return when {
+            // 자르기·회전 중에는 선택한 클립만, 잘리기 전 전체 프레임으로 보여 주고 그 위에 자르기 프레임을 그린다.
+            ready.activeTool?.isGeometry == true -> {
+                val clip = ready.clip.let { it.copy(effects = it.effects.copy(geometry = it.effects.geometry.copy(crop = RectN.Full))) }
+                project.copy(timeline = Timeline(listOf(clip)))
+            }
+            // 텍스트·스티커를 고치는 동안에는 화면이 직접 그려 손가락을 바로 따라가게 한다.
+            ready.activeTool == VideoTool.TEXT || ready.activeTool == VideoTool.STICKER ->
+                project.copy(timeline = project.timeline.copy(overlays = emptyList()))
+            else -> project
+        }
     }
 
     private fun showPreview(project: VideoProject) {
@@ -280,9 +334,10 @@ internal class VideoEditorViewModel(
         val plan = try {
             VideoPlanFactory.create(
                 project,
-                mapOf(ready.clip.source to ready.source),
-                mapOf(ready.clip.source to ready.location),
+                ready.sources.mapValues { it.value.info },
+                ready.sources.mapValues { it.value.location } + ready.music.mapValues { it.value.location },
                 PREVIEW_SHORT_SIDE,
+                ready.music.mapValues { it.value.info },
             ).copy(projectRevision = ++planRevision)
         } catch (error: FrameKitException) {
             logFailure("preview", error)
@@ -299,70 +354,103 @@ internal class VideoEditorViewModel(
         if (engine.state.value.isPlaying) engine.pause() else engine.play()
     }
 
-    /** 출력 시간으로 탐색한다. 사용자가 드래그하는 동안 [scrubbing]이면 속도를 우선한다. */
+    /** 출력 시간으로 탐색한다. 사용자가 드래그하는 동안 [scrubbing]이면 정확도보다 속도를 우선한다. */
     fun seekTo(positionUs: Long, scrubbing: Boolean = false) {
         val ready = _state.value as? VideoEditorUiState.Ready ?: return
+        if (scrubbing && engine.state.value.isPlaying) engine.pause()
         engine.setScrubbing(scrubbing)
         engine.seekTo(positionUs.coerceIn(0, max(0, ready.durationUs - FRAME_US)))
     }
 
     fun finishScrub() = engine.setScrubbing(false)
 
-    fun attachSurface(holder: android.view.SurfaceHolder) = engine.attachSurface(holder)
+    fun attachSurface(holder: SurfaceHolder) = engine.attachSurface(holder)
 
-    fun detachSurface(holder: android.view.SurfaceHolder) = engine.detachSurface(holder)
+    fun detachSurface(holder: SurfaceHolder) = engine.detachSurface(holder)
 
     /** Activity가 멈출 때 호출된다. 백그라운드에서는 재생을 계속하지 않는다. */
     fun onStop() = engine.pause()
 
-    /** 편집 중인 소스의 타임라인 프레임. 읽을 수 없으면 `null`. */
-    suspend fun timelineFrame(sourceTimeUs: Long, heightPx: Int): Bitmap? {
+    /** [source] 원본의 타임라인 프레임. 읽을 수 없으면 `null`. */
+    suspend fun timelineFrame(source: SourceId, sourceTimeUs: Long, heightPx: Int): Bitmap? {
         val ready = _state.value as? VideoEditorUiState.Ready ?: return null
-        return frames.frame(ready.location, ready.clip.source.value, sourceTimeUs, heightPx)
+        val location = ready.sources[source]?.location ?: return null
+        return frames.frame(location, source.value, sourceTimeUs, heightPx)
     }
 
     // ---- 도구 ----
 
     fun dismissNotice() = updateReady { it.copy(notice = null) }
 
-    fun selectTool(tool: VideoTool) = updateReady { ready ->
-        if (ready.activeTool != null || ready.export != null || ready.transaction.isActive || tool !in config.enabledTools) {
-            return@updateReady ready
-        }
+    fun selectTool(tool: VideoTool) {
+        val ready = _state.value as? VideoEditorUiState.Ready ?: return
+        if (ready.activeTool != null || ready.export != null || ready.transaction.isActive || ready.busy || tool !in config.enabledTools) return
         if (tool == VideoTool.FILTER) ensureFilterThumbnails(ready)
-        if (tool.isDraft) engine.pause()
-        when {
-            tool.isDraft -> ready.copy(activeTool = tool, cropAspect = CropAspectRatio.Free, transaction = ready.transaction.begin())
-            else -> ready.copy(activeTool = tool, selectedMaskId = null)
+        if (tool.isDraft || tool == VideoTool.STICKER) engine.pause()
+        if (tool.isGeometry) {
+            // 선택한 클립만 미리보므로 위치를 그 클립 안의 시간으로 바꾼다.
+            pendingSeekUs = (engine.state.value.positionUs - ready.clipStartUs).coerceIn(0, ready.clip.outputDurationUs)
+        }
+        if (tool == VideoTool.TEXT) return openText(existingId = null)
+        updateReady {
+            when {
+                tool.isDraft -> it.copy(activeTool = tool, cropAspect = CropAspectRatio.Free, transaction = it.transaction.begin())
+                else -> it.copy(activeTool = tool, selectedMaskId = null, selectedOverlayId = null)
+            }
         }
     }
 
-    fun applyTool() = updateReady { ready ->
-        if (ready.activeTool?.isDraft != true) return@updateReady ready
-        val draft = ready.transaction.draft ?: return@updateReady ready
-        ready.copy(activeTool = null, transaction = ready.transaction.update(clampMasks(draft)).commit())
+    fun applyTool() {
+        val ready = _state.value as? VideoEditorUiState.Ready ?: return
+        if (ready.activeTool?.isDraft != true) return
+        var draft = ready.transaction.draft ?: return
+        val editing = ready.editingTextId
+        if (editing != null) {
+            val text = draft.timeline.overlays.firstOrNull { it.overlay.id == editing }?.overlay as? ImageOverlay.Text
+            if (text != null && text.text.isBlank()) draft = Edit.removeOverlay(draft, editing)
+        }
+        leaveGeometry(ready)
+        updateReady { current ->
+            val committed = current.transaction.update(Edit.clampTimed(draft)).commit()
+            val selected = current.selectedOverlayId?.takeIf { id -> committed.history.current.timeline.overlays.any { it.overlay.id == id } }
+            current.copy(activeTool = null, transaction = committed, editingTextId = null, selectedOverlayId = selected)
+        }
     }
 
     /** 초안 도구 취소. 프로젝트는 도구를 열기 전 상태로 돌아간다. */
-    fun cancelTool() = updateReady { ready ->
-        if (ready.activeTool?.isDraft != true) ready else ready.copy(activeTool = null, transaction = ready.transaction.cancel())
+    fun cancelTool() {
+        val ready = _state.value as? VideoEditorUiState.Ready ?: return
+        if (ready.activeTool?.isDraft != true) return
+        leaveGeometry(ready)
+        updateReady { current ->
+            val cancelled = current.transaction.cancel()
+            val selected = current.selectedOverlayId?.takeIf { id -> cancelled.history.current.timeline.overlays.any { it.overlay.id == id } }
+            current.copy(activeTool = null, transaction = cancelled, editingTextId = null, selectedOverlayId = selected)
+        }
     }
 
-    /** 변경이 이미 커밋된 도구를 닫는다. */
+    private fun leaveGeometry(ready: VideoEditorUiState.Ready) {
+        if (ready.activeTool?.isGeometry == true) pendingSeekUs = ready.clipStartUs + engine.state.value.positionUs
+    }
+
+    /** 변경이 이미 확정된 도구를 닫는다. */
     fun closeTool() = updateReady { ready ->
-        if (ready.activeTool?.isDraft != false || ready.transaction.isActive) ready else ready.copy(activeTool = null, selectedMaskId = null)
+        if (ready.activeTool?.isDraft != false || ready.transaction.isActive) ready else ready.copy(activeTool = null, selectedMaskId = null, selectedOverlayId = null)
     }
 
     fun resetTool() {
         val ready = _state.value as? VideoEditorUiState.Ready ?: return
+        val id = ready.clip.id
         when (ready.activeTool) {
-            VideoTool.ADJUST -> commitImmediate { project -> project.updateClip { it.copy(effects = it.effects.copy(adjustments = Adjustments())) } }
-            VideoTool.FILTER -> commitImmediate { project -> project.updateClip { it.copy(effects = it.effects.copy(filter = FilterSelection())) } }
+            VideoTool.ADJUST -> commitImmediate { Edit.updateClip(it, id) { c -> c.copy(effects = c.effects.copy(adjustments = Adjustments())) } }
+            VideoTool.FILTER -> commitImmediate { Edit.updateClip(it, id) { c -> c.copy(effects = c.effects.copy(filter = FilterSelection())) } }
             VideoTool.SPEED -> selectSpeed(1.0)
-            VideoTool.AUDIO -> commitImmediate { project -> clampMasks(project.updateClip { it.copy(muted = false, volume = 1.0) }) }
+            VideoTool.AUDIO -> commitImmediate { Edit.setMusic(Edit.updateClip(it, id) { c -> c.copy(muted = false, volume = 1.0) }, null) }
             VideoTool.PRIVACY -> commitImmediate { it.copy(timeline = it.timeline.copy(privacyMasks = emptyList())) }
-            VideoTool.TRIM -> updateDraftClip { _, clip ->
-                clip.copy(sourceRange = TimeRangeUs(0, min(ready.sourceDurationUs, (config.maxTimelineDurationUs * clip.speed).roundToLong())))
+            VideoTool.STICKER -> commitImmediate { p -> p.copy(timeline = p.timeline.copy(overlays = p.timeline.overlays.filterNot { it.overlay is ImageOverlay.Sticker })) }
+            VideoTool.TEXT -> updateEditingText { it.copy(style = TextStyleSpec()) }
+            VideoTool.TRIM -> updateDraftClip { r, clip ->
+                clip.copy(sourceRange = TimeRangeUs(0, min(r.sourceDurationUs, (maxClipOutputUs(r, clip) * clip.speed).roundToLong())))
             }
             VideoTool.CROP -> {
                 updateReady { it.copy(cropAspect = CropAspectRatio.Free) }
@@ -373,9 +461,103 @@ internal class VideoEditorViewModel(
         }
     }
 
+    // ---- 클립 ----
+
+    /** 클립을 고른다. [seek]이면 그 클립의 시작으로 이동한다. */
+    fun selectClip(id: String, seek: Boolean = false) {
+        val ready = _state.value as? VideoEditorUiState.Ready ?: return
+        if (ready.activeTool != null || ready.clips.none { it.id == id }) return
+        updateReady { it.copy(selectedClipId = id) }
+        if (seek) seekTo(Edit.clipStart(ready.displayed, id))
+    }
+
+    /** 재생 위치를 지나는 클립을 고른다. 타임라인을 끌어 재생 위치를 옮긴 뒤 호출한다. */
+    fun selectClipAtPlayhead() {
+        val ready = _state.value as? VideoEditorUiState.Ready ?: return
+        if (ready.activeTool != null) return
+        val id = Edit.clipAt(ready.displayed, engine.state.value.positionUs) ?: return
+        if (id != ready.selectedClipId) updateReady { it.copy(selectedClipId = id) }
+    }
+
+    /** 재생 위치에서 클립을 둘로 나눈다. 효과는 양쪽에 그대로 남는다. */
+    fun splitAtPlayhead() {
+        val ready = _state.value as? VideoEditorUiState.Ready ?: return
+        if (!multiClip || ready.transaction.isActive) return
+        if (ready.clips.size >= config.maxClipCount) return updateReady { it.copy(notice = VideoNotice.CLIP_LIMIT) }
+        val newId = newId()
+        val split = Edit.split(ready.transaction.history.current, engine.state.value.positionUs, config.minClipDurationUs, newId)
+            ?: return updateReady { it.copy(notice = VideoNotice.SPLIT_UNAVAILABLE) }
+        engine.pause()
+        commitImmediate { split }
+        updateReady { it.copy(selectedClipId = newId) }
+    }
+
+    /** 선택한 클립을 앞(-1)이나 뒤(+1)로 옮긴다. 텍스트·마스크·음악은 출력 시간에 그대로 남는다. */
+    fun moveSelectedClip(delta: Int) {
+        val ready = _state.value as? VideoEditorUiState.Ready ?: return
+        engine.pause()
+        commitImmediate { Edit.move(it, ready.clip.id, delta) }
+        (_state.value as? VideoEditorUiState.Ready)?.let { seekTo(it.clipStartUs) }
+    }
+
+    fun deleteSelectedClip() {
+        val ready = _state.value as? VideoEditorUiState.Ready ?: return
+        if (ready.clips.size <= 1) return
+        val index = ready.clips.indexOfFirst { it.id == ready.clip.id }
+        val next = ready.clips.getOrNull(index + 1) ?: ready.clips[index - 1]
+        engine.pause()
+        commitImmediate { Edit.remove(it, ready.clip.id) }
+        updateReady { it.copy(selectedClipId = next.id) }
+    }
+
+    /** 고른 영상을 끝에 붙인다. 클립 수·전체 길이 제한을 넘는 영상은 붙이지 않는다. 한 번에 한 단계다. */
+    fun addClips(uris: List<Uri>) {
+        val ready = _state.value as? VideoEditorUiState.Ready ?: return
+        if (uris.isEmpty() || !multiClip || ready.busy || ready.transaction.isActive) return
+        engine.pause()
+        updateReady { it.copy(busy = true) }
+        viewModelScope.launch {
+            var notice: VideoNotice? = null
+            val opened = withContext(ioDispatcher) {
+                uris.mapNotNull { uri ->
+                    try {
+                        openVideo(EditorInput.UriSource(uri))
+                    } catch (error: FrameKitException) {
+                        logFailure("add", error)
+                        notice = VideoNotice.ADD_FAILED
+                        null
+                    }
+                }
+            }
+            val current = _state.value as? VideoEditorUiState.Ready ?: return@launch
+            var remaining = config.maxTimelineDurationUs - current.durationUs
+            var slots = config.maxClipCount - current.clips.size
+            val added = mutableListOf<VideoClip>()
+            opened.forEach { (id, loaded) ->
+                val length = min(loaded.info.metadata.durationUs ?: 0L, remaining)
+                when {
+                    slots <= 0 -> notice = VideoNotice.CLIP_LIMIT
+                    length < config.minClipDurationUs -> notice = VideoNotice.TIMELINE_FULL
+                    else -> {
+                        added += VideoClip(newId(), id, TimeRangeUs(0, length))
+                        remaining -= length
+                        slots -= 1
+                        session?.addSource(id, loaded.reference)
+                    }
+                }
+            }
+            updateReady { it.copy(sources = it.sources + opened.toMap(), busy = false, notice = notice ?: it.notice) }
+            if (added.isNotEmpty()) {
+                commitImmediate { Edit.append(it, added) }
+                updateReady { it.copy(selectedClipId = added.first().id) }
+                (_state.value as? VideoEditorUiState.Ready)?.let { seekTo(it.clipStartUs) }
+            }
+        }
+    }
+
     // ---- 구간 자르기 ----
 
-    /** 트림 핸들 드래그를 시작한다. */
+    /** 구간 손잡이 드래그를 시작한다. */
     fun beginTrim(edge: TrimEdge) {
         val ready = _state.value as? VideoEditorUiState.Ready ?: return
         if (ready.activeTool != VideoTool.TRIM) return
@@ -384,15 +566,15 @@ internal class VideoEditorViewModel(
     }
 
     /**
-     * 드래그 중인 핸들을 [sourceTimeUs]로 옮긴다. 남길 구간은 배속 적용 후 출력 시간 기준으로
-     * 최소 클립 길이와 최대 타임라인 길이 사이로 유지된다.
+     * 드래그 중인 손잡이를 원본 시간 [sourceTimeUs]로 옮긴다. 남길 구간은 배속 적용 뒤 출력 시간 기준으로
+     * 최소 클립 길이와, 다른 클립을 뺀 남은 최대 길이 사이로 유지된다.
      */
     fun dragTrim(sourceTimeUs: Long) {
         val edge = trimEdge ?: return
         updateDraftClip { ready, clip ->
             val range = clip.sourceRange
             val minLength = (config.minClipDurationUs * clip.speed).roundToLong()
-            val maxLength = (config.maxTimelineDurationUs * clip.speed).toLong()
+            val maxLength = (maxClipOutputUs(ready, clip) * clip.speed).toLong()
             val next = when (edge) {
                 TrimEdge.START -> {
                     val start = sourceTimeUs.coerceIn(max(0, range.endExclusiveUs - maxLength), max(0, range.endExclusiveUs - minLength))
@@ -403,7 +585,8 @@ internal class VideoEditorViewModel(
                     TimeRangeUs(range.startUs, end)
                 }
             }
-            pendingSeekUs = if (edge == TrimEdge.START) 0 else ((next.durationUs / clip.speed).toLong() - FRAME_US).coerceAtLeast(0)
+            val start = ready.clipStartUs
+            pendingSeekUs = if (edge == TrimEdge.START) start else start + ((next.durationUs / clip.speed).toLong() - FRAME_US).coerceAtLeast(0)
             clip.copy(sourceRange = next)
         }
     }
@@ -411,6 +594,10 @@ internal class VideoEditorViewModel(
     fun endTrim() {
         trimEdge = null
     }
+
+    // 다른 클립의 길이를 뺀, 이 클립이 가질 수 있는 최대 출력 길이.
+    private fun maxClipOutputUs(ready: VideoEditorUiState.Ready, clip: VideoClip): Long =
+        config.maxTimelineDurationUs - (TimelineTimeMapper.durationUs(ready.displayed.timeline) - clip.outputDurationUs)
 
     // ---- 자르기·회전 ----
 
@@ -467,28 +654,31 @@ internal class VideoEditorViewModel(
 
     fun changeAdjustment(display: Float) = updateGesture { ready, project ->
         val kind = ready.adjustKind
-        project.updateClip { it.copy(effects = it.effects.copy(adjustments = it.effects.adjustments.with(kind, kind.fromDisplay(display)))) }
+        Edit.updateClip(project, ready.clip.id) { it.copy(effects = it.effects.copy(adjustments = it.effects.adjustments.with(kind, kind.fromDisplay(display)))) }
     }
 
-    /** 슬라이더 드래그 종료. 실행 취소 한 단계로 커밋한다. */
+    /** 슬라이더나 화면 제스처가 끝났다. 실행 취소 한 단계로 확정한다. */
     fun finishGesture() = updateReady { ready ->
         if (ready.activeTool?.isDraft == true || !ready.transaction.isActive) ready else ready.copy(transaction = ready.transaction.commit())
     }
 
-    fun selectFilter(presetId: String) = commitImmediate { project ->
-        project.updateClip { clip ->
-            val current = clip.effects.filter
-            val intensity = when {
-                presetId == FilterCatalog.ORIGINAL_ID -> 0.0
-                current.presetId == presetId && current.intensity > 0.0 -> current.intensity
-                else -> 1.0
+    fun selectFilter(presetId: String) {
+        val id = (_state.value as? VideoEditorUiState.Ready)?.clip?.id ?: return
+        commitImmediate { project ->
+            Edit.updateClip(project, id) { clip ->
+                val current = clip.effects.filter
+                val intensity = when {
+                    presetId == FilterCatalog.ORIGINAL_ID -> 0.0
+                    current.presetId == presetId && current.intensity > 0.0 -> current.intensity
+                    else -> 1.0
+                }
+                clip.copy(effects = clip.effects.copy(filter = FilterSelection(presetId, intensity)))
             }
-            clip.copy(effects = clip.effects.copy(filter = FilterSelection(presetId, intensity)))
         }
     }
 
-    fun changeFilterIntensity(display: Float) = updateGesture { _, project ->
-        project.updateClip { clip ->
+    fun changeFilterIntensity(display: Float) = updateGesture { ready, project ->
+        Edit.updateClip(project, ready.clip.id) { clip ->
             val filter = clip.effects.filter
             if (filter.presetId == FilterCatalog.ORIGINAL_ID) {
                 clip
@@ -500,7 +690,10 @@ internal class VideoEditorViewModel(
     }
 
     private fun ensureFilterThumbnails(ready: VideoEditorUiState.Ready) {
-        if (thumbnailJob != null) return
+        if (thumbnailClipSource == ready.clip.source && thumbnailJob != null) return
+        thumbnailJob?.cancel()
+        thumbnailClipSource = ready.clip.source
+        _filterThumbnails.value = emptyMap()
         thumbnailJob = viewModelScope.launch {
             val frame = frames.frame(ready.location, ready.clip.source.value, ready.clip.sourceRange.startUs, FILTER_THUMBNAIL_PX) ?: return@launch
             FilterCatalog.presets.forEach { preset ->
@@ -516,31 +709,167 @@ internal class VideoEditorViewModel(
 
     // ---- 속도·소리 ----
 
-    /** [speed]를 적용해도 결과가 설정된 길이 제한 안에 있으면 `true`. */
+    /** 선택한 클립에 [speed]를 적용해도 전체 결과가 설정된 길이 제한 안에 있는지 확인한다. */
     fun speedAllowed(speed: Double): SpeedCheck {
         val ready = _state.value as? VideoEditorUiState.Ready ?: return SpeedCheck.OK
-        val output = ready.clip.sourceRange.durationUs / speed
+        val clipOutput = ready.clip.sourceRange.durationUs / speed
+        val total = ready.durationUs - ready.clip.outputDurationUs + clipOutput
         return when {
-            output > config.maxTimelineDurationUs -> SpeedCheck.TOO_LONG
-            output < config.minClipDurationUs -> SpeedCheck.TOO_SHORT
+            total > config.maxTimelineDurationUs -> SpeedCheck.TOO_LONG
+            clipOutput < config.minClipDurationUs -> SpeedCheck.TOO_SHORT
             else -> SpeedCheck.OK
         }
     }
 
+    /** 속도 도구 안에서 고른 배속. 적용하기 전까지는 초안이다. */
     fun selectSpeed(speed: Double) {
         when (speedAllowed(speed)) {
             SpeedCheck.TOO_LONG -> return updateReady { it.copy(notice = VideoNotice.SPEED_TOO_LONG) }
             SpeedCheck.TOO_SHORT -> return updateReady { it.copy(notice = VideoNotice.SPEED_TOO_SHORT) }
             SpeedCheck.OK -> Unit
         }
-        commitImmediate { project -> clampMasks(project.updateClip { it.copy(speed = speed) }) }
+        val ready = _state.value as? VideoEditorUiState.Ready ?: return
+        if (ready.activeTool == VideoTool.SPEED) {
+            pendingSeekUs = ready.clipStartUs
+            updateDraftClip { _, clip -> clip.copy(speed = speed) }
+        }
     }
 
-    fun setMuted(muted: Boolean) = commitImmediate { project -> project.updateClip { it.copy(muted = muted) } }
+    fun setMuted(muted: Boolean) {
+        val id = (_state.value as? VideoEditorUiState.Ready)?.clip?.id ?: return
+        commitImmediate { Edit.updateClip(it, id) { c -> c.copy(muted = muted) } }
+    }
 
-    /** 퍼센트 단위 볼륨 슬라이더, `0..200`. */
-    fun changeVolume(percent: Float) = updateGesture { _, project ->
-        project.updateClip { it.copy(volume = (percent / 100.0).coerceIn(0.0, VideoClip.MAX_VOLUME), muted = false) }
+    /** 원본 소리 볼륨 슬라이더(퍼센트), `0..200`. */
+    fun changeVolume(percent: Float) = updateGesture { ready, project ->
+        Edit.updateClip(project, ready.clip.id) { it.copy(volume = (percent / 100.0).coerceIn(0.0, VideoClip.MAX_VOLUME), muted = false) }
+    }
+
+    /** 배경 음악을 고른다. 이미 있으면 바꾼다. 재생 위치에서 시작한다. */
+    fun addMusic(uri: Uri?) {
+        val ready = _state.value as? VideoEditorUiState.Ready ?: return
+        if (uri == null || ready.busy || ready.transaction.isActive) return
+        updateReady { it.copy(busy = true) }
+        viewModelScope.launch {
+            val opened = withContext(ioDispatcher) {
+                try {
+                    openAudio(EditorInput.UriSource(uri), describe(uri))
+                } catch (error: FrameKitException) {
+                    logFailure("music", error)
+                    null
+                }
+            }
+            if (opened == null) return@launch updateReady { it.copy(busy = false, notice = VideoNotice.ADD_FAILED) }
+            val (id, loaded) = opened
+            session?.addAudio(id, loaded.reference)
+            updateReady { it.copy(music = it.music + (id to loaded), busy = false) }
+            val start = engine.state.value.positionUs.coerceAtLeast(0)
+            val clip = AudioClip(newId(), id, TimeRangeUs(0, loaded.info.metadata.durationUs ?: 0L), timelineStartUs = start)
+            commitImmediate { Edit.clampTimed(Edit.setMusic(it, clip)) }
+        }
+    }
+
+    fun removeMusic() = commitImmediate { Edit.setMusic(it, null) }
+
+    fun setMusicLoop(loop: Boolean) = commitImmediate { p -> Edit.updateMusic(p) { it.copy(loop = loop) } }
+
+    /** 배경 음악이 재생 위치에서 시작하게 한다. */
+    fun startMusicHere() {
+        val position = engine.state.value.positionUs
+        commitImmediate { p -> Edit.clampTimed(Edit.updateMusic(p) { it.copy(timelineStartUs = position.coerceAtLeast(0)) }) }
+    }
+
+    /** 배경 음악 볼륨 슬라이더(퍼센트), `0..200`. */
+    fun changeMusicVolume(percent: Float) = updateGesture { _, project ->
+        Edit.updateMusic(project) { it.copy(volume = (percent / 100.0).coerceIn(0.0, VideoClip.MAX_VOLUME)) }
+    }
+
+    /** 곡의 어느 지점부터 쓸지(원본 시간 µs). 곡 끝에서 1초는 남긴다. */
+    fun changeMusicOffset(offsetUs: Long) = updateGesture { ready, project ->
+        Edit.updateMusic(project) { clip ->
+            val total = ready.music[clip.source]?.info?.metadata?.durationUs ?: clip.sourceRange.endExclusiveUs
+            val start = offsetUs.coerceIn(0, max(0, total - MIN_MUSIC_US))
+            clip.copy(sourceRange = TimeRangeUs(start, total))
+        }
+    }
+
+    // ---- 텍스트·스티커 ----
+
+    private fun openText(existingId: String?) {
+        updateReady { ready ->
+            val begun = ready.transaction.begin()
+            val draft = checkNotNull(begun.draft)
+            val id = existingId ?: newId()
+            val project = if (existingId != null) {
+                draft
+            } else {
+                val range = Edit.defaultRange(engine.state.value.positionUs, ready.durationUs, DEFAULT_ITEM_US)
+                draft.copy(timeline = draft.timeline.copy(overlays = draft.timeline.overlays + TimedOverlay(ImageOverlay.Text(id, ""), range)))
+            }
+            ready.copy(activeTool = VideoTool.TEXT, transaction = begun.update(project), editingTextId = id, selectedOverlayId = id)
+        }
+    }
+
+    /** 기존 텍스트를 텍스트 도구로 연다. */
+    override fun editText(id: String) {
+        val ready = _state.value as? VideoEditorUiState.Ready ?: return
+        val canEdit = (ready.activeTool == null || ready.activeTool == VideoTool.STICKER) && ready.export == null &&
+            !ready.transaction.isActive && VideoTool.TEXT in config.enabledTools
+        if (!canEdit || ready.displayed.timeline.overlays.none { it.overlay.id == id && it.overlay is ImageOverlay.Text }) return
+        engine.pause()
+        openText(id)
+    }
+
+    fun updateText(text: String) = updateEditingText { it.copy(text = text) }
+
+    fun updateTextStyle(transform: (TextStyleSpec) -> TextStyleSpec) = updateEditingText { it.copy(style = transform(it.style)) }
+
+    private fun updateEditingText(transform: (ImageOverlay.Text) -> ImageOverlay.Text) = updateReady { ready ->
+        val id = ready.editingTextId ?: return@updateReady ready
+        val draft = ready.transaction.draft ?: return@updateReady ready
+        val text = draft.timeline.overlays.firstOrNull { it.overlay.id == id }?.overlay as? ImageOverlay.Text ?: return@updateReady ready
+        ready.copy(transaction = ready.transaction.update(Edit.replaceOverlay(draft, transform(text))))
+    }
+
+    fun selectStickerCategory(category: EmojiCatalog.Category) = updateReady { it.copy(stickerCategory = category) }
+
+    /** 이모지 스티커를 화면 가운데에 재생 위치부터 3초 동안 붙이고 고른다. 한 단계다. */
+    fun addSticker(emoji: String) {
+        val ready = _state.value as? VideoEditorUiState.Ready ?: return
+        val id = newId()
+        val range = Edit.defaultRange(engine.state.value.positionUs, ready.durationUs, DEFAULT_ITEM_US)
+        commitImmediate { it.copy(timeline = it.timeline.copy(overlays = it.timeline.overlays + TimedOverlay(ImageOverlay.Sticker(id, EmojiCatalog.assetId(emoji)), range))) }
+        updateReady { it.copy(selectedOverlayId = id) }
+    }
+
+    override fun selectOverlay(id: String?) = updateReady { it.copy(selectedOverlayId = id) }
+
+    fun deleteOverlay(id: String) {
+        commitImmediate { Edit.removeOverlay(it, id) }
+        updateReady { if (it.selectedOverlayId == id) it.copy(selectedOverlayId = null) else it }
+    }
+
+    override fun beginOverlayGesture(id: String) {
+        val ready = _state.value as? VideoEditorUiState.Ready ?: return
+        overlayGestureStart = ready.displayed.timeline.overlays.firstOrNull { it.overlay.id == id }?.overlay
+        updateReady { it.copy(selectedOverlayId = id) }
+    }
+
+    /** 이동은 정규화 캔버스 단위, 확대는 배율, 회전은 도 단위이며 모두 제스처를 시작한 뒤의 변화량이다. */
+    override fun updateOverlayGesture(panX: Double, panY: Double, zoom: Double, rotation: Double, snapX: Double, snapY: Double) {
+        val start = overlayGestureStart ?: return
+        val moved = start.withTransform(OverlayGestures.transform(start.transform, panX, panY, zoom, rotation, snapX, snapY))
+        val ready = _state.value as? VideoEditorUiState.Ready ?: return
+        if (ready.activeTool == VideoTool.TEXT) {
+            updateReady { r -> r.transaction.draft?.let { r.copy(transaction = r.transaction.update(Edit.replaceOverlay(it, moved))) } ?: r }
+        } else {
+            updateGesture { _, project -> Edit.replaceOverlay(project, moved) }
+        }
+    }
+
+    override fun finishOverlayGesture() {
+        overlayGestureStart = null
+        finishGesture()
     }
 
     // ---- 모자이크 ----
@@ -562,7 +891,7 @@ internal class VideoEditorViewModel(
         maskAnchor = PointN(x, y)
         val id = newId()
         val shape = if (ready.privacy.shape == PrivacyShape.ELLIPSE) MaskShape.Ellipse(RectN(x, y, x, y)) else MaskShape.Rectangle(RectN(x, y, x, y))
-        val mask = TimedPrivacyMask(PrivacyMask(id, shape, ready.privacy.effect()), defaultMaskRange(ready))
+        val mask = TimedPrivacyMask(PrivacyMask(id, shape, ready.privacy.effect()), Edit.defaultRange(engine.state.value.positionUs, ready.durationUs, DEFAULT_ITEM_US))
         updateGesture { _, project -> project.copy(timeline = project.timeline.copy(privacyMasks = project.timeline.privacyMasks + mask)) }
         updateReady { it.copy(selectedMaskId = id) }
     }
@@ -572,7 +901,7 @@ internal class VideoEditorViewModel(
         val id = (_state.value as? VideoEditorUiState.Ready)?.selectedMaskId ?: return
         val rect = RectN(min(anchor.x, x), min(anchor.y, y), max(anchor.x, x), max(anchor.y, y))
         updateGesture { _, project ->
-            project.updateMask(id) { timed ->
+            Edit.updateMask(project, id) { timed ->
                 val shape = when (timed.mask.shape) {
                     is MaskShape.Ellipse -> MaskShape.Ellipse(rect)
                     else -> MaskShape.Rectangle(rect)
@@ -608,49 +937,37 @@ internal class VideoEditorViewModel(
         updateReady { if (it.selectedMaskId == id) it.copy(selectedMaskId = null) else it }
     }
 
-    /** 마스크의 시작(또는 끝)을 재생 헤드로 옮긴다. 최소 한 프레임은 유지한다. */
+    /** 마스크의 시작(또는 끝)을 재생 위치로 옮긴다. 최소 한 프레임은 남긴다. */
     fun setMaskEdge(id: String, start: Boolean) {
         val position = engine.state.value.positionUs
         commitImmediate { project ->
             val duration = TimelineTimeMapper.durationUs(project.timeline)
-            project.updateMask(id) { timed ->
-                val range = timed.range
-                val next = if (start) {
-                    TimeRangeUs(position.coerceIn(0, range.endExclusiveUs - FRAME_US), range.endExclusiveUs)
-                } else {
-                    TimeRangeUs(range.startUs, (position + FRAME_US).coerceIn(range.startUs + FRAME_US, duration))
-                }
-                timed.copy(range = next)
-            }
+            Edit.updateMask(project, id) { it.copy(range = Edit.moveEdge(it.range, position, start, duration, FRAME_US)) }
         }
     }
 
-    private fun defaultMaskRange(ready: VideoEditorUiState.Ready): TimeRangeUs {
-        val duration = ready.durationUs
-        val length = min(DEFAULT_MASK_US, duration)
-        val start = engine.state.value.positionUs.coerceIn(0, duration - length)
-        return TimeRangeUs(start, start + length)
-    }
-
-    // 길이가 바뀌면(자르기·속도) 결과 밖으로 나간 마스크 구간을 줄이고, 비게 된 마스크는 지운다.
-    private fun clampMasks(project: VideoProject): VideoProject {
-        val duration = TimelineTimeMapper.durationUs(project.timeline)
-        val masks = project.timeline.privacyMasks.mapNotNull { timed ->
-            val range = TimeRangeUs(timed.range.startUs.coerceIn(0, duration), timed.range.endExclusiveUs.coerceIn(0, duration))
-            if (range.isEmpty) null else timed.copy(range = range)
+    /** 텍스트·스티커의 시작(또는 끝)을 재생 위치로 옮긴다. 최소 한 프레임은 남긴다. */
+    fun setOverlayEdge(id: String, start: Boolean) {
+        val position = engine.state.value.positionUs
+        commitImmediate { project ->
+            val duration = TimelineTimeMapper.durationUs(project.timeline)
+            Edit.updateOverlay(project, id) { it.copy(range = Edit.moveEdge(it.range, position, start, duration, FRAME_US)) }
         }
-        return if (masks == project.timeline.privacyMasks) project else project.copy(timeline = project.timeline.copy(privacyMasks = masks))
     }
 
     // ---- 기록·저장·종료 ----
 
     fun undo() = updateReady { ready ->
-        if (!config.allowUndo || ready.export != null) ready else ready.copy(transaction = ready.transaction.undo())
+        if (!config.allowUndo || ready.export != null) ready else ready.copy(transaction = ready.transaction.undo()).fixSelection()
     }
 
     fun redo() = updateReady { ready ->
-        if (!config.allowRedo || ready.export != null) ready else ready.copy(transaction = ready.transaction.redo())
+        if (!config.allowRedo || ready.export != null) ready else ready.copy(transaction = ready.transaction.redo()).fixSelection()
     }
+
+    // 실행 취소로 선택한 클립이 사라지면 첫 클립을 고른다.
+    private fun VideoEditorUiState.Ready.fixSelection(): VideoEditorUiState.Ready =
+        if (clips.any { it.id == selectedClipId }) this else copy(selectedClipId = clips.first().id)
 
     fun save() {
         val ready = _state.value as? VideoEditorUiState.Ready ?: return
@@ -658,8 +975,8 @@ internal class VideoEditorViewModel(
             updateReady { it.copy(showApplyHint = true) }
             return
         }
-        // 결과를 이미 보냈거나 export가 진행 중이면 두 번째 저장 요청은 무시한다.
-        if (_result.value != null || ready.export != null || exportJob?.isActive == true) return
+        // 결과를 이미 보냈거나 저장이 진행 중이면 두 번째 저장 요청은 무시한다.
+        if (_result.value != null || ready.export != null || exportJob?.isActive == true || ready.busy) return
         engine.pause()
         val snapshot = ready.transaction.history.current
         updateReady { it.copy(export = ExportUiState.Running(ExportStageUi.PREPARING)) }
@@ -668,8 +985,9 @@ internal class VideoEditorViewModel(
                 session?.markExport(snapshot, running = true)
                 val media = exporter.export(
                     snapshot,
-                    mapOf(ready.clip.source to ready.source),
-                    mapOf(ready.clip.source to ready.location),
+                    ready.sources.mapValues { it.value.info },
+                    ready.sources.mapValues { it.value.location } + ready.music.mapValues { it.value.location },
+                    ready.music.mapValues { it.value.info },
                 ) { progress -> updateReady { current -> current.withProgress(progress) } }
                 finish(FrameKitResult.Success(media))
             } catch (cancelled: CancellationException) {
@@ -710,7 +1028,7 @@ internal class VideoEditorViewModel(
 
     fun dismissApplyHint() = updateReady { it.copy(showApplyHint = false) }
 
-    /** 닫기 버튼 또는 시스템 뒤로 가기. */
+    /** 닫기 버튼이나 시스템 뒤로 가기. */
     fun requestClose() {
         when (val current = _state.value) {
             is VideoEditorUiState.Ready -> when {
@@ -723,7 +1041,7 @@ internal class VideoEditorViewModel(
         }
     }
 
-    /** 시스템 뒤로 가기. 열린 도구를 먼저 닫고, 그다음에는 [requestClose]처럼 동작한다. */
+    /** 시스템 뒤로 가기. 열린 도구를 먼저 닫고, 그다음은 [requestClose]와 같다. */
     fun onBack() {
         val ready = _state.value as? VideoEditorUiState.Ready
         when {
@@ -772,7 +1090,7 @@ internal class VideoEditorViewModel(
 
     private fun updateDraftClip(transform: (VideoEditorUiState.Ready, VideoClip) -> VideoClip) = updateReady { ready ->
         val draft = ready.transaction.draft ?: return@updateReady ready
-        ready.copy(transaction = ready.transaction.update(draft.updateClip { transform(ready, it) }))
+        ready.copy(transaction = ready.transaction.update(Edit.updateClip(draft, ready.clip.id) { transform(ready, it) }))
     }
 
     private fun updateDraftGeometry(transform: (VideoEditorUiState.Ready, GeometryEdit) -> GeometryEdit) = updateDraftClip { ready, clip ->
@@ -803,7 +1121,8 @@ internal class VideoEditorViewModel(
         const val PREVIEW_SHORT_SIDE = 720
         const val FILTER_THUMBNAIL_PX = 160
         const val FRAME_US = 33_333L
-        const val DEFAULT_MASK_US = 3_000_000L
+        const val DEFAULT_ITEM_US = 3_000_000L
+        const val MIN_MUSIC_US = 1_000_000L
         const val MIN_MASK_SIZE = 0.01
     }
 }
@@ -812,7 +1131,7 @@ internal enum class TrimEdge { START, END }
 
 internal enum class SpeedCheck { OK, TOO_LONG, TOO_SHORT }
 
-/** 영상 미리보기의 제스처. */
+/** 영상 미리보기 위의 제스처. */
 internal interface VideoCanvasActions {
     fun beginCropDrag(handle: CropHandle)
     fun dragCrop(dx: Double, dy: Double)
@@ -821,10 +1140,9 @@ internal interface VideoCanvasActions {
     fun extendMask(x: Double, y: Double)
     fun finishMask()
     fun selectMask(id: String?)
+    fun selectOverlay(id: String?)
+    fun editText(id: String)
+    fun beginOverlayGesture(id: String)
+    fun updateOverlayGesture(panX: Double, panY: Double, zoom: Double, rotation: Double, snapX: Double, snapY: Double)
+    fun finishOverlayGesture()
 }
-
-private fun VideoProject.updateClip(transform: (VideoClip) -> VideoClip): VideoProject =
-    copy(timeline = timeline.copy(videoClips = timeline.videoClips.mapIndexed { index, clip -> if (index == 0) transform(clip) else clip }))
-
-private fun VideoProject.updateMask(id: String, transform: (TimedPrivacyMask) -> TimedPrivacyMask): VideoProject =
-    copy(timeline = timeline.copy(privacyMasks = timeline.privacyMasks.map { if (it.mask.id == id) transform(it) else it }))
