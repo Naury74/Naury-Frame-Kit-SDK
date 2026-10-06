@@ -27,6 +27,7 @@ FrameKit을 빌드하고 검증하는 기준 toolchain이다. 아래 값을 바�
 | androidx.lifecycle | 2.11.0 |
 | androidx.exifinterface | 1.4.2 |
 | kotlinx.coroutines | 1.11.0 |
+| kotlinx.serialization | 1.11.0 (세션 descriptor/snapshot JSON, `framekit-android` 내부) |
 
 영상 단계(v0.3)에서 Media3 1.11.1을 추가한다. 모든 Media3 artifact는 같은 버전을 사용한다.
 

@@ -87,5 +87,15 @@ class EditHistoryTest {
         assertThat(history.redo()).isSameInstanceAs(history)
     }
 
+    @Test
+    fun `restored history has no undo steps but stays dirty against the original`() {
+        val restored = EditHistory.restore(baseline = initial, current = b.withRevision(4))
+
+        assertThat(restored.canUndo).isFalse()
+        assertThat(restored.canRedo).isFalse()
+        assertThat(restored.isDirty).isTrue()
+        assertThat(restored.commit(c).current.revision).isEqualTo(5)
+    }
+
     private fun ImageProject.withTurns(turns: Int) = copy(geometry = GeometryEdit(quarterTurns = turns))
 }

@@ -65,5 +65,17 @@ public class EditHistory<T : ProjectSnapshot<T>> private constructor(
             require(capacity > 0) { "History capacity must be positive: $capacity" }
             return EditHistory(initial, initial, emptyList(), emptyList(), capacity, initial.revision)
         }
+
+        /**
+         * Rebuilds a history after process death: [current] is the last committed snapshot and
+         * [baseline] is the untouched state the editor originally opened with. Undo and redo stacks
+         * are not restored, but [isDirty] still compares against the original baseline.
+         *
+         * @throws IllegalArgumentException when [capacity] is not positive.
+         */
+        public fun <T : ProjectSnapshot<T>> restore(baseline: T, current: T, capacity: Int = DEFAULT_CAPACITY): EditHistory<T> {
+            require(capacity > 0) { "History capacity must be positive: $capacity" }
+            return EditHistory(current, baseline, emptyList(), emptyList(), capacity, maxOf(baseline.revision, current.revision))
+        }
     }
 }
