@@ -134,6 +134,11 @@ public class ImageExportCoordinator(
         }
     }
 
+    /** Removes partial files that an interrupted export left behind more than a day ago. */
+    public fun deleteStalePartials() {
+        outputStore.deleteStalePartials()
+    }
+
     private fun decodeSampleSize(source: ImageSourceInfo, project: ImageProject, outputSize: PixelSize): Int {
         val frame = GeometryFrame(source.metadata.uprightSize, project.geometry)
         val cropSize = frame.cropPixelSize(project.geometry.crop)

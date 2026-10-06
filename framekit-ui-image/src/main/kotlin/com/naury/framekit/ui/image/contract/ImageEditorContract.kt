@@ -1,0 +1,43 @@
+package com.naury.framekit.ui.image.contract
+
+import android.app.Activity
+import android.content.Context
+import android.content.Intent
+import androidx.activity.result.contract.ActivityResultContract
+import androidx.core.content.IntentCompat
+import com.naury.framekit.android.result.EditedMedia
+import com.naury.framekit.android.result.EditorError
+import com.naury.framekit.android.result.EditorErrorCode
+import com.naury.framekit.android.result.FrameKitResult
+import com.naury.framekit.ui.image.editor.ImageEditorActivity
+
+/**
+ * Opens the image editor and returns exactly one [FrameKitResult].
+ *
+ * ```
+ * val launcher = registerForActivityResult(ImageEditorContract()) { result -> ... }
+ * launcher.launch(ImageEditorRequest(EditorInput.Pick()))
+ * ```
+ */
+public class ImageEditorContract : ActivityResultContract<ImageEditorRequest, FrameKitResult>() {
+
+    override fun createIntent(context: Context, input: ImageEditorRequest): Intent =
+        Intent(context, ImageEditorActivity::class.java).putExtra(EXTRA_REQUEST, input)
+
+    override fun parseResult(resultCode: Int, intent: Intent?): FrameKitResult = when (resultCode) {
+        Activity.RESULT_OK -> intent?.let { IntentCompat.getParcelableExtra(it, EXTRA_OUTPUT, EditedMedia::class.java) }
+            ?.let(FrameKitResult::Success)
+            ?: FrameKitResult.Failure(EditorError(EditorErrorCode.RESULT_UNAVAILABLE))
+        RESULT_FAILURE -> intent?.let { IntentCompat.getParcelableExtra(it, EXTRA_ERROR, EditorError::class.java) }
+            ?.let(FrameKitResult::Failure)
+            ?: FrameKitResult.Failure(EditorError(EditorErrorCode.RESULT_UNAVAILABLE))
+        else -> FrameKitResult.Cancelled
+    }
+
+    internal companion object {
+        const val EXTRA_REQUEST = "com.naury.framekit.extra.IMAGE_REQUEST"
+        const val EXTRA_OUTPUT = "com.naury.framekit.extra.OUTPUT"
+        const val EXTRA_ERROR = "com.naury.framekit.extra.ERROR"
+        const val RESULT_FAILURE = Activity.RESULT_FIRST_USER + 1
+    }
+}
