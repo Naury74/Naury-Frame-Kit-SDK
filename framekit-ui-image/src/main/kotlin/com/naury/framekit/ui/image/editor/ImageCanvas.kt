@@ -11,6 +11,7 @@ import androidx.compose.foundation.systemGestureExclusion
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
@@ -30,6 +31,10 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import android.graphics.Paint
+import android.graphics.RectF
+import com.naury.framekit.core.effect.Adjustments
+import com.naury.framekit.core.effect.FilterSelection
 import com.naury.framekit.core.geometry.Affine2D
 import com.naury.framekit.core.geometry.CropHandle
 import com.naury.framekit.core.geometry.GeometryEdit
@@ -38,6 +43,7 @@ import com.naury.framekit.core.geometry.Size2D
 import com.naury.framekit.core.geometry.ViewportTransform
 import com.naury.framekit.image.render.CanvasGeometryRenderer
 import com.naury.framekit.image.render.ImageRenderPlanFactory
+import com.naury.framekit.image.render.PreviewMode
 import com.naury.framekit.ui.design.FrameKitTheme
 import com.naury.framekit.ui.image.R
 import com.naury.framekit.ui.image.contract.ImageTool
@@ -52,6 +58,8 @@ import com.naury.framekit.ui.R as UiR
 @Composable
 internal fun ImageCanvas(
     state: ImageEditorUiState.Ready,
+    rendered: RenderedPreview?,
+    onViewportSize: (Int, Int) -> Unit,
     onBeginCropDrag: (CropHandle) -> Unit,
     onDragCrop: (Double, Double) -> Unit,
     onEndCropDrag: () -> Unit,
@@ -61,8 +69,17 @@ internal fun ImageCanvas(
     val colors = FrameKitTheme.colors
     val density = LocalDensity.current
     val metadata = state.source.metadata
-    val toolMode = state.activeTool != null
-    val project = if (state.showingOriginal) state.displayed.copy(geometry = GeometryEdit()) else state.displayed
+    val toolMode = state.activeTool?.isDraft == true
+    val project = if (state.showingOriginal) {
+        state.displayed.copy(geometry = GeometryEdit(), adjustments = Adjustments(), filter = FilterSelection())
+    } else {
+        state.displayed
+    }
+    val mode = if (toolMode) PreviewMode.UNCROPPED else PreviewMode.RESULT
+    // 색 효과가 있으면 같은 형태(geometry)로 렌더된 미리보기를 쓴다. 새 값이 렌더되는 동안에는 직전 결과를 보여 준다.
+    val effectedBitmap = rendered
+        ?.takeIf { !project.colorSpec.isIdentity && it.mode == mode && it.project.geometry == project.geometry }
+        ?.bitmap
     val previewLongEdge = maxOf(state.preview.bitmap.width, state.preview.bitmap.height)
     val plan = remember(project, toolMode) {
         if (toolMode) {
@@ -83,6 +100,10 @@ internal fun ImageCanvas(
         val outputToViewport = viewport.contentToViewport *
             Affine2D.scale(1.0 / plan.outputSize.width, 1.0 / plan.outputSize.height)
         val cropFrame = viewport.toViewport(project.geometry.crop)
+        val viewportWidth = constraints.maxWidth
+        val viewportHeight = constraints.maxHeight
+        LaunchedEffect(viewportWidth, viewportHeight) { onViewportSize(viewportWidth, viewportHeight) }
+        val contentRect = viewport.toViewport(RectN.Full)
         val currentViewport by rememberUpdatedState(viewport)
         val currentFrame by rememberUpdatedState(cropFrame)
         val touchRadius = with(density) { 24.dp.toPx().toDouble() }
@@ -130,7 +151,12 @@ internal fun ImageCanvas(
 
         Canvas(Modifier.fillMaxSize().then(gestures)) {
             drawIntoCanvas { canvas ->
-                CanvasGeometryRenderer.draw(canvas.nativeCanvas, state.preview, plan, outputToViewport)
+                if (effectedBitmap != null && !effectedBitmap.isRecycled) {
+                    val target = RectF(contentRect.left.toFloat(), contentRect.top.toFloat(), contentRect.right.toFloat(), contentRect.bottom.toFloat())
+                    canvas.nativeCanvas.drawBitmap(effectedBitmap, null, target, PREVIEW_PAINT)
+                } else {
+                    CanvasGeometryRenderer.draw(canvas.nativeCanvas, state.preview, plan, outputToViewport)
+                }
             }
             if (toolMode) {
                 drawCropFrame(
@@ -174,6 +200,8 @@ private fun Modifier.excludeSystemGestures(frame: RectN, radius: Float): Modifie
         modifier.systemGestureExclusion { Rect(point.x - radius, point.y - radius, point.x + radius, point.y + radius) }
     }
 }
+
+private val PREVIEW_PAINT = Paint(Paint.FILTER_BITMAP_FLAG)
 
 private fun DrawScope.drawCropFrame(frame: RectN, accent: Color, showGrid: Boolean, showHandles: Boolean) {
     val left = frame.left.toFloat()

@@ -25,7 +25,10 @@ import com.naury.framekit.android.session.EditorSessionStore
 import com.naury.framekit.android.source.SessionSourceRegistry
 import com.naury.framekit.core.validation.ValidationResult
 import com.naury.framekit.image.decode.PreviewResolution
+import com.naury.framekit.android.output.AppFileOutputStore
+import com.naury.framekit.image.effect.DefaultColorEffectRenderer
 import com.naury.framekit.image.export.ImageExportCoordinator
+import com.naury.framekit.image.export.ImageMemoryBudget
 import com.naury.framekit.ui.config.ThemeMode
 import com.naury.framekit.ui.design.FrameKitTheme
 import com.naury.framekit.ui.design.ProvideEditorLocale
@@ -78,7 +81,14 @@ internal class ImageEditorActivity : ComponentActivity() {
         initializer {
             val application = checkNotNull(this[APPLICATION_KEY])
             val registry = SessionSourceRegistry(application)
-            val coordinator = ImageExportCoordinator(application, registry)
+            val colorRenderer = DefaultColorEffectRenderer()
+            val coordinator = ImageExportCoordinator(
+                resolver = registry,
+                outputStore = AppFileOutputStore(application),
+                memoryBudgetBytes = ImageMemoryBudget.bytes(application),
+                contentResolver = application.contentResolver,
+                colorRenderer = colorRenderer,
+            )
             ImageEditorViewModel(
                 request = request,
                 savedState = createSavedStateHandle(),
@@ -88,6 +98,7 @@ internal class ImageEditorActivity : ComponentActivity() {
                 ioDispatcher = Dispatchers.IO,
                 sessionStore = EditorSessionStore(application),
                 contentResolver = application.contentResolver,
+                colorRenderer = colorRenderer,
             )
         }
     }

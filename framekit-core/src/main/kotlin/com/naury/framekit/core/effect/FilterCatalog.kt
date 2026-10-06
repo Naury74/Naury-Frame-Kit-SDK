@@ -50,6 +50,15 @@ public object FilterCatalog {
 
     public val presets: List<FilterPreset> = listOf(
         original,
+        // 한 번에 고르는 분위기 템플릿. 사진과 영상이 같은 카탈로그를 쓴다.
+        FilterPreset(
+            "bright",
+            1,
+            FilterGrade(brightness = 0.08, contrast = -0.08, saturation = 0.1, highlightTint = RgbShift(0.02, 0.02, 0.01), fade = 0.1),
+        ),
+        FilterPreset("soft", 1, FilterGrade(contrast = -0.15, saturation = -0.05, fade = 0.25)),
+        FilterPreset("lovely", 1, FilterGrade(tint = 0.3, brightness = 0.04, saturation = 0.05, highlightTint = RgbShift(0.03, 0.0, 0.02))),
+        FilterPreset("dramatic", 1, FilterGrade(contrast = 0.3, saturation = -0.15, shadowTint = RgbShift(0.0, 0.01, 0.03))),
         FilterPreset("clean", 1, FilterGrade(brightness = 0.02, contrast = 0.08, saturation = 0.05)),
         FilterPreset("vivid", 1, FilterGrade(contrast = 0.15, saturation = 0.35)),
         FilterPreset("warm", 1, FilterGrade(temperature = 0.5, saturation = 0.05, highlightTint = RgbShift(0.03, 0.01, -0.02))),

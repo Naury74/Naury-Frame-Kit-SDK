@@ -19,11 +19,16 @@ import androidx.compose.ui.unit.dp
 import com.naury.framekit.ui.R
 import com.naury.framekit.ui.design.FrameKitTheme
 
-/** Cancel, an optional reset and Apply for tools that edit a draft. */
+/**
+ * Bottom bar of an open tool: Cancel (only for draft tools), title, optional reset and Apply.
+ *
+ * @param onCancel `null` for tools whose changes are already committed; the check button then closes
+ *   the tool.
+ */
 @Composable
 public fun ApplyCancelBar(
     title: String,
-    onCancel: () -> Unit,
+    onCancel: (() -> Unit)?,
     onApply: () -> Unit,
     modifier: Modifier = Modifier,
     onReset: (() -> Unit)? = null,
@@ -33,20 +38,26 @@ public fun ApplyCancelBar(
         modifier = modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        IconButton(onClick = onCancel) {
-            Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.framekit_action_cancel), tint = colors.foreground)
+        if (onCancel != null) {
+            IconButton(onClick = onCancel) {
+                Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.framekit_action_cancel), tint = colors.foreground)
+            }
         }
         Text(
             title,
             color = colors.foreground,
             style = MaterialTheme.typography.titleSmall,
-            modifier = Modifier.weight(1f).padding(horizontal = 8.dp),
+            modifier = Modifier.weight(1f).padding(horizontal = if (onCancel != null) 8.dp else 16.dp),
         )
         if (onReset != null) {
             TextButton(onClick = onReset) { Text(stringResource(R.string.framekit_action_reset), color = colors.foregroundMuted) }
         }
         IconButton(onClick = onApply) {
-            Icon(Icons.Filled.Check, contentDescription = stringResource(R.string.framekit_action_apply), tint = colors.accent)
+            Icon(
+                Icons.Filled.Check,
+                contentDescription = stringResource(if (onCancel != null) R.string.framekit_action_apply else R.string.framekit_action_done),
+                tint = colors.accent,
+            )
         }
     }
 }

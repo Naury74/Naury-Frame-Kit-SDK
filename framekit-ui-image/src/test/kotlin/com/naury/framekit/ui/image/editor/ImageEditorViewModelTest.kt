@@ -17,6 +17,8 @@ import com.naury.framekit.android.result.EditorErrorCode
 import com.naury.framekit.android.result.FrameKitResult
 import com.naury.framekit.android.session.EditorSessionStore
 import com.naury.framekit.android.source.SessionSourceRegistry
+import com.naury.framekit.core.effect.AdjustmentKind
+import com.naury.framekit.core.effect.FilterSelection
 import com.naury.framekit.core.geometry.CropAspectRatio
 import com.naury.framekit.core.geometry.CropHandle
 import com.naury.framekit.image.export.ImageExportConfig
@@ -323,6 +325,71 @@ class ImageEditorViewModelTest {
         assertThat(savedState.contains(ImageSessionRecorder.KEY_SESSION_ID)).isFalse()
     }
 
+    @Test
+    fun `adjustment drag is one undo step and survives in the export`() {
+        val viewModel = viewModel(EditorInput.FileSource(sourceFile.absolutePath))
+        viewModel.selectTool(ImageTool.ADJUST)
+        viewModel.selectAdjustment(AdjustmentKind.SATURATION)
+        listOf(-10f, -40f, -80f, -100f).forEach(viewModel::changeAdjustment)
+        viewModel.finishGesture()
+
+        val history = ready(viewModel).transaction.history
+        assertThat(history.past).hasSize(1)
+        assertThat(history.current.adjustments.saturation).isEqualTo(-1.0)
+
+        viewModel.closeTool()
+        viewModel.save()
+        val exported = BitmapFactory.decodeFile(publishedFiles().single().absolutePath)
+        val pixel = exported.getPixel(10, 100)
+        assertThat(Color.red(pixel)).isWithin(2).of(Color.green(pixel))
+    }
+
+    @Test
+    fun `filter selection and intensity drag are separate undo steps`() {
+        val viewModel = viewModel(EditorInput.FileSource(sourceFile.absolutePath))
+        viewModel.selectTool(ImageTool.FILTER)
+
+        viewModel.selectFilter("bright")
+        assertThat(ready(viewModel).displayed.filter).isEqualTo(FilterSelection("bright", 1.0))
+        viewModel.changeFilterIntensity(70f)
+        viewModel.changeFilterIntensity(40f)
+        viewModel.finishGesture()
+
+        assertThat(ready(viewModel).displayed.filter.intensity).isWithin(1e-9).of(0.4)
+        assertThat(ready(viewModel).transaction.history.past).hasSize(2)
+        viewModel.undo()
+        assertThat(ready(viewModel).displayed.filter.intensity).isEqualTo(1.0)
+    }
+
+    @Test
+    fun `effects render a preview bitmap and plain projects draw directly`() {
+        val viewModel = viewModel(EditorInput.FileSource(sourceFile.absolutePath))
+        viewModel.onViewportSize(400, 300)
+        assertThat(viewModel.renderedPreview.value).isNull()
+
+        viewModel.selectTool(ImageTool.FILTER)
+        viewModel.selectFilter("mono")
+
+        val rendered = checkNotNull(viewModel.renderedPreview.value)
+        assertThat(rendered.bitmap.width).isAtMost(400)
+        assertThat(Color.red(rendered.bitmap.getPixel(5, rendered.bitmap.height / 2)))
+            .isEqualTo(Color.green(rendered.bitmap.getPixel(5, rendered.bitmap.height / 2)))
+        assertThat(viewModel.filterThumbnails.value.keys).containsAtLeast("original", "bright", "mono")
+    }
+
+    @Test
+    fun `back closes an immediate tool without changing the project`() {
+        val viewModel = viewModel(EditorInput.FileSource(sourceFile.absolutePath))
+        viewModel.selectTool(ImageTool.ADJUST)
+        viewModel.changeAdjustment(30f)
+        viewModel.finishGesture()
+
+        viewModel.onBack()
+
+        assertThat(ready(viewModel).activeTool).isNull()
+        assertThat(ready(viewModel).displayed.adjustments.brightness).isWithin(1e-9).of(0.3)
+    }
+
     private fun viewModel(
         input: EditorInput,
         savedState: SavedStateHandle = SavedStateHandle(),
@@ -338,6 +405,7 @@ class ImageEditorViewModelTest {
             ioDispatcher = Dispatchers.Unconfined,
             sessionStore = sessions,
             snapshotDebounceMillis = 0L,
+            renderDispatcher = Dispatchers.Unconfined,
         )
     }
 

@@ -64,7 +64,9 @@ import com.naury.framekit.ui.component.ToolRailItem
 import com.naury.framekit.ui.design.FrameKitTheme
 import com.naury.framekit.ui.image.R
 import com.naury.framekit.ui.image.contract.ImageTool
+import com.naury.framekit.ui.image.tool.AdjustToolPanel
 import com.naury.framekit.ui.image.tool.CropToolPanel
+import com.naury.framekit.ui.image.tool.FilterToolPanel
 import com.naury.framekit.ui.image.tool.RotateToolPanel
 import com.naury.framekit.ui.R as UiR
 
@@ -215,14 +217,17 @@ private fun ReadyContent(state: ImageEditorUiState.Ready, viewModel: ImageEditor
 @Composable
 private fun CanvasArea(state: ImageEditorUiState.Ready, viewModel: ImageEditorViewModel, modifier: Modifier) {
     Box(modifier) {
+        val rendered by viewModel.renderedPreview.collectAsStateWithLifecycle()
         ImageCanvas(
             state = state,
+            rendered = rendered,
+            onViewportSize = viewModel::onViewportSize,
             onBeginCropDrag = viewModel::beginCropDrag,
             onDragCrop = viewModel::dragCrop,
             onEndCropDrag = viewModel::endCropDrag,
             onShowOriginal = viewModel::showOriginal,
         )
-        if (state.activeTool == null) {
+        if (state.activeTool?.isDraft != true) {
             val history = state.transaction.history
             HistoryControls(
                 canUndo = history.canUndo,
@@ -248,10 +253,10 @@ private fun ToolArea(state: ImageEditorUiState.Ready, viewModel: ImageEditorView
     ) { tool ->
         Column(if (maxWidthDp != null) Modifier.widthIn(max = maxWidthDp.dp).fillMaxWidth() else Modifier.fillMaxWidth()) {
             when (tool) {
-                ImageTool.CROP -> ToolPanelWithActions(R.string.framekit_tool_crop, viewModel) {
+                ImageTool.CROP -> ToolPanelWithActions(R.string.framekit_tool_crop, viewModel, isDraft = true) {
                     CropToolPanel(aspect = state.cropAspect, onSelectAspect = viewModel::selectAspect)
                 }
-                ImageTool.ROTATE -> ToolPanelWithActions(R.string.framekit_tool_rotate, viewModel) {
+                ImageTool.ROTATE -> ToolPanelWithActions(R.string.framekit_tool_rotate, viewModel, isDraft = true) {
                     RotateToolPanel(
                         straightenDegrees = state.displayed.geometry.straightenDegrees,
                         onRotateLeft = viewModel::rotateLeft,
@@ -260,6 +265,25 @@ private fun ToolArea(state: ImageEditorUiState.Ready, viewModel: ImageEditorView
                         onFlipVertical = viewModel::flipVertical,
                         onStraighten = viewModel::changeStraighten,
                         onStraightenFinished = viewModel::finishStraighten,
+                    )
+                }
+                ImageTool.ADJUST -> ToolPanelWithActions(R.string.framekit_tool_adjust, viewModel, isDraft = false) {
+                    AdjustToolPanel(
+                        adjustments = state.displayed.adjustments,
+                        selected = state.adjustKind,
+                        onSelect = viewModel::selectAdjustment,
+                        onChange = viewModel::changeAdjustment,
+                        onChangeFinished = viewModel::finishGesture,
+                    )
+                }
+                ImageTool.FILTER -> ToolPanelWithActions(R.string.framekit_tool_filter, viewModel, isDraft = false) {
+                    val thumbnails by viewModel.filterThumbnails.collectAsStateWithLifecycle()
+                    FilterToolPanel(
+                        selection = state.displayed.filter,
+                        thumbnails = thumbnails,
+                        onSelect = viewModel::selectFilter,
+                        onIntensity = viewModel::changeFilterIntensity,
+                        onIntensityFinished = viewModel::finishGesture,
                     )
                 }
                 null -> if (tools.isNotEmpty()) {
@@ -275,12 +299,12 @@ private fun ToolArea(state: ImageEditorUiState.Ready, viewModel: ImageEditorView
 }
 
 @Composable
-private fun ColumnScope.ToolPanelWithActions(title: Int, viewModel: ImageEditorViewModel, panel: @Composable () -> Unit) {
+private fun ColumnScope.ToolPanelWithActions(title: Int, viewModel: ImageEditorViewModel, isDraft: Boolean, panel: @Composable () -> Unit) {
     panel()
     ApplyCancelBar(
         title = stringResource(title),
-        onCancel = viewModel::cancelTool,
-        onApply = viewModel::applyTool,
+        onCancel = if (isDraft) viewModel::cancelTool else null,
+        onApply = if (isDraft) viewModel::applyTool else viewModel::closeTool,
         onReset = viewModel::resetTool,
     )
 }
@@ -289,6 +313,8 @@ private fun ColumnScope.ToolPanelWithActions(title: Int, viewModel: ImageEditorV
 private fun ImageTool.railItem(): ToolRailItem<ImageTool> = when (this) {
     ImageTool.CROP -> ToolRailItem(this, stringResource(R.string.framekit_tool_crop), painterResource(UiR.drawable.framekit_ic_crop))
     ImageTool.ROTATE -> ToolRailItem(this, stringResource(R.string.framekit_tool_rotate), painterResource(UiR.drawable.framekit_ic_rotate_right))
+    ImageTool.ADJUST -> ToolRailItem(this, stringResource(R.string.framekit_tool_adjust), painterResource(UiR.drawable.framekit_ic_adjust))
+    ImageTool.FILTER -> ToolRailItem(this, stringResource(R.string.framekit_tool_filter), painterResource(UiR.drawable.framekit_ic_filter))
 }
 
 private const val TOOL_TRANSITION_MS = 200

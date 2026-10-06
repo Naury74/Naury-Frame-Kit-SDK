@@ -7,6 +7,7 @@
     <string name="framekit_action_apply">Apply</string>
     <string name="framekit_action_cancel">Cancel</string>
     <string name="framekit_action_reset">Reset</string>
+    <string name="framekit_action_done">Done</string>
     <string name="framekit_action_retry">Try again</string>
     <string name="framekit_action_keep_editing">Keep editing</string>
     <string name="framekit_action_discard">Discard</string>

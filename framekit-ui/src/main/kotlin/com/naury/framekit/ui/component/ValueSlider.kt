@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.systemGestureExclusion
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
@@ -73,6 +74,8 @@ public fun ValueSlider(
                 inactiveTrackColor = colors.raised,
             ),
             modifier = Modifier
+                // 화면 가장자리에서 시작한 드래그가 시스템 뒤로 가기로 처리되지 않게 슬라이더 영역을 제외한다.
+                .systemGestureExclusion()
                 .semantics { stateDescription = formatValue(value) }
                 .pointerInput(resetValue) {
                     detectTapGestures(onDoubleTap = {

@@ -1,6 +1,7 @@
 package com.naury.framekit.ui.image.editor
 
 import com.naury.framekit.android.result.EditorErrorCode
+import com.naury.framekit.core.effect.AdjustmentKind
 import com.naury.framekit.core.geometry.CropAspectRatio
 import com.naury.framekit.core.history.HistoryTransaction
 import com.naury.framekit.core.model.ImageProject
@@ -29,6 +30,7 @@ internal sealed interface ImageEditorUiState {
         val showingOriginal: Boolean = false,
         val draggingCrop: Boolean = false,
         val notice: SessionNotice? = null,
+        val adjustKind: AdjustmentKind = AdjustmentKind.BRIGHTNESS,
     ) : ImageEditorUiState {
         val displayed: ImageProject get() = transaction.displayed
         val isDirty: Boolean get() = transaction.history.isDirty
