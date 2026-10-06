@@ -12,6 +12,15 @@ public enum class ExportWarning {
 
     /** The source carried an Ultra HDR gain map that the output does not preserve. */
     HDR_GAIN_MAP_DROPPED,
+
+    /** The encoder could not produce the requested format and a supported fallback was used. */
+    ENCODER_FALLBACK_APPLIED,
+
+    /** The source frame rate was higher than the configured maximum, so frames were dropped. */
+    FRAME_RATE_REDUCED,
+
+    /** HDR video was converted to SDR. */
+    HDR_CONVERTED_TO_SDR,
 }
 
 /**
