@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import kotlin.math.atan2
 import kotlin.math.roundToInt
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.setValue
@@ -144,7 +145,18 @@ internal fun ImageCanvas(
         }
         val currentProject by rememberUpdatedState(project)
         val currentSelection by rememberUpdatedState(selected?.id)
-        val currentCorners by rememberUpdatedState(selectionCorners)
+        // 스티커를 가장자리로 옮겨도 삭제·복제 손잡이를 누를 수 있도록 손잡이만 화면 안쪽으로 당긴다.
+        val handleMargin = with(density) { 20.dp.toPx().toDouble() }
+        // 0: 삭제, 1: 복제, 2: 한 손가락 크기·회전 손잡이.
+        val selectionHandles = selectionCorners?.take(3)?.map { corner ->
+            PointN(
+                corner.x.coerceIn(handleMargin, (constraints.maxWidth - handleMargin).coerceAtLeast(handleMargin)),
+                corner.y.coerceIn(handleMargin, (constraints.maxHeight - handleMargin).coerceAtLeast(handleMargin)),
+            )
+        }
+        val currentCorners by rememberUpdatedState(selectionHandles)
+        val selectionCenter = selectionCorners?.let { c -> PointN(c.sumOf { it.x } / c.size, c.sumOf { it.y } / c.size) }
+        val currentCenter by rememberUpdatedState(selectionCenter)
         val currentOutputToViewport by rememberUpdatedState(outputToViewport)
         val currentOutputSize by rememberUpdatedState(plan.outputSize)
         val contentRect = viewport.toViewport(RectN.Full)
@@ -238,6 +250,24 @@ internal fun ImageCanvas(
                                     if (waitForUpOrCancellation() != null) actions.duplicateOverlay(selectedId)
                                     return@awaitEachGesture
                                 }
+                                near(corners[2], position, handleRadius) && currentCenter != null -> {
+                                    // 중심에서 손가락까지의 거리·각도 변화로 크기와 회전을 바꾼다. 한 손으로도 조절할 수 있다.
+                                    val center = Offset(currentCenter!!.x.toFloat(), currentCenter!!.y.toFloat())
+                                    val start = position - center
+                                    if (start.getDistance() < 1f) return@awaitEachGesture
+                                    actions.beginOverlayGesture(selectedId)
+                                    do {
+                                        val event = awaitPointerEvent()
+                                        val change = event.changes.firstOrNull { it.id == down.id } ?: break
+                                        val now = change.position - center
+                                        val zoom = now.getDistance() / start.getDistance()
+                                        val rotation = Math.toDegrees(atan2(now.y.toDouble(), now.x.toDouble()) - atan2(start.y.toDouble(), start.x.toDouble()))
+                                        actions.updateOverlayGesture(0.0, 0.0, zoom.toDouble(), rotation, 0.0, 0.0)
+                                        change.consume()
+                                    } while (change.pressed)
+                                    actions.finishOverlayGesture()
+                                    return@awaitEachGesture
+                                }
                             }
                         }
                         val output = currentOutputToViewport.inverted().map(position.x.toDouble(), position.y.toDouble())
@@ -300,7 +330,7 @@ internal fun ImageCanvas(
                     }
                 }
             }
-            selectionCorners?.let { drawSelection(it, colors.accent) }
+            if (selectionCorners != null && selectionHandles != null) drawSelection(selectionCorners, selectionHandles, colors.accent)
             if (toolMode) {
                 drawCropFrame(
                     frame = cropFrame,
@@ -346,7 +376,7 @@ private fun near(point: PointN, position: Offset, radius: Double): Boolean {
 }
 
 // 선택 상자와 모서리 버튼: 왼쪽 위는 삭제(×), 오른쪽 위는 복제(+).
-private fun DrawScope.drawSelection(corners: List<PointN>, accent: Color) {
+private fun DrawScope.drawSelection(corners: List<PointN>, handles: List<PointN>, accent: Color) {
     val path = Path().apply {
         moveTo(corners[0].x.toFloat(), corners[0].y.toFloat())
         corners.drop(1).forEach { lineTo(it.x.toFloat(), it.y.toFloat()) }
@@ -357,16 +387,21 @@ private fun DrawScope.drawSelection(corners: List<PointN>, accent: Color) {
     val radius = 12.dp.toPx()
     val mark = 5.dp.toPx()
     val stroke = 2.dp.toPx()
-    listOf(corners[0], corners[1]).forEachIndexed { index, corner ->
+    handles.forEachIndexed { index, corner ->
         val center = Offset(corner.x.toFloat(), corner.y.toFloat())
         drawCircle(if (index == 0) Color(0xFFFF3B30) else accent, radius, center)
         drawLine(Color.White, center - Offset(mark, 0f), center + Offset(mark, 0f), stroke)
         if (index == 0) {
             drawLine(Color.White, center - Offset(mark, mark), center + Offset(mark, mark), stroke)
             drawLine(Color.White, center - Offset(mark, -mark), center + Offset(mark, -mark), stroke)
-        } else {
+        } else if (index == 1) {
             drawLine(Color.White, center - Offset(mark, 0f), center + Offset(mark, 0f), stroke)
             drawLine(Color.White, center - Offset(0f, mark), center + Offset(0f, mark), stroke)
+        } else {
+            // 크기·회전 손잡이: 대각선 양방향 화살표 모양.
+            drawLine(Color.White, center - Offset(mark, mark), center + Offset(mark, mark), stroke)
+            drawLine(Color.White, center + Offset(mark, mark), center + Offset(0f, mark), stroke)
+            drawLine(Color.White, center + Offset(mark, mark), center + Offset(mark, 0f), stroke)
         }
     }
 }
