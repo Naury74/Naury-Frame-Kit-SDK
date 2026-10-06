@@ -55,14 +55,43 @@ Button(onClick = { editor.launch(FrameKitRequest(EditorInput.Pick(MediaKind.ANY)
 
 | 입력 | 사용 | 권한 |
 | --- | --- | --- |
-| `EditorInput.Pick(kind)` | 시스템 Photo Picker를 먼저 띄움. `IMAGE`·`VIDEO`·`ANY`(통합 계약만). 닫으면 `Cancelled` | Picker가 선택한 항목만 읽기 권한 부여 |
-| `EditorInput.UriSource(uri)` | 호스트가 이미 가진 Uri | 호스트가 읽기 권한을 가지고 있어야 함 |
+| `EditorInput.UriSource(uri)` | 호스트가 이미 가진 Uri 한 개 | 호스트가 읽기 권한을 가지고 있어야 함 |
 | `EditorInput.FileSource(path)` | 호스트 앱 내부 저장소의 파일 절대 경로 | 같은 프로세스이므로 별도 권한 없음 |
+| `EditorInput.Multiple(items)` | 이미 가진 사진 여러 장 또는 영상 여러 개. 각 항목은 `UriSource`/`FileSource` | 각 Uri의 읽기 권한 |
+| `EditorInput.Pick(kind, maxItems = 1)` | 시스템 Photo Picker를 먼저 띄움. `IMAGE`·`VIDEO`·`ANY`(통합 계약만). `maxItems`가 2 이상이면 여러 개 선택. 닫으면 `Cancelled` | Picker가 선택한 항목만 읽기 권한 부여 |
+| `EditorInput.Capture(kind)` | 기기 카메라 앱으로 사진을 찍거나 영상을 녹화한 뒤 바로 편집. `IMAGE`·`VIDEO` | 아래 [카메라](#카메라) 참고 |
 
+### 진입점 조합
+
+| 하고 싶은 일 | request |
+| --- | --- |
+| 사진 한 장 편집 | `FrameKitRequest(EditorInput.UriSource(uri))` |
+| 영상 한 개 편집 | `FrameKitRequest(EditorInput.UriSource(videoUri))` — MIME으로 영상 편집기가 열림 |
+| 사진 여러 장을 한 번에 편집 | `EditorInput.Multiple(uris.map(EditorInput::UriSource))` |
+| 영상 여러 개를 이어 붙여 편집 | `EditorInput.Multiple(videoUris.map(EditorInput::UriSource))` |
+| 사용자가 사진이나 영상을 직접 고름 | `EditorInput.Pick(MediaKind.ANY)` |
+| 사진 최대 10장을 고르게 함 | `EditorInput.Pick(MediaKind.IMAGE, maxItems = 10)` |
+| 방금 찍은 사진 편집 | `EditorInput.Capture(MediaKind.IMAGE)`, 또는 호스트가 찍은 파일을 `UriSource`/`FileSource`로 |
+| 방금 녹화한 영상 편집 | `EditorInput.Capture(MediaKind.VIDEO)` |
+| 여러 장을 PDF 한 개로 | 위 입력 + `imageExport = ImageExportConfig(format = ImageFormat.PDF)` |
+
+- 여러 개를 넘기면 사진 편집기는 아래쪽 쪽 목록에서 한 장씩 골라 편집하고, 영상 편집기는 고른 순서대로 클립을 이어 붙입니다.
+- 개수 상한은 `ImageEditorConfig.maxImageCount`(기본 20, 최대 100), `VideoEditorConfig.maxClipCount`(기본 10, 최대 20)입니다. `Multiple`이 상한보다 많으면 앞에서부터 상한까지만 엽니다. `Pick`의 `maxItems`도 편집기 상한으로 줄어듭니다.
+- 통합 계약에서 사진과 영상을 섞어 넘기거나 `Pick(ANY)`로 섞어 고르면 `UNSUPPORTED_OPERATION`으로 실패합니다. 한 번에 한 종류만 편집합니다.
 - 편집기는 호스트 프로세스에서 실행되므로 호스트가 읽을 수 있는 Uri는 편집기도 읽을 수 있습니다.
 - 편집기는 Uri scheme만 보고 권한을 가정하지 않습니다. 열 수 없으면 `PERMISSION_DENIED`(권한 없음) 또는 `SOURCE_UNAVAILABLE`(삭제·이동)을 화면에 표시하고, 닫으면 `Failure`로 돌려줍니다.
 - 원격 URL은 지원하지 않습니다. 다운로드를 마친 로컬 Uri를 넘기세요.
 - Bitmap, Drawable, callback은 Intent로 넘길 수 없으므로 받지 않습니다.
+
+### 카메라
+
+`EditorInput.Capture`는 기기의 카메라 앱(`ACTION_IMAGE_CAPTURE`/`ACTION_VIDEO_CAPTURE`)을 띄웁니다. SDK가 카메라를 직접 다루지 않으므로 별도 카메라 라이브러리가 필요 없습니다.
+
+- 촬영 파일은 `cache/framekit/captures/`에 만들고 SDK FileProvider로 카메라 앱에 쓰기 권한을 줍니다. 편집이 끝나면(성공·취소·실패) 지우고, 남은 파일은 다음 실행 때 정리합니다.
+- **호스트 manifest에 `CAMERA` 권한이 선언되어 있으면** Android는 카메라 앱 호출에도 그 권한을 요구합니다. 이때 SDK가 실행 중에 권한을 요청하고, 거부하면 `PERMISSION_DENIED`로 실패합니다. 권한을 선언하지 않은 앱은 요청 없이 바로 카메라가 열립니다.
+- 카메라 앱이 없는 기기(일부 태블릿·에뮬레이터)는 `CAMERA_UNAVAILABLE`로 실패합니다.
+- 촬영을 취소하면 `Cancelled`입니다.
+- 회전·재생성 중에도 카메라를 두 번 띄우지 않으며, 프로세스가 종료돼도 찍은 파일 경로를 기억해 이어서 엽니다.
 
 ## 결과
 
@@ -70,7 +99,7 @@ Button(onClick = { editor.launch(FrameKitRequest(EditorInput.Pick(MediaKind.ANY)
 
 | 결과 | 언제 |
 | --- | --- |
-| `Success(EditedMedia)` | 저장이 끝나고 파일 검증까지 통과했을 때 |
+| `Success(output, outputs)` | 저장이 끝나고 파일 검증까지 통과했을 때. `outputs`는 만들어진 모든 결과(여러 장을 사진마다 저장하면 여러 개), `output`은 첫 번째 결과 |
 | `Cancelled` | Picker를 닫았거나, 변경 없이 닫았거나, 변경을 버리고 닫았을 때 |
 | `Failure(EditorError)` | 잘못된 request, 열 수 없는 원본 등 편집을 시작할 수 없을 때 |
 
@@ -81,10 +110,11 @@ Button(onClick = { editor.launch(FrameKitRequest(EditorInput.Pick(MediaKind.ANY)
 | 필드 | 설명 |
 | --- | --- |
 | `uri` | `content://<applicationId>.framekit.files/...` |
-| `mediaType` | `IMAGE` |
+| `mediaType` | `IMAGE`, `VIDEO`, `DOCUMENT`(PDF) |
 | `width`, `height` | 실제 인코딩된 픽셀 크기 |
-| `durationMs` | 이미지는 `null` |
-| `mimeType` | `image/jpeg` 또는 `image/png` |
+| `durationMs` | 영상 길이. 사진·PDF는 `null` |
+| `mimeType` | `image/jpeg`, `image/png`, `image/webp`, `application/pdf`, `video/mp4` |
+| `pageCount` | PDF의 쪽 수. 그 밖에는 `null` |
 | `fileSize` | 바이트 |
 | `warnings` | `COLOR_SPACE_CONVERTED_TO_SRGB`, `HDR_GAIN_MAP_DROPPED` |
 
@@ -100,9 +130,11 @@ Button(onClick = { editor.launch(FrameKitRequest(EditorInput.Pick(MediaKind.ANY)
 | `SOURCE_UNAVAILABLE` | 삭제·이동·provider 응답 없음 | 다시 선택 |
 | `UNSUPPORTED_FORMAT` | GIF, HEIF, animated WEBP 등 | 다른 파일 선택 |
 | `DECODE_FAILED` | 손상된 파일, 0바이트 | 다른 파일 선택 |
+| `UNSUPPORTED_OPERATION` | 사진·영상을 섞어 넘김 등 | 입력 수정 |
+| `CAMERA_UNAVAILABLE` | 카메라 앱이 없음 | 사진 선택으로 대체 |
 | `RESULT_UNAVAILABLE` | `RESULT_OK`인데 결과가 없음 | 편집기 재실행 |
 
-저장 단계 오류(`INSUFFICIENT_MEMORY`, `INSUFFICIENT_STORAGE`, `ENCODE_FAILED`, `OUTPUT_WRITE_FAILED`)는 편집 화면의 다시 시도 dialog로 처리됩니다.
+저장 단계 오류(`INSUFFICIENT_MEMORY`, `INSUFFICIENT_STORAGE`, `ENCODE_FAILED`, `OUTPUT_WRITE_FAILED`)는 편집 화면의 다시 시도 dialog로 처리됩니다. 편집 도중 원본이 삭제되거나 권한이 끊기면 `SOURCE_UNAVAILABLE`, 저장 공간이 모자라 쓰기에 실패하면 `INSUFFICIENT_STORAGE`로 구분합니다. 여러 장을 저장하다 한 장이라도 실패하면 그 호출에서 만든 파일을 모두 지우고 실패로 돌려주므로 일부만 남지 않습니다.
 
 ## 결과 파일 관리
 
@@ -158,7 +190,7 @@ android {
 - `SavedStateHandle`에는 세션 id만 저장하고 편집 데이터나 이미지는 Bundle에 넣지 않습니다.
 - 파일은 임시 이름으로 쓴 뒤 rename하므로 저장 도중 종료돼도 이전 snapshot이 남습니다.
 - 편집기가 결과(성공·취소·실패)를 보내면 세션을 바로 지웁니다. 중단된 세션은 7일이 지나면 다음 편집기 실행 때 정리합니다.
-- Picker로 고른 `content://` Uri는 가능하면 persistable 읽기 권한을 받아 두었다가 세션이 끝날 때 해제합니다. 호스트가 이미 persist한 권한은 받지도, 해제하지도 않습니다.
+- Picker로 고른 `content://` Uri는 가능하면 persistable 읽기 권한을 받아 두었다가 세션이 끝날 때 해제합니다. 편집 중에 붙인 영상·배경 음악도 같습니다. 호스트가 이미 persist한 권한은 받지도, 해제하지도 않습니다.
 
 ## 배경 제거 선택 모듈
 

@@ -2,7 +2,7 @@
 
 Android 앱에 넣어 쓰는 **비파괴 이미지·영상 편집 SDK**입니다. 호스트 앱은 Uri를 넘기거나 내장 Photo Picker를 띄우고, FrameKit 편집 화면에서 편집한 뒤 결과 파일의 `content://` Uri와 메타데이터를 받습니다. 원본은 절대 덮어쓰지 않습니다.
 
-> 현재 버전은 **1.0.0-alpha01** 입니다. 사진 편집(자르기·회전·보정·필터·텍스트·이모지 스티커·그리기·모자이크·배경 제거)과 UI 없는 headless 저장, 여러 클립 영상 편집(나누기·순서 변경, 구간·자르기·회전·보정·필터·속도·소리·배경 음악·텍스트·스티커·모자이크, MP4 저장), 호스트 필터·스티커·폰트 카탈로그, 색 팔레트, 사진·영상 headless 처리가 동작합니다. Maven Central 배포 전이므로 지금은 `publishToMavenLocal` 또는 소스 모듈로 의존합니다.
+> 현재 버전은 **1.0.0-alpha01** 입니다. 사진 편집(자르기·회전·보정·필터·텍스트·이모지 스티커·그리기·모자이크·배경 제거)과 여러 장 사진 편집·PDF 문서 저장, 카메라로 찍은 직후 편집, UI 없는 headless 저장, 여러 클립 영상 편집(나누기·순서 변경, 구간·자르기·회전·보정·필터·속도·소리·배경 음악·텍스트·스티커·모자이크, MP4 저장), 호스트 필터·스티커·폰트 카탈로그, 색 팔레트, 사진·영상 headless 처리가 동작합니다. Maven Central 배포 전이므로 지금은 `publishToMavenLocal` 또는 소스 모듈로 의존합니다.
 
 호스트 앱은 SDK 라이브러리만 추가하면 됩니다. 편집 화면(Activity)은 SDK 안에 있고 manifest merge로 자동 등록되며, 호스트는 Activity Result 한 번으로 편집 화면을 띄우고 결과 파일을 돌려받습니다. 저장소의 `app` 모듈은 SDK를 확인·시연하기 위한 Showcase입니다.
 
@@ -21,10 +21,13 @@ Android 앱에 넣어 쓰는 **비파괴 이미지·영상 편집 SDK**입니다
 | 가리기 | 모자이크·블러, 브러시·사각형·원 | v0.2 지원 |
 | 배경 제거(누끼) | 피사체만 남기고 투명 배경, 기기 안에서 처리(선택 모듈 `framekit-segmentation`) | v0.2 지원 |
 | 저장 | JPEG(품질 0..100)·PNG·WEBP(손실/무손실), 최대 16MP, 확대 없음, EXIF SAFE/NONE/ALL | v0.2 지원 |
+| 여러 장 사진 | 최대 100장(기본 20)을 한 화면에서 한 장씩 편집, 쪽 추가·순서 변경·삭제, 사진마다 저장 | v1.0 지원 |
+| PDF 문서 | 편집한 사진(여러 장이면 쪽 순서대로)을 PDF로 저장. A4·A5·Letter·Legal·사진 크기, 방향, 여백, dpi, 한 문서/사진마다. 문서·문서 흑백 필터 | v1.0 지원 |
 | Headless | `ImageProcessor`로 UI 없이 편집·저장, `ExportHandle` 상태·취소 | v0.2 지원 |
 | 큰 사진 | 250MP까지 열기, 자른 영역·띠 단위 디코딩으로 메모리 제한, 실패 시 앱 종료 없이 오류 반환 | v0.2 지원 |
 | 폴드·태블릿 | 화면 크기·폴드 자세(탁상·책)에 맞춘 배치, 접고 펴도 편집 유지 | v0.2 지원 |
-| 입력 | content Uri, 앱 내부 파일, 시스템 Photo Picker | v0.1 지원 |
+| 입력 | content Uri, 앱 내부 파일, 여러 원본, 시스템 Photo Picker(한 개·여러 개), 카메라 촬영·녹화 직후 | v1.0 지원 |
+| 편집 화면 사용성 | 원본 비교 버튼, 그리기·가리기 중 두 손가락 확대, 자르기 비율 직접 입력·자르기 중 회전, 뒤로 가기 시 적용 여부 확인, 저장 시 열린 도구 자동 적용, 접근성(화면 읽기·48dp·색 외 선택 표시) | v1.0 지원 |
 | 결과 | Success/Cancelled/Failure 한 번만 반환, 오류 코드와 다음 행동 | v0.1 지원 |
 | 세션 복원 | 프로세스가 종료돼도 확정한 편집 복원, 원본이 같은 이미지인지 확인 | v0.1 지원 |
 | 테마·언어 | 다크(기본)/라이트/시스템, accent 색, 모서리, ko/en, localeTag | v0.1 지원 |
@@ -34,7 +37,7 @@ Android 앱에 넣어 쓰는 **비파괴 이미지·영상 편집 SDK**입니다
 | 기능 | 내용 | 상태 |
 | --- | --- | --- |
 | 재생·탐색 | 미리보기 재생·일시정지, 가운데 재생 헤드 썸네일 타임라인(끌어 탐색, 두 손가락 확대 1초당 8~240dp) | v0.3/v0.4 지원 |
-| 여러 클립 | 클립 추가(`maxClipCount`, 기본 1·최대 20), 재생 위치에서 나누기, 앞뒤로 옮기기, 삭제. 각각 실행 취소 한 단계 | v0.4 지원 |
+| 여러 클립 | 여러 영상을 한 번에 열거나 클립 추가(`maxClipCount`, 기본 10·최대 20), 재생 위치에서 나누기, 앞뒤로 옮기기, 삭제. 각각 실행 취소 한 단계 | v0.4 지원 |
 | 화면 비율 | 첫 클립·9:16·16:9·1:1·4:5·3:4, 모양이 다른 클립은 맞추기(여백)·채우기(가장자리 자름) | v0.4 지원 |
 | 배경 음악 | 오디오 파일 추가, 재생 위치에서 시작, 곡 시작 위치, 볼륨, 반복. 영상보다 길어지지 않음 | v0.4 지원 |
 | 텍스트·스티커 | 사진과 같은 텍스트·이모지 스티커를 원하는 구간 동안 표시, 화면에서 옮기고 크기·각도 조절 | v0.4 지원 |
@@ -43,7 +46,7 @@ Android 앱에 넣어 쓰는 **비파괴 이미지·영상 편집 SDK**입니다
 | 보정·필터 | 사진과 같은 보정 값과 필터·템플릿(같은 GLSL로 같은 색), 선명도는 사진 전용 | v0.3 지원 |
 | 속도 | 0.25·0.5·1·1.5·2·4배, 소리 높이 유지, 적용·취소 | v0.3 지원 |
 | 소리 | 음소거(재생 줄 버튼), 볼륨 0~200% | v0.3 지원 |
-| 모자이크·블러 | 사각형·원 영역을 지정한 시간 구간에만 적용, 최대 8개 | v0.3 지원 |
+| 모자이크·블러 | 사각형·원 영역을 지정한 시간 구간에만 적용, 화면에서 옮기고 크기 조절, 최대 8개 | v0.3 지원 |
 | 저장 | MP4(H.264/AAC), 짧은 변 최대 1080px·30fps 기본, HDR은 SDR로 변환, 진행률·취소 | v0.3 지원 |
 | 세션 복원 | 프로세스 종료 후 확정한 영상 편집 복원 | v0.3 지원 |
 | 통합 진입점 | `FrameKitContract` 하나로 사진·영상 중 알맞은 편집기 실행, 사진 또는 영상 고르기 | v0.3 지원 |
@@ -57,7 +60,7 @@ SDK 확장(v1.0)
 | 영상 headless | `VideoProcessor`로 UI 없이 클립·음악·효과를 MP4로 저장 | v1.0 지원 |
 | 배포 | Maven 좌표 `io.github.naury74:<모듈>`, sources jar, Kotlin 2.2 이상 호스트 지원 | v1.0 지원(로컬 배포 확인) |
 
-계획된 기능(아직 **미지원**): 장면 전환(crossfade)·PiP·HDR 유지·Maven Central 공개 배포(후속 범위) · 사용자 정의 필터·스티커·폰트, Maven 배포(v1.0). 자세한 순서는 [Roadmap](#roadmap)을 보세요.
+계획된 기능(아직 **미지원**): 장면 전환(crossfade)·PiP·HDR 유지·MediaStore/SAF 저장·Maven Central 공개 배포. 자세한 순서는 [Roadmap](#roadmap)을 보세요.
 
 ## 설치
 
@@ -126,7 +129,24 @@ class MainActivity : ComponentActivity() {
 }
 ```
 
-Compose에서는 `rememberLauncherForActivityResult(FrameKitContract())`를 씁니다. `showMedia`, `showError`는 호스트 앱이 구현합니다. 사진만 쓰는 앱은 `ImageEditorContract`/`ImageEditorRequest`, 영상만 쓰는 앱은 `VideoEditorContract`/`VideoEditorRequest`를 직접 써도 됩니다.
+Compose에서는 `rememberLauncherForActivityResult(FrameKitContract())`를 씁니다. 여러 결과(사진마다 저장)는 `result.outputs`에 모두 들어 있습니다.
+
+입력만 바꾸면 여러 경우에 같은 진입점을 씁니다.
+
+```kotlin
+EditorInput.UriSource(uri)                                   // 사진 또는 영상 한 개
+EditorInput.Multiple(uris.map(EditorInput::UriSource))       // 사진 여러 장, 또는 영상 여러 개(이어 붙임)
+EditorInput.Pick(MediaKind.IMAGE, maxItems = 10)             // Photo Picker에서 최대 10장
+EditorInput.Capture(MediaKind.IMAGE)                         // 카메라로 찍은 직후 편집 (VIDEO는 녹화)
+
+// 여러 장을 A4 PDF 하나로
+FrameKitRequest(
+    input = EditorInput.Pick(MediaKind.IMAGE, maxItems = 20),
+    imageExport = ImageExportConfig(format = ImageFormat.PDF, pdf = PdfOptions(pageSize = PdfPageSize.A4)),
+)
+```
+
+카메라 권한 규칙과 진입점별 예시는 [integration](docs/integration.md#입력)에 있습니다. `showMedia`, `showError`는 호스트 앱이 구현합니다. 사진만 쓰는 앱은 `ImageEditorContract`/`ImageEditorRequest`, 영상만 쓰는 앱은 `VideoEditorContract`/`VideoEditorRequest`를 직접 써도 됩니다.
 
 설정을 바꾸려면 request에 값을 넣습니다.
 
@@ -195,10 +215,10 @@ FrameKitRequest(
 
 ## 결과 파일과 권한
 
-- 결과(사진·MP4)는 `files/framekit/exports/`에 저장되고 SDK 전용 FileProvider(`<applicationId>.framekit.files`)의 `content://` Uri로 전달됩니다.
+- 결과(사진·PDF·MP4)는 `files/framekit/exports/`에 저장되고 SDK 전용 FileProvider(`<applicationId>.framekit.files`)의 `content://` Uri로 전달됩니다.
 - 결과 파일은 **호스트 앱 소유**입니다. SDK는 성공한 결과를 자동으로 지우지 않습니다. 필요 없으면 `FrameKitOutputs.deleteOutput(context, uri)`를 호출하세요.
 - 다른 앱에 공유할 때는 Intent에 `FLAG_GRANT_READ_URI_PERMISSION`과 `ClipData`를 함께 넣습니다.
-- SDK manifest는 `INTERNET`, `READ_MEDIA_*`, 저장소 권한을 추가하지 않습니다. 원본 Uri의 읽기 권한은 호스트가 제공합니다.
+- SDK manifest는 `INTERNET`, `READ_MEDIA_*`, `CAMERA`, 저장소 권한을 추가하지 않습니다. 원본 Uri의 읽기 권한은 호스트가 제공합니다. 호스트가 `CAMERA`를 선언한 경우에만 `Capture` 때 권한을 요청합니다.
 - 기본 메타데이터 정책 `SAFE`는 촬영 시각과 촬영 설정만 남기고 위치·기기 일련번호·주석·원본 썸네일을 제거합니다.
 
 자세한 내용은 [docs/integration.md](docs/integration.md)를 보세요.
@@ -230,6 +250,10 @@ app                 Showcase 앱
 | 사진 편집 | 기본 설정 |
 | 영상 편집 | 최대 10개 클립, 모든 영상 도구, MP4 저장 |
 | 사진 또는 영상 | `Pick(MediaKind.ANY)`, 고른 종류의 편집기가 열림 |
+| 여러 장 사진 | 최대 10장을 골라 한 장씩 편집하고 사진마다 저장 |
+| 사진을 PDF로 | 최대 20쪽, 문서 필터, A4 PDF 하나로 저장 |
+| 카메라로 찍기 / 녹화 | `Capture(IMAGE)` / `Capture(VIDEO)` |
+| 사진·영상 여러 개 | `Pick(ANY, maxItems)`, 모두 사진이면 사진 편집기, 모두 영상이면 영상 편집기 |
 | 짧은 클립 | 최대 15초·720p, 구간·속도·소리·필터만 |
 | 영상 모자이크 | 가리기·구간 도구만 |
 | 회전만 | `enabledTools = {ROTATE}` |
@@ -267,12 +291,13 @@ app                 Showcase 앱
 
 - 프로세스 종료 후에는 확정한 편집만 돌아오고 undo 기록과 열려 있던 도구의 미적용 변경은 사라집니다(설계상 동작).
 - `localeTag`를 쓰는 호스트가 App Bundle language split을 켜 두면 기기 언어가 아닌 문구 리소스가 빠질 수 있습니다. [integration 문서](docs/integration.md#언어)를 참고하세요.
-- 캔버스 확대·이동(pan/zoom) 제스처는 아직 없습니다.
+- 캔버스 확대·이동은 사진의 그리기·가리기 도구에서만 됩니다(두 손가락).
 - 그리기의 필압은 저장하지만 굵기 변화에는 아직 반영하지 않습니다.
 - 영상 모자이크는 사각형·원만 지원합니다(브러시는 사진 전용). 영상 블러는 원형 샘플 평균이라 사진 블러와 모양이 조금 다릅니다.
 - 영상 선명도(sharpness)는 미리보기·저장 모두 적용하지 않습니다.
 - 배경 음악은 한 곡만 넣을 수 있습니다(모델은 여러 곡을 지원). 여러 소리를 섞을 때 리미터가 없어 볼륨을 크게 올리면 소리가 찌그러질 수 있습니다.
-- 나중에 붙인 영상·음악은 프로세스 종료 뒤 다시 열 권한이 없으면 그 부분을 빼고 복원합니다.
+- 나중에 붙인 영상·음악은 persistable 권한을 주지 않는 provider라면 프로세스 종료 뒤 그 부분을 빼고 복원합니다.
+- 사진과 영상을 한 번에 섞어 편집할 수는 없습니다(`UNSUPPORTED_OPERATION`).
 - 출력 대상은 `OutputTarget.AppFile`만 지원합니다. MediaStore·SAF 문서 저장은 계획 중입니다.
 
 전체 변경 이력은 [docs/release-notes.md](docs/release-notes.md)에 있습니다.
@@ -285,7 +310,7 @@ app                 Showcase 앱
 | v0.2 | 보정 12종·필터와 템플릿, 텍스트·스티커·그리기, 블러·모자이크, 배경 제거, WEBP, 이미지 headless |
 | v0.3 | 단일 영상 재생·구간·자르기·회전·보정·필터·속도·소리·구간 모자이크, MP4 저장 (Media3), 통합 FrameKitContract |
 | v0.4 | 여러 클립, 나누기·순서 변경, 화면 비율, 배경 음악, 구간 텍스트·스티커 |
-| v1.0 | 사용자 정의 필터·스티커·폰트, 색 팔레트·문구 폰트, 이미지·영상 headless, Playground, Maven 배포 설정, 문서 (1.0.0-alpha01) |
+| v1.0 | 사용자 정의 필터·스티커·폰트, 색 팔레트·문구 폰트, 이미지·영상 headless, 여러 장 사진·PDF·카메라 진입점, 편집 화면 사용성·접근성, Playground, Maven 배포 설정, Apache 2.0, 문서 (1.0.0-alpha01) |
 
 ## 기여
 

@@ -9,16 +9,41 @@
 - 영상 headless `VideoProcessor`
 - Showcase Playground, 호스트 카탈로그 예제
 - Maven 배포 설정(`io.github.naury74`, sources jar), 별도 소비자 앱에서 R8 release 확인
+- 진입점: `EditorInput.Multiple`(사진 여러 장·영상 여러 개), `Pick(kind, maxItems)`(여러 개 고르기), `Capture(kind)`(카메라 앱으로 찍거나 녹화한 뒤 편집)
+- 여러 장 사진 편집: 쪽 목록에서 고르기·추가·순서 변경·삭제, 사진마다 저장 또는 PDF 한 개로 저장(`ImageEditorConfig.maxImageCount`)
+- PDF 저장: `ImageFormat.PDF`와 `PdfOptions`(A4·A5·Letter·Legal·사진 크기, 방향, 여백, dpi, 한 문서/사진마다), headless `ImageProcessor.startPdfExport`
+- 문서용 필터 `문서`·`문서 흑백`
+- 결과 `FrameKitResult.Success.outputs`(여러 결과), `EditedMedia.pageCount`, `MediaType.DOCUMENT`, 오류 코드 `CAMERA_UNAVAILABLE`
+- 편집 화면 사용성: 원본 비교 버튼, 그리기·가리기 중 두 손가락 확대·이동, 자르기 비율 직접 입력과 자르기 중 회전, 텍스트 불투명도·자간·행간, 속도 패널의 결과 길이, 영상 가리기 마스크 이동·크기 조절
+- 뒤로 가기로 열린 도구의 변경을 잃지 않도록 적용·버리기를 물음. 저장을 누르면 열린 도구의 변경을 먼저 적용
+- 접근성: 슬라이더 이름 읽기, 선택 표시(체크)를 색 외에도 표시, 색 이름, 48dp 누름 영역, 스위치 줄 전체 토글
+- Apache License 2.0 (`LICENSE`, `NOTICE`)
 
 ### 변경
 
 - 배포 모듈은 Kotlin 언어·API 2.2, `kotlin-stdlib` 2.2.0 의존으로 빌드(호스트 Kotlin 2.2 이상 지원)
 - `StickerToolPanel`의 `onAdd`는 이모지 대신 에셋 id를 넘김. 편집기의 `addSticker`도 에셋 id를 받음
 - 스티커 검증은 이모지와 등록한 이미지 스티커를 모두 허용(`StickerCatalog`)
+- 기본값: `VideoEditorConfig.maxClipCount` 10, `maxTimelineDurationUs` 10분
+- headless 처리기의 `catalog` 기본값이 `null`(등록된 카탈로그 유지)로 바뀜
+- 좁은 화면에서 도구 패널 높이를 제한하고 패널만 스크롤, 텍스트 입력 중에는 영상 타임라인을 숨김
+- 초기화 버튼은 되돌릴 기준이 있는 도구에만 표시, 영상의 일괄 삭제는 실행 취소 안내
+
+### 수정·안정성
+
+- 실행 중 GL 오류가 나면 CPU 색 보정으로 대체
+- 원본이 편집 중 삭제되거나 권한이 끊기면 `SOURCE_UNAVAILABLE`, 저장 공간 부족으로 쓰기 실패하면 `INSUFFICIENT_STORAGE`
+- 내보내기 중 메모리 부족을 `INSUFFICIENT_MEMORY` 실패로 반환
+- 영상 출력 긴 변을 4096px 이하로 제한(길쭉한 자르기에서 인코더 실패 방지)
+- 영상 메타데이터를 읽지 못하는 파일, 미리보기 구성 실패, 필터 썸네일 실패가 화면을 멈추지 않음
+- 이어 붙인 영상·배경 음악도 persistable 권한을 얻어 프로세스 종료 후 복원
+- 썸네일 추출기 자원 누수와 닫힌 뒤 사용 문제 수정
+- 남은 촬영 파일·임시 내보내기 파일 정리
 
 ### Known Issues
 
-- Maven Central 공개 배포와 라이선스는 아직 정하지 않음
+- Maven Central 공개 배포는 아직 하지 않음(로컬 배포만 확인)
+- 캔버스 확대·이동은 사진의 그리기·가리기 도구에서만 동작
 - 카탈로그는 프로세스 전체에 하나만 등록됨
 
 ## 0.4.0 (개발 중)

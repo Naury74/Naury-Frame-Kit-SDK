@@ -16,9 +16,13 @@ ImageEditorRequest(
 
 | 값 | 설명 |
 | --- | --- |
-| `Pick(kind = MediaKind.IMAGE)` | 시스템 Photo Picker. 이미지 편집기는 `IMAGE`만 허용 |
 | `UriSource(uri)` | 읽기 권한이 있는 Uri |
 | `FileSource(absolutePath)` | 호스트 앱 내부 파일 |
+| `Multiple(items)` | 여러 원본. 항목은 `UriSource`/`FileSource`만, 1개 이상 |
+| `Pick(kind = MediaKind.IMAGE, maxItems = 1)` | 시스템 Photo Picker. 이미지 편집기는 `IMAGE`만 허용. `maxItems` 1..100 |
+| `Capture(kind)` | 카메라 앱으로 촬영 후 편집. `IMAGE`·`VIDEO`만(`ANY` 불가) |
+
+진입점별 예시와 카메라 권한 규칙은 [integration](integration.md#입력)을 보세요.
 
 ## config: ImageEditorConfig
 
@@ -27,6 +31,7 @@ ImageEditorRequest(
 | `enabledTools` | 전체 9종 | 빠진 도구는 숨기고 해당 편집 요청도 거부. 빈 집합이면 미리보기와 저장만 가능 |
 | `allowUndo` | `true` | |
 | `allowRedo` | `true` | `allowUndo = false`이면서 `true`이면 오류 |
+| `maxImageCount` | `20` | 한 번에 편집하는 사진 수, 1..100. 2 이상이면 쪽 목록(추가·순서 변경·삭제)이 나타남 |
 
 도구:
 
@@ -48,13 +53,31 @@ ImageEditorRequest(
 
 | 옵션 | 기본값 | 단위·범위 |
 | --- | --- | --- |
-| `format` | `JPEG` | `JPEG`, `PNG`, `WEBP_LOSSY`, `WEBP_LOSSLESS`(API 30+) |
+| `format` | `JPEG` | `JPEG`, `PNG`, `WEBP_LOSSY`, `WEBP_LOSSLESS`(API 30+), `PDF` |
 | `quality` | `92` | JPEG·손실 WEBP 품질 0..100. PNG·무손실 WEBP에는 적용되지 않음 |
 | `maxWidth` | `null` | 출력 폭 상한(px), 양수 |
 | `maxHeight` | `null` | 출력 높이 상한(px), 양수 |
 | `maxOutputPixels` | `16_000_000` | `width × height` 상한, 양수 |
 | `metadataPolicy` | `SAFE` | `SAFE`, `NONE`, `ALL` |
 | `jpegBackgroundArgb` | `0xFF000000` | JPEG에서 투명 영역을 채울 색 |
+| `pdf` | `PdfOptions()` | `format = PDF`일 때 쪽 설정. 아래 표 |
+
+### PDF
+
+`format = ImageFormat.PDF`이면 편집한 사진을 PDF 문서로 저장합니다. 사진 한 장이면 1쪽, 여러 장이면 쪽 목록 순서대로 쪽이 됩니다. 결과 `EditedMedia`의 `mediaType`은 `DOCUMENT`, `mimeType`은 `application/pdf`, `pageCount`는 쪽 수입니다.
+
+| `PdfOptions` | 기본값 | 단위·범위 |
+| --- | --- | --- |
+| `pageSize` | `A4` | `A4`, `A5`, `LETTER`, `LEGAL`, `FIT_IMAGE`(사진 크기에 맞춘 쪽) |
+| `orientation` | `AUTO` | `AUTO`(사진이 가로로 길면 가로 쪽), `PORTRAIT`, `LANDSCAPE` |
+| `marginMm` | `10.0` | 네 변 여백(mm), 0..50 |
+| `dpi` | `200` | 쪽에 넣는 해상도, 72..600. 원본보다 키우지 않음 |
+| `backgroundArgb` | 흰색 | 여백과 투명 영역 색 |
+| `combinePages` | `true` | `false`면 사진마다 PDF 한 개(`Success.outputs`에 여러 개) |
+
+- 쪽 이미지는 JPEG(`quality` 적용)로 넣습니다. 쪽마다 디코딩·인코딩한 뒤 바로 파일에 써서 쪽 수가 많아도 메모리가 늘지 않습니다.
+- 문서 스캔에는 필터의 `문서`(밝고 선명하게)·`문서 흑백` 프리셋과 자르기를 함께 쓰면 좋습니다.
+- 메타데이터 정책은 PDF에 적용되지 않습니다. PDF에는 EXIF를 쓰지 않고 제작 프로그램 이름만 기록합니다.
 
 - 출력 크기는 자른 영역의 원본 픽셀 크기에서 시작해 상한에 맞게 비율을 유지하며 줄입니다. **확대하지 않습니다.**
 - 기기 메모리 예산(앱 memory class 기준)을 넘으면 `INSUFFICIENT_MEMORY`로 실패하며, 사용자 동의 없이 해상도를 낮추지 않습니다.
@@ -124,17 +147,17 @@ VideoEditorRequest(
 )
 ```
 
-`input`이 `Pick`이면 `kind`는 `VIDEO`여야 합니다.
+`input`이 `Pick`·`Capture`이면 `kind`는 `VIDEO`여야 합니다. `Multiple`이면 고른 순서대로 클립을 이어 붙입니다.
 
 ### config: VideoEditorConfig
 
 | 옵션 | 기본값 | 단위·범위·규칙 |
 | --- | --- | --- |
-| `enabledTools` | 전체 8종 | 빠진 도구는 숨김. 빈 집합이면 미리보기와 저장만 가능 |
+| `enabledTools` | 전체 11종 | 빠진 도구는 숨김. 빈 집합이면 미리보기와 저장만 가능 |
 | `allowUndo` / `allowRedo` | `true` | 이미지와 같은 규칙 |
 | `minClipDurationUs` | `1_000_000` (1초) | 출력 시간 기준 최소 길이(µs). 100_000 이상 |
-| `maxTimelineDurationUs` | `300_000_000` (5분) | 출력 시간 기준 전체 최대 길이(µs). `minClipDurationUs` 이상, 1시간 이하. 더 긴 원본은 앞부분만 남긴 채로 열림 |
-| `maxClipCount` | `1` | 클립 수 상한, 1..20. 2 이상이면 타임라인 아래에 클립 추가·나누기·이동·삭제 버튼이 나타남 |
+| `maxTimelineDurationUs` | `600_000_000` (10분) | 출력 시간 기준 전체 최대 길이(µs). `minClipDurationUs` 이상, 1시간 이하. 더 긴 원본은 앞부분만 남긴 채로 열림 |
+| `maxClipCount` | `10` | 클립 수 상한, 1..20. 2 이상이면 타임라인 아래에 클립 추가·나누기·이동·삭제 버튼이 나타남. 1이면 숨김 |
 
 | 도구 | 포함 기능 |
 | --- | --- |
@@ -153,7 +176,7 @@ VideoEditorRequest(
 
 | 옵션 | 기본값 | 단위·범위 |
 | --- | --- | --- |
-| `maxShortSide` | `1080` | 출력의 짧은 변 상한(px), 144..2160. 원본보다 키우지 않음 |
+| `maxShortSide` | `1080` | 출력의 짧은 변 상한(px), 144..2160. 원본보다 키우지 않음. 긴 변은 인코더 한도 때문에 4096px을 넘지 않게 함께 줄임 |
 | `maxFrameRate` | `30` | 초당 프레임 상한, 1..60. 넘는 프레임은 버리고 `FRAME_RATE_REDUCED` 경고 |
 | `allowFallback` | `true` | `false`이면 인코더가 다른 해상도·설정을 제안할 때 실패. `true`이면 `ENCODER_FALLBACK_APPLIED` 경고 |
 
