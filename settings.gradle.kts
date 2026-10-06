@@ -22,6 +22,8 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "NauryFrameKit"
+rootProject.name = "FrameKit"
+
 include(":app")
- 
+include(":framekit-core", ":framekit-android")
+include(":framekit-image", ":framekit-ui", ":framekit-ui-image")
