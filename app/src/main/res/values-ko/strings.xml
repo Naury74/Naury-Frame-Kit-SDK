@@ -33,7 +33,7 @@
     <string name="result_deleted">결과 파일을 삭제했습니다.</string>
     <string name="home_edit_video">영상 편집</string>
     <string name="example_video_title">영상</string>
-    <string name="example_video_description">구간·자르기·색감·속도·소리·모자이크 편집 후 MP4로 저장</string>
+    <string name="example_video_description">여러 클립·나누기·순서 변경, 배경 음악, 텍스트·스티커, 구간·색감·속도·모자이크 편집 후 MP4로 저장</string>
     <string name="example_any_title">사진 또는 영상</string>
     <string name="example_any_description">어느 쪽을 골라도 알맞은 편집기가 열림</string>
     <string name="example_short_clip_title">짧은 클립</string>

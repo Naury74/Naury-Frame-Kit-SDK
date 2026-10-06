@@ -34,7 +34,7 @@
     <string name="result_deleted">The result file was deleted.</string>
     <string name="home_edit_video">Edit video</string>
     <string name="example_video_title">Video</string>
-    <string name="example_video_description">Trim, crop, color, speed, sound and mosaic, saved as MP4</string>
+    <string name="example_video_description">Several clips, split and reorder, music, text and stickers, trim, color, speed, mosaic — saved as MP4</string>
     <string name="example_any_title">Photo or video</string>
     <string name="example_any_description">Pick either kind; FrameKit opens the matching editor</string>
     <string name="example_short_clip_title">Short clip</string>

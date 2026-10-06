@@ -28,7 +28,7 @@ enum class ShowcaseExample(
     VIDEO(
         R.string.example_video_title,
         R.string.example_video_description,
-        FrameKitRequest(EditorInput.Pick(MediaKind.VIDEO)),
+        FrameKitRequest(EditorInput.Pick(MediaKind.VIDEO), video = VideoEditorConfig(maxClipCount = 10)),
     ),
     ANY(
         R.string.example_any_title,
