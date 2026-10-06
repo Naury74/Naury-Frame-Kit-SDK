@@ -2,10 +2,12 @@ package com.naury.framekit.android.output
 
 import android.content.Context
 import android.net.Uri
+import android.os.storage.StorageManager
 import androidx.core.content.FileProvider
 import com.naury.framekit.android.result.EditorErrorCode
 import com.naury.framekit.android.result.FrameKitException
 import java.io.File
+import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -16,9 +18,13 @@ import java.util.UUID
  *
  * Partial files live next to the final files so that publishing is a rename on the same volume.
  * Hidden `.partial` files are never returned to the host.
+ *
+ * @param availableBytes replaces the platform free-space query, for tests and hosts with their own
+ *   storage quota. `null` uses `StorageManager.getAllocatableBytes`.
  */
 public class AppFileOutputStore(
     context: Context,
+    private val availableBytes: ((File) -> Long)? = null,
     private val clock: () -> Long = System::currentTimeMillis,
 ) {
     private val appContext = context.applicationContext
@@ -40,10 +46,20 @@ public class AppFileOutputStore(
         return file
     }
 
-    /** Free bytes on the volume that holds [directory]. */
-    public fun usableSpace(): Long {
+    /**
+     * Bytes that can be written to the volume that holds [directory], including cache space the
+     * system can free on demand.
+     */
+    public fun allocatableBytes(): Long {
         ensureDirectory()
-        return directory.usableSpace
+        availableBytes?.let { return it(directory) }
+        val storageManager = appContext.getSystemService(StorageManager::class.java)
+        return try {
+            storageManager.getAllocatableBytes(storageManager.getUuidForPath(directory))
+        } catch (_: IOException) {
+            @Suppress("UsableSpace") // StorageManager가 volume을 찾지 못한 경우에만 쓰는 대체값이다.
+            directory.usableSpace
+        }
     }
 
     /**

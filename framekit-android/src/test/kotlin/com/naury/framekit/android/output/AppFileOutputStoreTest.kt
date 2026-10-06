@@ -14,7 +14,7 @@ class AppFileOutputStoreTest {
 
     private val context = ApplicationProvider.getApplicationContext<Application>()
     private var now = 1_800_000_000_000L
-    private val store = AppFileOutputStore(context) { now }
+    private val store = AppFileOutputStore(context, clock = { now })
 
     @Before
     fun clearFileProviderCache() {
