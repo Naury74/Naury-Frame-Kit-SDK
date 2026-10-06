@@ -20,6 +20,7 @@ import com.naury.framekit.core.geometry.ExifOrientation
 import com.naury.framekit.core.model.PixelRect
 import com.naury.framekit.core.model.PixelSize
 import com.naury.framekit.image.render.toAndroidMatrix
+import java.io.FileNotFoundException
 import java.io.IOException
 import kotlin.math.ceil
 import kotlin.math.floor
@@ -176,6 +177,11 @@ public class BitmapDecoder(
         block()
     } catch (error: OutOfMemoryError) {
         throw FrameKitException(EditorErrorCode.INSUFFICIENT_MEMORY, "Bitmap allocation failed", error)
+    } catch (error: FileNotFoundException) {
+        // 편집 중 원본이 삭제되었거나 다른 앱이 준 권한이 사라진 경우다. 손상된 파일과 구분해 알린다.
+        throw FrameKitException(EditorErrorCode.SOURCE_UNAVAILABLE, "Source is no longer available", error)
+    } catch (error: SecurityException) {
+        throw FrameKitException(EditorErrorCode.SOURCE_UNAVAILABLE, "Source permission was revoked", error)
     } catch (error: IOException) {
         throw FrameKitException(EditorErrorCode.DECODE_FAILED, "Image could not be decoded", error)
     }

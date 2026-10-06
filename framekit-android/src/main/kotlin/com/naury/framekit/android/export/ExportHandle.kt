@@ -91,6 +91,11 @@ public class CoroutineExportHandle private constructor(
             val editorError = EditorError(EditorErrorCode.UNKNOWN)
             finish(ExportState.Failed(editorError))
             FrameKitResult.Failure(editorError)
+        } catch (error: OutOfMemoryError) {
+            // 큰 원본을 여러 장 처리하다 메모리가 바닥나도 호스트 앱을 멈추지 않고 실패로 돌려준다.
+            val editorError = EditorError(EditorErrorCode.INSUFFICIENT_MEMORY)
+            finish(ExportState.Failed(editorError))
+            FrameKitResult.Failure(editorError)
         }
     }
 

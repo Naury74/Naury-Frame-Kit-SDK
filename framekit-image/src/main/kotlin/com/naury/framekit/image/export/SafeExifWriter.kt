@@ -1,6 +1,7 @@
 package com.naury.framekit.image.export
 
 import androidx.exifinterface.media.ExifInterface
+import com.naury.framekit.android.result.FrameKitException
 import com.naury.framekit.android.source.SourceResolver
 import com.naury.framekit.core.model.PixelSize
 import com.naury.framekit.core.model.SourceId
@@ -14,6 +15,12 @@ internal class SafeExifWriter(private val resolver: SourceResolver) {
         val sourceExif = try {
             resolver.openInputStream(source).use(::ExifInterface)
         } catch (_: IOException) {
+            null
+        } catch (_: FrameKitException) {
+            // 저장 도중 원본이 사라졌거나 권한이 끊긴 경우다. 메타데이터만 빠지고 결과 이미지는 그대로 저장한다.
+            null
+        } catch (_: RuntimeException) {
+            // 손상된 EXIF 블록을 읽다 ExifInterface가 예외를 던지는 기기가 있다.
             null
         }
         val target = ExifInterface(output)

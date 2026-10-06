@@ -165,7 +165,7 @@ public class VideoExportCoordinator(
                         }
 
                         override fun onError(composition: Composition, exportResult: ExportResult, exportException: ExportException) {
-                            if (continuation.isActive) continuation.resumeWithException(VideoExportErrors.map(exportException))
+                            if (continuation.isActive) continuation.resumeWithException(VideoExportErrors.map(exportException, output.parentFile?.usableSpace))
                         }
 
                         override fun onFallbackApplied(
@@ -242,8 +242,19 @@ public class VideoExportCoordinator(
 
 /** Media3 내보내기 오류를 FrameKit 오류 코드로 변환한다. */
 internal object VideoExportErrors {
-    fun map(error: ExportException): FrameKitException {
-        val code = when (error.errorCode) {
+    /** @param freeBytes 출력 폴더의 남은 공간. 쓰기 실패가 공간 부족 때문인지 구분하는 데 쓴다. */
+    fun map(error: ExportException, freeBytes: Long? = null): FrameKitException {
+        // 저장 도중 공간이 다 차면 muxer 쓰기 실패로만 보고되므로 남은 공간으로 원인을 구분한다.
+        val writeFailure = error.errorCode == ExportException.ERROR_CODE_MUXING_FAILED || error.errorCode == ExportException.ERROR_CODE_IO_UNSPECIFIED
+        val code = when {
+            writeFailure && freeBytes != null && freeBytes < LOW_STORAGE_BYTES -> EditorErrorCode.INSUFFICIENT_STORAGE
+            else -> codeOf(error.errorCode)
+        }
+        return FrameKitException(code, "Export failed: ${error.errorCodeName}", error)
+    }
+
+    private fun codeOf(errorCode: Int): EditorErrorCode =
+        when (errorCode) {
             ExportException.ERROR_CODE_IO_FILE_NOT_FOUND -> EditorErrorCode.SOURCE_UNAVAILABLE
             ExportException.ERROR_CODE_IO_NO_PERMISSION -> EditorErrorCode.PERMISSION_DENIED
             in IO_RANGE -> EditorErrorCode.SOURCE_UNAVAILABLE
@@ -255,8 +266,7 @@ internal object VideoExportErrors {
             ExportException.ERROR_CODE_MUXING_FAILED, ExportException.ERROR_CODE_MUXING_TIMEOUT -> EditorErrorCode.OUTPUT_WRITE_FAILED
             else -> EditorErrorCode.UNKNOWN
         }
-        return FrameKitException(code, "Export failed: ${error.errorCodeName}", error)
-    }
 
     private val IO_RANGE = 2000..2999
+    private const val LOW_STORAGE_BYTES = 8L * 1024 * 1024
 }

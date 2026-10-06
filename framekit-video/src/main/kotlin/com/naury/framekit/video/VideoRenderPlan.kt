@@ -26,7 +26,7 @@ public data class ResolvedAudio(val clip: AudioClip, val source: AudioSourceInfo
  * composition을 만든다.
  *
  * @property canvasSize 출력 프레임 크기. 첫 클립의 편집 후 크기를 [maxShortSide]로 제한하고,
- *   인코더 요구에 맞춰 짝수로 반올림한다.
+ *   긴 변은 4096을 넘지 않게 줄이며, 인코더 요구에 맞춰 짝수로 반올림한다.
  */
 public data class VideoRenderPlan(
     val projectRevision: Long,
@@ -76,10 +76,13 @@ public object VideoPlanFactory {
         } else {
             crop.width to crop.width / ratio
         }
-        // 확대하지 않고 짧은 변만 제한한다. 인코더 요구 때문에 양쪽을 짝수로 맞춘다.
-        val scale = min(1.0, maxShortSide / min(baseWidth, baseHeight))
+        // 확대하지 않고 짧은 변을 제한한다. 아주 길쭉하게 자르면 긴 변이 대부분 기기 인코더 한도(4096)를
+        // 넘으므로 긴 변도 함께 제한한다. 인코더 요구 때문에 양쪽을 짝수로 맞춘다.
+        val scale = minOf(1.0, maxShortSide / min(baseWidth, baseHeight), MAX_LONG_SIDE / max(baseWidth, baseHeight))
         return PixelSize(even(baseWidth * scale), even(baseHeight * scale))
     }
 
     private fun even(value: Double): Int = max(2, (value / 2).roundToInt() * 2)
+
+    private const val MAX_LONG_SIDE = 4096.0
 }
