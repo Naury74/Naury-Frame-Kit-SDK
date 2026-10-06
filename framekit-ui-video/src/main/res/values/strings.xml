@@ -55,4 +55,5 @@
     <string name="framekit_canvas_fill">Fill</string>
     <string name="framekit_canvas_help">Clips with a different shape are fitted with black bars, or fill the frame and lose their edges.</string>
     <string name="framekit_preview_unavailable">The preview can\'t be shown right now.</string>
+    <string name="framekit_speed_result">Length %1$s → %2$s</string>
 </resources>

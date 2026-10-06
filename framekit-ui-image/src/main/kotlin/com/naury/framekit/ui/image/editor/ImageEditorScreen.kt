@@ -42,6 +42,8 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -159,80 +161,78 @@ private fun ReadyContent(state: ImageEditorUiState.Ready, viewModel: ImageEditor
 
     val density = LocalDensity.current
     // 힌지 좌표는 창 기준이므로 루트는 창 전체를 덮고, system bar 인셋은 각 영역 안에서 처리한다.
-    BoxWithConstraints(Modifier.fillMaxSize()) {
-        val topBar = @Composable {
-            EditorTopBar(onClose = viewModel::requestClose, onSave = viewModel::save, saveEnabled = state.export == null)
-        }
-        when (val layout = EditorLayoutPolicy.decide(maxWidth.value, maxHeight.value, posture)) {
-            // 키보드 인셋을 뺀 실제 높이를 기준으로 비율을 잡아야 입력 중에도 캔버스가 남는다.
-            is EditorLayout.Stacked -> BoxWithConstraints(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)) {
-                val available = maxHeight
-                Column(Modifier.fillMaxSize()) {
-                    topBar()
-                    CanvasArea(state, viewModel, Modifier.weight(1f).fillMaxWidth())
-                    // 패널이 길거나 키보드가 올라와도 캔버스가 사라지지 않도록 도구 영역 높이를 제한하고 안쪽을 스크롤한다.
-                    ToolArea(state, viewModel, Modifier.fillMaxWidth().heightIn(max = available * MAX_TOOL_AREA_FRACTION), layout.maxControlsWidthDp, scrollPanel = true)
-                }
+    CompositionLocalProvider(LocalEditorSnackbar provides snackbar) {
+        BoxWithConstraints(Modifier.fillMaxSize()) {
+            val topBar = @Composable {
+                EditorTopBar(onClose = viewModel::requestClose, onSave = viewModel::save, saveEnabled = state.export == null)
             }
-            is EditorLayout.SidePanel -> Row(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)) {
-                CanvasArea(state, viewModel, Modifier.weight(1f).fillMaxHeight())
-                Column(Modifier.width(layout.panelWidthDp.dp).fillMaxHeight()) {
-                    topBar()
-                    // 넓은 화면에서는 도구를 패널 위쪽부터 채워 빈 영역을 줄이고, 길어지면 스크롤한다.
-                    Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
-                        ToolArea(state, viewModel, Modifier.fillMaxWidth(), maxWidthDp = null, wide = true)
+            when (val layout = EditorLayoutPolicy.decide(maxWidth.value, maxHeight.value, posture)) {
+                // 키보드 인셋을 뺀 실제 높이를 기준으로 비율을 잡아야 입력 중에도 캔버스가 남는다.
+                is EditorLayout.Stacked -> BoxWithConstraints(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)) {
+                    val available = maxHeight
+                    Column(Modifier.fillMaxSize()) {
+                        topBar()
+                        CanvasArea(state, viewModel, Modifier.weight(1f).fillMaxWidth())
+                        // 패널이 길거나 키보드가 올라와도 캔버스가 사라지지 않도록 도구 영역 높이를 제한하고 안쪽을 스크롤한다.
+                        ToolArea(state, viewModel, Modifier.fillMaxWidth().heightIn(max = available * MAX_TOOL_AREA_FRACTION), layout.maxControlsWidthDp, scrollPanel = true)
+                    }
+                }
+                is EditorLayout.SidePanel -> Row(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)) {
+                    CanvasArea(state, viewModel, Modifier.weight(1f).fillMaxHeight())
+                    Column(Modifier.width(layout.panelWidthDp.dp).fillMaxHeight()) {
+                        topBar()
+                        // 넓은 화면에서는 도구를 패널 위쪽부터 채워 빈 영역을 줄이고, 길어지면 스크롤한다.
+                        Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
+                            ToolArea(state, viewModel, Modifier.fillMaxWidth(), maxWidthDp = null, wide = true)
+                        }
+                    }
+                }
+                is EditorLayout.SplitAtHorizontalHinge -> Column(Modifier.fillMaxSize()) {
+                    Column(
+                        Modifier
+                            .fillMaxWidth()
+                            .height(with(density) { layout.hingeTopPx.toDp() })
+                            .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)),
+                    ) {
+                        topBar()
+                        CanvasArea(state, viewModel, Modifier.weight(1f).fillMaxWidth())
+                    }
+                    Spacer(Modifier.height(with(density) { (layout.hingeBottomPx - layout.hingeTopPx).toDp() }))
+                    Column(
+                        Modifier
+                            .fillMaxWidth()
+                            .weight(1f)
+                            .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal)),
+                        verticalArrangement = Arrangement.Center,
+                    ) {
+                        ToolArea(state, viewModel, Modifier.fillMaxWidth(), EditorLayoutPolicy.MAX_CONTROLS_WIDTH_DP, scrollPanel = true)
+                    }
+                }
+                is EditorLayout.SplitAtVerticalHinge -> Row(Modifier.fillMaxSize()) {
+                    CanvasArea(
+                        state,
+                        viewModel,
+                        Modifier
+                            .width(with(density) { layout.hingeLeftPx.toDp() })
+                            .fillMaxHeight()
+                            .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Vertical + WindowInsetsSides.Start)),
+                    )
+                    Spacer(Modifier.width(with(density) { (layout.hingeRightPx - layout.hingeLeftPx).toDp() }))
+                    Column(
+                        Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                            .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Vertical + WindowInsetsSides.End)),
+                    ) {
+                        topBar()
+                        // 넓은 화면에서는 도구를 패널 위쪽부터 채워 빈 영역을 줄이고, 길어지면 스크롤한다.
+                        Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
+                            ToolArea(state, viewModel, Modifier.fillMaxWidth(), maxWidthDp = null, wide = true)
+                        }
                     }
                 }
             }
-            is EditorLayout.SplitAtHorizontalHinge -> Column(Modifier.fillMaxSize()) {
-                Column(
-                    Modifier
-                        .fillMaxWidth()
-                        .height(with(density) { layout.hingeTopPx.toDp() })
-                        .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)),
-                ) {
-                    topBar()
-                    CanvasArea(state, viewModel, Modifier.weight(1f).fillMaxWidth())
-                }
-                Spacer(Modifier.height(with(density) { (layout.hingeBottomPx - layout.hingeTopPx).toDp() }))
-                Column(
-                    Modifier
-                        .fillMaxWidth()
-                        .weight(1f)
-                        .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal)),
-                    verticalArrangement = Arrangement.Center,
-                ) {
-                    ToolArea(state, viewModel, Modifier.fillMaxWidth(), EditorLayoutPolicy.MAX_CONTROLS_WIDTH_DP, scrollPanel = true)
-                }
-            }
-            is EditorLayout.SplitAtVerticalHinge -> Row(Modifier.fillMaxSize()) {
-                CanvasArea(
-                    state,
-                    viewModel,
-                    Modifier
-                        .width(with(density) { layout.hingeLeftPx.toDp() })
-                        .fillMaxHeight()
-                        .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Vertical + WindowInsetsSides.Start)),
-                )
-                Spacer(Modifier.width(with(density) { (layout.hingeRightPx - layout.hingeLeftPx).toDp() }))
-                Column(
-                    Modifier
-                        .weight(1f)
-                        .fillMaxHeight()
-                        .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Vertical + WindowInsetsSides.End)),
-                ) {
-                    topBar()
-                    // 넓은 화면에서는 도구를 패널 위쪽부터 채워 빈 영역을 줄이고, 길어지면 스크롤한다.
-                    Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
-                        ToolArea(state, viewModel, Modifier.fillMaxWidth(), maxWidthDp = null, wide = true)
-                    }
-                }
-            }
         }
-        SnackbarHost(
-            snackbar,
-            Modifier.align(Alignment.BottomCenter).windowInsetsPadding(WindowInsets.safeDrawing).padding(bottom = 96.dp),
-        )
     }
 
     when (val export = state.export) {
@@ -275,6 +275,8 @@ private fun CanvasArea(state: ImageEditorUiState.Ready, viewModel: ImageEditorVi
                 onCompare = if (state.activeTool == null && history.isDirty) viewModel::showOriginal else null,
             )
         }
+        // 안내 메시지는 캔버스 아래쪽에 띄워 레이아웃과 상관없이 도구 패널을 가리지 않게 한다.
+        SnackbarHost(LocalEditorSnackbar.current, Modifier.align(Alignment.BottomCenter).padding(8.dp))
     }
 }
 
@@ -421,3 +423,5 @@ private const val TOOL_TRANSITION_MS = 200
 
 // 좁은 화면에서 도구 영역이 차지할 수 있는 최대 비율. 나머지는 캔버스 몫이다.
 private const val MAX_TOOL_AREA_FRACTION = 0.55f
+
+private val LocalEditorSnackbar = staticCompositionLocalOf { SnackbarHostState() }

@@ -66,6 +66,8 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -195,71 +197,69 @@ private fun ReadyContent(state: VideoEditorUiState.Ready, viewModel: VideoEditor
 
     val density = LocalDensity.current
     // 힌지 좌표는 창 기준이므로 루트는 창 전체를 덮고, system bar 인셋은 각 영역 안에서 처리한다.
-    BoxWithConstraints(Modifier.fillMaxSize()) {
-        val topBar = @Composable {
-            EditorTopBar(onClose = viewModel::requestClose, onSave = viewModel::save, saveEnabled = state.export == null)
+    CompositionLocalProvider(LocalEditorSnackbar provides snackbar) {
+        BoxWithConstraints(Modifier.fillMaxSize()) {
+            val topBar = @Composable {
+                EditorTopBar(onClose = viewModel::requestClose, onSave = viewModel::save, saveEnabled = state.export == null)
+            }
+            when (val layout = EditorLayoutPolicy.decide(maxWidth.value, maxHeight.value, posture)) {
+                // 키보드 인셋을 뺀 실제 높이를 기준으로 비율을 잡아야 입력 중에도 캔버스가 남는다.
+                is EditorLayout.Stacked -> BoxWithConstraints(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)) {
+                    val available = maxHeight
+                    Column(Modifier.fillMaxSize()) {
+                        topBar()
+                        CanvasArea(state, viewModel, Modifier.weight(1f).fillMaxWidth())
+                        // 패널이 길거나 키보드가 올라와도 미리보기가 사라지지 않도록 아래 영역 높이를 제한한다.
+                        ControlArea(state, viewModel, Modifier.fillMaxWidth().heightIn(max = available * MAX_CONTROL_AREA_FRACTION), layout.maxControlsWidthDp)
+                    }
+                }
+                is EditorLayout.SidePanel -> Row(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)) {
+                    PreviewColumn(state, viewModel, Modifier.weight(1f).fillMaxHeight())
+                    SidePanel(state, viewModel, topBar, Modifier.width(layout.panelWidthDp.dp).fillMaxHeight())
+                }
+                is EditorLayout.SplitAtHorizontalHinge -> Column(Modifier.fillMaxSize()) {
+                    Column(
+                        Modifier
+                            .fillMaxWidth()
+                            .height(with(density) { layout.hingeTopPx.toDp() })
+                            .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)),
+                    ) {
+                        topBar()
+                        CanvasArea(state, viewModel, Modifier.weight(1f).fillMaxWidth())
+                    }
+                    Spacer(Modifier.height(with(density) { (layout.hingeBottomPx - layout.hingeTopPx).toDp() }))
+                    Column(
+                        Modifier
+                            .fillMaxWidth()
+                            .weight(1f)
+                            .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal)),
+                        verticalArrangement = Arrangement.Center,
+                    ) {
+                        ControlArea(state, viewModel, Modifier.fillMaxWidth(), EditorLayoutPolicy.MAX_CONTROLS_WIDTH_DP)
+                    }
+                }
+                is EditorLayout.SplitAtVerticalHinge -> Row(Modifier.fillMaxSize()) {
+                    PreviewColumn(
+                        state,
+                        viewModel,
+                        Modifier
+                            .width(with(density) { layout.hingeLeftPx.toDp() })
+                            .fillMaxHeight()
+                            .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Vertical + WindowInsetsSides.Start)),
+                    )
+                    Spacer(Modifier.width(with(density) { (layout.hingeRightPx - layout.hingeLeftPx).toDp() }))
+                    SidePanel(
+                        state,
+                        viewModel,
+                        topBar,
+                        Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                            .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Vertical + WindowInsetsSides.End)),
+                    )
+                }
+            }
         }
-        when (val layout = EditorLayoutPolicy.decide(maxWidth.value, maxHeight.value, posture)) {
-            // 키보드 인셋을 뺀 실제 높이를 기준으로 비율을 잡아야 입력 중에도 캔버스가 남는다.
-            is EditorLayout.Stacked -> BoxWithConstraints(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)) {
-                val available = maxHeight
-                Column(Modifier.fillMaxSize()) {
-                    topBar()
-                    CanvasArea(state, viewModel, Modifier.weight(1f).fillMaxWidth())
-                    // 패널이 길거나 키보드가 올라와도 미리보기가 사라지지 않도록 아래 영역 높이를 제한한다.
-                    ControlArea(state, viewModel, Modifier.fillMaxWidth().heightIn(max = available * MAX_CONTROL_AREA_FRACTION), layout.maxControlsWidthDp)
-                }
-            }
-            is EditorLayout.SidePanel -> Row(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)) {
-                PreviewColumn(state, viewModel, Modifier.weight(1f).fillMaxHeight())
-                SidePanel(state, viewModel, topBar, Modifier.width(layout.panelWidthDp.dp).fillMaxHeight())
-            }
-            is EditorLayout.SplitAtHorizontalHinge -> Column(Modifier.fillMaxSize()) {
-                Column(
-                    Modifier
-                        .fillMaxWidth()
-                        .height(with(density) { layout.hingeTopPx.toDp() })
-                        .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)),
-                ) {
-                    topBar()
-                    CanvasArea(state, viewModel, Modifier.weight(1f).fillMaxWidth())
-                }
-                Spacer(Modifier.height(with(density) { (layout.hingeBottomPx - layout.hingeTopPx).toDp() }))
-                Column(
-                    Modifier
-                        .fillMaxWidth()
-                        .weight(1f)
-                        .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal)),
-                    verticalArrangement = Arrangement.Center,
-                ) {
-                    ControlArea(state, viewModel, Modifier.fillMaxWidth(), EditorLayoutPolicy.MAX_CONTROLS_WIDTH_DP)
-                }
-            }
-            is EditorLayout.SplitAtVerticalHinge -> Row(Modifier.fillMaxSize()) {
-                PreviewColumn(
-                    state,
-                    viewModel,
-                    Modifier
-                        .width(with(density) { layout.hingeLeftPx.toDp() })
-                        .fillMaxHeight()
-                        .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Vertical + WindowInsetsSides.Start)),
-                )
-                Spacer(Modifier.width(with(density) { (layout.hingeRightPx - layout.hingeLeftPx).toDp() }))
-                SidePanel(
-                    state,
-                    viewModel,
-                    topBar,
-                    Modifier
-                        .weight(1f)
-                        .fillMaxHeight()
-                        .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Vertical + WindowInsetsSides.End)),
-                )
-            }
-        }
-        SnackbarHost(
-            snackbar,
-            Modifier.align(Alignment.BottomCenter).windowInsetsPadding(WindowInsets.safeDrawing).padding(bottom = 96.dp),
-        )
     }
 
     when (val export = state.export) {
@@ -319,6 +319,8 @@ private fun CanvasArea(state: VideoEditorUiState.Ready, viewModel: VideoEditorVi
                 modifier = Modifier.align(Alignment.TopCenter).padding(top = 12.dp),
             )
         }
+        // 안내 메시지는 캔버스 아래쪽에 띄워 레이아웃과 상관없이 도구 패널을 가리지 않게 한다.
+        SnackbarHost(LocalEditorSnackbar.current, Modifier.align(Alignment.BottomCenter).padding(8.dp))
     }
 }
 
@@ -567,7 +569,7 @@ private fun ToolArea(
                     )
                 }
                 VideoTool.SPEED -> ToolPanelWithActions(R.string.framekit_tool_speed, viewModel, isDraft = true, scrollPanel) {
-                    SpeedToolPanel(speed = state.clip.speed, onSelect = viewModel::selectSpeed)
+                    SpeedToolPanel(speed = state.clip.speed, sourceDurationUs = state.clip.sourceRange.durationUs, onSelect = viewModel::selectSpeed)
                 }
                 VideoTool.AUDIO -> ToolPanelWithActions(R.string.framekit_tool_audio, viewModel, isDraft = false, scrollPanel) {
                     val music = state.displayed.timeline.audioClips.firstOrNull()
@@ -678,3 +680,5 @@ private fun VideoTool.railItem(): ToolRailItem<VideoTool> = when (this) {
 private const val MAX_CONTROL_AREA_FRACTION = 0.6f
 
 private const val TOOL_TRANSITION_MS = 200
+
+private val LocalEditorSnackbar = staticCompositionLocalOf { SnackbarHostState() }
