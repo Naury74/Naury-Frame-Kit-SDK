@@ -2,6 +2,10 @@ package com.naury.framekit.showcase
 
 import androidx.annotation.StringRes
 import com.naury.framekit.FrameKitRequest
+import com.naury.framekit.android.catalog.CatalogFile
+import com.naury.framekit.android.catalog.CustomFilter
+import com.naury.framekit.android.catalog.CustomSticker
+import com.naury.framekit.android.catalog.EditorCatalog
 import com.naury.framekit.android.input.EditorInput
 import com.naury.framekit.android.input.MediaKind
 import com.naury.framekit.image.export.ImageExportConfig
@@ -78,6 +82,23 @@ enum class ShowcaseExample(
             EditorInput.Pick(MediaKind.IMAGE),
             image = ImageEditorConfig(enabledTools = setOf(ImageTool.CROP), allowUndo = false, allowRedo = false),
             imageExport = ImageExportConfig(maxWidth = 1080, maxHeight = 1080, quality = 85),
+        ),
+    ),
+    HOST_CATALOG(
+        R.string.example_catalog_title,
+        R.string.example_catalog_description,
+        FrameKitRequest(
+            EditorInput.Pick(MediaKind.ANY),
+            catalog = EditorCatalog(
+                filters = listOf(
+                    CustomFilter("brand-sunset", "Sunset", temperature = 0.45, saturation = 0.15, highlightTint = listOf(0.04, 0.01, -0.02), fade = 0.08),
+                    CustomFilter("brand-ocean", "Ocean", temperature = -0.4, contrast = 0.1, shadowTint = listOf(0.0, 0.02, 0.05)),
+                ),
+                stickers = listOf(
+                    CustomSticker("flower", "Flower", CatalogFile.Asset("stickers/flower.png")),
+                    CustomSticker("heart", "Heart", CatalogFile.Asset("stickers/heart.png")),
+                ),
+            ),
         ),
     ),
     CUSTOM_BRAND(

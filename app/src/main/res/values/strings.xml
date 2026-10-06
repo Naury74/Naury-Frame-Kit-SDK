@@ -43,4 +43,6 @@
     <string name="example_video_mosaic_description">Hide faces or plates for a time range with mosaic or blur</string>
     <string name="result_video">Edited video</string>
     <string name="result_duration">Duration</string>
+    <string name="example_catalog_title">Host catalog</string>
+    <string name="example_catalog_description">The host adds its own filters (Sunset, Ocean) and image stickers</string>
 </resources>

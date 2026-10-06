@@ -42,4 +42,6 @@
     <string name="example_video_mosaic_description">얼굴이나 번호판을 원하는 구간 동안 모자이크·블러로 가리기</string>
     <string name="result_video">편집된 영상</string>
     <string name="result_duration">길이</string>
+    <string name="example_catalog_title">호스트 카탈로그</string>
+    <string name="example_catalog_description">호스트 앱이 자체 필터(Sunset, Ocean)와 이미지 스티커를 추가</string>
 </resources>
