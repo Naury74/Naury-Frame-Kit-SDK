@@ -27,7 +27,7 @@ jobs:
           distribution: temurin
           java-version: 25
       - uses: gradle/actions/setup-gradle@v5
-      - run: ./gradlew test lint :app:assembleDebug :app:assembleRelease
+      - run: ./gradlew test lint :app:assembleDebug :app:assembleRelease publishToMavenLocal
       - if: always()
         uses: actions/upload-artifact@v4
         with:
