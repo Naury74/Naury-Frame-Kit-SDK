@@ -1,5 +1,6 @@
 package com.naury.framekit.ui.tool
 
+import com.naury.framekit.ui.catalog.LocalCatalogUi
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -15,7 +16,6 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.naury.framekit.core.overlay.BackgroundSpec
-import com.naury.framekit.core.overlay.FontCatalog
 import com.naury.framekit.core.overlay.ImageOverlay
 import com.naury.framekit.core.overlay.ShadowSpec
 import com.naury.framekit.core.overlay.StrokeSpec
@@ -52,10 +52,11 @@ public fun TextToolPanel(
             ),
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).focusRequester(focus),
         )
+        val catalog = LocalCatalogUi.current
         ChoiceChips(
-            options = FontCatalog.fontIds,
+            options = catalog.fontIds,
             selected = style.fontId,
-            label = { stringResource(fontLabel(it)) },
+            label = { catalog.fontLabel(it) ?: stringResource(fontLabel(it)) },
             onSelect = { id -> onStyle { it.copy(fontId = id) } },
             modifier = Modifier.padding(top = 8.dp),
         )

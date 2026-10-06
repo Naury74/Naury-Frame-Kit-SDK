@@ -1,5 +1,6 @@
 package com.naury.framekit.ui.image.editor
 
+import com.naury.framekit.core.overlay.EmojiCatalog
 import com.naury.framekit.ui.tool.PrivacyShape
 import android.app.Application
 import android.graphics.Bitmap
@@ -402,7 +403,7 @@ class ImageEditorViewModelTest {
     fun `adding a sticker and moving it are separate undo steps with center snapping`() {
         val viewModel = viewModel(EditorInput.FileSource(sourceFile.absolutePath))
         viewModel.selectTool(ImageTool.STICKER)
-        viewModel.addSticker("🎉")
+        viewModel.addSticker(EmojiCatalog.assetId("🎉"))
         val id = checkNotNull(ready(viewModel).selectedOverlayId)
         viewModel.closeTool()
 
@@ -423,7 +424,7 @@ class ImageEditorViewModelTest {
     fun `duplicate and delete edit the overlay list`() {
         val viewModel = viewModel(EditorInput.FileSource(sourceFile.absolutePath))
         viewModel.selectTool(ImageTool.STICKER)
-        viewModel.addSticker("⭐")
+        viewModel.addSticker(EmojiCatalog.assetId("⭐"))
         viewModel.closeTool()
         val id = checkNotNull(ready(viewModel).selectedOverlayId)
 

@@ -49,7 +49,7 @@ internal sealed interface VideoEditorUiState {
         val selectedMaskId: String? = null,
         val selectedOverlayId: String? = null,
         val editingTextId: String? = null,
-        val stickerCategory: EmojiCatalog.Category = EmojiCatalog.Category.SMILEYS,
+        val stickerCategory: EmojiCatalog.Category? = EmojiCatalog.Category.SMILEYS,
         val export: ExportUiState? = null,
         val showDiscardDialog: Boolean = false,
         val showApplyHint: Boolean = false,

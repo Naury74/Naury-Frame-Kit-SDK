@@ -703,7 +703,7 @@ internal class VideoEditorViewModel(
         _filterThumbnails.value = emptyMap()
         thumbnailJob = viewModelScope.launch {
             val frame = frames.frame(ready.location, ready.clip.source.value, ready.clip.sourceRange.startUs, FILTER_THUMBNAIL_PX) ?: return@launch
-            FilterCatalog.presets.forEach { preset ->
+            FilterCatalog.all.forEach { preset ->
                 val thumbnail = withContext(Dispatchers.Default) {
                     frame.copy(Bitmap.Config.ARGB_8888, true).also {
                         colorRenderer.apply(it, ColorEffectSpec.of(Adjustments(), FilterSelection(preset.id, 1.0), 0L), includeCanvasEffects = false)
@@ -838,14 +838,14 @@ internal class VideoEditorViewModel(
         ready.copy(transaction = ready.transaction.update(Edit.replaceOverlay(draft, transform(text))))
     }
 
-    fun selectStickerCategory(category: EmojiCatalog.Category) = updateReady { it.copy(stickerCategory = category) }
+    fun selectStickerCategory(category: EmojiCatalog.Category?) = updateReady { it.copy(stickerCategory = category) }
 
-    /** 이모지 스티커를 화면 가운데에 재생 위치부터 3초 동안 붙이고 고른다. 한 단계다. */
-    fun addSticker(emoji: String) {
+    /** 스티커(이모지나 호스트 이미지의 에셋 id)를 화면 가운데에 재생 위치부터 3초 동안 붙이고 고른다. 한 단계다. */
+    fun addSticker(assetId: String) {
         val ready = _state.value as? VideoEditorUiState.Ready ?: return
         val id = newId()
         val range = Edit.defaultRange(engine.state.value.positionUs, ready.durationUs, DEFAULT_ITEM_US)
-        commitImmediate { it.copy(timeline = it.timeline.copy(overlays = it.timeline.overlays + TimedOverlay(ImageOverlay.Sticker(id, EmojiCatalog.assetId(emoji)), range))) }
+        commitImmediate { it.copy(timeline = it.timeline.copy(overlays = it.timeline.overlays + TimedOverlay(ImageOverlay.Sticker(id, assetId), range))) }
         updateReady { it.copy(selectedOverlayId = id) }
     }
 

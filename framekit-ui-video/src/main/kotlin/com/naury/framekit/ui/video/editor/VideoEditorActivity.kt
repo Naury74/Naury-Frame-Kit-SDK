@@ -1,5 +1,9 @@
 package com.naury.framekit.ui.video.editor
 
+import androidx.compose.runtime.CompositionLocalProvider
+import com.naury.framekit.ui.catalog.LocalCatalogUi
+import com.naury.framekit.ui.catalog.CatalogUi
+import com.naury.framekit.image.catalog.CatalogAssets
 import android.content.ContentResolver
 import android.content.Intent
 import android.net.Uri
@@ -58,6 +62,9 @@ internal class VideoEditorActivity : ComponentActivity() {
             return
         }
 
+        // 호스트 필터·스티커·폰트를 등록한다. Activity가 다시 만들어질 때도 같은 요청으로 다시 등록한다.
+        CatalogAssets.install(this, request.catalog)
+        val catalogUi = CatalogUi(request.catalog, CatalogAssets::sticker)
         val darkBars = request.ui.themeMode != ThemeMode.LIGHT
         enableEdgeToEdge(
             statusBarStyle = if (darkBars) SystemBarStyle.dark(Color.TRANSPARENT) else SystemBarStyle.auto(Color.TRANSPARENT, Color.TRANSPARENT),
@@ -74,9 +81,11 @@ internal class VideoEditorActivity : ComponentActivity() {
         val posture = foldPostureFlow(this)
         setContent {
             val currentPosture by posture.collectAsStateWithLifecycle(FoldPosture.Flat)
-            ProvideEditorLocale(request.ui.localeTag) {
-                FrameKitTheme(request.ui) {
-                    VideoEditorScreen(viewModel, currentPosture)
+            CompositionLocalProvider(LocalCatalogUi provides catalogUi) {
+                ProvideEditorLocale(request.ui.localeTag) {
+                    FrameKitTheme(request.ui) {
+                        VideoEditorScreen(viewModel, currentPosture)
+                    }
                 }
             }
         }

@@ -1,5 +1,6 @@
 package com.naury.framekit.ui.video.editor
 
+import com.naury.framekit.core.overlay.EmojiCatalog
 import com.naury.framekit.video.source.AudioSourceInfo
 import com.naury.framekit.core.video.TimelineTimeMapper
 import com.naury.framekit.android.session.EditorSessionStore
@@ -318,7 +319,7 @@ class VideoEditorViewModelTest {
         engine.seekTo(8_000_000)
 
         viewModel.selectTool(VideoTool.STICKER)
-        viewModel.addSticker("😀")
+        viewModel.addSticker(EmojiCatalog.assetId("😀"))
         val sticker = ready(viewModel).displayed.timeline.overlays.single()
         assertThat(sticker.range).isEqualTo(TimeRangeUs(7_000_000, 10_000_000))
         viewModel.closeTool()

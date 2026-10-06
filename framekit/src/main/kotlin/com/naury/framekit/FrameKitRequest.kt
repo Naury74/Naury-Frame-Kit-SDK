@@ -1,5 +1,6 @@
 package com.naury.framekit
 
+import com.naury.framekit.android.catalog.EditorCatalog
 import android.os.Parcelable
 import com.naury.framekit.android.input.EditorInput
 import com.naury.framekit.android.output.OutputTarget
@@ -29,18 +30,19 @@ public data class FrameKitRequest(
     val videoExport: VideoExportConfig = VideoExportConfig(),
     val ui: EditorUiConfig = EditorUiConfig(),
     val output: OutputTarget = OutputTarget.AppFile,
+    val catalog: EditorCatalog = EditorCatalog(),
 ) : Parcelable {
 
     /** 두 편집기 설정을 모두 검증한다. 검증에 실패하면 결과는 `INVALID_CONFIGURATION`이 된다. */
     public fun validate(): ValidationResult {
         val issues = mutableListOf<ValidationIssue>()
-        listOf(image.validate(), imageExport.validate(), video.validate(), videoExport.validate(), ui.validate()).forEach { result ->
+        listOf(image.validate(), imageExport.validate(), video.validate(), videoExport.validate(), ui.validate(), catalog.validate()).forEach { result ->
             if (result is ValidationResult.Invalid) issues += result.issues
         }
         return ValidationResult.of(issues)
     }
 
-    internal fun forImage(input: EditorInput): ImageEditorRequest = ImageEditorRequest(input, image, imageExport, ui, output)
+    internal fun forImage(input: EditorInput): ImageEditorRequest = ImageEditorRequest(input, image, imageExport, ui, output, catalog)
 
-    internal fun forVideo(input: EditorInput): VideoEditorRequest = VideoEditorRequest(input, video, videoExport, ui, output)
+    internal fun forVideo(input: EditorInput): VideoEditorRequest = VideoEditorRequest(input, video, videoExport, ui, output, catalog)
 }

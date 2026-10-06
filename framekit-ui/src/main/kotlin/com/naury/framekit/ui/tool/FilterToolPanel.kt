@@ -1,5 +1,6 @@
 package com.naury.framekit.ui.tool
 
+import com.naury.framekit.ui.catalog.LocalCatalogUi
 import android.graphics.Bitmap
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -47,20 +48,21 @@ public fun FilterToolPanel(
 ) {
     val colors = FrameKitTheme.colors
     val selectedId = if (selection.isIdentity) FilterCatalog.ORIGINAL_ID else selection.presetId
+    val catalog = LocalCatalogUi.current
     Column(modifier.fillMaxWidth().padding(vertical = 8.dp)) {
         LazyRow(
             contentPadding = PaddingValues(horizontal = 12.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             modifier = Modifier.selectableGroup(),
         ) {
-            items(FilterCatalog.presets, key = { it.id }) { preset ->
-                val isSelected = preset.id == selectedId
-                val label = filterLabelRes(preset.id)?.let { stringResource(it) } ?: preset.id
+            items(catalog.filterIds, key = { it }) { id ->
+                val isSelected = id == selectedId
+                val label = catalog.filterLabel(id) ?: filterLabelRes(id)?.let { stringResource(it) } ?: id
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier
                         .width(72.dp)
-                        .selectable(selected = isSelected, role = Role.RadioButton) { onSelect(preset.id) },
+                        .selectable(selected = isSelected, role = Role.RadioButton) { onSelect(id) },
                 ) {
                     Box(
                         Modifier
@@ -69,7 +71,7 @@ public fun FilterToolPanel(
                             .background(colors.raised)
                             .border(if (isSelected) 2.dp else 0.dp, if (isSelected) colors.accent else colors.raised, MaterialTheme.shapes.small),
                     ) {
-                        thumbnails[preset.id]?.let { bitmap ->
+                        thumbnails[id]?.let { bitmap ->
                             Image(bitmap.asImageBitmap(), contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.size(64.dp))
                         }
                     }

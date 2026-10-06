@@ -95,7 +95,7 @@ internal class ImagePreviewController(
         _thumbnails.value = emptyMap()
         thumbnailJob = scope.launch {
             val base = withContext(renderDispatcher) { scaledCopy(source.bitmap) }
-            FilterCatalog.presets.forEach { preset ->
+            FilterCatalog.all.forEach { preset ->
                 val thumbnail = withContext(renderDispatcher) {
                     base.copy(Bitmap.Config.ARGB_8888, true).also { bitmap ->
                         colorRenderer.apply(bitmap, ColorEffectSpec.of(Adjustments(), FilterSelection(preset.id, 1.0), 0L), includeCanvasEffects = false)

@@ -38,7 +38,7 @@ internal sealed interface ImageEditorUiState {
         val selectedOverlayId: String? = null,
         val editingTextId: String? = null,
         val brush: BrushSettings = BrushSettings(),
-        val stickerCategory: EmojiCatalog.Category = EmojiCatalog.Category.SMILEYS,
+        val stickerCategory: EmojiCatalog.Category? = EmojiCatalog.Category.SMILEYS,
         val privacy: PrivacySettings = PrivacySettings(),
         val cutoutStatus: CutoutStatus? = null,
     ) : ImageEditorUiState {

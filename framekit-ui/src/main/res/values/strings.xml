@@ -124,4 +124,5 @@
     <string name="framekit_privacy_strength">Strength</string>
     <string name="framekit_privacy_brush_size">Brush size</string>
     <string name="framekit_privacy_help">Blur can sometimes be reversed. Use mosaic for personal information.</string>
+    <string name="framekit_sticker_custom">My stickers</string>
 </resources>

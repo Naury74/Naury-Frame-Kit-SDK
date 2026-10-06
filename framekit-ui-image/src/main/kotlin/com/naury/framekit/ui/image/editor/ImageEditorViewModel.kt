@@ -323,12 +323,12 @@ internal class ImageEditorViewModel(
         finishGesture()
     }
 
-    fun selectStickerCategory(category: EmojiCatalog.Category) = updateReady { it.copy(stickerCategory = category) }
+    fun selectStickerCategory(category: EmojiCatalog.Category?) = updateReady { it.copy(stickerCategory = category) }
 
-    /** 캔버스 중앙에 이모지 스티커를 실행 취소 한 단계로 추가하고 선택한다. */
-    fun addSticker(emoji: String) {
+    /** 캔버스 중앙에 스티커(이모지나 호스트 이미지의 에셋 id)를 실행 취소 한 단계로 추가하고 선택한다. */
+    fun addSticker(assetId: String) {
         val id = newId()
-        commitImmediate { it.copy(overlays = it.overlays + ImageOverlay.Sticker(id, EmojiCatalog.assetId(emoji))) }
+        commitImmediate { it.copy(overlays = it.overlays + ImageOverlay.Sticker(id, assetId)) }
         updateReady { it.copy(selectedOverlayId = id) }
     }
 

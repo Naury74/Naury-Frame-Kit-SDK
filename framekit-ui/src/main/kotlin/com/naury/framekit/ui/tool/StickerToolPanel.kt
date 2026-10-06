@@ -1,5 +1,10 @@
 package com.naury.framekit.ui.tool
 
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.runtime.remember
+import androidx.compose.foundation.Image
+import com.naury.framekit.ui.catalog.LocalCatalogUi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,29 +26,57 @@ import com.naury.framekit.core.overlay.EmojiCatalog
 import com.naury.framekit.ui.component.ChoiceChips
 import com.naury.framekit.ui.R
 
-/** 카테고리별로 묶인 이모지 목록. 이모지를 탭하면 캔버스 중앙에 놓인다. */
+/**
+ * 카테고리별 이모지와 호스트 스티커 목록. 탭하면 캔버스 중앙에 놓인다.
+ *
+ * @param category 고른 이모지 분류. `null`이면 호스트 스티커 탭이다.
+ * @param onAdd 고른 스티커의 에셋 id(이모지는 [EmojiCatalog.assetId], 호스트 스티커는 `sticker:` id).
+ */
 @Composable
 public fun StickerToolPanel(
-    category: EmojiCatalog.Category,
-    onCategory: (EmojiCatalog.Category) -> Unit,
+    category: EmojiCatalog.Category?,
+    onCategory: (EmojiCatalog.Category?) -> Unit,
     onAdd: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val group = EmojiCatalog.groups.first { it.category == category }
+    val catalog = LocalCatalogUi.current
+    val custom = catalog.stickers
+    val tabs = buildList<EmojiCatalog.Category?> {
+        if (custom.isNotEmpty()) add(null)
+        if (catalog.showEmoji) addAll(EmojiCatalog.groups.map { it.category })
+    }
+    val selected = category.takeIf { it in tabs } ?: tabs.firstOrNull()
+    val customLabel = stringResource(R.string.framekit_sticker_custom)
     Column(modifier.fillMaxWidth().padding(top = 8.dp)) {
-        ChoiceChips(
-            options = EmojiCatalog.groups.map { it.category },
-            selected = category,
-            label = { stringResource(it.labelRes()) },
-            onSelect = onCategory,
-        )
+        if (tabs.size > 1) {
+            ChoiceChips(
+                options = tabs,
+                selected = selected,
+                label = { it?.let { tab -> stringResource(tab.labelRes()) } ?: customLabel },
+                onSelect = onCategory,
+            )
+        }
         LazyVerticalGrid(
-            columns = GridCells.Adaptive(48.dp),
+            columns = GridCells.Adaptive(if (selected == null) 64.dp else 48.dp),
             modifier = Modifier.fillMaxWidth().height(184.dp).padding(horizontal = 8.dp, vertical = 8.dp),
         ) {
-            items(group.emoji, key = { it }) { emoji ->
-                Box(Modifier.size(48.dp).clickable { onAdd(emoji) }, contentAlignment = Alignment.Center) {
-                    Text(emoji, fontSize = 28.sp)
+            if (selected == null) {
+                items(custom, key = { it.first }) { (assetId, label) ->
+                    Box(Modifier.size(64.dp).padding(4.dp).clickable { onAdd(assetId) }, contentAlignment = Alignment.Center) {
+                        val image = remember(assetId) { catalog.stickerImage(assetId) }
+                        if (image != null) {
+                            Image(image.asImageBitmap(), contentDescription = label, contentScale = ContentScale.Fit, modifier = Modifier.size(56.dp))
+                        } else {
+                            Text(label, fontSize = 11.sp, maxLines = 2)
+                        }
+                    }
+                }
+            } else {
+                val group = EmojiCatalog.groups.first { it.category == selected }
+                items(group.emoji, key = { it }) { emoji ->
+                    Box(Modifier.size(48.dp).clickable { onAdd(EmojiCatalog.assetId(emoji)) }, contentAlignment = Alignment.Center) {
+                        Text(emoji, fontSize = 28.sp)
+                    }
                 }
             }
         }

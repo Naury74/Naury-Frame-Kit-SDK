@@ -124,4 +124,5 @@
     <string name="framekit_privacy_strength">강도</string>
     <string name="framekit_privacy_brush_size">브러시 크기</string>
     <string name="framekit_privacy_help">블러는 복원될 수 있어요. 개인정보는 모자이크를 권장해요.</string>
+    <string name="framekit_sticker_custom">내 스티커</string>
 </resources>
