@@ -5,6 +5,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
@@ -47,8 +48,13 @@ fun HomeScreen(message: String?, onLaunch: (ShowcaseExample) -> Unit) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Spacer(Modifier.height(24.dp))
-                Button(onClick = { onLaunch(ShowcaseExample.DEFAULT) }, modifier = Modifier.fillMaxWidth().height(56.dp)) {
-                    Text(stringResource(R.string.home_edit_photo))
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Button(onClick = { onLaunch(ShowcaseExample.DEFAULT) }, modifier = Modifier.weight(1f).height(56.dp)) {
+                        Text(stringResource(R.string.home_edit_photo))
+                    }
+                    Button(onClick = { onLaunch(ShowcaseExample.VIDEO) }, modifier = Modifier.weight(1f).height(56.dp)) {
+                        Text(stringResource(R.string.home_edit_video))
+                    }
                 }
                 if (message != null) {
                     Spacer(Modifier.height(12.dp))
@@ -58,7 +64,7 @@ fun HomeScreen(message: String?, onLaunch: (ShowcaseExample) -> Unit) {
                 Text(stringResource(R.string.home_examples), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onBackground)
             }
         }
-        items(ShowcaseExample.entries.drop(1)) { example ->
+        items(ShowcaseExample.entries.filter { it != ShowcaseExample.DEFAULT && it != ShowcaseExample.VIDEO }) { example ->
             Column(
                 Modifier
                     .widthIn(max = 640.dp)

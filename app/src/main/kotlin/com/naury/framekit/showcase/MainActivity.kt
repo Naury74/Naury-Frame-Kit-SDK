@@ -14,10 +14,10 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalResources
+import com.naury.framekit.FrameKitContract
 import com.naury.framekit.android.output.FrameKitOutputs
 import com.naury.framekit.android.result.EditedMedia
 import com.naury.framekit.android.result.FrameKitResult
-import com.naury.framekit.ui.image.contract.ImageEditorContract
 
 class MainActivity : ComponentActivity() {
 
@@ -33,7 +33,7 @@ class MainActivity : ComponentActivity() {
                 var lastMessage by rememberSaveable { mutableStateOf<String?>(null) }
                 var launchedAt by rememberSaveable { mutableLongStateOf(0L) }
 
-                val editor = rememberLauncherForActivityResult(ImageEditorContract()) { outcome ->
+                val editor = rememberLauncherForActivityResult(FrameKitContract()) { outcome ->
                     when (outcome) {
                         is FrameKitResult.Success -> {
                             elapsedMs = SystemClock.elapsedRealtime() - launchedAt

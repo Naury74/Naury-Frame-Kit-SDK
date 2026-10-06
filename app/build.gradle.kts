@@ -36,7 +36,8 @@ android {
 }
 
 dependencies {
-    implementation(project(":framekit-ui-image"))
+    // 통합 artifact: 사진·영상 편집기와 media 종류에 따른 자동 선택(FrameKitContract)을 포함한다.
+    implementation(project(":framekit"))
     // 배경 제거를 시연하기 위한 선택 모듈. 이 줄이 없으면 편집기에서 배경 제거 도구가 숨겨진다.
     implementation(project(":framekit-segmentation"))
 

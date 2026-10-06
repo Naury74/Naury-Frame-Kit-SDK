@@ -4,6 +4,7 @@ import android.content.ClipData
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
+import android.media.MediaMetadataRetriever
 import android.graphics.ImageDecoder
 import android.os.Build
 import android.provider.MediaStore
@@ -39,6 +40,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.naury.framekit.android.result.EditedMedia
+import com.naury.framekit.core.model.MediaType
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -81,13 +83,14 @@ private fun ResultContent(
             preview?.let {
                 Image(
                     it.asImageBitmap(),
-                    contentDescription = stringResource(R.string.result_image),
+                    contentDescription = stringResource(if (media.mediaType == MediaType.VIDEO) R.string.result_video else R.string.result_image),
                     contentScale = ContentScale.Fit,
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
         }
         MetadataRow(stringResource(R.string.result_size), "${media.width} × ${media.height}")
+        media.durationMs?.let { MetadataRow(stringResource(R.string.result_duration), "%.2f s".format(it / 1000.0)) }
         MetadataRow(stringResource(R.string.result_mime), media.mimeType)
         MetadataRow(stringResource(R.string.result_file_size), Formatter.formatShortFileSize(context, media.fileSize))
         MetadataRow(stringResource(R.string.result_elapsed), "$elapsedMs ms")
@@ -110,8 +113,18 @@ private fun MetadataRow(label: String, value: String) {
     }
 }
 
-private fun loadPreview(context: Context, media: EditedMedia): Bitmap =
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+private fun loadPreview(context: Context, media: EditedMedia): Bitmap? =
+    if (media.mediaType == MediaType.VIDEO) {
+        // 영상 결과는 첫 프레임을 미리보기로 쓴다.
+        MediaMetadataRetriever().run {
+            try {
+                setDataSource(context, media.uri)
+                getFrameAtTime(0)
+            } finally {
+                release()
+            }
+        }
+    } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
         ImageDecoder.decodeBitmap(ImageDecoder.createSource(context.contentResolver, media.uri)) { decoder, info, _ ->
             val longEdge = maxOf(info.size.width, info.size.height)
             if (longEdge > PREVIEW_LONG_EDGE) decoder.setTargetSampleSize(longEdge / PREVIEW_LONG_EDGE)
