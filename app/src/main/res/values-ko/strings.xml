@@ -1,0 +1,32 @@
+<resources>
+    <string name="home_subtitle">원본을 보존하는 Android 이미지 편집 SDK</string>
+    <string name="home_edit_photo">사진 편집</string>
+    <string name="home_examples">예제</string>
+
+    <string name="example_default_title">기본</string>
+    <string name="example_default_description">모든 도구, 다크 테마, JPEG 92</string>
+    <string name="example_rotate_only_title">회전만</string>
+    <string name="example_rotate_only_description">회전 도구만 켜고 자르기는 숨기며 요청도 거부</string>
+    <string name="example_png_title">PNG 저장</string>
+    <string name="example_png_description">투명도를 유지하는 무손실 PNG</string>
+    <string name="example_restricted_title">제한 모드</string>
+    <string name="example_restricted_description">자르기만, 실행 취소 없음, 최대 1080px·품질 85</string>
+    <string name="example_brand_title">브랜드 테마</string>
+    <string name="example_brand_description">라이트 테마, 파란 강조색, 더 둥근 모서리</string>
+    <string name="example_english_title">영어 UI</string>
+    <string name="example_english_description">기기 언어와 관계없이 편집기 문구를 영어로 표시</string>
+
+    <string name="result_back">뒤로</string>
+    <string name="result_image">편집한 이미지</string>
+    <string name="result_size">크기</string>
+    <string name="result_mime">MIME 형식</string>
+    <string name="result_file_size">파일 크기</string>
+    <string name="result_elapsed">편집 시작부터</string>
+    <string name="result_warnings">경고</string>
+    <string name="result_none">없음</string>
+    <string name="result_share">공유</string>
+    <string name="result_delete">삭제</string>
+    <string name="result_cancelled">편집을 취소했습니다.</string>
+    <string name="result_failed">편집 실패: %1$s (%2$s)</string>
+    <string name="result_deleted">결과 파일을 삭제했습니다.</string>
+</resources>

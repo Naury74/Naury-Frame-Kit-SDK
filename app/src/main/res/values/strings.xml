@@ -1,3 +1,33 @@
 <resources>
     <string name="app_name">FrameKit</string>
+    <string name="home_subtitle">Non-destructive image editing SDK for Android</string>
+    <string name="home_edit_photo">Edit photo</string>
+    <string name="home_examples">Examples</string>
+
+    <string name="example_default_title">Default</string>
+    <string name="example_default_description">All tools, dark theme, JPEG 92</string>
+    <string name="example_rotate_only_title">Rotate only</string>
+    <string name="example_rotate_only_description">Only the rotate tool is enabled; crop is hidden and rejected</string>
+    <string name="example_png_title">PNG output</string>
+    <string name="example_png_description">Lossless PNG that keeps transparency</string>
+    <string name="example_restricted_title">Restricted</string>
+    <string name="example_restricted_description">Crop only, no undo, output up to 1080 px at quality 85</string>
+    <string name="example_brand_title">Custom brand</string>
+    <string name="example_brand_description">Light theme with a blue accent and rounder corners</string>
+    <string name="example_english_title">English UI</string>
+    <string name="example_english_description">Editor strings in English regardless of the device language</string>
+
+    <string name="result_back">Back</string>
+    <string name="result_image">Edited image</string>
+    <string name="result_size">Size</string>
+    <string name="result_mime">MIME type</string>
+    <string name="result_file_size">File size</string>
+    <string name="result_elapsed">Since launch</string>
+    <string name="result_warnings">Warnings</string>
+    <string name="result_none">None</string>
+    <string name="result_share">Share</string>
+    <string name="result_delete">Delete</string>
+    <string name="result_cancelled">Editing was cancelled.</string>
+    <string name="result_failed">Editing failed: %1$s (%2$s)</string>
+    <string name="result_deleted">The result file was deleted.</string>
 </resources>
