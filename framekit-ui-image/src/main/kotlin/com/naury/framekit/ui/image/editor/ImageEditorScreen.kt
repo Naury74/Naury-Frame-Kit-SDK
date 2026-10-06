@@ -324,7 +324,7 @@ private fun ToolArea(
                 ImageTool.TEXT -> ToolPanelWithActions(UiR.string.framekit_tool_text, viewModel, isDraft = true, scrollPanel) {
                     val editing = state.displayed.overlays.firstOrNull { it.id == state.editingTextId } as? ImageOverlay.Text
                     if (editing != null) {
-                        TextToolPanel(text = editing, onText = viewModel::updateText, onStyle = viewModel::updateTextStyle)
+                        TextToolPanel(text = editing, onText = viewModel::updateText, onStyle = viewModel::updateTextStyle, onOpacity = viewModel::updateTextOpacity)
                     }
                 }
                 ImageTool.STICKER -> ToolPanelWithActions(UiR.string.framekit_tool_sticker, viewModel, isDraft = false, scrollPanel) {

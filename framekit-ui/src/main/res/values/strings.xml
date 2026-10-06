@@ -143,4 +143,7 @@
     <string name="framekit_draft_title">Apply changes?</string>
     <string name="framekit_draft_message">Apply what you changed in this tool, or discard it.</string>
     <string name="framekit_action_compare">Compare with original</string>
+    <string name="framekit_text_opacity">Opacity</string>
+    <string name="framekit_text_letter_spacing">Letter spacing</string>
+    <string name="framekit_text_line_spacing">Line spacing</string>
 </resources>

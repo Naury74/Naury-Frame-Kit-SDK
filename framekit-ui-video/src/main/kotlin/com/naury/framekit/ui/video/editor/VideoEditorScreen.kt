@@ -606,7 +606,7 @@ private fun ToolArea(
                     val editing = state.displayed.timeline.overlays.firstOrNull { it.overlay.id == state.editingTextId }
                     val text = editing?.overlay as? ImageOverlay.Text
                     if (text != null) {
-                        TextToolPanel(text = text, onText = viewModel::updateText, onStyle = viewModel::updateTextStyle)
+                        TextToolPanel(text = text, onText = viewModel::updateText, onStyle = viewModel::updateTextStyle, onOpacity = viewModel::updateTextOpacity)
                     }
                 }
                 VideoTool.STICKER -> ToolPanelWithActions(UiR.string.framekit_tool_sticker, viewModel, isDraft = false, scrollPanel) {

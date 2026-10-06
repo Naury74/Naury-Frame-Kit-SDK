@@ -512,6 +512,8 @@ internal class ImageEditorViewModel(
 
     fun updateTextStyle(transform: (TextStyleSpec) -> TextStyleSpec) = updateEditingText { it.copy(style = transform(it.style)) }
 
+    fun updateTextOpacity(opacity: Double) = updateEditingText { it.copy(transform = it.transform.copy(opacity = opacity.coerceIn(0.0, 1.0))) }
+
     private fun updateEditingText(transform: (ImageOverlay.Text) -> ImageOverlay.Text) = updateReady { ready ->
         val id = ready.editingTextId ?: return@updateReady ready
         val draft = ready.transaction.draft ?: return@updateReady ready
