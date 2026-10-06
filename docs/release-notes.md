@@ -7,6 +7,7 @@
 - 보정 12종과 필터·템플릿(화사하게 등) 15종, 강도 조절. OpenGL ES 3.0 렌더러와 같은 수식의 CPU 대체 경로
 - 텍스트(폰트·색·정렬·외곽선·배경·그림자), 표준 이모지 스티커, 그리기(펜·마커·형광펜·지우개)
 - 모자이크·블러 가리기(브러시·사각형·원)
+- 배경 제거(누끼): 선택 모듈 `framekit-segmentation`(ML Kit, 기기 안 처리), 편집기·headless 모두 지원
 - WEBP 손실/무손실 저장, 메타데이터 ALL 정책
 - `ImageProcessor`·`ExportHandle`로 UI 없는 편집·저장
 - 큰 사진 방어: 250MP 상한, 자른 영역·띠 단위 디코딩
@@ -15,7 +16,7 @@
 ### 변경
 
 - `EditorErrorCode.SOURCE_TOO_LARGE` 추가(새 enum 값: `when` 분기 확인 필요)
-- `ImageTool`에 `ADJUST`, `FILTER`, `TEXT`, `STICKER`, `DRAW`, `PRIVACY` 추가
+- `ImageTool`에 `ADJUST`, `FILTER`, `TEXT`, `STICKER`, `DRAW`, `PRIVACY`, `CUTOUT` 추가
 
 ### Known Issues
 

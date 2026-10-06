@@ -144,6 +144,24 @@ android {
 - 편집기가 결과(성공·취소·실패)를 보내면 세션을 바로 지웁니다. 중단된 세션은 7일이 지나면 다음 편집기 실행 때 정리합니다.
 - Picker로 고른 `content://` Uri는 가능하면 persistable 읽기 권한을 받아 두었다가 세션이 끝날 때 해제합니다. 호스트가 이미 persist한 권한은 받지도, 해제하지도 않습니다.
 
+## 배경 제거 선택 모듈
+
+```kotlin
+implementation(project(":framekit-segmentation"))
+```
+
+- 추가하면 manifest meta-data로 편집기가 구현을 찾아 "배경 제거" 도구를 보여 줍니다. 모듈이 없으면 도구는 숨겨지고 `ImageProcessor.canRemoveBackground`는 `false`입니다.
+- 피사체 분할은 Google Play 서비스의 ML Kit으로 **기기 안에서** 수행됩니다. 사진을 서버로 보내지 않습니다.
+- 모델은 앱 설치 시 Play 서비스가 내려받습니다. 아직 받지 못했으면 "잠시 후 다시 시도" 안내가 나타나고, headless에서는 `UNSUPPORTED_OPERATION`이 반환됩니다.
+- Play 서비스가 없는 기기(일부 중국향 기기 등)에서는 사용할 수 없습니다.
+- ML Kit 의존성이 `INTERNET`, `ACCESS_NETWORK_STATE` 권한을 merge합니다. 앱 정책상 제거해야 한다면 호스트 manifest에서 직접 제거할 수 있지만, Play 서비스 동작은 직접 확인해야 합니다.
+
+```xml
+<uses-permission android:name="android.permission.INTERNET" tools:node="remove" />
+```
+
+- JPEG로 저장하면 제거된 배경은 `jpegBackgroundArgb` 색으로 채워집니다. 투명하게 남기려면 PNG나 WEBP를 쓰세요.
+
 ## R8
 
 SDK 모듈은 reflection을 쓰지 않으므로 별도 keep 규칙이 필요 없습니다. Parcelable request/result는 AGP 기본 규칙으로 유지됩니다.

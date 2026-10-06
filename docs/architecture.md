@@ -69,6 +69,7 @@ M_sourceToOutput = scaleOutput × cropTranslate × flip × straighten × quarter
 
 | 단계 | 구현 | 기준 공간 |
 | --- | --- | --- |
+| 배경 제거 | `SubjectCutout` 마스크(자산)를 원본에 DST_IN 합성, 구현은 선택 모듈의 `BackgroundRemover` | 원본(S) |
 | geometry | `CanvasGeometryRenderer` | 원본(S) → 출력 |
 | 보정·필터 | `ColorEffectSpec` → `GlColorEffectRenderer`(ES 3.0) / `CpuColorEffectRenderer` | 출력 캔버스 |
 | 가리기 | `PrivacyRenderer` | 출력 캔버스(C), 보정 결과에만 적용 |

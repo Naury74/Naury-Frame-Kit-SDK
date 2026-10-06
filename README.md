@@ -19,6 +19,7 @@ Android 앱에 넣어 쓰는 **비파괴 이미지·영상 편집 SDK**입니다
 | 스티커 | 표준 이모지 9개 분류(기기 이모지 폰트로 렌더) | v0.2 지원 |
 | 그리기 | 펜·마커·형광펜·지우개(그리기만 지움), 색·굵기·불투명도 | v0.2 지원 |
 | 가리기 | 모자이크·블러, 브러시·사각형·원 | v0.2 지원 |
+| 배경 제거(누끼) | 피사체만 남기고 투명 배경, 기기 안에서 처리(선택 모듈 `framekit-segmentation`) | v0.2 지원 |
 | 저장 | JPEG(품질 0..100)·PNG·WEBP(손실/무손실), 최대 16MP, 확대 없음, EXIF SAFE/NONE/ALL | v0.2 지원 |
 | Headless | `ImageProcessor`로 UI 없이 편집·저장, `ExportHandle` 상태·취소 | v0.2 지원 |
 | 큰 사진 | 250MP까지 열기, 자른 영역·띠 단위 디코딩으로 메모리 제한, 실패 시 앱 종료 없이 오류 반환 | v0.2 지원 |
@@ -28,7 +29,7 @@ Android 앱에 넣어 쓰는 **비파괴 이미지·영상 편집 SDK**입니다
 | 세션 복원 | 프로세스가 종료돼도 확정한 편집 복원, 원본이 같은 이미지인지 확인 | v0.1 지원 |
 | 테마·언어 | 다크(기본)/라이트/시스템, accent 색, 모서리, ko/en, localeTag | v0.1 지원 |
 
-계획된 기능(아직 **미지원**): 배경 제거(누끼, 선택 모듈) · 단일 영상 편집과 영상 모자이크(v0.3) · 다중 클립 타임라인(v0.4) · 사용자 정의 필터·스티커·폰트, Maven 배포(v1.0). 자세한 순서는 [Roadmap](#roadmap)을 보세요.
+계획된 기능(아직 **미지원**): 단일 영상 편집과 영상 모자이크(v0.3) · 다중 클립 타임라인(v0.4) · 사용자 정의 필터·스티커·폰트, Maven 배포(v1.0). 자세한 순서는 [Roadmap](#roadmap)을 보세요.
 
 ## 설치
 
@@ -45,6 +46,14 @@ dependencies {
 ```
 
 `framekit-ui-image` 하나만 추가하면 core·android·image·ui 모듈이 함께 들어옵니다. 이미지 전용 앱에는 Media3가 포함되지 않습니다.
+
+배경 제거가 필요하면 선택 모듈을 추가합니다. 추가하면 편집기에 "배경 제거" 도구가 자동으로 나타납니다.
+
+```kotlin
+implementation(project(":framekit-segmentation"))
+```
+
+이 모듈은 Google Play 서비스의 ML Kit을 쓰므로 Play 서비스가 없는 기기에서는 동작하지 않고, ML Kit 의존성이 `INTERNET`·`ACCESS_NETWORK_STATE` 권한을 추가합니다. 자세한 내용은 [integration](docs/integration.md#배경-제거-선택-모듈)을 보세요.
 
 요구 사항: minSdk 26, compileSdk 37, Java 17 target. 빌드 기준은 [docs/build-baseline.md](docs/build-baseline.md)에 있습니다.
 
@@ -120,6 +129,7 @@ framekit-android    Uri/파일 source 등록, 결과 DTO, 오류 코드, AppFile
 framekit-image      디코딩, RenderPlan, OpenGL 색 보정(CPU 대체), 오버레이·가리기 렌더러, 저장, headless
 framekit-ui         Compose 공통 테마·컴포넌트·문구
 framekit-ui-image   이미지 편집 화면, ImageEditorContract
+framekit-segmentation  (선택) ML Kit 배경 제거
 app                 Showcase 앱
 ```
 

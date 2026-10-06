@@ -24,7 +24,7 @@ ImageEditorRequest(
 
 | 옵션 | 기본값 | 범위·규칙 |
 | --- | --- | --- |
-| `enabledTools` | 전체 8종 | 빠진 도구는 숨기고 해당 편집 요청도 거부. 빈 집합이면 미리보기와 저장만 가능 |
+| `enabledTools` | 전체 9종 | 빠진 도구는 숨기고 해당 편집 요청도 거부. 빈 집합이면 미리보기와 저장만 가능 |
 | `allowUndo` | `true` | |
 | `allowRedo` | `true` | `allowUndo = false`이면서 `true`이면 오류 |
 
@@ -40,6 +40,7 @@ ImageEditorRequest(
 | `STICKER` | 표준 이모지 스티커 |
 | `DRAW` | 펜·마커·형광펜·지우개 |
 | `PRIVACY` | 모자이크·블러 |
+| `CUTOUT` | 배경 제거. `framekit-segmentation`이 있을 때만 표시 |
 
 자르기·회전·텍스트는 도구를 열고 적용할 때까지의 모든 변경이 undo 한 단계입니다. 보정·필터·스티커·그리기·가리기는 바로 반영되며, 슬라이더 드래그 1회·선택 1회·획 1개·마스크 1개가 각각 한 단계입니다. undo 기록은 최대 50단계이며 이미지(Bitmap)가 아닌 편집 값만 저장합니다.
 
