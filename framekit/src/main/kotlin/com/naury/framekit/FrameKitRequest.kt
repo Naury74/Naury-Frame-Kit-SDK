@@ -1,5 +1,6 @@
 package com.naury.framekit
 
+import com.naury.framekit.core.validation.ValidationCode
 import com.naury.framekit.android.catalog.EditorCatalog
 import android.os.Parcelable
 import com.naury.framekit.android.input.EditorInput
@@ -38,6 +39,9 @@ public data class FrameKitRequest(
         val issues = mutableListOf<ValidationIssue>()
         listOf(image.validate(), imageExport.validate(), video.validate(), videoExport.validate(), ui.validate(), catalog.validate()).forEach { result ->
             if (result is ValidationResult.Invalid) issues += result.issues
+        }
+        if (ui.uiFontId != null && catalog.fonts.none { it.id == ui.uiFontId }) {
+            issues += ValidationIssue(ValidationCode.UNKNOWN_REFERENCE, "ui.uiFontId", "Font is not in the catalog")
         }
         return ValidationResult.of(issues)
     }

@@ -35,6 +35,9 @@ public data class VideoEditorRequest(
         listOf(config.validate(), export.validate(), ui.validate(), catalog.validate()).forEach { result ->
             if (result is ValidationResult.Invalid) issues += result.issues
         }
+        if (ui.uiFontId != null && catalog.fonts.none { it.id == ui.uiFontId }) {
+            issues += ValidationIssue(ValidationCode.UNKNOWN_REFERENCE, "ui.uiFontId", "Font is not in the catalog")
+        }
         return ValidationResult.of(issues)
     }
 }

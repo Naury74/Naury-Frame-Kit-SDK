@@ -64,7 +64,7 @@ internal class VideoEditorActivity : ComponentActivity() {
 
         // 호스트 필터·스티커·폰트를 등록한다. Activity가 다시 만들어질 때도 같은 요청으로 다시 등록한다.
         CatalogAssets.install(this, request.catalog)
-        val catalogUi = CatalogUi(request.catalog, CatalogAssets::sticker)
+        val catalogUi = CatalogUi(request.catalog, CatalogAssets::sticker, CatalogAssets::typeface)
         val darkBars = request.ui.themeMode != ThemeMode.LIGHT
         enableEdgeToEdge(
             statusBarStyle = if (darkBars) SystemBarStyle.dark(Color.TRANSPARENT) else SystemBarStyle.auto(Color.TRANSPARENT, Color.TRANSPARENT),

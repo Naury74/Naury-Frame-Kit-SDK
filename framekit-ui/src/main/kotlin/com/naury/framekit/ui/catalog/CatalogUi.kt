@@ -1,5 +1,6 @@
 package com.naury.framekit.ui.catalog
 
+import android.graphics.Typeface
 import android.graphics.Bitmap
 import androidx.compose.runtime.staticCompositionLocalOf
 import com.naury.framekit.android.catalog.EditorCatalog
@@ -11,10 +12,12 @@ import com.naury.framekit.core.overlay.StickerCatalog
  * 도구 패널이 보여 줄 필터·스티커·폰트 목록과 호스트 항목의 이름.
  *
  * @property stickerImage 호스트 스티커 에셋 id의 미리보기 이미지. 이미지를 불러오는 모듈이 채운다.
+ * @property typeface 호스트 폰트 id의 Typeface. 편집기 문구 폰트([com.naury.framekit.ui.config.EditorUiConfig.uiFontId])에도 쓴다.
  */
 public class CatalogUi(
     public val catalog: EditorCatalog = EditorCatalog(),
     public val stickerImage: (String) -> Bitmap? = { null },
+    public val typeface: (String) -> Typeface? = { null },
 ) {
     /** 필터 패널 순서. 원본(필터 없음)은 항상 맨 앞이다. */
     public val filterIds: List<String>

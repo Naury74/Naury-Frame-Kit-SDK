@@ -1,5 +1,10 @@
 package com.naury.framekit.ui.design
 
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.runtime.remember
+import androidx.compose.material3.Typography
+import com.naury.framekit.ui.config.EditorPalette
+import com.naury.framekit.ui.catalog.LocalCatalogUi
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ColorScheme
@@ -88,11 +93,15 @@ public fun FrameKitTheme(config: EditorUiConfig, content: @Composable () -> Unit
         ThemeMode.SYSTEM -> isSystemInDarkTheme()
     }
     val accent = config.accentArgb?.let(::Color) ?: FrameKitColors.DefaultAccent
-    val colors = if (dark) FrameKitColors.dark(accent) else FrameKitColors.light(accent)
+    val colors = (if (dark) FrameKitColors.dark(accent) else FrameKitColors.light(accent)).with(config.palette)
     val radius = config.cornerRadiusDp.dp
+    val catalog = LocalCatalogUi.current
+    val fontFamily = remember(config.uiFontId, catalog) { config.uiFontId?.let(catalog.typeface)?.let { FontFamily(it) } }
+    val typography = remember(fontFamily) { fontFamily?.let { Typography().withFont(it) } ?: Typography() }
     CompositionLocalProvider(LocalFrameKitDesign provides FrameKitDesign(colors, config)) {
         MaterialTheme(
             colorScheme = colors.toMaterial(),
+            typography = typography,
             shapes = Shapes(
                 small = RoundedCornerShape(radius / 2),
                 medium = RoundedCornerShape(radius),
@@ -102,6 +111,38 @@ public fun FrameKitTheme(config: EditorUiConfig, content: @Composable () -> Unit
         )
     }
 }
+
+private fun FrameKitColors.with(palette: EditorPalette?): FrameKitColors {
+    if (palette == null) return this
+    fun Int?.or(fallback: Color) = this?.let(::Color) ?: fallback
+    return copy(
+        background = palette.backgroundArgb.or(background),
+        surface = palette.surfaceArgb.or(surface),
+        raised = palette.raisedArgb.or(raised),
+        foreground = palette.foregroundArgb.or(foreground),
+        foregroundMuted = palette.foregroundMutedArgb.or(foregroundMuted),
+        canvasBackground = palette.canvasArgb.or(canvasBackground),
+        onAccent = palette.onAccentArgb.or(onAccent),
+    )
+}
+
+private fun Typography.withFont(family: FontFamily): Typography = copy(
+    displayLarge = displayLarge.copy(fontFamily = family),
+    displayMedium = displayMedium.copy(fontFamily = family),
+    displaySmall = displaySmall.copy(fontFamily = family),
+    headlineLarge = headlineLarge.copy(fontFamily = family),
+    headlineMedium = headlineMedium.copy(fontFamily = family),
+    headlineSmall = headlineSmall.copy(fontFamily = family),
+    titleLarge = titleLarge.copy(fontFamily = family),
+    titleMedium = titleMedium.copy(fontFamily = family),
+    titleSmall = titleSmall.copy(fontFamily = family),
+    bodyLarge = bodyLarge.copy(fontFamily = family),
+    bodyMedium = bodyMedium.copy(fontFamily = family),
+    bodySmall = bodySmall.copy(fontFamily = family),
+    labelLarge = labelLarge.copy(fontFamily = family),
+    labelMedium = labelMedium.copy(fontFamily = family),
+    labelSmall = labelSmall.copy(fontFamily = family),
+)
 
 private fun FrameKitColors.toMaterial(): ColorScheme {
     val base = if (isDark) darkColorScheme() else lightColorScheme()
