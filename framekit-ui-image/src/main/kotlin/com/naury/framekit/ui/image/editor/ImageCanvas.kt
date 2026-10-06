@@ -69,6 +69,8 @@ import com.naury.framekit.ui.canvas.excludeCropHandleGestures
 import com.naury.framekit.image.render.CanvasGeometryRenderer
 import com.naury.framekit.image.render.ImageRenderPlanFactory
 import com.naury.framekit.image.render.PreviewMode
+import com.naury.framekit.ui.canvas.CanvasZoomState
+import com.naury.framekit.ui.canvas.ZoomResetButton
 import com.naury.framekit.ui.design.FrameKitTheme
 import com.naury.framekit.ui.image.contract.ImageTool
 import com.naury.framekit.ui.R as UiR
@@ -115,255 +117,246 @@ internal fun ImageCanvas(
     val zoomState = remember { CanvasZoomState() }
     LaunchedEffect(zoomable) { if (!zoomable) zoomState.reset() }
     Box(modifier.fillMaxSize().background(colors.canvasBackground).clipToBounds()) {
-    BoxWithConstraints(
-        Modifier.fillMaxSize().graphicsLayer {
-            scaleX = zoomState.zoom
-            scaleY = zoomState.zoom
-            translationX = zoomState.pan.x
-            translationY = zoomState.pan.y
-        },
-    ) {
-        val padding = with(density) { (if (toolMode) 28.dp else 16.dp).toPx().toDouble() }
-        val viewport = ViewportTransform(
-            contentSize = Size2D(plan.outputSize.width.toDouble(), plan.outputSize.height.toDouble()),
-            viewportWidth = constraints.maxWidth.toDouble().coerceAtLeast(1.0),
-            viewportHeight = constraints.maxHeight.toDouble().coerceAtLeast(1.0),
-            padding = padding,
-        )
-        val outputToViewport = viewport.contentToViewport *
-            Affine2D.scale(1.0 / plan.outputSize.width, 1.0 / plan.outputSize.height)
-        val cropFrame = viewport.toViewport(project.geometry.crop)
-        val viewportWidth = constraints.maxWidth
-        val viewportHeight = constraints.maxHeight
-        LaunchedEffect(viewportWidth, viewportHeight) { actions.onViewportSize(viewportWidth, viewportHeight) }
-        val overlayRenderer = remember { OverlayRenderer() }
-        val showOverlays = !toolMode && !state.showingOriginal
-        val selected = state.selectedOverlayId?.let { id -> project.overlays.firstOrNull { it.id == id } }
-            ?.takeIf { showOverlays && state.activeTool != ImageTool.TEXT && state.activeTool != ImageTool.DRAW && state.activeTool != ImageTool.PRIVACY }
-        val selectionCorners = selected?.let { overlay ->
-            overlayRenderer.corners(overlay, plan.outputSize).map { outputToViewport.map(it) }
-        }
-        val currentProject by rememberUpdatedState(project)
-        val currentSelection by rememberUpdatedState(selected?.id)
-        // 스티커를 가장자리로 옮겨도 삭제·복제 손잡이를 누를 수 있도록 손잡이만 화면 안쪽으로 당긴다.
-        val handleMargin = with(density) { 20.dp.toPx().toDouble() }
-        // 0: 삭제, 1: 복제, 2: 한 손가락 크기·회전 손잡이.
-        val selectionHandles = selectionCorners?.take(3)?.map { corner ->
-            PointN(
-                corner.x.coerceIn(handleMargin, (constraints.maxWidth - handleMargin).coerceAtLeast(handleMargin)),
-                corner.y.coerceIn(handleMargin, (constraints.maxHeight - handleMargin).coerceAtLeast(handleMargin)),
+        BoxWithConstraints(
+            Modifier.fillMaxSize().graphicsLayer {
+                scaleX = zoomState.zoom
+                scaleY = zoomState.zoom
+                translationX = zoomState.pan.x
+                translationY = zoomState.pan.y
+            },
+        ) {
+            val padding = with(density) { (if (toolMode) 28.dp else 16.dp).toPx().toDouble() }
+            val viewport = ViewportTransform(
+                contentSize = Size2D(plan.outputSize.width.toDouble(), plan.outputSize.height.toDouble()),
+                viewportWidth = constraints.maxWidth.toDouble().coerceAtLeast(1.0),
+                viewportHeight = constraints.maxHeight.toDouble().coerceAtLeast(1.0),
+                padding = padding,
             )
-        }
-        val currentCorners by rememberUpdatedState(selectionHandles)
-        val selectionCenter = selectionCorners?.let { c -> PointN(c.sumOf { it.x } / c.size, c.sumOf { it.y } / c.size) }
-        val currentCenter by rememberUpdatedState(selectionCenter)
-        val currentOutputToViewport by rememberUpdatedState(outputToViewport)
-        val currentOutputSize by rememberUpdatedState(plan.outputSize)
-        val contentRect = viewport.toViewport(RectN.Full)
-        val currentViewport by rememberUpdatedState(viewport)
-        val currentFrame by rememberUpdatedState(cropFrame)
-        val touchRadius = with(density) { 24.dp.toPx().toDouble() }
-        val cropDescription = stringResource(UiR.string.framekit_crop_area)
-        val originalDescription = stringResource(UiR.string.framekit_show_original)
-
-        val gestures = when (state.activeTool) {
-            ImageTool.CROP -> Modifier
-                .excludeCropHandleGestures(cropFrame, touchRadius.toFloat())
-                .semantics { contentDescription = cropDescription }
-                .pointerInput(Unit) {
-                    var total = Offset.Zero
-                    var active = false
-                    detectDragGestures(
-                        onDragStart = { position ->
-                            val handle = CropFrameHitTest.find(currentFrame, position.x.toDouble(), position.y.toDouble(), touchRadius)
-                            active = handle != null
-                            total = Offset.Zero
-                            if (handle != null) actions.beginCropDrag(handle)
-                        },
-                        onDrag = { change, amount ->
-                            if (!active) return@detectDragGestures
-                            change.consume()
-                            total += amount
-                            val fitted = currentViewport.fittedSize
-                            actions.dragCrop(total.x / fitted.width, total.y / fitted.height)
-                        },
-                        onDragEnd = { if (active) actions.endCropDrag() },
-                        onDragCancel = { if (active) actions.endCropDrag() },
-                    )
-                }
-            ImageTool.ROTATE, ImageTool.TEXT -> Modifier
-            ImageTool.DRAW, ImageTool.PRIVACY -> Modifier.pointerInput(Unit) {
-                val minDistance = 2.dp.toPx().toDouble()
-                awaitEachGesture {
-                    val down = awaitFirstDown()
-                    // 사진 바깥(letterbox)에서 시작한 획은 만들지 않는다.
-                    val start = currentViewport.toContent(down.position.x.toDouble(), down.position.y.toDouble())
-                    down.consume()
-                    var stroking = start != null
-                    if (start != null) actions.beginStroke(start.x, start.y, down.pressure.coerceIn(0f, 1f).toDouble())
-                    val fitted = currentViewport.fittedSize
-                    do {
-                        val event = awaitPointerEvent()
-                        // 두 손가락이면 그리기를 멈추고 캔버스를 확대·이동한다. 세밀한 부분을 가릴 때 쓴다.
-                        if (event.changes.count { it.pressed } >= 2) {
-                            if (stroking) {
-                                actions.cancelStroke()
-                                stroking = false
-                            }
-                            zoomState.apply(event.calculateZoom(), event.calculatePan(), size.width.toFloat(), size.height.toFloat())
-                            event.changes.forEach { it.consume() }
-                            continue
-                        }
-                        val change = event.changes.firstOrNull { it.id == down.id } ?: break
-                        if (stroking) {
-                            val point = currentViewport.toContentUnbounded(change.position.x.toDouble(), change.position.y.toDouble())
-                            actions.extendStroke(
-                                point.x.coerceIn(0.0, 1.0),
-                                point.y.coerceIn(0.0, 1.0),
-                                change.pressure.coerceIn(0f, 1f).toDouble(),
-                                minDistance / fitted.width,
-                                minDistance / fitted.height,
-                            )
-                        }
-                        change.consume()
-                    } while (event.changes.any { it.pressed })
-                    if (stroking) actions.finishStroke()
-                }
+            val outputToViewport = viewport.contentToViewport *
+                Affine2D.scale(1.0 / plan.outputSize.width, 1.0 / plan.outputSize.height)
+            val cropFrame = viewport.toViewport(project.geometry.crop)
+            val viewportWidth = constraints.maxWidth
+            val viewportHeight = constraints.maxHeight
+            LaunchedEffect(viewportWidth, viewportHeight) { actions.onViewportSize(viewportWidth, viewportHeight) }
+            val overlayRenderer = remember { OverlayRenderer() }
+            val showOverlays = !toolMode && !state.showingOriginal
+            val selected = state.selectedOverlayId?.let { id -> project.overlays.firstOrNull { it.id == id } }
+                ?.takeIf { showOverlays && state.activeTool != ImageTool.TEXT && state.activeTool != ImageTool.DRAW && state.activeTool != ImageTool.PRIVACY }
+            val selectionCorners = selected?.let { overlay ->
+                overlayRenderer.corners(overlay, plan.outputSize).map { outputToViewport.map(it) }
             }
-            else -> Modifier
-                .semantics { contentDescription = originalDescription }
-                .pointerInput(Unit) {
-                    val handleRadius = 24.dp.toPx().toDouble()
-                    val snap = 6.dp.toPx().toDouble()
+            val currentProject by rememberUpdatedState(project)
+            val currentSelection by rememberUpdatedState(selected?.id)
+            // 스티커를 가장자리로 옮겨도 삭제·복제 손잡이를 누를 수 있도록 손잡이만 화면 안쪽으로 당긴다.
+            val handleMargin = with(density) { 20.dp.toPx().toDouble() }
+            // 0: 삭제, 1: 복제, 2: 한 손가락 크기·회전 손잡이.
+            val selectionHandles = selectionCorners?.take(3)?.map { corner ->
+                PointN(
+                    corner.x.coerceIn(handleMargin, (constraints.maxWidth - handleMargin).coerceAtLeast(handleMargin)),
+                    corner.y.coerceIn(handleMargin, (constraints.maxHeight - handleMargin).coerceAtLeast(handleMargin)),
+                )
+            }
+            val currentCorners by rememberUpdatedState(selectionHandles)
+            val selectionCenter = selectionCorners?.let { c -> PointN(c.sumOf { it.x } / c.size, c.sumOf { it.y } / c.size) }
+            val currentCenter by rememberUpdatedState(selectionCenter)
+            val currentOutputToViewport by rememberUpdatedState(outputToViewport)
+            val currentOutputSize by rememberUpdatedState(plan.outputSize)
+            val contentRect = viewport.toViewport(RectN.Full)
+            val currentViewport by rememberUpdatedState(viewport)
+            val currentFrame by rememberUpdatedState(cropFrame)
+            val touchRadius = with(density) { 24.dp.toPx().toDouble() }
+            val cropDescription = stringResource(UiR.string.framekit_crop_area)
+            val originalDescription = stringResource(UiR.string.framekit_show_original)
+
+            val gestures = when (state.activeTool) {
+                ImageTool.CROP -> Modifier
+                    .excludeCropHandleGestures(cropFrame, touchRadius.toFloat())
+                    .semantics { contentDescription = cropDescription }
+                    .pointerInput(Unit) {
+                        var total = Offset.Zero
+                        var active = false
+                        detectDragGestures(
+                            onDragStart = { position ->
+                                val handle = CropFrameHitTest.find(currentFrame, position.x.toDouble(), position.y.toDouble(), touchRadius)
+                                active = handle != null
+                                total = Offset.Zero
+                                if (handle != null) actions.beginCropDrag(handle)
+                            },
+                            onDrag = { change, amount ->
+                                if (!active) return@detectDragGestures
+                                change.consume()
+                                total += amount
+                                val fitted = currentViewport.fittedSize
+                                actions.dragCrop(total.x / fitted.width, total.y / fitted.height)
+                            },
+                            onDragEnd = { if (active) actions.endCropDrag() },
+                            onDragCancel = { if (active) actions.endCropDrag() },
+                        )
+                    }
+                ImageTool.ROTATE, ImageTool.TEXT -> Modifier
+                ImageTool.DRAW, ImageTool.PRIVACY -> Modifier.pointerInput(Unit) {
+                    val minDistance = 2.dp.toPx().toDouble()
                     awaitEachGesture {
-                        val down = awaitFirstDown(requireUnconsumed = false)
-                        val position = down.position
-                        val corners = currentCorners
-                        val selectedId = currentSelection
-                        if (selectedId != null && corners != null) {
-                            when {
-                                near(corners[0], position, handleRadius) -> {
-                                    if (waitForUpOrCancellation() != null) actions.deleteOverlay(selectedId)
-                                    return@awaitEachGesture
-                                }
-                                near(corners[1], position, handleRadius) -> {
-                                    if (waitForUpOrCancellation() != null) actions.duplicateOverlay(selectedId)
-                                    return@awaitEachGesture
-                                }
-                                near(corners[2], position, handleRadius) && currentCenter != null -> {
-                                    // 중심에서 손가락까지의 거리·각도 변화로 크기와 회전을 바꾼다. 한 손으로도 조절할 수 있다.
-                                    val center = Offset(currentCenter!!.x.toFloat(), currentCenter!!.y.toFloat())
-                                    val start = position - center
-                                    if (start.getDistance() < 1f) return@awaitEachGesture
-                                    actions.beginOverlayGesture(selectedId)
-                                    do {
-                                        val event = awaitPointerEvent()
-                                        val change = event.changes.firstOrNull { it.id == down.id } ?: break
-                                        val now = change.position - center
-                                        val zoom = now.getDistance() / start.getDistance()
-                                        val rotation = Math.toDegrees(atan2(now.y.toDouble(), now.x.toDouble()) - atan2(start.y.toDouble(), start.x.toDouble()))
-                                        actions.updateOverlayGesture(0.0, 0.0, zoom.toDouble(), rotation, 0.0, 0.0)
-                                        change.consume()
-                                    } while (change.pressed)
-                                    actions.finishOverlayGesture()
-                                    return@awaitEachGesture
-                                }
-                            }
-                        }
-                        val output = currentOutputToViewport.inverted().map(position.x.toDouble(), position.y.toDouble())
-                        val hit = overlayRenderer.hitTest(currentProject.overlays, output.x, output.y, currentOutputSize, slopPx = handleRadius / 2)
-                        if (hit == null) {
-                            actions.selectOverlay(null)
-                            if (awaitLongPressOrCancellation(down.id) != null) {
-                                actions.showOriginal(true)
-                                waitForUpOrCancellation()
-                                actions.showOriginal(false)
-                            }
-                            return@awaitEachGesture
-                        }
-                        val wasSelected = hit == selectedId
-                        actions.beginOverlayGesture(hit)
+                        val down = awaitFirstDown()
+                        // 사진 바깥(letterbox)에서 시작한 획은 만들지 않는다.
+                        val start = currentViewport.toContent(down.position.x.toDouble(), down.position.y.toDouble())
+                        down.consume()
+                        var stroking = start != null
+                        if (start != null) actions.beginStroke(start.x, start.y, down.pressure.coerceIn(0f, 1f).toDouble())
                         val fitted = currentViewport.fittedSize
-                        var pan = Offset.Zero
-                        var zoom = 1f
-                        var rotation = 0f
-                        var moved = false
-                        val slop = viewConfiguration.touchSlop
                         do {
                             val event = awaitPointerEvent()
-                            pan += event.calculatePan()
-                            zoom *= event.calculateZoom()
-                            rotation += event.calculateRotation()
-                            if (!moved && (pan.getDistance() > slop || abs(zoom - 1f) > 0.02f || abs(rotation) > 2f)) moved = true
-                            if (moved) {
-                                actions.updateOverlayGesture(
-                                    pan.x / fitted.width,
-                                    pan.y / fitted.height,
-                                    zoom.toDouble(),
-                                    rotation.toDouble(),
-                                    snap / fitted.width,
-                                    snap / fitted.height,
-                                )
-                                event.changes.forEach { if (it.positionChanged()) it.consume() }
+                            // 두 손가락이면 그리기를 멈추고 캔버스를 확대·이동한다. 세밀한 부분을 가릴 때 쓴다.
+                            if (event.changes.count { it.pressed } >= 2) {
+                                if (stroking) {
+                                    actions.cancelStroke()
+                                    stroking = false
+                                }
+                                zoomState.apply(event.calculateZoom(), event.calculatePan(), size.width.toFloat(), size.height.toFloat())
+                                event.changes.forEach { it.consume() }
+                                continue
                             }
+                            val change = event.changes.firstOrNull { it.id == down.id } ?: break
+                            if (stroking) {
+                                val point = currentViewport.toContentUnbounded(change.position.x.toDouble(), change.position.y.toDouble())
+                                actions.extendStroke(
+                                    point.x.coerceIn(0.0, 1.0),
+                                    point.y.coerceIn(0.0, 1.0),
+                                    change.pressure.coerceIn(0f, 1f).toDouble(),
+                                    minDistance / fitted.width,
+                                    minDistance / fitted.height,
+                                )
+                            }
+                            change.consume()
                         } while (event.changes.any { it.pressed })
-                        actions.finishOverlayGesture()
-                        val overlay = currentProject.overlays.firstOrNull { it.id == hit }
-                        if (!moved && wasSelected && overlay is ImageOverlay.Text) actions.editText(hit)
+                        if (stroking) actions.finishStroke()
                     }
                 }
-        }
+                else -> Modifier
+                    .semantics { contentDescription = originalDescription }
+                    .pointerInput(Unit) {
+                        val handleRadius = 24.dp.toPx().toDouble()
+                        val snap = 6.dp.toPx().toDouble()
+                        awaitEachGesture {
+                            val down = awaitFirstDown(requireUnconsumed = false)
+                            val position = down.position
+                            val corners = currentCorners
+                            val selectedId = currentSelection
+                            if (selectedId != null && corners != null) {
+                                when {
+                                    near(corners[0], position, handleRadius) -> {
+                                        if (waitForUpOrCancellation() != null) actions.deleteOverlay(selectedId)
+                                        return@awaitEachGesture
+                                    }
+                                    near(corners[1], position, handleRadius) -> {
+                                        if (waitForUpOrCancellation() != null) actions.duplicateOverlay(selectedId)
+                                        return@awaitEachGesture
+                                    }
+                                    near(corners[2], position, handleRadius) && currentCenter != null -> {
+                                        // 중심에서 손가락까지의 거리·각도 변화로 크기와 회전을 바꾼다. 한 손으로도 조절할 수 있다.
+                                        val center = Offset(currentCenter!!.x.toFloat(), currentCenter!!.y.toFloat())
+                                        val start = position - center
+                                        if (start.getDistance() < 1f) return@awaitEachGesture
+                                        actions.beginOverlayGesture(selectedId)
+                                        do {
+                                            val event = awaitPointerEvent()
+                                            val change = event.changes.firstOrNull { it.id == down.id } ?: break
+                                            val now = change.position - center
+                                            val zoom = now.getDistance() / start.getDistance()
+                                            val rotation = Math.toDegrees(atan2(now.y.toDouble(), now.x.toDouble()) - atan2(start.y.toDouble(), start.x.toDouble()))
+                                            actions.updateOverlayGesture(0.0, 0.0, zoom.toDouble(), rotation, 0.0, 0.0)
+                                            change.consume()
+                                        } while (change.pressed)
+                                        actions.finishOverlayGesture()
+                                        return@awaitEachGesture
+                                    }
+                                }
+                            }
+                            val output = currentOutputToViewport.inverted().map(position.x.toDouble(), position.y.toDouble())
+                            val hit = overlayRenderer.hitTest(currentProject.overlays, output.x, output.y, currentOutputSize, slopPx = handleRadius / 2)
+                            if (hit == null) {
+                                actions.selectOverlay(null)
+                                if (awaitLongPressOrCancellation(down.id) != null) {
+                                    actions.showOriginal(true)
+                                    waitForUpOrCancellation()
+                                    actions.showOriginal(false)
+                                }
+                                return@awaitEachGesture
+                            }
+                            val wasSelected = hit == selectedId
+                            actions.beginOverlayGesture(hit)
+                            val fitted = currentViewport.fittedSize
+                            var pan = Offset.Zero
+                            var zoom = 1f
+                            var rotation = 0f
+                            var moved = false
+                            val slop = viewConfiguration.touchSlop
+                            do {
+                                val event = awaitPointerEvent()
+                                pan += event.calculatePan()
+                                zoom *= event.calculateZoom()
+                                rotation += event.calculateRotation()
+                                if (!moved && (pan.getDistance() > slop || abs(zoom - 1f) > 0.02f || abs(rotation) > 2f)) moved = true
+                                if (moved) {
+                                    actions.updateOverlayGesture(
+                                        pan.x / fitted.width,
+                                        pan.y / fitted.height,
+                                        zoom.toDouble(),
+                                        rotation.toDouble(),
+                                        snap / fitted.width,
+                                        snap / fitted.height,
+                                    )
+                                    event.changes.forEach { if (it.positionChanged()) it.consume() }
+                                }
+                            } while (event.changes.any { it.pressed })
+                            actions.finishOverlayGesture()
+                            val overlay = currentProject.overlays.firstOrNull { it.id == hit }
+                            if (!moved && wasSelected && overlay is ImageOverlay.Text) actions.editText(hit)
+                        }
+                    }
+            }
 
-        Canvas(Modifier.fillMaxSize().then(gestures)) {
-            drawIntoCanvas { canvas ->
-                if (effectedBitmap != null && !effectedBitmap.isRecycled) {
-                    val target = RectF(contentRect.left.toFloat(), contentRect.top.toFloat(), contentRect.right.toFloat(), contentRect.bottom.toFloat())
-                    canvas.nativeCanvas.drawBitmap(effectedBitmap, null, target, PREVIEW_PAINT)
-                } else {
-                    CanvasGeometryRenderer.draw(canvas.nativeCanvas, state.preview, plan, outputToViewport, cutoutMask.takeIf { project.cutout != null })
-                }
-            }
-            if (showOverlays && (project.overlays.isNotEmpty() || project.drawing.isNotEmpty())) {
+            Canvas(Modifier.fillMaxSize().then(gestures)) {
                 drawIntoCanvas { canvas ->
-                    canvas.nativeCanvas.withMatrix(outputToViewport.toAndroidMatrix()) {
-                        overlayRenderer.draw(this, plan.outputSize, project.overlays, project.drawing)
+                    if (effectedBitmap != null && !effectedBitmap.isRecycled) {
+                        val target = RectF(contentRect.left.toFloat(), contentRect.top.toFloat(), contentRect.right.toFloat(), contentRect.bottom.toFloat())
+                        canvas.nativeCanvas.drawBitmap(effectedBitmap, null, target, PREVIEW_PAINT)
+                    } else {
+                        CanvasGeometryRenderer.draw(canvas.nativeCanvas, state.preview, plan, outputToViewport, cutoutMask.takeIf { project.cutout != null })
                     }
                 }
+                if (showOverlays && (project.overlays.isNotEmpty() || project.drawing.isNotEmpty())) {
+                    drawIntoCanvas { canvas ->
+                        canvas.nativeCanvas.withMatrix(outputToViewport.toAndroidMatrix()) {
+                            overlayRenderer.draw(this, plan.outputSize, project.overlays, project.drawing)
+                        }
+                    }
+                }
+                if (selectionCorners != null && selectionHandles != null) drawSelection(selectionCorners, selectionHandles, colors.accent)
+                if (toolMode) {
+                    drawCropFrame(
+                        frame = cropFrame,
+                        accent = colors.accent,
+                        showGrid = state.draggingCrop || state.activeTool == ImageTool.ROTATE,
+                        showHandles = state.activeTool == ImageTool.CROP,
+                    )
+                }
             }
-            if (selectionCorners != null && selectionHandles != null) drawSelection(selectionCorners, selectionHandles, colors.accent)
-            if (toolMode) {
-                drawCropFrame(
-                    frame = cropFrame,
-                    accent = colors.accent,
-                    showGrid = state.draggingCrop || state.activeTool == ImageTool.ROTATE,
-                    showHandles = state.activeTool == ImageTool.CROP,
+
+            if (state.showingOriginal && !state.displayed.geometry.isIdentity) {
+                Text(
+                    stringResource(UiR.string.framekit_original_badge),
+                    color = colors.foreground,
+                    style = MaterialTheme.typography.labelMedium,
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(16.dp)
+                        .background(colors.surface.copy(alpha = 0.8f), MaterialTheme.shapes.small)
+                        .padding(horizontal = 10.dp, vertical = 4.dp),
                 )
             }
         }
-
-        if (state.showingOriginal && !state.displayed.geometry.isIdentity) {
-            Text(
-                stringResource(UiR.string.framekit_original_badge),
-                color = colors.foreground,
-                style = MaterialTheme.typography.labelMedium,
-                modifier = Modifier
-                    .align(Alignment.TopStart)
-                    .padding(16.dp)
-                    .background(colors.surface.copy(alpha = 0.8f), MaterialTheme.shapes.small)
-                    .padding(horizontal = 10.dp, vertical = 4.dp),
-            )
-        }
-    }
-        if (zoomState.zoom > 1.01f) {
-            // 확대한 상태에서는 원래 크기로 돌아가는 버튼을 보여 준다. 두 손가락 제스처를 모르는 사용자도 빠져나올 수 있다.
-            TextButton(
-                onClick = zoomState::reset,
-                modifier = Modifier.align(Alignment.BottomStart).padding(8.dp)
-                    .background(colors.surface.copy(alpha = 0.86f), MaterialTheme.shapes.small),
-            ) {
-                Text(stringResource(UiR.string.framekit_zoom_fit, (zoomState.zoom * 100).roundToInt()), color = colors.foreground)
-            }
-        }
+        ZoomResetButton(zoomState, Modifier.align(Alignment.BottomStart))
     }
 }
 
@@ -403,36 +396,5 @@ private fun DrawScope.drawSelection(corners: List<PointN>, handles: List<PointN>
             drawLine(Color.White, center + Offset(mark, mark), center + Offset(0f, mark), stroke)
             drawLine(Color.White, center + Offset(mark, mark), center + Offset(mark, 0f), stroke)
         }
-    }
-}
-
-/**
- * 캔버스 화면 확대 상태. 1배에서 최대 [MAX_ZOOM]배까지이며, 확대된 콘텐츠가 화면 밖으로 빠져 빈 곳이
- * 보이지 않도록 이동량을 제한한다.
- */
-@Stable
-internal class CanvasZoomState {
-    var zoom by mutableFloatStateOf(1f)
-        private set
-    var pan by mutableStateOf(Offset.Zero)
-        private set
-
-    /** @param localPan 확대 전 좌표계의 이동량. 화면에서는 [zoom]배로 보인다. */
-    fun apply(zoomChange: Float, localPan: Offset, width: Float, height: Float) {
-        val next = (zoom * zoomChange).coerceIn(1f, MAX_ZOOM)
-        val maxX = (next - 1f) * width / 2f
-        val maxY = (next - 1f) * height / 2f
-        val moved = pan * (next / zoom) + localPan * next
-        zoom = next
-        pan = Offset(moved.x.coerceIn(-maxX, maxX), moved.y.coerceIn(-maxY, maxY))
-    }
-
-    fun reset() {
-        zoom = 1f
-        pan = Offset.Zero
-    }
-
-    private companion object {
-        const val MAX_ZOOM = 5f
     }
 }

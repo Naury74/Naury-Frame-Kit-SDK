@@ -1,4 +1,4 @@
-package com.naury.framekit.ui.image.editor
+package com.naury.framekit.ui.canvas
 
 import androidx.compose.ui.geometry.Offset
 import com.google.common.truth.Truth.assertThat
