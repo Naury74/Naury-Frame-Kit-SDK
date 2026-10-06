@@ -1,5 +1,6 @@
 package com.naury.framekit.ui.component
 
+import kotlin.math.roundToInt
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -39,9 +40,11 @@ public enum class ExportStageUi {
 /**
  * Blocks editing while an export runs. Cancel takes effect immediately without a confirmation and the
  * overlay switches to [ExportStageUi.CANCELLING] until the engine stops.
+ *
+ * @param progress `0..1` when the engine can estimate it; the indicator is indeterminate otherwise.
  */
 @Composable
-public fun ExportOverlay(stage: ExportStageUi, onCancel: () -> Unit, modifier: Modifier = Modifier) {
+public fun ExportOverlay(stage: ExportStageUi, onCancel: () -> Unit, modifier: Modifier = Modifier, progress: Float? = null) {
     val colors = FrameKitTheme.colors
     val showStage = FrameKitTheme.config.showExportProgress
     val label = stringResource(
@@ -63,9 +66,13 @@ public fun ExportOverlay(stage: ExportStageUi, onCancel: () -> Unit, modifier: M
         contentAlignment = Alignment.Center,
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            CircularProgressIndicator(color = colors.accent)
+            if (progress != null && showStage && stage != ExportStageUi.CANCELLING) {
+                CircularProgressIndicator(progress = { progress.coerceIn(0f, 1f) }, color = colors.accent)
+            } else {
+                CircularProgressIndicator(color = colors.accent)
+            }
             Text(
-                label,
+                if (progress != null && showStage && stage == ExportStageUi.ENCODING) "$label ${(progress * 100).roundToInt()}%" else label,
                 color = colors.foreground,
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },

@@ -22,6 +22,7 @@ public fun PrivacyToolPanel(
     settings: PrivacySettings,
     onChange: ((PrivacySettings) -> PrivacySettings) -> Unit,
     modifier: Modifier = Modifier,
+    shapes: List<PrivacyShape> = PrivacyShape.entries,
 ) {
     Column(modifier.fillMaxWidth().padding(vertical = 8.dp)) {
         ChoiceChips(
@@ -31,7 +32,7 @@ public fun PrivacyToolPanel(
             onSelect = { mosaic -> onChange { it.copy(mosaic = mosaic) } },
         )
         ChoiceChips(
-            options = PrivacyShape.entries,
+            options = shapes,
             selected = settings.shape,
             label = {
                 stringResource(
