@@ -810,6 +810,8 @@ internal class ImageEditorViewModel(
     override fun showOriginal(show: Boolean) = updateReady { it.copy(showingOriginal = show && it.activeTool == null) }
 
     fun save() {
+        // 열린 도구의 초안은 저장 전에 적용한다. 사용자가 적용 버튼을 따로 누르지 않아도 보이는 그대로 저장된다.
+        if ((_state.value as? ImageEditorUiState.Ready)?.activeTool?.isDraft == true) applyTool()
         val ready = _state.value as? ImageEditorUiState.Ready ?: return
         if (ready.activeTool?.isDraft == true || ready.transaction.isActive) {
             updateReady { it.copy(showApplyHint = true) }

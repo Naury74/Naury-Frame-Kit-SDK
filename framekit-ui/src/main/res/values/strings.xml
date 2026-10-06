@@ -142,4 +142,5 @@
     <string name="framekit_color_pink">Pink</string>
     <string name="framekit_draft_title">Apply changes?</string>
     <string name="framekit_draft_message">Apply what you changed in this tool, or discard it.</string>
+    <string name="framekit_action_compare">Compare with original</string>
 </resources>

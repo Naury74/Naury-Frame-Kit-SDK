@@ -272,6 +272,7 @@ private fun CanvasArea(state: ImageEditorUiState.Ready, viewModel: ImageEditorVi
                 onUndo = viewModel::undo,
                 onRedo = viewModel::redo,
                 modifier = Modifier.align(Alignment.TopCenter).padding(top = 12.dp),
+                onCompare = if (state.activeTool == null && history.isDirty) viewModel::showOriginal else null,
             )
         }
     }

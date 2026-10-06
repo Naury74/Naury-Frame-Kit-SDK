@@ -142,15 +142,16 @@ class ImageEditorViewModelTest {
     }
 
     @Test
-    fun `save while a tool is open asks to apply first and exports nothing`() {
+    fun `save while a draft tool is open applies it first`() {
         val viewModel = viewModel(EditorInput.FileSource(sourceFile.absolutePath))
-        viewModel.selectTool(ImageTool.CROP)
+        viewModel.selectTool(ImageTool.ROTATE)
+        viewModel.rotateLeft()
 
         viewModel.save()
 
-        assertThat(ready(viewModel).showApplyHint).isTrue()
-        assertThat(viewModel.result.value).isNull()
-        assertThat(publishedFiles()).isEmpty()
+        assertThat(ready(viewModel).showApplyHint).isFalse()
+        assertThat(ready(viewModel).transaction.history.current.geometry.quarterTurns).isNotEqualTo(0)
+        assertThat(viewModel.result.value).isInstanceOf(FrameKitResult.Success::class.java)
     }
 
     @Test

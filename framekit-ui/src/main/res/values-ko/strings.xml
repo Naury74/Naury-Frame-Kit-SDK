@@ -142,4 +142,5 @@
     <string name="framekit_color_pink">분홍</string>
     <string name="framekit_draft_title">변경 사항을 적용할까요?</string>
     <string name="framekit_draft_message">이 도구에서 바꾼 내용을 적용하거나 버릴 수 있어요.</string>
+    <string name="framekit_action_compare">원본과 비교</string>
 </resources>

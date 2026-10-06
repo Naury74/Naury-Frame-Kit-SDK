@@ -186,16 +186,13 @@ class VideoEditorViewModelTest {
     }
 
     @Test
-    fun `save exports the committed project and asks to apply an open draft first`() {
+    fun `save applies an open draft and exports it`() {
         val viewModel = viewModel(durationUs = 10_000_000)
         viewModel.selectTool(VideoTool.TRIM)
         viewModel.beginTrim(TrimEdge.END)
         viewModel.dragTrim(4_000_000)
         viewModel.save()
-        assertThat(ready(viewModel).showApplyHint).isTrue()
-
-        viewModel.applyTool()
-        viewModel.save()
+        assertThat(ready(viewModel).showApplyHint).isFalse()
         dispatcher.scheduler.advanceUntilIdle()
 
         assertThat(viewModel.result.value).isInstanceOf(FrameKitResult.Success::class.java)
