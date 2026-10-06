@@ -28,12 +28,22 @@ internal sealed interface ImageEditorUiState {
         val showApplyHint: Boolean = false,
         val showingOriginal: Boolean = false,
         val draggingCrop: Boolean = false,
+        val notice: SessionNotice? = null,
     ) : ImageEditorUiState {
         val displayed: ImageProject get() = transaction.displayed
         val isDirty: Boolean get() = transaction.history.isDirty
         val hasDraftChanges: Boolean
             get() = transaction.draft?.let { !it.sameContentAs(transaction.history.current) } == true
     }
+}
+
+/** One-time message after a session was restored from disk. */
+internal enum class SessionNotice {
+    /** Committed edits came back after process death; undo history starts empty. */
+    RESTORED,
+
+    /** The process died during a save. The file was not created and must be saved again. */
+    EXPORT_INTERRUPTED,
 }
 
 internal sealed interface ExportUiState {

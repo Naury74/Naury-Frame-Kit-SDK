@@ -19,6 +19,7 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.naury.framekit.android.result.EditorError
 import com.naury.framekit.android.result.EditorErrorCode
 import com.naury.framekit.android.result.FrameKitResult
+import com.naury.framekit.android.session.EditorSessionStore
 import com.naury.framekit.android.source.SessionSourceRegistry
 import com.naury.framekit.core.validation.ValidationResult
 import com.naury.framekit.image.decode.PreviewResolution
@@ -79,6 +80,7 @@ internal class ImageEditorActivity : ComponentActivity() {
                 exportCoordinator = coordinator,
                 previewLongEdge = PreviewResolution.longEdge(application),
                 ioDispatcher = Dispatchers.IO,
+                sessionStore = EditorSessionStore(application),
             )
         }
     }

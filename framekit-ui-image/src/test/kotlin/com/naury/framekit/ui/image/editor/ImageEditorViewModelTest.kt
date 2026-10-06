@@ -15,6 +15,7 @@ import com.naury.framekit.android.input.EditorInput
 import com.naury.framekit.android.output.AppFileOutputStore
 import com.naury.framekit.android.result.EditorErrorCode
 import com.naury.framekit.android.result.FrameKitResult
+import com.naury.framekit.android.session.EditorSessionStore
 import com.naury.framekit.android.source.SessionSourceRegistry
 import com.naury.framekit.core.geometry.CropAspectRatio
 import com.naury.framekit.core.geometry.CropHandle
@@ -35,6 +36,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.GraphicsMode
 import java.io.File
+import java.util.concurrent.Executor
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
@@ -44,6 +46,7 @@ class ImageEditorViewModelTest {
     private val context = ApplicationProvider.getApplicationContext<Application>()
     private val sourceFile = File(context.cacheDir, "photo.png")
     private val store = AppFileOutputStore(context, availableBytes = { Long.MAX_VALUE })
+    private val sessions = EditorSessionStore(context, background = Executor { it.run() })
 
     @Before
     fun setUp() {
@@ -51,10 +54,14 @@ class ImageEditorViewModelTest {
         FileProvider::class.java.getDeclaredField("sCache").apply { isAccessible = true }.let {
             (it.get(null) as MutableMap<*, *>).clear()
         }
-        val bitmap = Bitmap.createBitmap(400, 200, Bitmap.Config.ARGB_8888)
+        writeImage(width = 400, height = 200)
+    }
+
+    private fun writeImage(width: Int, height: Int) {
+        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
         Canvas(bitmap).apply {
             drawColor(Color.BLUE)
-            drawRect(0f, 0f, 200f, 200f, Paint().apply { color = Color.RED })
+            drawRect(0f, 0f, height.toFloat(), height.toFloat(), Paint().apply { color = Color.RED })
         }
         sourceFile.outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
     }
@@ -217,6 +224,105 @@ class ImageEditorViewModelTest {
         assertThat(ready(viewModel).activeTool).isNull()
     }
 
+    @Test
+    fun `Q13 committed edits come back after process death without undo history`() {
+        val savedState = SavedStateHandle()
+        val before = viewModel(EditorInput.FileSource(sourceFile.absolutePath), savedState)
+        before.selectTool(ImageTool.ROTATE)
+        before.rotateRight()
+        before.applyTool()
+
+        // 같은 SavedStateHandle로 새 ViewModel을 만들면 프로세스가 다시 시작된 것과 같다.
+        val after = viewModel(EditorInput.FileSource(sourceFile.absolutePath), savedState)
+
+        val restored = ready(after)
+        assertThat(restored.displayed.geometry.quarterTurns).isEqualTo(1)
+        assertThat(restored.transaction.history.canUndo).isFalse()
+        assertThat(restored.isDirty).isTrue()
+        assertThat(restored.notice).isEqualTo(SessionNotice.RESTORED)
+    }
+
+    @Test
+    fun `draft of an open tool is not restored`() {
+        val savedState = SavedStateHandle()
+        val before = viewModel(EditorInput.FileSource(sourceFile.absolutePath), savedState)
+        before.selectTool(ImageTool.ROTATE)
+        before.rotateRight()
+
+        val after = viewModel(EditorInput.FileSource(sourceFile.absolutePath), savedState)
+
+        assertThat(ready(after).displayed.geometry.quarterTurns).isEqualTo(0)
+        assertThat(ready(after).isDirty).isFalse()
+        assertThat(ready(after).notice).isNull()
+    }
+
+    @Test
+    fun `a different image behind the same reference starts fresh`() {
+        val savedState = SavedStateHandle()
+        val before = viewModel(EditorInput.FileSource(sourceFile.absolutePath), savedState)
+        before.selectTool(ImageTool.CROP)
+        before.selectAspect(CropAspectRatio.Fixed(1, 1))
+        before.applyTool()
+        val oldSession = checkNotNull(savedState.get<String>(ImageSessionRecorder.KEY_SESSION_ID))
+        writeImage(width = 300, height = 300)
+
+        val after = viewModel(EditorInput.FileSource(sourceFile.absolutePath), savedState)
+
+        assertThat(ready(after).isDirty).isFalse()
+        assertThat(File(sessions.directory, oldSession).exists()).isFalse()
+    }
+
+    @Test
+    fun `interrupted save is reported after restart`() {
+        val savedState = SavedStateHandle()
+        viewModel(EditorInput.FileSource(sourceFile.absolutePath), savedState)
+        val id = checkNotNull(savedState.get<String>(ImageSessionRecorder.KEY_SESSION_ID))
+        val record = checkNotNull(sessions.load(id))
+        sessions.saveSnapshot(id, record.snapshot, exportInProgress = true)
+
+        val after = viewModel(EditorInput.FileSource(sourceFile.absolutePath), savedState)
+
+        assertThat(ready(after).notice).isEqualTo(SessionNotice.EXPORT_INTERRUPTED)
+        assertThat(sessions.load(id)?.exportWasInterrupted).isFalse()
+    }
+
+    @Test
+    fun `Q14 lost source can be chosen again and is restored only if it is the same image`() {
+        val savedState = SavedStateHandle()
+        val uri = Uri.fromFile(sourceFile)
+        val before = viewModel(EditorInput.Pick(), savedState)
+        before.onPicked(uri)
+        before.selectTool(ImageTool.ROTATE)
+        before.flipVertical()
+        before.applyTool()
+        val original = sourceFile.readBytes()
+        sourceFile.delete()
+
+        val after = viewModel(EditorInput.Pick(), savedState)
+        val failed = after.state.value as ImageEditorUiState.LoadFailed
+        assertThat(failed.code).isEqualTo(EditorErrorCode.SOURCE_UNAVAILABLE)
+        assertThat(failed.canChooseAnother).isTrue()
+
+        sourceFile.writeBytes(original)
+        after.chooseAnother()
+        after.onPicked(uri)
+
+        assertThat(ready(after).displayed.geometry.flipY).isTrue()
+    }
+
+    @Test
+    fun `finishing the editor deletes its session`() {
+        val savedState = SavedStateHandle()
+        val viewModel = viewModel(EditorInput.FileSource(sourceFile.absolutePath), savedState)
+        val id = checkNotNull(savedState.get<String>(ImageSessionRecorder.KEY_SESSION_ID))
+
+        viewModel.save()
+
+        assertThat(viewModel.result.value).isInstanceOf(FrameKitResult.Success::class.java)
+        assertThat(File(sessions.directory, id).exists()).isFalse()
+        assertThat(savedState.contains(ImageSessionRecorder.KEY_SESSION_ID)).isFalse()
+    }
+
     private fun viewModel(
         input: EditorInput,
         savedState: SavedStateHandle = SavedStateHandle(),
@@ -230,6 +336,8 @@ class ImageEditorViewModelTest {
             exportCoordinator = ImageExportCoordinator(registry, store, memoryBudgetBytes = 256L * 1024 * 1024, dispatcher = Dispatchers.Unconfined),
             previewLongEdge = 2048,
             ioDispatcher = Dispatchers.Unconfined,
+            sessionStore = sessions,
+            snapshotDebounceMillis = 0L,
         )
     }
 

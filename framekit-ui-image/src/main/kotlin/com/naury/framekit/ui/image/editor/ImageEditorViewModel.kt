@@ -11,6 +11,14 @@ import com.naury.framekit.android.result.EditorErrorCode
 import com.naury.framekit.android.result.FrameKitException
 import com.naury.framekit.android.result.FrameKitResult
 import com.naury.framekit.android.source.SessionSourceRegistry
+import com.naury.framekit.android.session.EditorSessionStore
+import com.naury.framekit.android.session.SessionRecord
+import com.naury.framekit.core.history.EditHistory
+import com.naury.framekit.core.model.SourceId
+import com.naury.framekit.core.validation.ImageProjectValidator
+import com.naury.framekit.image.decode.DecodedImage
+import com.naury.framekit.image.decode.ImageSourceInfo
+import kotlinx.coroutines.NonCancellable
 import com.naury.framekit.core.geometry.CropAspectRatio
 import com.naury.framekit.core.geometry.CropBoundsCalculator
 import com.naury.framekit.core.geometry.CropHandle
@@ -55,6 +63,8 @@ internal class ImageEditorViewModel(
     private val exportCoordinator: ImageExportCoordinator,
     private val previewLongEdge: Int,
     private val ioDispatcher: CoroutineDispatcher,
+    sessionStore: EditorSessionStore,
+    snapshotDebounceMillis: Long = SNAPSHOT_DEBOUNCE_MILLIS,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow<ImageEditorUiState>(ImageEditorUiState.Loading)
@@ -68,16 +78,36 @@ internal class ImageEditorViewModel(
     private var exportJob: Job? = null
     private var cropDragStart: Pair<CropHandle, RectN>? = null
     private var straightenStart: GeometryEdit? = null
+    private val session = ImageSessionRecorder(sessionStore, savedState, viewModelScope, ioDispatcher, snapshotDebounceMillis)
+
+    // 권한을 잃은 원본을 다시 고를 때까지 이전 세션을 들고 있다가, 같은 이미지인지 확인한 뒤에만 복원한다.
+    private var pendingRestore: SessionRecord? = null
 
     val config get() = request.config
 
     init {
         viewModelScope.launch(ioDispatcher) { exportCoordinator.deleteStalePartials() }
+        if (savedState.contains(ImageSessionRecorder.KEY_SESSION_ID)) restore() else start()
+    }
+
+    private fun start() {
         val pickedUri = savedState.get<Uri>(KEY_PICKED_URI)
         when {
             request.input !is EditorInput.Pick -> load(request.input)
             pickedUri != null -> load(EditorInput.UriSource(pickedUri))
             else -> _state.value = ImageEditorUiState.AwaitingPick
+        }
+    }
+
+    private fun restore() {
+        viewModelScope.launch {
+            val previous = withContext(ioDispatcher) { session.loadPrevious() }
+            if (previous == null) {
+                start()
+            } else {
+                pendingRestore = previous
+                load(with(ImageSessionRecorder) { previous.source.toInput() })
+            }
         }
     }
 
@@ -106,8 +136,9 @@ internal class ImageEditorViewModel(
                     val info = ImageMetadataReader(registry).read(sourceId)
                     val sample = SampleSize.forMinimumLongEdge(info.encodedSize, previewLongEdge)
                     val preview = BitmapDecoder(registry).decode(info, sample)
-                    val project = ImageProject(ProjectId(UUID.randomUUID().toString()), sourceId)
-                    ImageEditorUiState.Ready(preview, info, HistoryTransaction.start(project))
+                    val restored = session.attach(pendingRestore, input, info)
+                    pendingRestore = null
+                    restoredState(restored, sourceId, info, preview)
                 }
                 _state.value = ready
             } catch (error: FrameKitException) {
@@ -121,6 +152,33 @@ internal class ImageEditorViewModel(
             }
         }
     }
+
+    private fun restoredState(
+        restored: SessionRecord?,
+        sourceId: SourceId,
+        info: ImageSourceInfo,
+        preview: DecodedImage,
+    ): ImageEditorUiState.Ready {
+        val projectId = ProjectId(restored?.snapshot?.projectId ?: UUID.randomUUID().toString())
+        val baseline = ImageProject(projectId, sourceId)
+        // 저장된 값이 지금 원본에 맞지 않으면(예: crop 범위 밖) 복원하지 않고 처음부터 연다.
+        val committed = restored?.snapshot?.toProject(sourceId)
+            ?.takeIf { ImageProjectValidator.validate(it, info.metadata).isValid }
+        val transaction = if (committed != null) {
+            HistoryTransaction(EditHistory.restore(baseline, committed))
+        } else {
+            HistoryTransaction.start(baseline)
+        }
+        val notice = when {
+            restored?.exportWasInterrupted == true -> SessionNotice.EXPORT_INTERRUPTED
+            committed != null && !committed.sameContentAs(baseline) -> SessionNotice.RESTORED
+            else -> null
+        }
+        if (restored?.exportWasInterrupted == true) session.saveCommitted(transaction.history.current)
+        return ImageEditorUiState.Ready(preview, info, transaction, notice = notice)
+    }
+
+    fun dismissNotice() = updateReady { it.copy(notice = null) }
 
     fun selectTool(tool: ImageTool) = updateReady { ready ->
         if (ready.activeTool != null || ready.export != null || tool !in config.enabledTools) return@updateReady ready
@@ -218,6 +276,7 @@ internal class ImageEditorViewModel(
         updateReady { it.copy(export = ExportUiState.Running(ExportStageUi.PREPARING)) }
         exportJob = viewModelScope.launch {
             try {
+                session.markExport(snapshot, running = true)
                 val media = exportCoordinator.export(snapshot, ready.source, request.export, request.output) { stage ->
                     updateReady { current ->
                         if (current.export is ExportUiState.Running && current.export.stage != ExportStageUi.CANCELLING) {
@@ -230,12 +289,15 @@ internal class ImageEditorViewModel(
                 finish(FrameKitResult.Success(media))
             } catch (cancelled: CancellationException) {
                 updateReady { it.copy(export = null) }
+                withContext(NonCancellable) { session.markExport(snapshot, running = false) }
                 throw cancelled
             } catch (error: FrameKitException) {
                 logFailure("export", error)
+                session.markExport(snapshot, running = false)
                 updateReady { it.copy(export = ExportUiState.Failed(error.code)) }
             } catch (error: Exception) {
                 logFailure("export", FrameKitException(EditorErrorCode.UNKNOWN, cause = error))
+                session.markExport(snapshot, running = false)
                 updateReady { it.copy(export = ExportUiState.Failed(EditorErrorCode.UNKNOWN)) }
             }
         }
@@ -276,11 +338,23 @@ internal class ImageEditorViewModel(
     fun dismissDiscard() = updateReady { it.copy(showDiscardDialog = false) }
 
     private fun finish(result: FrameKitResult) {
-        if (_result.value == null) _result.value = result
+        if (_result.value != null) return
+        pendingRestore?.let(session::discard)
+        session.end()
+        _result.value = result
     }
 
     private fun updateReady(transform: (ImageEditorUiState.Ready) -> ImageEditorUiState.Ready) {
-        _state.update { current -> if (current is ImageEditorUiState.Ready) transform(current) else current }
+        var committedChange: ImageProject? = null
+        _state.update { current ->
+            if (current !is ImageEditorUiState.Ready) return@update current
+            val next = transform(current)
+            val before = current.transaction.history.current
+            val after = next.transaction.history.current
+            committedChange = after.takeIf { it !== before }
+            next
+        }
+        committedChange?.let(session::saveCommitted)
     }
 
     private fun updateDraft(transform: (ImageEditorUiState.Ready, GeometryEdit) -> GeometryEdit) = updateReady { ready ->
@@ -297,6 +371,7 @@ internal class ImageEditorViewModel(
     }
 
     override fun onCleared() {
+        if (_result.value == null) session.detach()
         (_state.value as? ImageEditorUiState.Ready)?.preview?.recycle()
     }
 
@@ -310,5 +385,6 @@ internal class ImageEditorViewModel(
     private companion object {
         const val TAG = "FrameKit"
         const val KEY_PICKED_URI = "framekit_picked_uri"
+        const val SNAPSHOT_DEBOUNCE_MILLIS = 300L
     }
 }

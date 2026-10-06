@@ -99,6 +99,20 @@ private fun ReadyContent(state: ImageEditorUiState.Ready, viewModel: ImageEditor
             viewModel.dismissApplyHint()
         }
     }
+    val noticeText = state.notice?.let {
+        stringResource(
+            when (it) {
+                SessionNotice.RESTORED -> UiR.string.framekit_session_restored
+                SessionNotice.EXPORT_INTERRUPTED -> UiR.string.framekit_export_interrupted
+            },
+        )
+    }
+    LaunchedEffect(state.notice) {
+        if (noticeText != null) {
+            snackbar.showSnackbar(noticeText)
+            viewModel.dismissNotice()
+        }
+    }
     val view = LocalView.current
     val exporting = state.export is ExportUiState.Running
     DisposableEffect(exporting) {

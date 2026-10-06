@@ -17,6 +17,8 @@
     <string name="framekit_apply_first">Apply or cancel the current tool before saving.</string>
     <string name="framekit_loading">Opening…</string>
     <string name="framekit_original_badge">Original</string>
+    <string name="framekit_session_restored">Restored your previous edits. Undo history starts fresh.</string>
+    <string name="framekit_export_interrupted">The last save was interrupted. Save again to create the file.</string>
     <string name="framekit_show_original">Show original</string>
 
     <string name="framekit_export_preparing">Preparing…</string>
