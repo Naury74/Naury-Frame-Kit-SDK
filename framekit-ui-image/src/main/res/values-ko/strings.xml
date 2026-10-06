@@ -86,4 +86,11 @@
     <string name="framekit_privacy_strength">강도</string>
     <string name="framekit_privacy_brush_size">브러시 크기</string>
     <string name="framekit_privacy_help">블러는 복원될 수 있어요. 개인정보는 모자이크를 권장해요.</string>
+    <string name="framekit_tool_cutout">배경 제거</string>
+    <string name="framekit_cutout_remove">배경 제거하기</string>
+    <string name="framekit_cutout_restore">배경 복원</string>
+    <string name="framekit_cutout_processing">피사체를 찾는 중…</string>
+    <string name="framekit_cutout_description">피사체만 남기고 배경을 투명하게 만듭니다. JPEG로 저장하면 배경은 단색으로 채워지니 투명하게 남기려면 PNG나 WEBP를 쓰세요.</string>
+    <string name="framekit_cutout_unavailable">배경 제거 모델을 준비하고 있습니다. 잠시 후 다시 시도해 주세요.</string>
+    <string name="framekit_cutout_failed">배경을 제거하지 못했습니다. 다시 시도해 주세요.</string>
 </resources>

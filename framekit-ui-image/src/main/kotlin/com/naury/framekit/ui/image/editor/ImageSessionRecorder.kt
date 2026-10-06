@@ -5,6 +5,7 @@ import androidx.lifecycle.SavedStateHandle
 import com.naury.framekit.android.input.EditorInput
 import com.naury.framekit.android.session.EditorSessionStore
 import com.naury.framekit.android.session.ImageProjectSnapshot
+import com.naury.framekit.android.session.ProjectAssetStore
 import com.naury.framekit.android.session.SessionRecord
 import com.naury.framekit.android.session.SourceFingerprint
 import com.naury.framekit.android.session.SourceReference
@@ -84,6 +85,9 @@ internal class ImageSessionRecorder(
         sessionId = null
         savedState.remove<String>(KEY_SESSION_ID)
     }
+
+    /** Asset store of the current session, or `null` when no session could be created. */
+    fun assets(): ProjectAssetStore? = sessionId?.let(store::assets)
 
     /** Deletes a previous session that could not be reopened and will not be restored. */
     fun discard(record: SessionRecord) {

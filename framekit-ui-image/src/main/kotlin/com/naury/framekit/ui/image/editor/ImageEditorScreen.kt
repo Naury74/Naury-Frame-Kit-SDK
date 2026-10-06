@@ -67,6 +67,7 @@ import com.naury.framekit.ui.image.R
 import com.naury.framekit.ui.image.contract.ImageTool
 import com.naury.framekit.ui.image.tool.AdjustToolPanel
 import com.naury.framekit.ui.image.tool.CropToolPanel
+import com.naury.framekit.ui.image.tool.CutoutToolPanel
 import com.naury.framekit.ui.image.tool.DrawToolPanel
 import com.naury.framekit.ui.image.tool.FilterToolPanel
 import com.naury.framekit.ui.image.tool.PrivacyToolPanel
@@ -223,9 +224,11 @@ private fun ReadyContent(state: ImageEditorUiState.Ready, viewModel: ImageEditor
 private fun CanvasArea(state: ImageEditorUiState.Ready, viewModel: ImageEditorViewModel, modifier: Modifier) {
     Box(modifier) {
         val rendered by viewModel.renderedPreview.collectAsStateWithLifecycle()
+        val masks by viewModel.cutoutMasks.collectAsStateWithLifecycle()
         ImageCanvas(
             state = state,
             rendered = rendered,
+            cutoutMask = state.displayed.cutout?.let { masks[it.maskAssetId] },
             actions = viewModel,
         )
         if (state.activeTool?.isDraft != true) {
@@ -245,7 +248,7 @@ private fun CanvasArea(state: ImageEditorUiState.Ready, viewModel: ImageEditorVi
 
 @Composable
 private fun ToolArea(state: ImageEditorUiState.Ready, viewModel: ImageEditorViewModel, modifier: Modifier, maxWidthDp: Int?) {
-    val tools = viewModel.config.enabledTools.toList()
+    val tools = viewModel.config.enabledTools.filter { it != ImageTool.CUTOUT || viewModel.cutoutAvailable }
     AnimatedContent(
         targetState = state.activeTool,
         modifier = modifier.background(FrameKitTheme.colors.background).wrapContentWidth(Alignment.CenterHorizontally),
@@ -288,6 +291,14 @@ private fun ToolArea(state: ImageEditorUiState.Ready, viewModel: ImageEditorView
                 }
                 ImageTool.DRAW -> ToolPanelWithActions(R.string.framekit_tool_draw, viewModel, isDraft = false) {
                     DrawToolPanel(brush = state.brush, onBrush = viewModel::updateBrush)
+                }
+                ImageTool.CUTOUT -> ToolPanelWithActions(R.string.framekit_tool_cutout, viewModel, isDraft = false) {
+                    CutoutToolPanel(
+                        applied = state.displayed.cutout != null,
+                        status = state.cutoutStatus,
+                        onRemove = viewModel::removeBackground,
+                        onRestore = viewModel::restoreBackground,
+                    )
                 }
                 ImageTool.PRIVACY -> ToolPanelWithActions(R.string.framekit_tool_privacy, viewModel, isDraft = false) {
                     PrivacyToolPanel(settings = state.privacy, onChange = viewModel::updatePrivacy)
@@ -334,6 +345,7 @@ private fun ImageTool.railItem(): ToolRailItem<ImageTool> = when (this) {
     ImageTool.TEXT -> ToolRailItem(this, stringResource(R.string.framekit_tool_text), painterResource(UiR.drawable.framekit_ic_text))
     ImageTool.STICKER -> ToolRailItem(this, stringResource(R.string.framekit_tool_sticker), painterResource(UiR.drawable.framekit_ic_sticker))
     ImageTool.DRAW -> ToolRailItem(this, stringResource(R.string.framekit_tool_draw), painterResource(UiR.drawable.framekit_ic_draw))
+    ImageTool.CUTOUT -> ToolRailItem(this, stringResource(R.string.framekit_tool_cutout), painterResource(UiR.drawable.framekit_ic_cutout))
     ImageTool.PRIVACY -> ToolRailItem(this, stringResource(R.string.framekit_tool_privacy), painterResource(UiR.drawable.framekit_ic_privacy))
 }
 

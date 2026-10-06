@@ -39,6 +39,7 @@ internal sealed interface ImageEditorUiState {
         val brush: BrushSettings = BrushSettings(),
         val stickerCategory: EmojiCatalog.Category = EmojiCatalog.Category.SMILEYS,
         val privacy: PrivacySettings = PrivacySettings(),
+        val cutoutStatus: CutoutStatus? = null,
     ) : ImageEditorUiState {
         val displayed: ImageProject get() = transaction.displayed
         val isDirty: Boolean get() = transaction.history.isDirty
@@ -54,6 +55,12 @@ internal data class BrushSettings(
     val widthShortEdgeRatio: Double = 0.012,
     val opacity: Double = 1.0,
 )
+
+/** Progress of a background removal request. */
+internal sealed interface CutoutStatus {
+    data object Processing : CutoutStatus
+    data class Failed(val code: EditorErrorCode) : CutoutStatus
+}
 
 /** Mask kind for the privacy tool. */
 internal enum class PrivacyShape { BRUSH, RECTANGLE, ELLIPSE }

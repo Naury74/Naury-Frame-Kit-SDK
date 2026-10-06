@@ -45,6 +45,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import android.graphics.Bitmap
 import android.graphics.Paint
 import android.graphics.RectF
 import com.naury.framekit.core.effect.Adjustments
@@ -73,6 +74,7 @@ import com.naury.framekit.ui.R as UiR
 internal fun ImageCanvas(
     state: ImageEditorUiState.Ready,
     rendered: RenderedPreview?,
+    cutoutMask: Bitmap?,
     actions: ImageCanvasActions,
     modifier: Modifier = Modifier,
 ) {
@@ -81,7 +83,7 @@ internal fun ImageCanvas(
     val metadata = state.source.metadata
     val toolMode = state.activeTool?.isGeometry == true
     val project = if (state.showingOriginal) {
-        state.displayed.copy(geometry = GeometryEdit(), adjustments = Adjustments(), filter = FilterSelection(), privacyMasks = emptyList())
+        state.displayed.copy(geometry = GeometryEdit(), cutout = null, adjustments = Adjustments(), filter = FilterSelection(), privacyMasks = emptyList())
     } else {
         state.displayed
     }
@@ -255,7 +257,7 @@ internal fun ImageCanvas(
                     val target = RectF(contentRect.left.toFloat(), contentRect.top.toFloat(), contentRect.right.toFloat(), contentRect.bottom.toFloat())
                     canvas.nativeCanvas.drawBitmap(effectedBitmap, null, target, PREVIEW_PAINT)
                 } else {
-                    CanvasGeometryRenderer.draw(canvas.nativeCanvas, state.preview, plan, outputToViewport)
+                    CanvasGeometryRenderer.draw(canvas.nativeCanvas, state.preview, plan, outputToViewport, cutoutMask.takeIf { project.cutout != null })
                 }
             }
             if (showOverlays && (project.overlays.isNotEmpty() || project.drawing.isNotEmpty())) {

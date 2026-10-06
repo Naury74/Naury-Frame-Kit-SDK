@@ -15,7 +15,11 @@ import com.naury.framekit.android.input.EditorInput
 import com.naury.framekit.android.output.AppFileOutputStore
 import com.naury.framekit.android.result.EditorErrorCode
 import com.naury.framekit.android.result.FrameKitResult
+import com.naury.framekit.android.result.FrameKitException
 import com.naury.framekit.android.session.EditorSessionStore
+import com.naury.framekit.android.session.ProjectAssetStore
+import com.naury.framekit.image.cutout.BackgroundRemover
+import com.naury.framekit.image.export.ImageFormat
 import com.naury.framekit.android.source.SessionSourceRegistry
 import com.naury.framekit.core.effect.AdjustmentKind
 import com.naury.framekit.core.effect.FilterSelection
@@ -517,6 +521,56 @@ class ImageEditorViewModelTest {
     }
 
     @Test
+    fun `background removal is one undo step and exports a transparent PNG`() {
+        val viewModel = viewModel(
+            EditorInput.FileSource(sourceFile.absolutePath),
+            export = ImageExportConfig(format = ImageFormat.PNG),
+            remover = LeftHalfRemover(),
+        )
+        assertThat(viewModel.cutoutAvailable).isTrue()
+        viewModel.selectTool(ImageTool.CUTOUT)
+
+        viewModel.removeBackground()
+
+        assertThat(ready(viewModel).displayed.cutout).isNotNull()
+        assertThat(ready(viewModel).transaction.history.past).hasSize(1)
+        viewModel.closeTool()
+        viewModel.save()
+        val exported = BitmapFactory.decodeFile(publishedFiles().single().absolutePath)
+        assertThat(Color.alpha(exported.getPixel(20, 100))).isEqualTo(255)
+        assertThat(Color.alpha(exported.getPixel(380, 100))).isEqualTo(0)
+    }
+
+    @Test
+    fun `restore background and model errors`() {
+        val working = viewModel(EditorInput.FileSource(sourceFile.absolutePath), remover = LeftHalfRemover())
+        working.removeBackground()
+        working.restoreBackground()
+        assertThat(ready(working).displayed.cutout).isNull()
+        working.undo()
+        assertThat(ready(working).displayed.cutout).isNotNull()
+
+        val unavailable = viewModel(
+            EditorInput.FileSource(sourceFile.absolutePath),
+            remover = object : BackgroundRemover {
+                override suspend fun subjectMask(image: Bitmap): Bitmap = throw FrameKitException(EditorErrorCode.UNSUPPORTED_OPERATION)
+            },
+        )
+        unavailable.removeBackground()
+        assertThat(ready(unavailable).cutoutStatus).isEqualTo(CutoutStatus.Failed(EditorErrorCode.UNSUPPORTED_OPERATION))
+        assertThat(ready(unavailable).displayed.cutout).isNull()
+
+        val missing = viewModel(EditorInput.FileSource(sourceFile.absolutePath))
+        assertThat(missing.cutoutAvailable).isFalse()
+    }
+
+    private class LeftHalfRemover : BackgroundRemover {
+        override suspend fun subjectMask(image: Bitmap): Bitmap = Bitmap.createBitmap(image.width, image.height, Bitmap.Config.ARGB_8888).apply {
+            for (y in 0 until height) for (x in 0 until width / 2) setPixel(x, y, Color.WHITE)
+        }
+    }
+
+    @Test
     fun `rotation snaps to right angles within three degrees`() {
         assertThat(OverlayEditing.snapRotation(88.0)).isEqualTo(90.0)
         assertThat(OverlayEditing.snapRotation(-2.5)).isEqualTo(0.0)
@@ -529,10 +583,12 @@ class ImageEditorViewModelTest {
         input: EditorInput,
         savedState: SavedStateHandle = SavedStateHandle(),
         config: ImageEditorConfig = ImageEditorConfig(),
+        export: ImageExportConfig = ImageExportConfig(),
+        remover: BackgroundRemover? = null,
     ): ImageEditorViewModel {
         val registry = SessionSourceRegistry(context)
         return ImageEditorViewModel(
-            request = ImageEditorRequest(input = input, config = config, export = ImageExportConfig()),
+            request = ImageEditorRequest(input = input, config = config, export = export),
             savedState = savedState,
             registry = registry,
             exportCoordinator = ImageExportCoordinator(registry, store, memoryBudgetBytes = 256L * 1024 * 1024, dispatcher = Dispatchers.Unconfined),
@@ -541,6 +597,8 @@ class ImageEditorViewModelTest {
             sessionStore = sessions,
             snapshotDebounceMillis = 0L,
             renderDispatcher = Dispatchers.Unconfined,
+            backgroundRemover = remover,
+            assetFallback = ProjectAssetStore(File(context.cacheDir, "assets-test")),
         )
     }
 

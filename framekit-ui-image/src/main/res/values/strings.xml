@@ -86,4 +86,11 @@
     <string name="framekit_privacy_strength">Strength</string>
     <string name="framekit_privacy_brush_size">Brush size</string>
     <string name="framekit_privacy_help">Blur can sometimes be reversed. Use mosaic for personal information.</string>
+    <string name="framekit_tool_cutout">Cutout</string>
+    <string name="framekit_cutout_remove">Remove background</string>
+    <string name="framekit_cutout_restore">Restore background</string>
+    <string name="framekit_cutout_processing">Finding the subject…</string>
+    <string name="framekit_cutout_description">Keeps the subject and makes the background transparent. JPEG output fills it with a solid color; choose PNG or WEBP to keep transparency.</string>
+    <string name="framekit_cutout_unavailable">The background removal model is still being prepared. Try again in a moment.</string>
+    <string name="framekit_cutout_failed">The background could not be removed. Try again.</string>
 </resources>

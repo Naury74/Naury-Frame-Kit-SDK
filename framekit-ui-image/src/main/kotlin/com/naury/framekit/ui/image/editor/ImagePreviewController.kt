@@ -67,7 +67,7 @@ internal class ImagePreviewController(
                     }
                     try {
                         val bitmap = withContext(renderDispatcher) {
-                            renderer.render(request.source, request.project, request.metadata, request.mode, size.first, size.second)
+                            renderer.render(request.source, request.project, request.metadata, request.mode, size.first, size.second, request.cutoutMask)
                         }
                         _rendered.value = RenderedPreview(bitmap, request.project, request.mode)
                     } catch (cancelled: CancellationException) {
@@ -84,8 +84,8 @@ internal class ImagePreviewController(
         if (width > 0 && height > 0) viewport.value = width to height
     }
 
-    fun request(source: DecodedImage, project: ImageProject, metadata: SourceMetadata, mode: PreviewMode) {
-        requests.value = Request(source, project, metadata, mode)
+    fun request(source: DecodedImage, project: ImageProject, metadata: SourceMetadata, mode: PreviewMode, cutoutMask: Bitmap?) {
+        requests.value = Request(source, project, metadata, mode, cutoutMask)
     }
 
     /** Renders thumbnails once per source; a new source cancels the previous job. */
@@ -117,6 +117,7 @@ internal class ImagePreviewController(
         val project: ImageProject,
         val metadata: SourceMetadata,
         val mode: PreviewMode,
+        val cutoutMask: Bitmap?,
     )
 
     private companion object {

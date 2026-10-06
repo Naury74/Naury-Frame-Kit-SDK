@@ -14,6 +14,7 @@ import com.naury.framekit.android.result.FrameKitException
 import com.naury.framekit.android.result.FrameKitResult
 import com.naury.framekit.android.source.SessionSourceRegistry
 import com.naury.framekit.android.session.EditorSessionStore
+import com.naury.framekit.android.session.ProjectAssetStore
 import com.naury.framekit.android.session.SessionRecord
 import com.naury.framekit.core.history.EditHistory
 import com.naury.framekit.core.model.SourceId
@@ -34,6 +35,7 @@ import com.naury.framekit.core.overlay.PrivacyMask
 import com.naury.framekit.core.overlay.EmojiCatalog
 import com.naury.framekit.core.overlay.ImageOverlay
 import com.naury.framekit.core.overlay.StrokePoint
+import com.naury.framekit.core.overlay.SubjectCutout
 import com.naury.framekit.core.overlay.TextStyleSpec
 import com.naury.framekit.core.geometry.CropBoundsCalculator
 import com.naury.framekit.core.geometry.CropHandle
@@ -47,6 +49,8 @@ import com.naury.framekit.core.model.ProjectId
 import com.naury.framekit.image.decode.BitmapDecoder
 import com.naury.framekit.image.decode.ImageMetadataReader
 import com.naury.framekit.image.decode.SampleSize
+import com.naury.framekit.image.cutout.BackgroundRemover
+import com.naury.framekit.image.cutout.CutoutMasks
 import com.naury.framekit.image.effect.ColorEffectRenderer
 import com.naury.framekit.image.effect.CpuColorEffectRenderer
 import com.naury.framekit.image.export.ImageExportCoordinator
@@ -88,6 +92,8 @@ internal class ImageEditorViewModel(
     private val contentResolver: ContentResolver? = null,
     private val colorRenderer: ColorEffectRenderer = CpuColorEffectRenderer,
     renderDispatcher: CoroutineDispatcher = Dispatchers.Default.limitedParallelism(1),
+    private val backgroundRemover: BackgroundRemover? = null,
+    private val assetFallback: ProjectAssetStore? = null,
 ) : ViewModel(), ImageCanvasActions {
 
     private val _state = MutableStateFlow<ImageEditorUiState>(ImageEditorUiState.Loading)
@@ -113,6 +119,14 @@ internal class ImageEditorViewModel(
     /** Filter thumbnails by preset id. */
     val filterThumbnails: StateFlow<Map<String, Bitmap>> = previewController.thumbnails
 
+    private val _cutoutMasks = MutableStateFlow<Map<String, Bitmap>>(emptyMap())
+
+    /** Loaded background-removal masks by asset id. */
+    val cutoutMasks: StateFlow<Map<String, Bitmap>> = _cutoutMasks.asStateFlow()
+
+    /** `true` when an optional background remover is installed and the tool is enabled. */
+    val cutoutAvailable: Boolean get() = backgroundRemover != null && ImageTool.CUTOUT in config.enabledTools
+
     // 권한을 잃은 원본을 다시 고를 때까지 이전 세션을 들고 있다가, 같은 이미지인지 확인한 뒤에만 복원한다.
     private var pendingRestore: SessionRecord? = null
 
@@ -122,18 +136,25 @@ internal class ImageEditorViewModel(
         viewModelScope.launch(ioDispatcher) { exportCoordinator.deleteStalePartials() }
         if (savedState.contains(ImageSessionRecorder.KEY_SESSION_ID)) restore() else start()
         viewModelScope.launch {
-            state.collect { current -> if (current is ImageEditorUiState.Ready) requestPreview(current) }
+            state.collect { current ->
+                if (current is ImageEditorUiState.Ready) {
+                    ensureCutoutMask(current.displayed.cutout?.maskAssetId)
+                    requestPreview(current)
+                }
+            }
         }
+        viewModelScope.launch { cutoutMasks.collect { (state.value as? ImageEditorUiState.Ready)?.let(::requestPreview) } }
     }
 
     private fun requestPreview(ready: ImageEditorUiState.Ready) {
         val project = if (ready.showingOriginal) {
-            ready.displayed.copy(geometry = GeometryEdit(), adjustments = Adjustments(), filter = FilterSelection(), privacyMasks = emptyList())
+            ready.displayed.copy(geometry = GeometryEdit(), cutout = null, adjustments = Adjustments(), filter = FilterSelection(), privacyMasks = emptyList())
         } else {
             ready.displayed
         }
         val mode = if (ready.activeTool?.isGeometry == true) PreviewMode.UNCROPPED else PreviewMode.RESULT
-        previewController.request(ready.preview, project, ready.source.metadata, mode)
+        val mask = project.cutout?.let { _cutoutMasks.value[it.maskAssetId] }
+        previewController.request(ready.preview, project, ready.source.metadata, mode, mask)
         if (ready.activeTool == ImageTool.FILTER) previewController.ensureThumbnails(ready.preview)
     }
 
@@ -415,6 +436,46 @@ internal class ImageEditorViewModel(
         }
     }
 
+    /** Finds the subject in the preview, stores the mask as an asset and commits the cutout as one undo step. */
+    fun removeBackground() {
+        val ready = _state.value as? ImageEditorUiState.Ready ?: return
+        val remover = backgroundRemover ?: return
+        if (ready.cutoutStatus == CutoutStatus.Processing || ready.transaction.isActive) return
+        val assets = assets() ?: return
+        updateReady { it.copy(cutoutStatus = CutoutStatus.Processing) }
+        viewModelScope.launch {
+            try {
+                val mask = remover.subjectMask(ready.preview.bitmap)
+                val id = withContext(ioDispatcher) { CutoutMasks.save(mask, assets) }
+                _cutoutMasks.update { it + (id to mask) }
+                commitImmediate { it.copy(cutout = SubjectCutout(id)) }
+                updateReady { it.copy(cutoutStatus = null) }
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: FrameKitException) {
+                logFailure("cutout", error)
+                updateReady { it.copy(cutoutStatus = CutoutStatus.Failed(error.code)) }
+            } catch (error: Exception) {
+                logFailure("cutout", FrameKitException(EditorErrorCode.UNKNOWN, cause = error))
+                updateReady { it.copy(cutoutStatus = CutoutStatus.Failed(EditorErrorCode.UNKNOWN)) }
+            }
+        }
+    }
+
+    /** Turns the cutout off; the mask asset stays so undo can bring it back. */
+    fun restoreBackground() = commitImmediate { it.copy(cutout = null) }
+
+    private fun assets(): ProjectAssetStore? = session.assets() ?: assetFallback
+
+    private fun ensureCutoutMask(id: String?) {
+        if (id == null || _cutoutMasks.value.containsKey(id)) return
+        val assets = assets() ?: return
+        viewModelScope.launch {
+            val mask = withContext(ioDispatcher) { CutoutMasks.load(assets, id) } ?: return@launch
+            _cutoutMasks.update { it + (id to mask) }
+        }
+    }
+
     fun selectAdjustment(kind: AdjustmentKind) = updateReady { it.copy(adjustKind = kind) }
 
     /** Slider movement of the selected adjustment; the first call of a drag starts the gesture. */
@@ -529,7 +590,7 @@ internal class ImageEditorViewModel(
         exportJob = viewModelScope.launch {
             try {
                 session.markExport(snapshot, running = true)
-                val media = exportCoordinator.export(snapshot, ready.source, request.export, request.output) { stage ->
+                val media = exportCoordinator.export(snapshot, ready.source, request.export, request.output, assets()) { stage ->
                     updateReady { current ->
                         if (current.export is ExportUiState.Running && current.export.stage != ExportStageUi.CANCELLING) {
                             current.copy(export = ExportUiState.Running(stage.toUi()))

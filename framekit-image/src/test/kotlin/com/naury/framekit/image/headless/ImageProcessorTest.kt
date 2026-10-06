@@ -1,6 +1,9 @@
 package com.naury.framekit.image.headless
 
 import android.app.Application
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.Color
 import androidx.core.content.FileProvider
 import androidx.test.core.app.ApplicationProvider
 import com.google.common.truth.Truth.assertThat
@@ -12,6 +15,7 @@ import com.naury.framekit.android.result.FrameKitResult
 import com.naury.framekit.core.effect.FilterSelection
 import com.naury.framekit.core.geometry.GeometryEdit
 import com.naury.framekit.core.geometry.RectN
+import com.naury.framekit.image.cutout.BackgroundRemover
 import com.naury.framekit.image.effect.CpuColorEffectRenderer
 import com.naury.framekit.image.export.ImageExportConfig
 import com.naury.framekit.image.export.ImageFormat
@@ -61,6 +65,37 @@ class ImageProcessorTest {
         assertThat(published()).hasSize(1)
         processor.close()
         assertThat(File(context.cacheDir, "framekit/imports").listFiles().orEmpty()).isEmpty()
+    }
+
+    @Test
+    fun `background removal works headless with an injected remover`() = runTest {
+        val dispatcher = UnconfinedTestDispatcher(testScheduler)
+        val remover = object : BackgroundRemover {
+            override suspend fun subjectMask(image: Bitmap): Bitmap = Bitmap.createBitmap(image.width, image.height, Bitmap.Config.ARGB_8888).apply {
+                for (y in 0 until height) for (x in 0 until width / 2) setPixel(x, y, Color.WHITE)
+            }
+        }
+        val processor = ImageProcessor(context, CpuColorEffectRenderer, dispatcher, dispatcher, remover)
+        val source = processor.open(TestImages.quadrants(200, 100))
+
+        val project = processor.removeBackground(processor.newProject(source), source)
+        processor.startExport(project, source, ImageExportConfig(format = ImageFormat.PNG), this).awaitResult()
+
+        val output = BitmapFactory.decodeFile(published().single().absolutePath)
+        assertThat(Color.alpha(output.getPixel(150, 50))).isEqualTo(0)
+        processor.close()
+    }
+
+    @Test
+    fun `background removal without the optional module is unsupported`() = runTest {
+        val dispatcher = UnconfinedTestDispatcher(testScheduler)
+        val processor = ImageProcessor(context, CpuColorEffectRenderer, dispatcher, dispatcher)
+        val source = processor.open(TestImages.quadrants(40, 20))
+
+        val error = runCatching { processor.removeBackground(processor.newProject(source), source) }.exceptionOrNull() as FrameKitException
+
+        assertThat(processor.canRemoveBackground).isFalse()
+        assertThat(error.code).isEqualTo(EditorErrorCode.UNSUPPORTED_OPERATION)
     }
 
     @Test

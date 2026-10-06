@@ -17,7 +17,15 @@ import com.naury.framekit.core.model.ProjectId
 import com.naury.framekit.core.model.SourceMetadata
 import com.naury.framekit.core.validation.ImageProjectValidator
 import com.naury.framekit.core.validation.ValidationResult
+import com.naury.framekit.android.session.ProjectAssetStore
+import com.naury.framekit.core.overlay.SubjectCutout
+import com.naury.framekit.image.cutout.BackgroundRemover
+import com.naury.framekit.image.cutout.BackgroundRemovers
+import com.naury.framekit.image.cutout.CutoutMasks
+import com.naury.framekit.image.decode.BitmapDecoder
 import com.naury.framekit.image.decode.ImageMetadataReader
+import com.naury.framekit.image.decode.PreviewResolution
+import com.naury.framekit.image.decode.SampleSize
 import com.naury.framekit.image.decode.ImageSourceInfo
 import com.naury.framekit.image.effect.ColorEffectRenderer
 import com.naury.framekit.image.effect.DefaultColorEffectRenderer
@@ -64,6 +72,7 @@ public class ImageProcessor(
     private val colorRenderer: ColorEffectRenderer = DefaultColorEffectRenderer(),
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
     exportDispatcher: CoroutineDispatcher = Dispatchers.Default,
+    backgroundRemover: BackgroundRemover? = null,
 ) : AutoCloseable {
 
     private val appContext = context.applicationContext
@@ -78,6 +87,11 @@ public class ImageProcessor(
         colorRenderer = colorRenderer,
     )
     private val importDirectory = File(appContext.cacheDir, IMPORT_DIRECTORY)
+    private val assets = ProjectAssetStore(File(appContext.cacheDir, "$ASSET_DIRECTORY/${UUID.randomUUID()}"))
+    private val remover: BackgroundRemover? = backgroundRemover ?: BackgroundRemovers.find(appContext)
+
+    /** `true` when the optional `framekit-segmentation` artifact is installed. */
+    public val canRemoveBackground: Boolean get() = remover != null
     private val imports = mutableListOf<File>()
 
     /**
@@ -119,6 +133,30 @@ public class ImageProcessor(
         ImageProject(ProjectId(UUID.randomUUID().toString()), source.metadata.id, grainSeed = Random.nextLong())
 
     /**
+     * Removes the background of [source] and returns [project] with the cutout applied.
+     *
+     * The subject is found on a preview-sized decode, and the mask is kept for this processor's
+     * lifetime, so export it before calling [close].
+     *
+     * @throws FrameKitException with `UNSUPPORTED_OPERATION` when no remover is installed or its model
+     *   is not ready yet.
+     */
+    public suspend fun removeBackground(project: ImageProject, source: ImageSource): ImageProject {
+        val remover = remover ?: throw FrameKitException(EditorErrorCode.UNSUPPORTED_OPERATION, "Add framekit-segmentation to remove backgrounds")
+        val preview = withContext(ioDispatcher) {
+            BitmapDecoder(registry, appContext.contentResolver).decode(source.info, SampleSize.forMinimumLongEdge(source.info.encodedSize, PreviewResolution.DEFAULT_LONG_EDGE))
+        }
+        try {
+            val mask = remover.subjectMask(preview.bitmap)
+            val id = withContext(ioDispatcher) { CutoutMasks.save(mask, assets) }
+            mask.recycle()
+            return project.copy(cutout = SubjectCutout(id))
+        } finally {
+            preview.recycle()
+        }
+    }
+
+    /**
      * Validates [project] and starts exporting it in [scope] right away.
      *
      * @throws FrameKitException with `INVALID_PROJECT` or `INVALID_CONFIGURATION` before anything
@@ -140,7 +178,7 @@ public class ImageProcessor(
             throw FrameKitException(EditorErrorCode.INVALID_CONFIGURATION, configCheck.issues.joinToString { it.path })
         }
         return CoroutineExportHandle(scope) { report ->
-            coordinator.export(project, source.info, config, target) { stage ->
+            coordinator.export(project, source.info, config, target, assets) { stage ->
                 report(
                     when (stage) {
                         ImageExportStage.PREPARING -> ExportState.Preparing
@@ -155,16 +193,19 @@ public class ImageProcessor(
     /** Deletes an exported file; see `FrameKitOutputs.deleteOutput`. */
     public fun deleteOutput(uri: Uri): Boolean = outputStore.delete(uri)
 
-    /** Releases the GPU context and deletes bitmaps imported with [open]. Exported files are kept. */
+    /** Releases the GPU context, imported bitmaps and background masks. Exported files are kept. */
     override fun close() {
         colorRenderer.release()
         synchronized(imports) {
             imports.forEach(File::delete)
             imports.clear()
         }
+        assets.clear()
+        assets.directory.delete()
     }
 
     private companion object {
         const val IMPORT_DIRECTORY = "framekit/imports"
+        const val ASSET_DIRECTORY = "framekit/assets"
     }
 }

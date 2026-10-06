@@ -26,6 +26,8 @@ import com.naury.framekit.android.source.SessionSourceRegistry
 import com.naury.framekit.core.validation.ValidationResult
 import com.naury.framekit.image.decode.PreviewResolution
 import com.naury.framekit.android.output.AppFileOutputStore
+import com.naury.framekit.android.session.ProjectAssetStore
+import com.naury.framekit.image.cutout.BackgroundRemovers
 import com.naury.framekit.image.effect.DefaultColorEffectRenderer
 import com.naury.framekit.image.export.ImageExportCoordinator
 import com.naury.framekit.image.export.ImageMemoryBudget
@@ -39,6 +41,8 @@ import com.naury.framekit.ui.image.contract.ImageEditorRequest
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
+import java.io.File
+import java.util.UUID
 import kotlinx.coroutines.launch
 
 /** Hosts the image editor. Launch it through [ImageEditorContract]; it is not exported. */
@@ -99,6 +103,8 @@ internal class ImageEditorActivity : ComponentActivity() {
                 sessionStore = EditorSessionStore(application),
                 contentResolver = application.contentResolver,
                 colorRenderer = colorRenderer,
+                backgroundRemover = BackgroundRemovers.find(application),
+                assetFallback = ProjectAssetStore(File(application.cacheDir, "framekit/assets/${UUID.randomUUID()}")),
             )
         }
     }

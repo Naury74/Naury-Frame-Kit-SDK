@@ -25,6 +25,12 @@ public enum class ImageTool(internal val isDraft: Boolean) {
 
     /** Mosaic and blur with brush, rectangle or ellipse. Each mask is one undo step. */
     PRIVACY(isDraft = false),
+
+    /**
+     * Background removal. Shown only when the optional `framekit-segmentation` artifact is installed;
+     * removing and restoring the background are one undo step each.
+     */
+    CUTOUT(isDraft = false),
     ;
 
     /** Tools that show the whole rotated image instead of the cropped result. */
@@ -32,6 +38,6 @@ public enum class ImageTool(internal val isDraft: Boolean) {
 
     public companion object {
         /** Tools available in this version, in rail order. */
-        public val defaults: Set<ImageTool> = linkedSetOf(CROP, ROTATE, ADJUST, FILTER, TEXT, STICKER, DRAW, PRIVACY)
+        public val defaults: Set<ImageTool> = linkedSetOf(CROP, ROTATE, CUTOUT, ADJUST, FILTER, TEXT, STICKER, DRAW, PRIVACY)
     }
 }
