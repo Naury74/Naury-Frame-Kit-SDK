@@ -1,10 +1,10 @@
 package com.naury.framekit.core.model
 
 /**
- * Key of a media source registered in an editing session.
+ * 편집 세션에 등록된 미디어 소스의 키.
  *
- * The core model never holds platform objects such as `Uri` or `Bitmap`. The Android layer keeps
- * the mapping from this key to readable bytes and their access grants.
+ * core 모델은 `Uri`나 `Bitmap` 같은 플랫폼 객체를 절대 보관하지 않는다. 이 키에서 읽을 수 있는
+ * 바이트와 접근 권한으로의 매핑은 Android 계층이 관리한다.
  */
 @JvmInline
 public value class SourceId(public val value: String) {
@@ -13,7 +13,7 @@ public value class SourceId(public val value: String) {
     }
 }
 
-/** Stable identifier of one editing project. */
+/** 편집 프로젝트 하나의 안정적인 식별자. */
 @JvmInline
 public value class ProjectId(public val value: String) {
     init {

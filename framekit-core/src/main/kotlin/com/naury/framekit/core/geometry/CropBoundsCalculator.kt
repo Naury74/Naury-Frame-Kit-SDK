@@ -6,28 +6,28 @@ import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.sin
 
-/** Computes crop rectangles that stay inside the rotated image area. */
+/** 회전된 이미지 영역 안에 머무는 자르기 사각형을 계산한다. */
 public object CropBoundsCalculator {
 
-    /** Smallest crop side in source pixels. Matches the 16 px minimum output size. */
+    /** 원본 픽셀 기준 최소 자르기 변. 최소 출력 크기 16 px과 맞춘다. */
     public const val MIN_CROP_SIDE_PX: Int = 16
 
     /**
-     * Largest crop centered in G with the requested aspect that contains no empty corner.
+     * G 중앙에 놓이고 요청한 비율을 가지며 빈 모서리가 없는 가장 큰 자르기.
      *
-     * [CropAspectRatio.Free] and [CropAspectRatio.Original] both use the aspect of the image after
-     * quarter turns, which removes exactly the triangles introduced by straighten.
+     * [CropAspectRatio.Free]와 [CropAspectRatio.Original]은 둘 다 90° 회전 이후 이미지의 비율을 쓰며,
+     * 이렇게 하면 수평 보정으로 생긴 삼각형만 정확히 잘려 나간다.
      */
     public fun maxCrop(frame: GeometryFrame, aspect: CropAspectRatio): RectN =
         maxCropForPixelAspect(frame, resolvePixelAspect(frame, aspect))
 
-    /** Pixel aspect for [aspect], or the rotated image aspect for free and original crops. */
+    /** [aspect]의 픽셀 비율. 자유·원본 자르기면 회전된 이미지의 비율이다. */
     public fun resolvePixelAspect(frame: GeometryFrame, aspect: CropAspectRatio): Double = when (aspect) {
         CropAspectRatio.Free, CropAspectRatio.Original -> frame.rotatedSize.aspectRatio
         is CropAspectRatio.Fixed -> aspect.ratio
     }
 
-    /** Largest centered crop whose width / height in pixels equals [pixelAspect]. */
+    /** 픽셀 기준 width / height가 [pixelAspect]와 같은 가장 큰 중앙 자르기. */
     public fun maxCropForPixelAspect(frame: GeometryFrame, pixelAspect: Double): RectN {
         require(pixelAspect.isFinite() && pixelAspect > 0.0) { "Aspect must be positive: $pixelAspect" }
         val radians = Math.toRadians(frame.geometry.straightenDegrees)
@@ -46,8 +46,8 @@ public object CropBoundsCalculator {
     }
 
     /**
-     * Returns [crop] when it is valid, otherwise the closest rectangle with the same aspect that
-     * stays inside the image area, found by moving toward the largest centered crop.
+     * [crop]이 유효하면 그대로 반환하고, 아니면 가장 큰 중앙 자르기 쪽으로 이동해 찾은, 같은 비율로
+     * 이미지 영역 안에 머무는 가장 가까운 사각형을 반환한다.
      */
     public fun clampCrop(frame: GeometryFrame, crop: RectN): RectN {
         val unit = crop.clampToUnit()
@@ -58,11 +58,11 @@ public object CropBoundsCalculator {
     }
 
     /**
-     * Point on the straight path from [valid] to [candidate] that is closest to [candidate] while
-     * staying inside the image area.
+     * [valid]에서 [candidate]로 가는 직선 경로 위에서 이미지 영역 안에 머물면서 [candidate]에 가장
+     * 가까운 점.
      *
-     * The image area is convex and each corner moves on a straight line, so the valid part of the
-     * path is a single interval starting at [valid].
+     * 이미지 영역은 볼록하고 각 모서리는 직선으로 움직이므로, 경로의 유효 구간은 [valid]에서 시작하는
+     * 하나의 구간이다.
      */
     public fun constrainBetween(frame: GeometryFrame, valid: RectN, candidate: RectN): RectN {
         if (frame.containsRect(candidate)) return candidate
@@ -75,7 +75,7 @@ public object CropBoundsCalculator {
         return lerp(valid, candidate, low)
     }
 
-    /** `true` when [crop] is inside the image area and at least [MIN_CROP_SIDE_PX] on each side. */
+    /** [crop]이 이미지 영역 안에 있고 각 변이 [MIN_CROP_SIDE_PX] 이상이면 `true`. */
     public fun isValidCrop(frame: GeometryFrame, crop: RectN): Boolean =
         crop.isValidUnitRect && frame.containsRect(crop) && meetsMinimumSize(frame, crop)
 
@@ -85,7 +85,7 @@ public object CropBoundsCalculator {
             size.height + SIZE_EPSILON_PX >= minimumSide(frame)
     }
 
-    /** Minimum crop side, reduced for sources smaller than [MIN_CROP_SIDE_PX]. */
+    /** 최소 자르기 변. 원본이 [MIN_CROP_SIDE_PX]보다 작으면 줄여서 쓴다. */
     public fun minimumSide(frame: GeometryFrame): Double =
         min(MIN_CROP_SIDE_PX.toDouble(), min(frame.rotatedSize.width, frame.rotatedSize.height))
 

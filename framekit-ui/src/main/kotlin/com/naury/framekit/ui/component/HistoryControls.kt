@@ -13,8 +13,8 @@ import com.naury.framekit.ui.R
 import com.naury.framekit.ui.design.FrameKitTheme
 
 /**
- * Floating undo/redo buttons shown above the canvas. Disabled buttons stay visible so their position
- * does not jump; their state is announced by accessibility services.
+ * 캔버스 위에 떠 있는 실행 취소/다시 실행 버튼. 위치가 튀지 않도록 비활성 버튼도 계속 보이며,
+ * 그 상태는 접근성 서비스가 알린다.
  */
 @Composable
 public fun HistoryControls(

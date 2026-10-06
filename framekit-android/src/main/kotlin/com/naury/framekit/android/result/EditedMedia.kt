@@ -5,33 +5,33 @@ import android.os.Parcelable
 import com.naury.framekit.core.model.MediaType
 import kotlinx.parcelize.Parcelize
 
-/** Non-fatal differences between the request and the produced file. */
+/** 요청과 실제 생성된 파일 사이의 치명적이지 않은 차이. */
 public enum class ExportWarning {
-    /** The source used a wide-gamut or other non-sRGB color space and was converted to sRGB. */
+    /** 원본이 광색역 등 sRGB가 아닌 색 공간을 사용해 sRGB로 변환했다. */
     COLOR_SPACE_CONVERTED_TO_SRGB,
 
-    /** The source carried an Ultra HDR gain map that the output does not preserve. */
+    /** 원본에 Ultra HDR gain map이 있었지만 결과물에는 보존되지 않는다. */
     HDR_GAIN_MAP_DROPPED,
 
-    /** The encoder could not produce the requested format and a supported fallback was used. */
+    /** 인코더가 요청한 포맷을 만들 수 없어 지원되는 대체 포맷을 사용했다. */
     ENCODER_FALLBACK_APPLIED,
 
-    /** The source frame rate was higher than the configured maximum, so frames were dropped. */
+    /** 원본 프레임 레이트가 설정된 최대값보다 높아 프레임을 버렸다. */
     FRAME_RATE_REDUCED,
 
-    /** HDR video was converted to SDR. */
+    /** HDR 영상을 SDR로 변환했다. */
     HDR_CONVERTED_TO_SDR,
 }
 
 /**
- * Successfully exported file.
+ * export에 성공한 파일.
  *
- * @property uri `content://` Uri readable by the host process. Share it with other apps through an
- *   Intent with `FLAG_GRANT_READ_URI_PERMISSION`.
- * @property width encoded width in pixels.
- * @property height encoded height in pixels.
- * @property durationMs duration of a video in milliseconds, `null` for images.
- * @property fileSize size of the file in bytes.
+ * @property uri 호스트 프로세스가 읽을 수 있는 `content://` Uri. 다른 앱과 공유할 때는
+ *   `FLAG_GRANT_READ_URI_PERMISSION`을 붙인 Intent로 전달한다.
+ * @property width 인코딩된 너비(픽셀).
+ * @property height 인코딩된 높이(픽셀).
+ * @property durationMs 영상 길이(밀리초). 이미지는 `null`이다.
+ * @property fileSize 파일 크기(바이트).
  */
 @Parcelize
 public data class EditedMedia(

@@ -3,7 +3,7 @@ package com.naury.framekit.image.render
 import android.graphics.Matrix
 import com.naury.framekit.core.geometry.Affine2D
 
-/** Copies the six affine values into an `android.graphics.Matrix`; both use the same layout. */
+/** affine 값 6개를 `android.graphics.Matrix`로 복사한다. 두 타입의 배치는 같다. */
 public fun Affine2D.toAndroidMatrix(): Matrix = Matrix().apply {
     setValues(
         floatArrayOf(

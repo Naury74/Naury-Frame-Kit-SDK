@@ -26,18 +26,17 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-/** `true` when the preview must be rendered off screen: color effects or privacy masks are present. */
+/** 색상 효과나 가리기 마스크가 있어 미리보기를 오프스크린으로 렌더링해야 하면 `true`. */
 internal val ImageProject.needsRenderedPreview: Boolean get() = !colorSpec.isIdentity || privacyMasks.isNotEmpty()
 
-/** Preview bitmap for one project snapshot. */
+/** 프로젝트 스냅샷 하나에 대한 미리보기 비트맵. */
 internal data class RenderedPreview(val bitmap: Bitmap, val project: ImageProject, val mode: PreviewMode)
 
 /**
- * Renders color-effected previews off the main thread.
+ * 색상 효과 미리보기를 메인 스레드 밖에서 렌더링한다.
  *
- * Only the latest request is rendered; a slider drag that outruns the renderer skips intermediate
- * values instead of queueing them. Projects without color effects are drawn directly by the canvas
- * and need no bitmap.
+ * 최신 요청만 렌더링한다. 슬라이더 드래그가 렌더러보다 빠르면 중간 값을 큐에 쌓지 않고 건너뛴다.
+ * 색상 효과가 없는 프로젝트는 캔버스가 직접 그리므로 비트맵이 필요 없다.
  */
 internal class ImagePreviewController(
     private val scope: CoroutineScope,
@@ -54,7 +53,7 @@ internal class ImagePreviewController(
 
     val rendered: StateFlow<RenderedPreview?> = _rendered.asStateFlow()
 
-    /** Filter thumbnails by preset id, rendered from a 160 px copy of the source with the same renderer. */
+    /** 프리셋 id별 필터 썸네일. 소스의 160 px 사본을 같은 렌더러로 렌더링한다. */
     val thumbnails: StateFlow<Map<String, Bitmap>> = _thumbnails.asStateFlow()
 
     init {
@@ -88,7 +87,7 @@ internal class ImagePreviewController(
         requests.value = Request(source, project, metadata, mode, cutoutMask)
     }
 
-    /** Renders thumbnails once per source; a new source cancels the previous job. */
+    /** 소스마다 썸네일을 한 번 렌더링한다. 새 소스가 들어오면 이전 작업을 취소한다. */
     fun ensureThumbnails(source: DecodedImage) {
         if (thumbnailSource === source) return
         thumbnailSource = source

@@ -12,7 +12,7 @@ import com.naury.framekit.android.result.FrameKitResult
 import com.naury.framekit.ui.video.editor.VideoEditorActivity
 
 /**
- * Opens the video editor and returns exactly one [FrameKitResult].
+ * 영상 에디터를 열고 정확히 하나의 [FrameKitResult]를 반환한다.
  *
  * ```
  * val launcher = registerForActivityResult(VideoEditorContract()) { result -> ... }

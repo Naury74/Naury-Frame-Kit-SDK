@@ -28,10 +28,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.naury.framekit.ui.design.FrameKitTheme
 
-/** One entry of the [ToolRail]. */
+/** [ToolRail]의 항목 하나. */
 public data class ToolRailItem<T>(val key: T, val label: String, val icon: Painter)
 
-/** Bottom row of editing tools. Selection is shown by color and by the accessibility selected state. */
+/** 편집 도구의 하단 행. 선택 상태는 색상과 접근성 selected 상태로 함께 표시한다. */
 @Composable
 public fun <T> ToolRail(
     items: List<ToolRailItem<T>>,
@@ -83,8 +83,8 @@ public fun <T> ToolRail(
 private const val EVEN_ITEMS = 5
 
 /**
- * All tools at once in rows of [columns], for side panels on wide screens where a scrolling row
- * would hide tools and leave the panel mostly empty.
+ * 모든 도구를 [columns]열씩 한꺼번에 보여준다. 넓은 화면의 사이드 패널에서 스크롤 행을 쓰면
+ * 도구가 가려지고 패널 대부분이 비기 때문이다.
  */
 @Composable
 public fun <T> ToolGrid(

@@ -9,7 +9,7 @@ import com.naury.framekit.core.overlay.StrokePoint
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
-/** Pure project edits for overlays, kept out of the ViewModel so they can be tested directly. */
+/** 오버레이용 순수 프로젝트 편집. 직접 테스트할 수 있도록 ViewModel 밖에 둔다. */
 internal object OverlayEditing {
 
     fun replace(project: ImageProject, overlay: ImageOverlay): ImageProject =
@@ -29,11 +29,10 @@ internal object OverlayEditing {
     }
 
     /**
-     * Applies a gesture to [start], the transform when the gesture began.
+     * 제스처 시작 시점의 변환인 [start]에 제스처를 적용한다.
      *
-     * @param panX horizontal movement in normalized canvas units.
-     * @param snapDistance distance from the canvas center, in normalized units, within which the
-     *   center snaps to it.
+     * @param panX 정규화 캔버스 단위의 가로 이동량.
+     * @param snapDistance 중심이 캔버스 중앙으로 스냅되는, 캔버스 중앙으로부터의 거리(정규화 단위).
      */
     fun transform(
         start: OverlayTransform,
@@ -53,7 +52,7 @@ internal object OverlayEditing {
         return start.copy(center = PointN(x, y), scale = scale, rotationDegrees = rotation)
     }
 
-    /** Snaps to 0, 90, 180 or 270 degrees within ±3° and normalizes to -180..180. */
+    /** ±3° 이내면 0, 90, 180, 270도로 스냅하고 -180..180으로 정규화한다. */
     fun snapRotation(degrees: Double): Double {
         var normalized = ((degrees % 360) + 540) % 360 - 180
         val nearest = (normalized / 90).roundToInt() * 90.0
@@ -61,7 +60,7 @@ internal object OverlayEditing {
         return if (normalized == -180.0) 180.0 else normalized
     }
 
-    /** Appends a point unless it is closer than [minDistance] (normalized) to the previous one. */
+    /** 직전 점과의 거리가 [minDistance](정규화)보다 가깝지 않으면 점을 추가한다. */
     fun appendPoint(stroke: DrawingStroke, point: StrokePoint, minDistanceX: Double, minDistanceY: Double): DrawingStroke {
         val last = stroke.points.lastOrNull()
         if (last != null && abs(last.x - point.x) < minDistanceX && abs(last.y - point.y) < minDistanceY) return stroke

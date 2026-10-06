@@ -12,10 +12,10 @@ import com.naury.framekit.ui.config.EditorUiConfig
 import kotlinx.parcelize.Parcelize
 
 /**
- * Launch request for [ImageEditorContract].
+ * [ImageEditorContract]의 실행 요청.
  *
- * Every field is a primitive or a Parcelable reference, so the request survives Activity recreation.
- * Bitmaps and callbacks are intentionally not accepted.
+ * 모든 필드가 원시 타입 또는 Parcelable 참조이므로 요청은 Activity 재생성 후에도 유지된다.
+ * Bitmap과 콜백은 의도적으로 받지 않는다.
  */
 @Parcelize
 public data class ImageEditorRequest(
@@ -26,7 +26,7 @@ public data class ImageEditorRequest(
     val output: OutputTarget = OutputTarget.AppFile,
 ) : Parcelable {
 
-    /** Validates every part of the request. The editor returns `INVALID_CONFIGURATION` when this fails. */
+    /** 요청의 모든 부분을 검증한다. 검증에 실패하면 에디터는 `INVALID_CONFIGURATION`을 반환한다. */
     public fun validate(): ValidationResult {
         val issues = mutableListOf<ValidationIssue>()
         if (input is EditorInput.Pick && input.kind != MediaKind.IMAGE) {

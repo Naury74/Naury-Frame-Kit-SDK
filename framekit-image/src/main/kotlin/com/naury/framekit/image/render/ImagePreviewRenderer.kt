@@ -9,26 +9,26 @@ import com.naury.framekit.image.decode.DecodedImage
 import com.naury.framekit.image.effect.ColorEffectRenderer
 import com.naury.framekit.image.overlay.PrivacyRenderer
 
-/** What the preview shows. */
+/** 미리보기에 표시할 대상이다. */
 public enum class PreviewMode {
-    /** The edited result, as it will be exported. */
+    /** 내보낼 때와 같은 편집 결과. */
     RESULT,
 
-    /** The whole rotated image without crop, for the geometry tools. Vignette and grain are skipped. */
+    /** geometry 도구용으로 crop 없이 회전된 이미지 전체. 비네트와 그레인은 건너뛴다. */
     UNCROPPED,
 }
 
 /**
- * Renders a screen-sized preview with the same plan factory, geometry, color and privacy renderers as
- * export, so what the user sees is what gets saved. Text, stickers and drawings are drawn by the
- * caller on top, with the same overlay renderer.
+ * 내보내기와 같은 plan factory, geometry·color·privacy renderer로 화면 크기의 미리보기를 렌더링하므로
+ * 사용자가 보는 그대로 저장된다. 텍스트·스티커·그리기는 호출자가 같은 overlay renderer로
+ * 그 위에 그린다.
  */
 public class ImagePreviewRenderer(private val colorRenderer: ColorEffectRenderer) {
 
     /**
-     * @param maxWidth largest preview width in pixels, usually the viewport width.
-     * @param maxHeight largest preview height in pixels.
-     * @return a new bitmap owned by the caller.
+     * @param maxWidth 미리보기 최대 너비(px). 보통 viewport 너비다.
+     * @param maxHeight 미리보기 최대 높이(px).
+     * @return 호출자가 소유하는 새 bitmap.
      */
     public fun render(
         source: DecodedImage,

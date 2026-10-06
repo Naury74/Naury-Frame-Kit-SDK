@@ -27,10 +27,10 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
 /**
- * Playback state of the preview. Positions are output-timeline microseconds.
+ * 미리보기 재생 상태다. 위치는 출력 타임라인 기준 마이크로초다.
  *
- * @property planRevision revision of the project the player currently shows; a late prepare of an
- *   older revision never overwrites a newer one.
+ * @property planRevision 플레이어가 현재 보여 주는 프로젝트 revision. 이전 revision의 prepare가
+ *   늦게 끝나도 더 새로운 revision을 덮어쓰지 않는다.
  */
 public data class VideoPlaybackState(
     val isReady: Boolean = false,
@@ -42,17 +42,17 @@ public data class VideoPlaybackState(
     val planRevision: Long = -1L,
 )
 
-/** Preview player used by the video editor. UI code never touches Media3 directly. */
+/** 영상 편집기가 쓰는 미리보기 플레이어다. UI 코드는 Media3를 직접 다루지 않는다. */
 public interface VideoPreviewEngine {
     public val state: StateFlow<VideoPlaybackState>
 
-    /** Shows [plan], keeping the given position, without starting playback. */
+    /** 재생을 시작하지 않고, 주어진 위치를 유지한 채 [plan]을 보여 준다. */
     public fun setPlan(plan: VideoRenderPlan, positionUs: Long)
     public fun play()
     public fun pause()
     public fun seekTo(positionUs: Long)
 
-    /** Scrubbing mode favours fast seeks over exact frames while the user drags the playhead. */
+    /** Scrubbing 모드는 사용자가 playhead를 끄는 동안 정확한 프레임보다 빠른 seek를 우선한다. */
     public fun setScrubbing(enabled: Boolean)
     public fun attachSurface(holder: SurfaceHolder)
     public fun detachSurface(holder: SurfaceHolder)
@@ -60,7 +60,7 @@ public interface VideoPreviewEngine {
 }
 
 /**
- * [VideoPreviewEngine] backed by Media3 CompositionPlayer. Must be used on the main thread.
+ * Media3 CompositionPlayer 기반 [VideoPreviewEngine]이다. main thread에서만 사용해야 한다.
  */
 public class Media3VideoPreviewEngine(context: Context, private val scope: CoroutineScope) : VideoPreviewEngine {
 

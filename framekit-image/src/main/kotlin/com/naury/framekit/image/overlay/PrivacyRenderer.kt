@@ -23,15 +23,15 @@ import kotlin.math.min
 import kotlin.math.roundToInt
 
 /**
- * Applies blur and mosaic masks to a color-adjusted image in place.
+ * 색 보정을 마친 이미지에 블러·모자이크 mask를 제자리에서 적용한다.
  *
- * Every mask reads a copy of the unmasked image, so overlapping masks do not blur twice. Only the
- * region around each mask is processed. Mosaic blocks sit on a grid anchored at the canvas origin and
- * sized relative to the short edge, so preview and export show the same blocks.
+ * 모든 mask는 가리기 전 이미지의 복사본을 읽으므로 겹친 mask가 두 번 블러되지 않는다. 각 mask 주변
+ * 영역만 처리한다. 모자이크 블록은 캔버스 원점에 고정되고 짧은 변에 비례한 크기의 격자 위에 놓이므로
+ * 미리보기와 내보내기에서 같은 블록이 보인다.
  */
 public object PrivacyRenderer {
 
-    /** Extra memory for [apply] on a canvas of this size: one copy of the image plus region buffers. */
+    /** 이 크기의 캔버스에서 [apply]가 추가로 쓰는 메모리. 이미지 복사본 하나와 영역 버퍼다. */
     public fun workingBytes(width: Int, height: Int, masks: List<PrivacyMask>): Long =
         if (masks.isEmpty()) 0L else width.toLong() * height * 4 * 2
 

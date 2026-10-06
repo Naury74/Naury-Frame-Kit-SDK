@@ -28,24 +28,24 @@ import kotlin.math.min
 import kotlin.math.sin
 
 /**
- * Size of an overlay before rotation, in canvas pixels, including outline, shadow and background
- * margins. Hit tests and the selection frame use the rotated corners of this box.
+ * 회전 전 오버레이의 크기(캔버스 px)로, 외곽선·그림자·배경 여백을 포함한다. hit test와 선택 프레임은
+ * 이 상자의 회전된 꼭짓점을 쓴다.
  */
 public data class OverlayLayout(val width: Float, val height: Float)
 
 /**
- * Lays out and draws text, stickers and the drawing layer.
+ * 텍스트·스티커·그리기 레이어를 배치하고 그린다.
  *
- * All sizes come from fractions of the canvas, and the same instance serves preview, export and touch
- * hit tests, so an overlay lands on the same pixels everywhere. Text is shaped with [StaticLayout];
- * a Compose screenshot is never used for export. Public methods are synchronized because cached text
- * layouts share their paint between preview and export threads.
+ * 모든 크기는 캔버스 대비 비율에서 나오고 같은 인스턴스가 미리보기·내보내기·터치 hit test를 모두
+ * 처리하므로, 오버레이는 어디서나 같은 픽셀에 놓인다. 텍스트는 [StaticLayout]으로 배치하며
+ * 내보내기에 Compose 스크린샷은 쓰지 않는다. 캐시된 텍스트 layout이 미리보기와 내보내기 스레드 사이에서
+ * paint를 공유하므로 public 메서드는 synchronized다.
  */
 public class OverlayRenderer {
 
     private val textLayouts = LruCache<TextKey, StaticLayout>(TEXT_CACHE_SIZE)
 
-    /** Unrotated size of [overlay] on a canvas of [canvas] pixels. */
+    /** [canvas] 픽셀 크기의 캔버스에서 [overlay]의 회전 전 크기. */
     @Synchronized
     public fun layout(overlay: ImageOverlay, canvas: PixelSize): OverlayLayout = when (overlay) {
         is ImageOverlay.Text -> {
@@ -59,7 +59,7 @@ public class OverlayRenderer {
         }
     }
 
-    /** Rotated corners of [overlay] in canvas pixels, clockwise from the top left. */
+    /** 캔버스 px 기준 [overlay]의 회전된 꼭짓점. 왼쪽 위부터 시계 방향 순서다. */
     @Synchronized
     public fun corners(overlay: ImageOverlay, canvas: PixelSize): List<PointN> {
         val size = layout(overlay, canvas)
@@ -75,7 +75,7 @@ public class OverlayRenderer {
         }
     }
 
-    /** Id of the top-most overlay under ([x], [y]) in canvas pixels, or `null`. */
+    /** 캔버스 px 기준 ([x], [y]) 아래에 있는 가장 위 오버레이의 id. 없으면 `null`. */
     @Synchronized
     public fun hitTest(overlays: List<ImageOverlay>, x: Double, y: Double, canvas: PixelSize, slopPx: Double = 0.0): String? =
         overlays.lastOrNull { overlay ->
@@ -91,10 +91,10 @@ public class OverlayRenderer {
         }?.id
 
     /**
-     * Draws the drawing layer and then the overlays in list order onto [canvas], whose coordinates are
-     * output pixels of a [size] canvas. Content outside the canvas is clipped.
+     * [canvas]에 그리기 레이어를 먼저 그리고 오버레이를 목록 순서대로 그린다. [canvas] 좌표는
+     * [size] 캔버스의 출력 픽셀이다. 캔버스 밖 내용은 clip된다.
      *
-     * @param skipId overlay to leave out, for example while it is being edited in a text field.
+     * @param skipId 그리지 않을 오버레이. 예를 들어 텍스트 필드에서 편집 중일 때 쓴다.
      */
     @Synchronized
     public fun draw(canvas: Canvas, size: PixelSize, overlays: List<ImageOverlay>, drawing: List<DrawingStroke>, skipId: String? = null) {
@@ -188,7 +188,7 @@ public class OverlayRenderer {
         canvas.restoreToCount(checkpoint)
     }
 
-    /** Smoothed path through the stroke points, shared by preview and export. */
+    /** stroke 점들을 지나는 부드러운 path. 미리보기와 내보내기가 공유한다. */
     @Synchronized
     public fun strokePath(stroke: DrawingStroke, size: PixelSize): Path {
         val path = Path()

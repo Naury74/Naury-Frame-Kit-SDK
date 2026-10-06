@@ -4,7 +4,7 @@ import com.naury.framekit.core.geometry.CropHandle
 import com.naury.framekit.core.geometry.RectN
 import kotlin.math.abs
 
-/** Finds the crop handle under a pointer, in viewport pixels. Corners win over edges, edges over the body. */
+/** 포인터 아래의 자르기 핸들을 viewport 픽셀 기준으로 찾는다. 모서리가 변보다, 변이 본체보다 우선한다. */
 public object CropFrameHitTest {
 
     public fun find(frame: RectN, x: Double, y: Double, touchRadius: Double): CropHandle? {

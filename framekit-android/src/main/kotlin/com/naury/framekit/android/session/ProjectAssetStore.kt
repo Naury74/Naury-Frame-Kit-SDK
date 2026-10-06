@@ -8,18 +8,18 @@ import java.io.OutputStream
 import java.util.UUID
 
 /**
- * Files a project refers to by id, such as background-removal masks.
+ * 배경 제거 마스크처럼 프로젝트가 id로 참조하는 파일.
  *
- * The editor keeps assets inside its session folder so they survive process death and are deleted
- * with the session; headless processing uses a private cache folder. Ids are generated here and
- * checked on lookup, so a project can never point outside [directory].
+ * 편집기는 asset을 세션 폴더 안에 두어 프로세스가 종료돼도 살아남고 세션과 함께 삭제되게 한다.
+ * headless 처리는 전용 캐시 폴더를 사용한다. id는 여기서 생성하고 조회할 때 검사하므로
+ * 프로젝트가 [directory] 바깥을 가리킬 수 없다.
  */
 public class ProjectAssetStore(public val directory: File) {
 
     /**
-     * Writes a new asset and returns its id.
+     * 새 asset을 쓰고 그 id를 반환한다.
      *
-     * @throws FrameKitException with `OUTPUT_WRITE_FAILED` when the file cannot be written.
+     * @throws FrameKitException 파일을 쓸 수 없을 때 `OUTPUT_WRITE_FAILED` 코드로 던진다.
      */
     public fun write(extension: String, writer: (OutputStream) -> Unit): String {
         require(extension.matches(Regex("[a-z0-9]{1,8}"))) { "Invalid extension" }
@@ -38,13 +38,13 @@ public class ProjectAssetStore(public val directory: File) {
         return id
     }
 
-    /** File of an asset, or `null` when the id is malformed or the file is missing. */
+    /** asset 파일. id 형식이 잘못되었거나 파일이 없으면 `null`. */
     public fun file(id: String): File? {
         if (!id.matches(ID_PATTERN)) return null
         return File(directory, id).takeIf(File::isFile)
     }
 
-    /** Deletes every asset in [directory]. */
+    /** [directory]의 모든 asset을 삭제한다. */
     public fun clear() {
         directory.listFiles()?.forEach(File::delete)
     }

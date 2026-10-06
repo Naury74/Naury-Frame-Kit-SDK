@@ -11,13 +11,13 @@ import com.naury.framekit.core.model.SourceMetadata
 import com.naury.framekit.core.validation.ImageProjectValidator
 import com.naury.framekit.core.validation.ValidationResult
 
-/** Builds [ImageRenderPlan]s from project snapshots. */
+/** 프로젝트 스냅샷으로부터 [ImageRenderPlan]을 만든다. */
 public object ImageRenderPlanFactory {
 
     /**
-     * Plan that renders the edited result at [outputSize].
+     * 편집 결과를 [outputSize]로 렌더링하는 plan이다.
      *
-     * @throws FrameKitException with `INVALID_PROJECT` when the project fails validation.
+     * @throws FrameKitException 프로젝트 검증에 실패하면 `INVALID_PROJECT`.
      */
     public fun create(project: ImageProject, metadata: SourceMetadata, outputSize: PixelSize): ImageRenderPlan {
         requireValid(project, metadata)
@@ -27,9 +27,9 @@ public object ImageRenderPlanFactory {
     }
 
     /**
-     * Output size of the edited result under the given limits. The crop is never upscaled.
+     * 주어진 제한 안에서 편집 결과의 출력 크기다. crop 영역을 확대하지는 않는다.
      *
-     * @throws FrameKitException with `INVALID_PROJECT` when the project fails validation.
+     * @throws FrameKitException 프로젝트 검증에 실패하면 `INVALID_PROJECT`.
      */
     public fun outputSize(
         project: ImageProject,
@@ -44,8 +44,8 @@ public object ImageRenderPlanFactory {
     }
 
     /**
-     * Plan that renders the whole rotated image (the G space) without cropping, used while the crop
-     * tool is open. Areas outside the image stay transparent.
+     * crop 없이 회전된 이미지 전체(G 공간)를 렌더링하는 plan으로, crop 도구가 열려 있는 동안 쓴다.
+     * 이미지 바깥 영역은 투명하게 남는다.
      */
     public fun uncropped(project: ImageProject, metadata: SourceMetadata, maxLongEdge: Int): ImageRenderPlan {
         val geometry = project.geometry.copy(crop = RectN.Full)

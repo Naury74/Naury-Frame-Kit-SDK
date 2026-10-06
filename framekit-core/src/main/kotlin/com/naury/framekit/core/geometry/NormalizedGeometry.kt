@@ -1,19 +1,19 @@
 package com.naury.framekit.core.geometry
 
 /**
- * Point in a normalized coordinate space where `0.0..1.0` spans the space's width and height.
+ * 정규화 좌표 공간의 점. `0.0..1.0`이 공간의 너비와 높이에 해당한다.
  *
- * The space (S, G or C) is defined by the property that holds the point, never by the point itself.
+ * 공간(S, G, C)은 점 자체가 아니라 그 점을 담는 프로퍼티가 정한다.
  */
 public data class PointN(val x: Double, val y: Double) {
     public val isFinite: Boolean get() = x.isFinite() && y.isFinite()
 }
 
 /**
- * Axis-aligned rectangle in a normalized coordinate space.
+ * 정규화 좌표 공간의 축 정렬 사각형.
  *
- * A valid rectangle satisfies `0 <= left < right <= 1` and `0 <= top < bottom <= 1`. Construction
- * does not enforce this so that host input can be rejected by validation with a clear error.
+ * 유효한 사각형은 `0 <= left < right <= 1`이고 `0 <= top < bottom <= 1`이다. 호스트 입력을 검증
+ * 단계에서 명확한 오류로 거부할 수 있도록 생성 시에는 이를 강제하지 않는다.
  */
 public data class RectN(val left: Double, val top: Double, val right: Double, val bottom: Double) {
     public val width: Double get() = right - left
@@ -24,7 +24,7 @@ public data class RectN(val left: Double, val top: Double, val right: Double, va
     public val isFinite: Boolean
         get() = left.isFinite() && top.isFinite() && right.isFinite() && bottom.isFinite()
 
-    /** `true` when the rectangle is finite, non-empty and inside the unit square. */
+    /** 사각형이 유한하고 비어 있지 않으며 단위 정사각형 안에 있으면 `true`. */
     public val isValidUnitRect: Boolean
         get() = isFinite && left >= 0.0 && top >= 0.0 && right <= 1.0 && bottom <= 1.0 &&
             left < right && top < bottom
@@ -37,7 +37,7 @@ public data class RectN(val left: Double, val top: Double, val right: Double, va
     )
 
     public companion object {
-        /** The whole space. */
+        /** 공간 전체. */
         public val Full: RectN = RectN(0.0, 0.0, 1.0, 1.0)
 
         public fun fromCenter(centerX: Double, centerY: Double, width: Double, height: Double): RectN =

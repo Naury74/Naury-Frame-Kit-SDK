@@ -1,9 +1,9 @@
 package com.naury.framekit.android.result
 
 /**
- * Failure with a stable [EditorErrorCode], thrown by FrameKit engines and resolvers.
+ * 안정적인 [EditorErrorCode]를 담은 실패로, FrameKit 엔진과 resolver가 던진다.
  *
- * Coroutine cancellation is never wrapped in this type.
+ * 코루틴 취소는 절대 이 타입으로 감싸지 않는다.
  */
 public class FrameKitException(
     public val code: EditorErrorCode,
@@ -11,6 +11,6 @@ public class FrameKitException(
     cause: Throwable? = null,
 ) : Exception(message ?: code.name, cause) {
 
-    /** Converts this failure into the DTO returned to the host. */
+    /** 이 실패를 호스트에 반환할 DTO로 변환한다. */
     public fun toEditorError(): EditorError = EditorError(code)
 }

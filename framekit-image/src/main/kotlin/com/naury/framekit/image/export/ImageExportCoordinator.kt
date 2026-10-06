@@ -43,11 +43,11 @@ import kotlin.math.ceil
 import kotlin.math.floor
 
 /**
- * Exports one immutable [ImageProject] snapshot to a file.
+ * 불변 [ImageProject] 스냅샷 하나를 파일로 내보낸다.
  *
- * The original is never modified. Output is written to a hidden partial file, verified, and only then
- * published. Any failure or cancellation before publishing deletes the partial file; once the file is
- * published the export counts as completed even if cancellation arrives late.
+ * 원본은 절대 수정하지 않는다. 출력은 숨겨진 partial 파일에 쓰고 검증한 뒤에야 publish한다.
+ * publish 전에 실패하거나 취소되면 partial 파일을 삭제하며, 일단 publish되면 취소가 늦게 도착해도
+ * 내보내기는 완료로 간주한다.
  */
 public class ImageExportCoordinator(
     private val resolver: SourceResolver,
@@ -69,15 +69,15 @@ public class ImageExportCoordinator(
     private val exifWriter = SafeExifWriter(resolver)
 
     /**
-     * Runs the export on the coordinator's dispatcher.
+     * coordinator의 dispatcher에서 내보내기를 실행한다.
      *
-     * @param assets store that holds project assets such as the background-removal mask; required
-     *   when the project has a cutout.
-     * @param onStage called on the export thread when a new stage starts.
-     * @throws FrameKitException with `INVALID_CONFIGURATION`, `INVALID_PROJECT`, `INSUFFICIENT_MEMORY`,
-     *   `INSUFFICIENT_STORAGE`, `DECODE_FAILED`, `ENCODE_FAILED` or `OUTPUT_WRITE_FAILED`.
-     * @throws kotlinx.coroutines.CancellationException when the calling coroutine is cancelled before
-     *   the output is published.
+     * @param assets 배경 제거 mask 같은 프로젝트 asset을 보관하는 store. 프로젝트에 누끼가 있으면
+     *   필수다.
+     * @param onStage 새 단계가 시작될 때 내보내기 스레드에서 호출된다.
+     * @throws FrameKitException `INVALID_CONFIGURATION`, `INVALID_PROJECT`, `INSUFFICIENT_MEMORY`,
+     *   `INSUFFICIENT_STORAGE`, `DECODE_FAILED`, `ENCODE_FAILED` 또는 `OUTPUT_WRITE_FAILED`.
+     * @throws kotlinx.coroutines.CancellationException 출력이 publish되기 전에 호출 coroutine이
+     *   취소된 경우.
      */
     public suspend fun export(
         project: ImageProject,
@@ -200,16 +200,16 @@ public class ImageExportCoordinator(
         }
     }
 
-    /** Removes partial files that an interrupted export left behind more than a day ago. */
+    /** 중단된 내보내기가 남긴 지 하루가 넘은 partial 파일을 삭제한다. */
     public fun deleteStalePartials() {
         outputStore.deleteStalePartials()
     }
 
     /**
-     * Decides which part of the source to decode and how much to subsample it.
+     * 원본의 어느 부분을 디코딩하고 얼마나 subsampling할지 정한다.
      *
-     * Only the bounding box of the crop is decoded, so exporting a small crop from a 200 MP photo needs
-     * memory for the crop rather than for the whole picture.
+     * crop의 bounding box만 디코딩하므로, 200 MP 사진에서 작은 영역을 내보낼 때 사진 전체가 아니라
+     * crop 영역만큼의 메모리만 필요하다.
      */
     private fun decodePlan(source: ImageSourceInfo, project: ImageProject, outputSize: PixelSize): DecodePlan {
         val upright = source.metadata.uprightSize
@@ -234,10 +234,10 @@ public class ImageExportCoordinator(
     }
 
     /**
-     * Decodes the crop region in one piece when it fits the memory budget, otherwise in horizontal
-     * bands so only the output and one band are in memory together.
+     * crop 영역이 메모리 예산에 들어가면 한 번에 디코딩하고, 아니면 가로 띠 단위로 디코딩해
+     * 출력과 띠 하나만 함께 메모리에 올라오게 한다.
      *
-     * @throws FrameKitException with `INSUFFICIENT_MEMORY` when even the output bitmap does not fit.
+     * @throws FrameKitException 출력 bitmap조차 예산에 들어가지 않으면 `INSUFFICIENT_MEMORY`.
      */
     private fun renderStrategy(source: ImageSourceInfo, plan: DecodePlan, outputSize: PixelSize, colorBytes: Long): RenderStrategy {
         // 보정은 geometry 렌더가 끝난 뒤 실행되므로 디코딩 메모리와 동시에 잡히지 않는다. 둘 중 큰 쪽이 기준이다.

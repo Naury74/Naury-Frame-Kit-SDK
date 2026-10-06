@@ -1,6 +1,6 @@
 package com.naury.framekit.ui.video.contract
 
-/** Tools of the video editor. Only tools whose edits are played back and exported are listed. */
+/** 영상 에디터의 도구. 편집이 실제로 재생되고 내보내지는 도구만 나열한다. */
 public enum class VideoTool {
     TRIM,
     CROP,
@@ -12,10 +12,10 @@ public enum class VideoTool {
     PRIVACY,
     ;
 
-    /** Draft tools are applied or cancelled as a whole; the others commit each change. */
+    /** 초안 도구는 통째로 적용하거나 취소하고, 나머지는 변경마다 커밋한다. */
     internal val isDraft: Boolean get() = this == TRIM || this == CROP || this == ROTATE
 
-    /** Geometry tools show the whole rotated frame with the crop frame on top. */
+    /** 기하 도구는 회전된 프레임 전체 위에 자르기 프레임을 표시한다. */
     internal val isGeometry: Boolean get() = this == CROP || this == ROTATE
 
     public companion object {

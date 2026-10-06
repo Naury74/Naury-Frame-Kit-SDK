@@ -17,14 +17,14 @@ import java.util.concurrent.Executors
 import kotlin.math.min
 
 /**
- * OpenGL ES 3.0 renderer for [ColorEffectSpec].
+ * [ColorEffectSpec]용 OpenGL ES 3.0 renderer다.
  *
- * One dedicated thread owns the EGL context; every GL call, including resource deletion, runs on it,
- * so preview and export never touch textures at the same time. At most three textures of the output
- * size exist at once, and the result is read back in bands into the caller's bitmap.
+ * 전용 스레드 하나가 EGL context를 소유하고 자원 삭제를 포함한 모든 GL 호출이 그 스레드에서 실행되므로,
+ * 미리보기와 내보내기가 동시에 텍스처를 건드리지 않는다. 출력 크기의 텍스처는 동시에 최대 3장만 존재하며,
+ * 결과는 띠 단위로 읽어 호출자의 bitmap에 담는다.
  *
- * @throws GlUnavailableException from the constructor when the device cannot create an ES 3.0
- *   context.
+ * @throws GlUnavailableException 기기가 ES 3.0 context를 만들 수 없으면 생성자에서
+ *   던진다.
  */
 public class GlColorEffectRenderer : ColorEffectRenderer {
 
@@ -39,7 +39,7 @@ public class GlColorEffectRenderer : ColorEffectRenderer {
     private var finishProgram = 0
     private var framebuffer = 0
 
-    /** Largest width or height this device can render. */
+    /** 이 기기가 렌더링할 수 있는 최대 너비 또는 높이. */
     public val maxSize: Int
 
     @Volatile
@@ -54,7 +54,7 @@ public class GlColorEffectRenderer : ColorEffectRenderer {
         }
     }
 
-    /** `true` when a bitmap of this size fits the GPU limits. */
+    /** 이 크기의 bitmap이 GPU 한도 안에 들면 `true`. */
     public fun supports(width: Int, height: Int): Boolean = width <= maxSize && height <= maxSize
 
     override fun apply(bitmap: Bitmap, spec: ColorEffectSpec, includeCanvasEffects: Boolean) {
@@ -289,12 +289,12 @@ public class GlColorEffectRenderer : ColorEffectRenderer {
     }
 }
 
-/** The device cannot create an OpenGL ES 3.0 context. */
+/** 기기가 OpenGL ES 3.0 context를 만들 수 없다. */
 public class GlUnavailableException(message: String, cause: Throwable?) : Exception(message, cause)
 
 /**
- * Uses the GPU when available and falls back to [CpuColorEffectRenderer] when the context cannot be
- * created or a bitmap exceeds the GPU size limit. Both paths implement the same specification.
+ * 가능하면 GPU를 쓰고, context를 만들 수 없거나 bitmap이 GPU 크기 한도를 넘으면
+ * [CpuColorEffectRenderer]로 대체한다. 두 경로는 같은 명세를 구현한다.
  */
 public class DefaultColorEffectRenderer : ColorEffectRenderer {
 
@@ -307,7 +307,7 @@ public class DefaultColorEffectRenderer : ColorEffectRenderer {
     }
     private val gl: GlColorEffectRenderer? by glDelegate
 
-    /** `true` when the GPU path is in use. */
+    /** GPU 경로를 사용 중이면 `true`. */
     public val usesGpu: Boolean get() = gl != null
 
     override fun apply(bitmap: Bitmap, spec: ColorEffectSpec, includeCanvasEffects: Boolean) {

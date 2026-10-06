@@ -15,21 +15,20 @@ import com.naury.framekit.core.model.PixelSize
 import com.naury.framekit.image.decode.DecodedImage
 
 /**
- * CPU renderer for geometric edits.
+ * geometry 편집용 CPU renderer다.
  *
- * The same [draw] call paints the on-screen preview (with an extra output-to-viewport transform) and
- * the export bitmap. Selection frames, grids and handles are drawn by the UI on top and are never part
- * of a plan.
+ * 같은 [draw] 호출로 화면 미리보기(출력→viewport 변환을 추가)와 내보내기 bitmap을 모두 그린다.
+ * 선택 프레임·그리드·핸들은 UI가 그 위에 그리며 plan에는 포함되지 않는다.
  */
 public object CanvasGeometryRenderer {
 
     /**
-     * Draws [source] according to [plan] onto [canvas], clipped to the output area.
+     * [plan]에 따라 [source]를 [canvas]에 그리며, 출력 영역으로 clip한다.
      *
-     * @param outputToTarget extra transform from output pixels to canvas pixels, for example to fit
-     *   the result into a viewport. Identity for export.
-     * @param cutoutMask subject mask covering the whole upright source; the background becomes
-     *   transparent where its alpha is 0.
+     * @param outputToTarget 출력 픽셀에서 canvas 픽셀로의 추가 변환. 예를 들어 결과를 viewport에
+     *   맞출 때 쓴다. 내보내기에서는 항등 변환이다.
+     * @param cutoutMask 정방향 원본 전체를 덮는 피사체 mask. alpha가 0인 곳의 배경은
+     *   투명해진다.
      */
     public fun draw(
         canvas: Canvas,
@@ -57,9 +56,9 @@ public object CanvasGeometryRenderer {
         Affine2D.scale(upright.width.toDouble() / mask.width, upright.height.toDouble() / mask.height)
 
     /**
-     * Renders [plan] into a new ARGB_8888 bitmap.
+     * [plan]을 새 ARGB_8888 bitmap으로 렌더링한다.
      *
-     * @param backgroundArgb color painted below the image, or `null` to keep transparency.
+     * @param backgroundArgb 이미지 아래에 칠할 색. 투명도를 유지하려면 `null`.
      */
     public fun render(source: DecodedImage, plan: ImageRenderPlan, backgroundArgb: Int?, cutoutMask: Bitmap? = null): Bitmap {
         val output = createBitmap(plan.outputSize.width, plan.outputSize.height)
@@ -70,14 +69,14 @@ public object CanvasGeometryRenderer {
     }
 
     /**
-     * Renders [plan] band by band so that only one band of the source is in memory at a time.
+     * 한 번에 원본의 띠 하나만 메모리에 올라오도록 [plan]을 띠 단위로 렌더링한다.
      *
-     * Each band is decoded with padding so filtering at its edges has real neighbors, and drawing is
-     * clipped to the band's own rows. Android canvas clips are not anti-aliased, so every output pixel
-     * is painted by exactly one band and no seam appears.
+     * 각 띠는 가장자리 filtering이 실제 이웃 픽셀을 쓰도록 padding을 붙여 디코딩하고, 그리기는
+     * 그 띠의 행으로 clip한다. Android canvas clip은 anti-aliasing되지 않으므로 모든 출력 픽셀은
+     * 정확히 한 띠가 칠하며 이음새가 생기지 않는다.
      *
-     * @param bands upright source rows of each band, top to bottom, covering the visible area.
-     * @param decodeBand decodes the given padded upright rectangle; the result is recycled after use.
+     * @param bands 각 띠의 정방향 원본 행 범위. 위에서 아래 순서이며 보이는 영역을 덮는다.
+     * @param decodeBand padding이 붙은 정방향 사각형을 디코딩한다. 결과는 사용 후 recycle된다.
      */
     public fun renderBanded(
         plan: ImageRenderPlan,

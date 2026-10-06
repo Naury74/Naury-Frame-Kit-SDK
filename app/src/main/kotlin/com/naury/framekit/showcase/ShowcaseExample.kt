@@ -14,7 +14,7 @@ import com.naury.framekit.ui.video.contract.VideoEditorConfig
 import com.naury.framekit.ui.video.contract.VideoTool
 import com.naury.framekit.video.export.VideoExportConfig
 
-/** Examples on the home screen. Each one launches FrameKit with a real request. */
+/** 홈 화면의 예제. 각 예제는 실제 요청으로 FrameKit을 실행한다. */
 enum class ShowcaseExample(
     @StringRes val title: Int,
     @StringRes val description: Int,

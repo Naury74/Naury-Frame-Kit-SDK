@@ -7,11 +7,11 @@ import com.naury.framekit.core.validation.ValidationResult
 import kotlinx.parcelize.Parcelize
 
 /**
- * Behavior of the video editor.
+ * 영상 에디터의 동작.
  *
- * @property enabledTools tools shown in the rail. An empty set opens a preview that can only be saved.
- * @property minClipDurationUs shortest result the user can trim or speed up to, in output time.
- * @property maxTimelineDurationUs longest result. Longer sources open trimmed to this length.
+ * @property enabledTools 레일에 표시할 도구. 빈 집합이면 저장만 가능한 미리보기로 열린다.
+ * @property minClipDurationUs 사용자가 트림이나 배속으로 줄일 수 있는 가장 짧은 결과 길이(출력 시간 기준).
+ * @property maxTimelineDurationUs 가장 긴 결과 길이. 이보다 긴 소스는 이 길이로 트림된 상태로 열린다.
  */
 @Parcelize
 public data class VideoEditorConfig(
@@ -37,10 +37,10 @@ public data class VideoEditorConfig(
     }
 
     public companion object {
-        /** About three frames at 30 fps; shorter clips cannot be encoded reliably. */
+        /** 30 fps 기준 약 3프레임. 이보다 짧은 클립은 안정적으로 인코딩할 수 없다. */
         public const val MIN_CLIP_US: Long = 100_000L
 
-        /** One hour. */
+        /** 1시간. */
         public const val MAX_TIMELINE_US: Long = 3_600_000_000L
     }
 }

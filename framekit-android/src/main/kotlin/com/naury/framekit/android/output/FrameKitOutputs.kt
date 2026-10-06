@@ -3,14 +3,14 @@ package com.naury.framekit.android.output
 import android.content.Context
 import android.net.Uri
 
-/** Host-facing helpers for files produced with [OutputTarget.AppFile]. */
+/** [OutputTarget.AppFile]로 생성된 파일을 다루는 호스트용 헬퍼. */
 public object FrameKitOutputs {
 
     /**
-     * Deletes an exported file that the host no longer needs.
+     * 호스트가 더 이상 필요로 하지 않는 export 파일을 삭제한다.
      *
-     * @return `true` when the file existed and was deleted, `false` when [uri] was not produced by
-     *   FrameKit in this app or was already removed.
+     * @return 파일이 존재해 삭제했으면 `true`, [uri]가 이 앱에서 FrameKit이 만든 것이 아니거나
+     *   이미 삭제되었으면 `false`.
      */
     public fun deleteOutput(context: Context, uri: Uri): Boolean = AppFileOutputStore(context).delete(uri)
 }

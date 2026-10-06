@@ -1,17 +1,17 @@
 package com.naury.framekit.core.effect
 
 /**
- * One adjustment slider.
+ * 보정 슬라이더 하나.
  *
- * @property minimum lower bound of the model value.
- * @property maximum upper bound of the model value.
- * @property signed `true` when the slider is centered on zero (`-100..100` in the UI), `false` for
- *   amounts that start at zero (`0..100`).
+ * @property minimum 모델 값의 하한.
+ * @property maximum 모델 값의 상한.
+ * @property signed 슬라이더가 0을 중심으로 하면(UI에서 `-100..100`) `true`, 0에서 시작하는 양(`0..100`)이면
+ *   `false`.
  */
 public enum class AdjustmentKind(public val minimum: Double, public val maximum: Double, public val signed: Boolean) {
     BRIGHTNESS(-1.0, 1.0, true),
 
-    /** Exposure in EV stops; the UI maps `-100..100` to `-2..2`. */
+    /** 노출(EV 단위). UI의 `-100..100`을 `-2..2`로 매핑한다. */
     EXPOSURE(-2.0, 2.0, true),
     CONTRAST(-1.0, 1.0, true),
     HIGHLIGHTS(-1.0, 1.0, true),
@@ -25,27 +25,27 @@ public enum class AdjustmentKind(public val minimum: Double, public val maximum:
     GRAIN(0.0, 1.0, false),
     ;
 
-    /** Lowest value the slider shows: `-100` for signed kinds, `0` otherwise. */
+    /** 슬라이더가 표시하는 최솟값. 부호 있는 종류는 `-100`, 그 외는 `0`이다. */
     public val displayMinimum: Int get() = if (signed) -DISPLAY_RANGE else 0
 
-    /** Converts a model value to the slider value. */
+    /** 모델 값을 슬라이더 값으로 변환한다. */
     public fun toDisplay(value: Double): Int = Math.round(value / maximum * DISPLAY_RANGE).toInt()
 
-    /** Converts a slider value to the model value, clamped to the model range. */
+    /** 슬라이더 값을 모델 값으로 변환하고 모델 범위로 제한한다. */
     public fun fromDisplay(display: Float): Double =
         (display.toDouble() / DISPLAY_RANGE * maximum).coerceIn(minimum, maximum)
 
     public companion object {
-        /** Slider span. Every display value lives in this single mapping. */
+        /** 슬라이더 폭. 모든 표시 값은 이 하나의 매핑을 따른다. */
         public const val DISPLAY_RANGE: Int = 100
     }
 }
 
 /**
- * Color and tone adjustments. All values are 0 by default, which leaves the image unchanged.
+ * 색상·톤 보정. 모든 값의 기본값은 0이며, 이때 이미지는 바뀌지 않는다.
  *
- * Ranges are listed in [AdjustmentKind]. Values are applied in a fixed order defined by
- * [ColorEffectSpec], regardless of the order in which the user moved the sliders.
+ * 범위는 [AdjustmentKind]에 정리되어 있다. 사용자가 슬라이더를 움직인 순서와 관계없이 값은
+ * [ColorEffectSpec]이 정한 고정 순서로 적용된다.
  */
 public data class Adjustments(
     val brightness: Double = 0.0,

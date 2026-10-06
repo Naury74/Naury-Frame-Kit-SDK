@@ -7,10 +7,10 @@ import com.naury.framekit.android.input.MediaKind
 import java.io.File
 import java.util.Locale
 
-/** Decides whether a source is a photo or a video from its MIME type, falling back to the extension. */
+/** 소스가 사진인지 영상인지 MIME 타입으로 판별하고, 알 수 없으면 확장자로 대신 판별한다. */
 internal object MediaKindResolver {
 
-    /** @return [MediaKind.IMAGE], [MediaKind.VIDEO], or `null` when neither fits. */
+    /** @return [MediaKind.IMAGE], [MediaKind.VIDEO], 둘 다 아니면 `null`. */
     fun resolve(input: EditorInput, resolver: ContentResolver): MediaKind? = when (input) {
         is EditorInput.Pick -> input.kind.takeIf { it != MediaKind.ANY }
         is EditorInput.UriSource -> fromMime(runCatching { resolver.getType(input.uri) }.getOrNull())

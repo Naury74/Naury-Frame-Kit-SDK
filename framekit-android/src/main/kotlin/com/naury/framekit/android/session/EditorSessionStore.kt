@@ -16,15 +16,13 @@ import java.util.concurrent.Executor
 import java.util.concurrent.Executors
 
 /**
- * Persists editing sessions under `files/framekit/sessions/<sessionId>/` so that committed edits
- * survive process death.
+ * 확정된 편집이 프로세스 종료 후에도 남도록 편집 세션을 `files/framekit/sessions/<sessionId>/`에 저장한다.
  *
- * Each session holds `descriptor.json` (how to reopen the source and its fingerprint) and
- * `project.snapshot` (the last committed edits). Files are written to a temporary name and renamed,
- * so a crash during a write leaves the previous snapshot intact. Only the Activity's
- * `SavedStateHandle` keeps the session id; no project data goes into a Bundle.
+ * 각 세션에는 `descriptor.json`(원본을 다시 여는 방법과 fingerprint)과 `project.snapshot`(마지막으로
+ * 확정된 편집)이 있다. 파일은 임시 이름으로 쓴 뒤 rename하므로, 쓰는 도중 크래시가 나도 이전 snapshot은
+ * 그대로 남는다. Activity의 `SavedStateHandle`에는 세션 id만 두고, 프로젝트 데이터는 Bundle에 넣지 않는다.
  *
- * The store only manages files in its own directory and read grants it took itself.
+ * 저장소는 자신의 디렉터리에 있는 파일과 자신이 직접 얻은 읽기 권한만 관리한다.
  */
 public class EditorSessionStore(
     context: Context,
@@ -33,18 +31,16 @@ public class EditorSessionStore(
 ) {
     private val contentResolver: ContentResolver = context.applicationContext.contentResolver
 
-    /** Root directory of all sessions. */
+    /** 모든 세션의 루트 디렉터리. */
     public val directory: File = File(context.applicationContext.filesDir, SESSIONS_DIRECTORY)
 
     /**
-     * Creates a session for a source that was just opened successfully.
+     * 방금 성공적으로 연 원본에 대한 세션을 만든다.
      *
-     * For a `content://` source the store tries to take a persistable read grant so the source can
-     * be reopened after process death. A grant the host already persisted is left alone and is never
-     * released by the store.
+     * `content://` 원본이면 프로세스 종료 후에도 다시 열 수 있도록 persistable 읽기 권한을 얻으려고 시도한다.
+     * 호스트가 이미 영구 보존한 권한은 건드리지 않으며, 저장소가 해제하지도 않는다.
      *
-     * @return the new session id, or `null` when the session could not be written. Editing still
-     *   works without a session; only restoration is unavailable.
+     * @return 새 세션 id. 세션을 쓸 수 없으면 `null`이다. 세션이 없어도 편집은 가능하며 복원만 할 수 없다.
      */
     public fun create(source: SourceReference, fingerprint: SourceFingerprint): String? {
         val sessionId = UUID.randomUUID().toString()
@@ -65,8 +61,8 @@ public class EditorSessionStore(
     }
 
     /**
-     * Reads a session. Returns `null` when it does not exist, is from an unknown schema version or
-     * cannot be parsed; a damaged session is deleted so it is not offered again.
+     * 세션을 읽는다. 세션이 없거나, 알 수 없는 schema 버전이거나, 파싱할 수 없으면 `null`을 반환한다.
+     * 손상된 세션은 다시 제시되지 않도록 삭제한다.
      */
     public fun load(sessionId: String): SessionRecord? {
         val dir = sessionDir(sessionId)
@@ -104,10 +100,10 @@ public class EditorSessionStore(
     }
 
     /**
-     * Replaces the committed snapshot. [exportInProgress] marks a running export so that an
-     * interruption by process death can be reported on the next launch.
+     * 확정된 snapshot을 교체한다. [exportInProgress]는 실행 중인 export를 표시해, 프로세스 종료로
+     * 중단되었을 때 다음 실행에서 알릴 수 있게 한다.
      *
-     * @return `false` when writing failed; the previous snapshot is still on disk.
+     * @return 쓰기에 실패하면 `false`. 이전 snapshot은 디스크에 그대로 남는다.
      */
     public fun saveSnapshot(sessionId: String, snapshot: ImageProjectSnapshot?, exportInProgress: Boolean = false): Boolean =
         write(sessionId, SessionSnapshotFile(SCHEMA_VERSION, clock(), exportInProgress, snapshot))
@@ -128,10 +124,10 @@ public class EditorSessionStore(
         }
     }
 
-    /** Asset store inside a session folder; it is deleted together with the session. */
+    /** 세션 폴더 안의 asset 저장소. 세션과 함께 삭제된다. */
     public fun assets(sessionId: String): ProjectAssetStore = ProjectAssetStore(File(sessionDir(sessionId), ASSETS_DIRECTORY))
 
-    /** Deletes a session and releases the read grant the store took for it. Failures are ignored. */
+    /** 세션을 삭제하고 저장소가 그 세션을 위해 얻은 읽기 권한을 해제한다. 실패는 무시한다. */
     public fun delete(sessionId: String) {
         val dir = sessionDir(sessionId)
         runCatching {
@@ -142,20 +138,20 @@ public class EditorSessionStore(
         activeSessions -= sessionId
     }
 
-    /** [delete] on a background thread that outlives the calling screen. */
+    /** 호출한 화면보다 오래 사는 백그라운드 스레드에서 [delete]를 수행한다. */
     public fun deleteAsync(sessionId: String) {
         activeSessions -= sessionId
         background.execute { delete(sessionId) }
     }
 
-    /** Marks a session as no longer in use by this process without deleting it. */
+    /** 세션을 삭제하지 않고 이 프로세스에서 더 이상 사용하지 않는다고 표시한다. */
     public fun release(sessionId: String) {
         activeSessions -= sessionId
     }
 
     /**
-     * Deletes sessions that were interrupted more than [maxAgeMillis] ago. Sessions in use by this
-     * process are kept. Only directories created by this store are touched.
+     * 중단된 지 [maxAgeMillis]보다 오래된 세션을 삭제한다. 이 프로세스가 사용 중인 세션은 남긴다.
+     * 이 저장소가 만든 디렉터리만 건드린다.
      */
     public fun deleteStale(maxAgeMillis: Long = STALE_SESSION_AGE_MILLIS) {
         val now = clock()
@@ -211,7 +207,7 @@ public class EditorSessionStore(
         internal const val ASSETS_DIRECTORY = "assets"
         internal const val SCHEMA_VERSION = 1
 
-        /** Interrupted sessions older than this are deleted: 7 days. */
+        /** 이보다 오래된 중단 세션은 삭제한다: 7일. */
         public const val STALE_SESSION_AGE_MILLIS: Long = 7L * 24 * 60 * 60 * 1000
 
         private const val TAG = "FrameKit"

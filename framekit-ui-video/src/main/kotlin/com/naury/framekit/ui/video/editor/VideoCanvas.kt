@@ -44,10 +44,10 @@ import com.naury.framekit.ui.video.contract.VideoTool
 import kotlin.math.roundToInt
 
 /**
- * Video preview on a SurfaceView with the crop frame and privacy masks drawn on top.
+ * SurfaceView 위의 영상 미리보기. 그 위에 자르기 프레임과 가리기 마스크를 그린다.
  *
- * The surface is placed exactly over the fitted content so overlay coordinates match the output
- * canvas. Outside a tool a tap toggles playback.
+ * 오버레이 좌표가 출력 캔버스와 일치하도록 surface를 맞춰진 콘텐츠 위에 정확히 배치한다.
+ * 도구 밖에서는 탭하면 재생/일시정지가 전환된다.
  */
 @Composable
 internal fun VideoCanvas(

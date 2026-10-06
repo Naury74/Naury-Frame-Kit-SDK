@@ -13,11 +13,11 @@ import com.naury.framekit.core.geometry.GeometryEdit
 import com.naury.framekit.core.geometry.RectN
 
 /**
- * Maps a [GeometryEdit] to Media3 matrix effects.
+ * [GeometryEdit]을 Media3 행렬 effect로 변환한다.
  *
- * The model rotates clockwise in y-down image space and flips after rotating. Media3 rotates
- * counter-clockwise in y-up GL space and scales (flips) before rotating. Flipping one axis reverses
- * the rotation direction, so with an odd number of flips the angle keeps its sign.
+ * 모델은 y가 아래로 증가하는 이미지 공간에서 시계 방향으로 회전하고, 회전 후에 뒤집는다. Media3는
+ * y가 위로 증가하는 GL 공간에서 반시계 방향으로 회전하고, 회전 전에 scale(뒤집기)을 적용한다. 한 축을
+ * 뒤집으면 회전 방향이 반대가 되므로, 뒤집기 횟수가 홀수면 각도 부호를 그대로 둔다.
  */
 internal object GeometryEffects {
 

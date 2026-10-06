@@ -19,11 +19,11 @@ import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
 /**
- * [BackgroundRemover] backed by ML Kit subject segmentation, which runs on the device.
+ * 기기에서 동작하는 ML Kit subject segmentation 기반 [BackgroundRemover]다.
  *
- * The model is delivered by Google Play services. Until it has been downloaded the remover fails with
- * `UNSUPPORTED_OPERATION`; the manifest asks Play services to download it when the app is installed.
- * Devices without Play services cannot use this module.
+ * 모델은 Google Play 서비스가 내려준다. 모델 다운로드가 끝나기 전에는 `UNSUPPORTED_OPERATION`으로
+ * 실패하며, manifest에서 앱 설치 시점에 Play 서비스가 모델을 내려받도록 요청한다.
+ * Play 서비스가 없는 기기에서는 이 모듈을 사용할 수 없다.
  */
 public class MlKitBackgroundRemover(@Suppress("UNUSED_PARAMETER") context: Context) : BackgroundRemover {
 

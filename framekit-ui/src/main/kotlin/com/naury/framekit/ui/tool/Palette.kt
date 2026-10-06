@@ -24,13 +24,13 @@ import androidx.compose.ui.unit.dp
 import com.naury.framekit.ui.design.FrameKitTheme
 import com.naury.framekit.ui.R
 
-/** Colors offered for text and drawing. */
+/** 텍스트와 그리기에 제공하는 색상. */
 public val PaletteColors: List<Int> = listOf(
     0xFFFFFFFF, 0xFF000000, 0xFF8E8E93, 0xFFFF3B30, 0xFFFF9500, 0xFFFFCC00,
     0xFF34C759, 0xFF00C7BE, 0xFF007AFF, 0xFF5856D6, 0xFFAF52DE, 0xFFFF2D55,
 ).map { it.toInt() }
 
-/** Row of color swatches. The selected one gets a ring so selection does not rely on color alone. */
+/** 색상 견본 행. 선택 상태가 색상에만 의존하지 않도록 선택된 견본에 링을 두른다. */
 @Composable
 public fun ColorPalette(selected: Int, onSelect: (Int) -> Unit, modifier: Modifier = Modifier) {
     val colors = FrameKitTheme.colors

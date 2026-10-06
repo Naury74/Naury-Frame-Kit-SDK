@@ -25,7 +25,7 @@ import com.naury.framekit.ui.component.ChoiceChips
 import com.naury.framekit.ui.design.FrameKitTheme
 import com.naury.framekit.ui.R
 
-/** Text input with font, color, alignment, outline, background and shadow. */
+/** 글꼴, 색상, 정렬, 외곽선, 배경, 그림자를 지정하는 텍스트 입력. */
 @Composable
 public fun TextToolPanel(
     text: ImageOverlay.Text,

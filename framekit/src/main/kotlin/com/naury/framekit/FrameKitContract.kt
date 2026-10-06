@@ -11,16 +11,16 @@ import com.naury.framekit.android.result.EditorErrorCode
 import com.naury.framekit.android.result.FrameKitResult
 
 /**
- * Opens the photo or the video editor, whichever matches the source, and returns exactly one
- * [FrameKitResult]. `EditedMedia.mediaType` tells which kind came back.
+ * 소스에 맞춰 사진 편집기 또는 영상 편집기를 열고 [FrameKitResult]를 정확히 하나 반환한다.
+ * 어떤 종류가 돌아왔는지는 `EditedMedia.mediaType`으로 알 수 있다.
  *
  * ```
  * val launcher = registerForActivityResult(FrameKitContract()) { result -> ... }
  * launcher.launch(FrameKitRequest(EditorInput.Pick(MediaKind.ANY)))
  * ```
  *
- * Apps that only edit one kind can depend on `framekit-ui-image` or `framekit-ui-video` alone and
- * use their contracts directly.
+ * 한 종류만 편집하는 앱은 `framekit-ui-image` 또는 `framekit-ui-video`에만 의존하고
+ * 해당 contract를 직접 사용해도 된다.
  */
 public class FrameKitContract : ActivityResultContract<FrameKitRequest, FrameKitResult>() {
 

@@ -27,12 +27,12 @@ import com.naury.framekit.ui.design.FrameKitTheme
 import kotlin.math.abs
 
 /**
- * Slider with a numeric label, double-tap reset and a single haptic tick when it snaps to [resetValue].
+ * 숫자 라벨, 더블탭 초기화, [resetValue]에 스냅될 때 한 번의 햅틱을 갖춘 슬라이더.
  *
- * [onValueChange] is called for every movement and [onValueChangeFinished] once when the gesture ends,
- * so callers can map one drag to one history step.
+ * [onValueChange]는 움직일 때마다, [onValueChangeFinished]는 제스처가 끝날 때 한 번 호출되므로
+ * 호출자는 드래그 한 번을 히스토리 한 단계로 대응시킬 수 있다.
  *
- * @param snapThreshold distance from [resetValue] within which the value snaps to it.
+ * @param snapThreshold 값이 [resetValue]로 스냅되는 [resetValue]로부터의 거리.
  */
 @Composable
 public fun ValueSlider(

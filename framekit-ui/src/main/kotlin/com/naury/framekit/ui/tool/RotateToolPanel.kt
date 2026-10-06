@@ -21,7 +21,7 @@ import com.naury.framekit.ui.design.FrameKitTheme
 import com.naury.framekit.ui.R
 import java.util.Locale
 
-/** 90° rotation, flips and the straighten slider. */
+/** 90° 회전, 뒤집기, 수평 보정 슬라이더. */
 @Composable
 public fun RotateToolPanel(
     straightenDegrees: Double,

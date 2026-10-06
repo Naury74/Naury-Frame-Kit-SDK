@@ -39,7 +39,7 @@ import org.junit.runner.RunWith
 import java.io.File
 import kotlin.math.abs
 
-/** Real Media3 exports on the device: exact trim, speed, geometry direction, color and cancel. */
+/** 기기에서 실제 Media3 내보내기로 정확한 trim, 속도, geometry 방향, 색 보정, 취소를 확인한다. */
 @RunWith(AndroidJUnit4::class)
 class VideoExportCoordinatorTest {
 

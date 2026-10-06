@@ -3,14 +3,13 @@ package com.naury.framekit.core.overlay
 import com.naury.framekit.core.geometry.PointN
 
 /**
- * Placement of an overlay in the output canvas (C space, `0..1` after crop).
+ * 출력 캔버스(C 공간, 자르기 후 `0..1`)에서의 오버레이 배치.
  *
- * Overlays stay at the same normalized position when the crop changes; they are not anchored to
- * objects in the photo.
+ * 오버레이는 자르기가 바뀌어도 같은 정규화 위치에 머문다. 사진 속 대상에 고정되지 않는다.
  *
- * @property center center of the overlay in C.
- * @property scale size multiplier; `1.0` is the size the overlay was created with.
- * @property rotationDegrees clockwise rotation.
+ * @property center C에서 오버레이의 중심.
+ * @property scale 크기 배율. `1.0`은 오버레이를 만들 때의 크기다.
+ * @property rotationDegrees 시계 방향 회전.
  * @property opacity `0..1`.
  */
 public data class OverlayTransform(
@@ -25,17 +24,17 @@ public data class OverlayTransform(
     }
 }
 
-/** Paragraph alignment inside a text box. */
+/** 텍스트 상자 안의 문단 정렬. */
 public enum class TextAlignment {
     START,
     CENTER,
     END,
 }
 
-/** Outline around glyphs. [widthHeightRatio] is relative to the canvas height. */
+/** 글리프 외곽선. [widthHeightRatio]는 캔버스 높이에 대한 비율이다. */
 public data class StrokeSpec(val colorArgb: Int, val widthHeightRatio: Double)
 
-/** Drop shadow; offsets and blur are relative to the canvas height. */
+/** 그림자. 오프셋과 블러는 캔버스 높이에 대한 비율이다. */
 public data class ShadowSpec(
     val colorArgb: Int,
     val offsetXHeightRatio: Double,
@@ -43,16 +42,16 @@ public data class ShadowSpec(
     val blurHeightRatio: Double,
 )
 
-/** Rounded box behind the text. Padding and corner radius are relative to the canvas height. */
+/** 텍스트 뒤의 둥근 상자. 패딩과 모서리 반경은 캔버스 높이에 대한 비율이다. */
 public data class BackgroundSpec(val colorArgb: Int, val paddingHeightRatio: Double = 0.008, val cornerHeightRatio: Double = 0.006)
 
 /**
- * Text appearance. Sizes are fractions of the output canvas so the same project looks identical at any
- * export resolution.
+ * 텍스트 모양. 크기는 출력 캔버스에 대한 비율이므로 같은 프로젝트는 어떤 내보내기 해상도에서도
+ * 똑같이 보인다.
  *
- * @property fontId id of a font in the font catalog, for example `sans` or `serif-bold`.
- * @property fontSizeHeightRatio text size divided by the canvas height.
- * @property maxWidthRatio line wrap width divided by the canvas width.
+ * @property fontId 폰트 카탈로그의 폰트 id. 예: `sans`, `serif-bold`.
+ * @property fontSizeHeightRatio 텍스트 크기를 캔버스 높이로 나눈 값.
+ * @property maxWidthRatio 줄바꿈 너비를 캔버스 너비로 나눈 값.
  */
 public data class TextStyleSpec(
     val fontId: String = "sans",
@@ -67,7 +66,7 @@ public data class TextStyleSpec(
     val background: BackgroundSpec? = null,
 )
 
-/** Text or sticker placed on top of the image. The list order is the z-order, last on top. */
+/** 이미지 위에 놓는 텍스트나 스티커. 목록 순서가 z-order이며 마지막이 맨 위다. */
 public sealed interface ImageOverlay {
     public val id: String
     public val transform: OverlayTransform
@@ -84,11 +83,11 @@ public sealed interface ImageOverlay {
     }
 
     /**
-     * Sticker drawn from a catalog asset.
+     * 카탈로그 에셋으로 그리는 스티커.
      *
-     * @property assetId `emoji:<characters>` for a standard emoji rendered with the system emoji font,
-     *   or an id from a host sticker catalog.
-     * @property widthRatio sticker width at scale 1, divided by the canvas width.
+     * @property assetId 시스템 이모지 폰트로 렌더링하는 표준 이모지면 `emoji:<characters>`,
+     *   아니면 호스트 스티커 카탈로그의 id.
+     * @property widthRatio 배율 1에서의 스티커 너비를 캔버스 너비로 나눈 값.
      */
     public data class Sticker(
         override val id: String,
@@ -100,27 +99,27 @@ public sealed interface ImageOverlay {
     }
 }
 
-/** Kind of brush in the drawing layer. */
+/** 그리기 레이어의 브러시 종류. */
 public enum class BrushKind {
     PEN,
     MARKER,
 
-    /** Translucent strokes; overlap within one stroke does not darken. */
+    /** 반투명 획. 한 획 안에서 겹쳐도 더 어두워지지 않는다. */
     HIGHLIGHTER,
 
-    /** Removes only the drawing layer under the stroke, never the photo, text or stickers. */
+    /** 획 아래의 그리기 레이어만 지운다. 사진, 텍스트, 스티커는 절대 지우지 않는다. */
     ERASER,
 }
 
 /**
- * One sample of a stroke in C space.
+ * C 공간에서 획의 샘플 하나.
  *
- * @property pressure `0..1`, used for width variation.
+ * @property pressure `0..1`. 굵기 변화에 쓴다.
  */
 public data class StrokePoint(val x: Double, val y: Double, val pressure: Double = 1.0)
 
 /**
- * One finger-down to finger-up stroke. Width is a fraction of the canvas short edge.
+ * 손가락을 대고 뗄 때까지의 획 하나. 굵기는 캔버스 짧은 변에 대한 비율이다.
  */
 public data class DrawingStroke(
     val id: String,
@@ -131,12 +130,12 @@ public data class DrawingStroke(
     val brush: BrushKind,
 ) {
     public companion object {
-        /** Upper bound of points per stroke; longer strokes are thinned when recorded. */
+        /** 획당 점 개수의 상한. 더 긴 획은 기록할 때 솎아낸다. */
         public const val MAX_POINTS: Int = 2_000
     }
 }
 
-/** Fonts every device can render. Hosts add their own in v1.0. */
+/** 모든 기기가 렌더링할 수 있는 폰트. 호스트 폰트 추가는 v1.0에서 지원한다. */
 public object FontCatalog {
     public val fontIds: List<String> = listOf("sans", "sans-bold", "serif", "serif-bold", "mono", "handwriting")
 

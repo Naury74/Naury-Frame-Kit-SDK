@@ -3,9 +3,9 @@ package com.naury.framekit.core.geometry
 import com.naury.framekit.core.model.PixelSize
 
 /**
- * EXIF `Orientation` tag values 1 to 8.
+ * EXIF `Orientation` 태그 값 1~8.
  *
- * Mirrored orientations are not equivalent to a rotation and must not be approximated by one.
+ * 미러링된 방향은 회전과 같지 않으므로 회전으로 근사해서는 안 된다.
  */
 public enum class ExifOrientation(public val exifValue: Int) {
     NORMAL(1),
@@ -18,16 +18,16 @@ public enum class ExifOrientation(public val exifValue: Int) {
     ROTATE_270(8),
     ;
 
-    /** `true` when the upright image has width and height exchanged relative to the encoded pixels. */
+    /** 바로 세운 이미지의 가로·세로가 인코딩된 픽셀과 뒤바뀌면 `true`. */
     public val swapsDimensions: Boolean get() = exifValue >= 5
 
     public fun uprightSize(encoded: PixelSize): PixelSize = if (swapsDimensions) encoded.transposed() else encoded
 
     /**
-     * Transform from encoded pixel coordinates to upright pixel coordinates.
+     * 인코딩된 픽셀 좌표에서 바로 세운 픽셀 좌표로의 변환.
      *
-     * @param encodedWidth width of the stored pixels before orientation is applied.
-     * @param encodedHeight height of the stored pixels before orientation is applied.
+     * @param encodedWidth 방향 적용 전 저장된 픽셀의 너비.
+     * @param encodedHeight 방향 적용 전 저장된 픽셀의 높이.
      */
     public fun encodedToUpright(encodedWidth: Double, encodedHeight: Double): Affine2D {
         val w = encodedWidth
@@ -45,7 +45,7 @@ public enum class ExifOrientation(public val exifValue: Int) {
     }
 
     public companion object {
-        /** Maps a raw tag value. Missing, zero or unknown values are treated as [NORMAL]. */
+        /** 원시 태그 값을 매핑한다. 없거나 0이거나 알 수 없는 값은 [NORMAL]로 취급한다. */
         public fun fromExifValue(value: Int?): ExifOrientation = entries.firstOrNull { it.exifValue == value } ?: NORMAL
     }
 }

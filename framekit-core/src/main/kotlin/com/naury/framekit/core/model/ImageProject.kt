@@ -10,23 +10,22 @@ import com.naury.framekit.core.overlay.PrivacyMask
 import com.naury.framekit.core.overlay.SubjectCutout
 
 /**
- * Final edit state of one image.
+ * 이미지 하나의 최종 편집 상태.
  *
- * The project stores the result of the edits, not the list of commands that produced it. Renderers
- * build their plan from this snapshot alone, so preview and export cannot drift apart by replaying
- * history differently.
+ * 프로젝트는 편집을 만든 명령 목록이 아니라 편집 결과를 저장한다. 렌더러는 이 스냅샷만으로 계획을
+ * 세우므로, 히스토리를 다르게 재생해서 미리보기와 내보내기가 어긋나는 일이 없다.
  *
- * @property source key of the original image. The original is never overwritten.
- * @property geometry rotation, flip, straighten and crop applied to the upright source.
- * @property cutout background removal applied to the source before everything else, or `null`.
- * @property adjustments color and tone adjustments, applied after geometry.
- * @property filter preset and intensity, applied after the adjustments.
- * @property privacyMasks blur and mosaic areas, applied after color and before the drawing layer.
- * @property overlays text and stickers in z-order, last on top, positioned in the output canvas.
- * @property drawing strokes of the drawing layer, drawn below [overlays]. The eraser only affects
- *   this layer.
- * @property grainSeed fixes the grain pattern so it does not change between redraws or between
- *   preview and export.
+ * @property source 원본 이미지의 키. 원본은 절대 덮어쓰지 않는다.
+ * @property geometry 바로 세운 원본에 적용하는 회전, 뒤집기, 수평 보정, 자르기.
+ * @property cutout 다른 모든 처리보다 먼저 원본에 적용하는 배경 제거. 없으면 `null`.
+ * @property adjustments 색상·톤 보정. geometry 다음에 적용한다.
+ * @property filter 프리셋과 강도. adjustments 다음에 적용한다.
+ * @property privacyMasks 블러·모자이크 영역. 색상 처리 뒤, 그리기 레이어 전에 적용한다.
+ * @property overlays z-order 순(마지막이 맨 위)의 텍스트와 스티커. 출력 캔버스 기준으로 배치한다.
+ * @property drawing 그리기 레이어의 획. [overlays] 아래에 그린다. 지우개는 이 레이어에만
+ *   영향을 준다.
+ * @property grainSeed 다시 그릴 때나 미리보기와 내보내기 사이에서 grain 패턴이 바뀌지 않도록
+ *   고정한다.
  */
 public data class ImageProject(
     val id: ProjectId,
@@ -42,7 +41,7 @@ public data class ImageProject(
     override val revision: Long = 0L,
 ) : ProjectSnapshot<ImageProject> {
 
-    /** Resolved color pipeline for this snapshot. */
+    /** 이 스냅샷에 대해 확정된 색상 파이프라인. */
     public val colorSpec: ColorEffectSpec get() = ColorEffectSpec.of(adjustments, filter, grainSeed)
 
     override fun withRevision(revision: Long): ImageProject = copy(revision = revision)

@@ -1,8 +1,8 @@
 package com.naury.framekit.core.overlay
 
 /**
- * Standard emoji offered as stickers, grouped like a keyboard. They are rendered with the device emoji
- * font, so no image assets are bundled; the look follows the device (Noto, Samsung and so on).
+ * 스티커로 제공하는 표준 이모지. 키보드처럼 그룹으로 묶는다. 기기 이모지 폰트로 렌더링하므로
+ * 이미지 에셋을 포함하지 않으며, 모양은 기기(Noto, Samsung 등)를 따른다.
  */
 public object EmojiCatalog {
 
@@ -36,7 +36,7 @@ public object EmojiCatalog {
 
     public fun assetId(emoji: String): String = ASSET_PREFIX + emoji
 
-    /** The emoji text of an emoji asset id, or `null` for other assets. */
+    /** 이모지 에셋 id의 이모지 텍스트. 다른 에셋이면 `null`. */
     public fun emojiOf(assetId: String): String? = assetId.takeIf { it.startsWith(ASSET_PREFIX) }?.removePrefix(ASSET_PREFIX)?.takeIf { it.isNotEmpty() }
 
     private fun split(list: String): List<String> = list.split(' ').filter { it.isNotBlank() }

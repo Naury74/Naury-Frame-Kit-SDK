@@ -2,7 +2,7 @@ package com.naury.framekit.core.video
 
 import kotlin.math.roundToLong
 
-/** Where an output time falls on the main track. */
+/** 출력 시간이 메인 트랙에서 놓이는 위치. */
 public data class TimelinePosition(
     val clipIndex: Int,
     val clip: VideoClip,
@@ -11,27 +11,27 @@ public data class TimelinePosition(
 )
 
 /**
- * Converts between output timeline time and source time.
+ * 출력 타임라인 시간과 소스 시간 사이를 변환한다.
  *
- * `sourceTime = sourceStart + (timelineTime - clipStart) × speed`. Clip starts are the running sum of
- * integer output durations, so a hundred clips accumulate no drift.
+ * `sourceTime = sourceStart + (timelineTime - clipStart) × speed`. clip 시작점은 정수 출력 길이의
+ * 누적 합이므로 clip이 백 개여도 오차가 쌓이지 않는다.
  */
 public object TimelineTimeMapper {
 
-    /** Output start of every clip, in order. */
+    /** 모든 clip의 출력 시작점. 순서대로다. */
     public fun clipStarts(timeline: Timeline): List<Long> {
         var start = 0L
         return timeline.videoClips.map { clip -> start.also { start += clip.outputDurationUs } }
     }
 
-    /** Total output duration of the main track. */
+    /** 메인 트랙의 총 출력 길이. */
     public fun durationUs(timeline: Timeline): Long = timeline.videoClips.sumOf { it.outputDurationUs }
 
     /**
-     * Clip and source time under [timelineUs]. A time exactly at a clip end belongs to the next clip;
-     * the timeline end itself maps to the last frame position of the last clip.
+     * [timelineUs]에 해당하는 clip과 소스 시간. clip 끝과 정확히 같은 시간은 다음 clip에 속하며,
+     * 타임라인 끝 자체는 마지막 clip의 마지막 프레임 위치로 매핑된다.
      *
-     * @return `null` for an empty timeline or a negative time.
+     * @return 타임라인이 비었거나 시간이 음수이면 `null`.
      */
     public fun locate(timeline: Timeline, timelineUs: Long): TimelinePosition? {
         if (timeline.videoClips.isEmpty() || timelineUs < 0) return null
@@ -47,20 +47,20 @@ public object TimelineTimeMapper {
         return TimelinePosition(index, clip, starts[index], sourceTime(clip, timelineUs - starts[index]))
     }
 
-    /** Source time at [offsetUs] of output time into [clip]. */
+    /** [clip] 안으로 출력 시간 [offsetUs]만큼 들어간 지점의 소스 시간. */
     public fun sourceTime(clip: VideoClip, offsetUs: Long): Long =
         clip.sourceRange.startUs + (offsetUs * clip.speed).roundToLong()
 
-    /** Output offset into [clip] for a source time inside its range. */
+    /** 범위 안의 소스 시간에 대한 [clip] 안의 출력 오프셋. */
     public fun outputOffset(clip: VideoClip, sourceUs: Long): Long =
         ((sourceUs - clip.sourceRange.startUs) / clip.speed).roundToLong()
 
     /**
-     * Splits the clip under [timelineUs] into two clips that share the source and effects.
+     * [timelineUs] 아래의 clip을 소스와 효과를 공유하는 두 clip으로 나눈다.
      *
-     * @param minOutputDurationUs both halves must be at least this long in output time.
-     * @param newId id of the second half.
-     * @return the new timeline, or `null` at a clip boundary or when a half would be too short.
+     * @param minOutputDurationUs 두 조각 모두 출력 시간 기준으로 최소 이 길이여야 한다.
+     * @param newId 두 번째 조각의 id.
+     * @return 새 타임라인. clip 경계이거나 한 조각이 너무 짧아지면 `null`.
      */
     public fun split(timeline: Timeline, timelineUs: Long, minOutputDurationUs: Long, newId: String): Timeline? {
         val position = locate(timeline, timelineUs) ?: return null
@@ -77,7 +77,7 @@ public object TimelineTimeMapper {
         return timeline.copy(videoClips = clips)
     }
 
-    /** Moves a clip to [toIndex]. Starts of all clips follow automatically. */
+    /** clip을 [toIndex]로 옮긴다. 모든 clip의 시작점은 자동으로 따라온다. */
     public fun move(timeline: Timeline, fromIndex: Int, toIndex: Int): Timeline {
         val clips = timeline.videoClips.toMutableList()
         val clip = clips.removeAt(fromIndex)

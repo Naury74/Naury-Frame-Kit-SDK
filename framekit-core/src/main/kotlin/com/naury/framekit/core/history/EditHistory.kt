@@ -3,18 +3,18 @@ package com.naury.framekit.core.history
 import com.naury.framekit.core.model.ProjectSnapshot
 
 /**
- * Immutable undo/redo history of project snapshots.
+ * 프로젝트 스냅샷의 불변 실행 취소/다시 실행 히스토리.
  *
- * Every operation returns a new instance. Snapshots are compared with
- * [ProjectSnapshot.sameContentAs], so committing unchanged content is a no-op and does not advance
- * the revision. New commits get a revision that was never used before in this history, which keeps
- * revision-keyed caches correct after undo followed by a different edit.
+ * 모든 연산은 새 인스턴스를 반환한다. 스냅샷은 [ProjectSnapshot.sameContentAs]로 비교하므로
+ * 내용이 바뀌지 않은 커밋은 아무 동작도 하지 않고 revision도 올리지 않는다. 새 커밋은 이 히스토리에서
+ * 한 번도 쓰이지 않은 revision을 받으므로, 실행 취소 후 다른 편집을 해도 revision 키 기반 캐시가
+ * 올바르게 유지된다.
  *
- * Only project snapshots are stored. Bitmaps and render caches must never be put in a history.
+ * 프로젝트 스냅샷만 저장한다. Bitmap이나 렌더 캐시는 절대 히스토리에 넣으면 안 된다.
  *
- * @property baseline state the editor opened with. [isDirty] compares against it rather than
- *   against the undo stack length, so undoing back to the baseline makes the project clean again.
- * @property capacity maximum number of undo steps kept. The oldest step is dropped first.
+ * @property baseline 편집기가 열릴 때의 상태. [isDirty]는 실행 취소 스택 길이가 아니라 이 값과
+ *   비교하므로, baseline까지 실행 취소하면 프로젝트가 다시 변경 없음 상태가 된다.
+ * @property capacity 보관하는 최대 실행 취소 단계 수. 가장 오래된 단계부터 버린다.
  */
 public class EditHistory<T : ProjectSnapshot<T>> private constructor(
     public val current: T,
@@ -29,9 +29,9 @@ public class EditHistory<T : ProjectSnapshot<T>> private constructor(
     public val isDirty: Boolean get() = !current.sameContentAs(baseline)
 
     /**
-     * Makes [next] the current state and clears the redo stack.
+     * [next]를 현재 상태로 만들고 다시 실행 스택을 비운다.
      *
-     * Returns this instance unchanged when [next] has the same content as [current].
+     * [next]가 [current]와 내용이 같으면 이 인스턴스를 그대로 반환한다.
      */
     public fun commit(next: T): EditHistory<T> {
         if (next.sameContentAs(current)) return this
@@ -40,26 +40,26 @@ public class EditHistory<T : ProjectSnapshot<T>> private constructor(
         return EditHistory(next.withRevision(revision), baseline, newPast, emptyList(), capacity, revision)
     }
 
-    /** Restores the previous snapshot. Returns this instance when there is nothing to undo. */
+    /** 이전 스냅샷으로 되돌린다. 실행 취소할 것이 없으면 이 인스턴스를 반환한다. */
     public fun undo(): EditHistory<T> {
         if (!canUndo) return this
         return EditHistory(past.last(), baseline, past.dropLast(1), listOf(current) + future, capacity, highestRevision)
     }
 
-    /** Re-applies the next snapshot. Returns this instance when there is nothing to redo. */
+    /** 다음 스냅샷을 다시 적용한다. 다시 실행할 것이 없으면 이 인스턴스를 반환한다. */
     public fun redo(): EditHistory<T> {
         if (!canRedo) return this
         return EditHistory(future.first(), baseline, past + current, future.drop(1), capacity, highestRevision)
     }
 
     public companion object {
-        /** Default number of undo steps. */
+        /** 기본 실행 취소 단계 수. */
         public const val DEFAULT_CAPACITY: Int = 50
 
         /**
-         * Starts a history whose baseline and current state are [initial].
+         * baseline과 현재 상태가 모두 [initial]인 히스토리를 시작한다.
          *
-         * @throws IllegalArgumentException when [capacity] is not positive.
+         * @throws IllegalArgumentException [capacity]가 양수가 아닐 때.
          */
         public fun <T : ProjectSnapshot<T>> start(initial: T, capacity: Int = DEFAULT_CAPACITY): EditHistory<T> {
             require(capacity > 0) { "History capacity must be positive: $capacity" }
@@ -67,11 +67,11 @@ public class EditHistory<T : ProjectSnapshot<T>> private constructor(
         }
 
         /**
-         * Rebuilds a history after process death: [current] is the last committed snapshot and
-         * [baseline] is the untouched state the editor originally opened with. Undo and redo stacks
-         * are not restored, but [isDirty] still compares against the original baseline.
+         * 프로세스 종료 후 히스토리를 다시 만든다. [current]는 마지막으로 커밋된 스냅샷이고
+         * [baseline]은 편집기가 처음 열릴 때의 손대지 않은 상태다. 실행 취소·다시 실행 스택은
+         * 복원하지 않지만 [isDirty]는 여전히 원래 baseline과 비교한다.
          *
-         * @throws IllegalArgumentException when [capacity] is not positive.
+         * @throws IllegalArgumentException [capacity]가 양수가 아닐 때.
          */
         public fun <T : ProjectSnapshot<T>> restore(baseline: T, current: T, capacity: Int = DEFAULT_CAPACITY): EditHistory<T> {
             require(capacity > 0) { "History capacity must be positive: $capacity" }

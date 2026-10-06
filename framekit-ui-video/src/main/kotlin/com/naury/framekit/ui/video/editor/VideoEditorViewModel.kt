@@ -76,7 +76,7 @@ import kotlin.math.min
 import kotlin.math.roundToLong
 import kotlin.random.Random
 
-/** Writes the edited video; [VideoExportCoordinator][com.naury.framekit.video.export.VideoExportCoordinator] in production. */
+/** 편집된 영상을 기록한다. 프로덕션에서는 [VideoExportCoordinator][com.naury.framekit.video.export.VideoExportCoordinator]를 쓴다. */
 internal fun interface VideoExporter {
     suspend fun export(
         project: VideoProject,
@@ -86,18 +86,18 @@ internal fun interface VideoExporter {
     ): EditedMedia
 }
 
-/** Timeline frames; [VideoThumbnailLoader][com.naury.framekit.video.thumbnail.VideoThumbnailLoader] in production. */
+/** 타임라인 프레임. 프로덕션에서는 [VideoThumbnailLoader][com.naury.framekit.video.thumbnail.VideoThumbnailLoader]를 쓴다. */
 internal fun interface VideoFrameSource {
     suspend fun frame(location: SourceLocation, sourceKey: String, timeUs: Long, heightPx: Int): Bitmap?
 }
 
 /**
- * State holder of one video editing session.
+ * 영상 편집 세션 하나의 상태 홀더.
  *
- * Edits follow the photo editor: draft tools (trim, crop, rotate) are one undo step per session, and
- * slider gestures are one step per drag. The preview player shows the displayed project, rebuilt
- * after a short debounce so dragging a slider does not prepare the player on every frame. Export
- * always uses the committed snapshot.
+ * 편집 방식은 사진 에디터를 따른다. 초안 도구(트림, 자르기, 회전)는 세션당 실행 취소 한 단계,
+ * 슬라이더 제스처는 드래그당 한 단계다. 미리보기 플레이어는 표시 중인 프로젝트를 보여주며,
+ * 슬라이더를 드래그할 때 매 프레임 플레이어를 준비하지 않도록 짧은 디바운스 후에 다시 구성한다.
+ * 내보내기는 항상 커밋된 스냅샷을 사용한다.
  */
 internal class VideoEditorViewModel(
     private val request: VideoEditorRequest,
@@ -120,17 +120,17 @@ internal class VideoEditorViewModel(
 
     private val _result = MutableStateFlow<FrameKitResult?>(null)
 
-    /** Final result; the Activity finishes as soon as this is not `null`. */
+    /** 최종 결과. 이 값이 `null`이 아니게 되는 즉시 Activity가 종료된다. */
     val result: StateFlow<FrameKitResult?> = _result.asStateFlow()
 
     private val engine = previewEngineFactory(viewModelScope)
 
-    /** Playback position and status of the preview, in output time. */
+    /** 미리보기의 재생 위치와 상태(출력 시간 기준). */
     val playback: StateFlow<VideoPlaybackState> = engine.state
 
     private val _previewSize = MutableStateFlow<Pair<Int, Int>?>(null)
 
-    /** Size of the frame the preview shows: the output canvas, or the uncropped frame while cropping. */
+    /** 미리보기가 보여주는 프레임 크기. 출력 캔버스이며, 자르는 중에는 자르기 전 프레임이다. */
     val previewSize: StateFlow<Pair<Int, Int>?> = _previewSize.asStateFlow()
 
     private val _filterThumbnails = MutableStateFlow<Map<String, Bitmap>>(emptyMap())
@@ -187,7 +187,7 @@ internal class VideoEditorViewModel(
         }
     }
 
-    /** Called with the picker result. `null` means the user dismissed the picker. */
+    /** 피커 결과와 함께 호출된다. `null`은 사용자가 피커를 닫았다는 뜻이다. */
     fun onPicked(uri: Uri?) {
         if (uri == null) {
             if (_state.value is VideoEditorUiState.AwaitingPick) finish(FrameKitResult.Cancelled)
@@ -197,7 +197,7 @@ internal class VideoEditorViewModel(
         load(EditorInput.UriSource(uri))
     }
 
-    /** Returns to the picker after a source failed to open. */
+    /** 소스를 열지 못한 뒤 피커로 돌아간다. */
     fun chooseAnother() {
         savedState.remove<Uri>(KEY_PICKED_URI)
         _state.value = VideoEditorUiState.AwaitingPick
@@ -299,7 +299,7 @@ internal class VideoEditorViewModel(
         if (engine.state.value.isPlaying) engine.pause() else engine.play()
     }
 
-    /** Seeks to an output time; [scrubbing] favours speed while the user drags. */
+    /** 출력 시간으로 탐색한다. 사용자가 드래그하는 동안 [scrubbing]이면 속도를 우선한다. */
     fun seekTo(positionUs: Long, scrubbing: Boolean = false) {
         val ready = _state.value as? VideoEditorUiState.Ready ?: return
         engine.setScrubbing(scrubbing)
@@ -312,10 +312,10 @@ internal class VideoEditorViewModel(
 
     fun detachSurface(holder: android.view.SurfaceHolder) = engine.detachSurface(holder)
 
-    /** Called when the Activity stops; playback never continues in the background. */
+    /** Activity가 멈출 때 호출된다. 백그라운드에서는 재생을 계속하지 않는다. */
     fun onStop() = engine.pause()
 
-    /** A timeline frame of the edited source, `null` when it cannot be read. */
+    /** 편집 중인 소스의 타임라인 프레임. 읽을 수 없으면 `null`. */
     suspend fun timelineFrame(sourceTimeUs: Long, heightPx: Int): Bitmap? {
         val ready = _state.value as? VideoEditorUiState.Ready ?: return null
         return frames.frame(ready.location, ready.clip.source.value, sourceTimeUs, heightPx)
@@ -343,12 +343,12 @@ internal class VideoEditorViewModel(
         ready.copy(activeTool = null, transaction = ready.transaction.update(clampMasks(draft)).commit())
     }
 
-    /** Cancel of a draft tool: the project returns to the state before the tool opened. */
+    /** 초안 도구 취소. 프로젝트는 도구를 열기 전 상태로 돌아간다. */
     fun cancelTool() = updateReady { ready ->
         if (ready.activeTool?.isDraft != true) ready else ready.copy(activeTool = null, transaction = ready.transaction.cancel())
     }
 
-    /** Closes a tool whose changes are already committed. */
+    /** 변경이 이미 커밋된 도구를 닫는다. */
     fun closeTool() = updateReady { ready ->
         if (ready.activeTool?.isDraft != false || ready.transaction.isActive) ready else ready.copy(activeTool = null, selectedMaskId = null)
     }
@@ -375,7 +375,7 @@ internal class VideoEditorViewModel(
 
     // ---- 구간 자르기 ----
 
-    /** Starts dragging a trim handle. */
+    /** 트림 핸들 드래그를 시작한다. */
     fun beginTrim(edge: TrimEdge) {
         val ready = _state.value as? VideoEditorUiState.Ready ?: return
         if (ready.activeTool != VideoTool.TRIM) return
@@ -384,8 +384,8 @@ internal class VideoEditorViewModel(
     }
 
     /**
-     * Moves the dragged handle to [sourceTimeUs]. The kept part stays between the minimum clip and
-     * the maximum timeline length, measured in output time after speed.
+     * 드래그 중인 핸들을 [sourceTimeUs]로 옮긴다. 남길 구간은 배속 적용 후 출력 시간 기준으로
+     * 최소 클립 길이와 최대 타임라인 길이 사이로 유지된다.
      */
     fun dragTrim(sourceTimeUs: Long) {
         val edge = trimEdge ?: return
@@ -470,7 +470,7 @@ internal class VideoEditorViewModel(
         project.updateClip { it.copy(effects = it.effects.copy(adjustments = it.effects.adjustments.with(kind, kind.fromDisplay(display)))) }
     }
 
-    /** End of a slider drag: commits it as one undo step. */
+    /** 슬라이더 드래그 종료. 실행 취소 한 단계로 커밋한다. */
     fun finishGesture() = updateReady { ready ->
         if (ready.activeTool?.isDraft == true || !ready.transaction.isActive) ready else ready.copy(transaction = ready.transaction.commit())
     }
@@ -516,7 +516,7 @@ internal class VideoEditorViewModel(
 
     // ---- 속도·소리 ----
 
-    /** `true` when [speed] keeps the result within the configured length limits. */
+    /** [speed]를 적용해도 결과가 설정된 길이 제한 안에 있으면 `true`. */
     fun speedAllowed(speed: Double): SpeedCheck {
         val ready = _state.value as? VideoEditorUiState.Ready ?: return SpeedCheck.OK
         val output = ready.clip.sourceRange.durationUs / speed
@@ -538,14 +538,14 @@ internal class VideoEditorViewModel(
 
     fun setMuted(muted: Boolean) = commitImmediate { project -> project.updateClip { it.copy(muted = muted) } }
 
-    /** Volume slider in percent, `0..200`. */
+    /** 퍼센트 단위 볼륨 슬라이더, `0..200`. */
     fun changeVolume(percent: Float) = updateGesture { _, project ->
         project.updateClip { it.copy(volume = (percent / 100.0).coerceIn(0.0, VideoClip.MAX_VOLUME), muted = false) }
     }
 
     // ---- 모자이크 ----
 
-    /** Settings for the next mask; existing masks keep their effect. */
+    /** 다음 마스크의 설정. 기존 마스크는 효과를 그대로 유지한다. */
     fun updatePrivacy(transform: (PrivacySettings) -> PrivacySettings) = updateReady { ready ->
         val next = transform(ready.privacy)
         ready.copy(privacy = if (next.shape == PrivacyShape.BRUSH) next.copy(shape = PrivacyShape.RECTANGLE) else next)
@@ -608,7 +608,7 @@ internal class VideoEditorViewModel(
         updateReady { if (it.selectedMaskId == id) it.copy(selectedMaskId = null) else it }
     }
 
-    /** Moves the start (or end) of a mask to the playhead, keeping at least one frame. */
+    /** 마스크의 시작(또는 끝)을 재생 헤드로 옮긴다. 최소 한 프레임은 유지한다. */
     fun setMaskEdge(id: String, start: Boolean) {
         val position = engine.state.value.positionUs
         commitImmediate { project ->
@@ -710,7 +710,7 @@ internal class VideoEditorViewModel(
 
     fun dismissApplyHint() = updateReady { it.copy(showApplyHint = false) }
 
-    /** Close button or system back. */
+    /** 닫기 버튼 또는 시스템 뒤로 가기. */
     fun requestClose() {
         when (val current = _state.value) {
             is VideoEditorUiState.Ready -> when {
@@ -723,7 +723,7 @@ internal class VideoEditorViewModel(
         }
     }
 
-    /** System back: closes an open tool first, then behaves like [requestClose]. */
+    /** 시스템 뒤로 가기. 열린 도구를 먼저 닫고, 그다음에는 [requestClose]처럼 동작한다. */
     fun onBack() {
         val ready = _state.value as? VideoEditorUiState.Ready
         when {
@@ -812,7 +812,7 @@ internal enum class TrimEdge { START, END }
 
 internal enum class SpeedCheck { OK, TOO_LONG, TOO_SHORT }
 
-/** Gestures on the video preview. */
+/** 영상 미리보기의 제스처. */
 internal interface VideoCanvasActions {
     fun beginCropDrag(handle: CropHandle)
     fun dragCrop(dx: Double, dy: Double)

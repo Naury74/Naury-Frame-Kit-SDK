@@ -22,12 +22,11 @@ import kotlin.math.max
 import kotlin.math.min
 
 /**
- * Mosaic and blur masks on the output canvas of a video, each active during its own output time
- * range. Rectangles and ellipses are supported; brush masks are image-only.
+ * 영상 출력 캔버스에 적용하는 모자이크·블러 마스크다. 각 마스크는 자신의 출력 시간 구간 동안만
+ * 활성화된다. 사각형과 타원을 지원하며, 브러시 마스크는 이미지 전용이다.
  *
- * Mosaic blocks are anchored at the canvas top-left and sized relative to the short edge, as on
- * photos. Blur averages a disk of samples, which hides detail but, like any blur, is not guaranteed
- * to be irreversible.
+ * 모자이크 블록은 사진과 같이 캔버스 왼쪽 위를 기준으로 짧은 변에 비례한 크기로 나눈다. 블러는 원형
+ * 영역의 샘플을 평균해 디테일을 가리지만, 다른 블러와 마찬가지로 복원 불가능하다고 보장하지는 않는다.
  */
 internal class PrivacyGlEffect(private val masks: List<TimedPrivacyMask>) : GlEffect {
 

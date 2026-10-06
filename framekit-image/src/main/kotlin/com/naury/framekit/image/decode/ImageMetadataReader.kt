@@ -13,13 +13,13 @@ import com.naury.framekit.core.model.SourceId
 import com.naury.framekit.core.model.SourceMetadata
 import java.io.IOException
 
-/** Reads size, format and orientation of an image without decoding its pixels. */
+/** 픽셀을 디코딩하지 않고 이미지의 크기·포맷·방향을 읽는다. */
 public class ImageMetadataReader(private val resolver: SourceResolver) {
 
     /**
-     * @throws FrameKitException with `DECODE_FAILED` for empty or damaged headers,
-     *   `UNSUPPORTED_FORMAT` for formats outside [SupportedImageFormats] or animated images, and
-     *   `SOURCE_TOO_LARGE` above [MAX_SOURCE_PIXELS].
+     * @throws FrameKitException header가 비었거나 손상되면 `DECODE_FAILED`,
+     *   [SupportedImageFormats] 밖의 포맷이나 애니메이션 이미지면 `UNSUPPORTED_FORMAT`,
+     *   [MAX_SOURCE_PIXELS]를 넘으면 `SOURCE_TOO_LARGE`.
      */
     public fun read(id: SourceId): ImageSourceInfo {
         val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
@@ -77,8 +77,8 @@ public class ImageMetadataReader(private val resolver: SourceResolver) {
 
     public companion object {
         /**
-         * Largest accepted source, 250 MP. Current 200 MP phone cameras fit; larger or forged headers
-         * are rejected with `SOURCE_TOO_LARGE` before any pixel is allocated.
+         * 허용하는 최대 원본 크기로 250 MP다. 현재 200 MP 폰 카메라는 수용하며, 더 크거나 위조된 header는
+         * 픽셀을 할당하기 전에 `SOURCE_TOO_LARGE`로 거부한다.
          */
         public const val MAX_SOURCE_PIXELS: Long = 250_000_000L
     }

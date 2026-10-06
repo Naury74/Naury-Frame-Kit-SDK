@@ -17,8 +17,8 @@ import com.naury.framekit.ui.image.contract.ImageEditorContract
 import com.naury.framekit.ui.video.contract.VideoEditorContract
 
 /**
- * Invisible router behind [FrameKitContract]: shows the picker when needed, opens the matching
- * editor and passes its result back unchanged. It survives recreation without launching twice.
+ * [FrameKitContract] 뒤에서 동작하는 보이지 않는 라우터다. 필요하면 picker를 띄우고, 소스에 맞는
+ * 편집기를 연 뒤 그 결과를 그대로 돌려준다. 재생성되어도 편집기를 두 번 띄우지 않는다.
  */
 internal class FrameKitActivity : ComponentActivity() {
 

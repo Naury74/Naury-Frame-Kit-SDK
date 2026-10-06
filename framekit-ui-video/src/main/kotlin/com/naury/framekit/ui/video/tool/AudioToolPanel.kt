@@ -18,7 +18,7 @@ import com.naury.framekit.ui.design.FrameKitTheme
 import com.naury.framekit.ui.video.R
 import kotlin.math.roundToInt
 
-/** Mute switch and volume of the original sound. */
+/** 원본 소리의 음소거 스위치와 볼륨. */
 @Composable
 internal fun AudioToolPanel(
     hasAudio: Boolean,

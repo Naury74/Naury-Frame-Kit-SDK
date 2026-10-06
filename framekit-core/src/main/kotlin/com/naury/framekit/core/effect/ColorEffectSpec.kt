@@ -7,17 +7,17 @@ import kotlin.math.min
 import kotlin.math.pow
 
 /**
- * Resolved constants of the color pipeline. Renderers (CPU reference and GPU) read only this, so both
- * apply exactly the same numbers.
+ * 색상 파이프라인의 확정 상수. 렌더러(CPU 기준 구현과 GPU)는 이것만 읽으므로 둘 다 정확히 같은
+ * 숫자를 적용한다.
  *
- * Order, version [VERSION]:
- * 1. linear sRGB: exposure (`× 2^EV`), white balance (temperature/tint gains, luminance preserving)
- * 2. display sRGB: shadows/highlights, brightness, contrast, saturation, filter preset (mixed by
- *    intensity), then clamp and quantize to 8 bits
- * 3. spatial and canvas effects: sharpness (unsharp mask), fade, vignette, grain
+ * 순서, 버전 [VERSION]:
+ * 1. linear sRGB: 노출(`× 2^EV`), 화이트 밸런스(temperature/tint 게인, 휘도 보존)
+ * 2. display sRGB: 그림자/하이라이트, 밝기, 대비, 채도, 필터 프리셋(intensity로 혼합) 후
+ *    clamp하고 8비트로 양자화
+ * 3. 공간·캔버스 효과: 선명도(unsharp mask), fade, vignette, grain
  *
- * Vignette and grain are positioned in normalized output-canvas coordinates and the sharpening
- * radius is a fraction of the short edge, so preview and export at different sizes match.
+ * vignette와 grain은 정규화된 출력 캔버스 좌표로 배치하고 샤프닝 반경은 짧은 변에 대한 비율이므로,
+ * 크기가 다른 미리보기와 내보내기 결과가 일치한다.
  */
 public data class ColorEffectSpec(
     val exposureGain: Float,
@@ -35,10 +35,10 @@ public data class ColorEffectSpec(
     val grainAmount: Float,
     val grainSeed: Int,
 ) {
-    /** Per-channel multipliers. */
+    /** 채널별 배율. */
     public data class Gains(val red: Float, val green: Float, val blue: Float)
 
-    /** [FilterGrade] turned into the same kind of constants as the adjustments. */
+    /** [FilterGrade]를 보정과 같은 종류의 상수로 바꾼 값. */
     public data class ResolvedGrade(
         val gains: Gains,
         val brightnessOffset: Float,
@@ -49,20 +49,20 @@ public data class ColorEffectSpec(
         val fadeLift: Float,
     )
 
-    /** `true` when the pipeline returns the input unchanged. */
+    /** 파이프라인이 입력을 그대로 반환하면 `true`. */
     public val isIdentity: Boolean
         get() = exposureGain == 1f && whiteBalance == NEUTRAL && shadows == 0f && highlights == 0f &&
             brightnessOffset == 0f && contrastFactor == 1f && saturationFactor == 1f &&
             (grade == null || filterIntensity == 0f) && !hasSpatialEffects
 
-    /** `true` when sharpness, fade, vignette or grain are active. */
+    /** 선명도, fade, vignette, grain 중 하나라도 활성이면 `true`. */
     public val hasSpatialEffects: Boolean
         get() = sharpenAmount != 0f || fadeLift != 0f || vignetteStrength != 0f || grainAmount != 0f
 
-    /** Gaussian sigma in pixels for an output whose short edge is [shortEdgePx]. */
+    /** 짧은 변이 [shortEdgePx]인 출력에 대한 Gaussian sigma(픽셀). */
     public fun sharpenSigma(shortEdgePx: Int): Float = max(MIN_SIGMA_PX, SHARPEN_SIGMA_SHORT_EDGE_RATIO * shortEdgePx)
 
-    /** Normalized 1D Gaussian weights from the center tap outwards; both renderers use these. */
+    /** 중앙 탭부터 바깥쪽 순서의 정규화된 1D Gaussian 가중치. 두 렌더러가 모두 이것을 쓴다. */
     public fun sharpenWeights(shortEdgePx: Int): FloatArray {
         val sigma = sharpenSigma(shortEdgePx)
         val radius = min(MAX_BLUR_RADIUS, ceil(3f * sigma).toInt())
@@ -79,7 +79,7 @@ public data class ColorEffectSpec(
         internal const val MIN_SIGMA_PX = 0.6f
         internal val NEUTRAL = Gains(1f, 1f, 1f)
 
-        /** Grain cells across the short edge of the canvas. */
+        /** 캔버스 짧은 변에 걸친 grain 칸 수. */
         public const val GRAIN_CELLS_SHORT_EDGE: Int = 720
 
         public fun of(adjustments: Adjustments, filter: FilterSelection, grainSeed: Long): ColorEffectSpec {

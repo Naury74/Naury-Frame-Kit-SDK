@@ -3,37 +3,36 @@ package com.naury.framekit.core.history
 import com.naury.framekit.core.model.ProjectSnapshot
 
 /**
- * History plus an optional in-progress change such as a slider drag, pinch or crop draft.
+ * 히스토리와, 슬라이더 드래그·핀치·자르기 초안 같은 진행 중인 변경(선택)을 함께 담는다.
  *
- * A gesture is `begin → update* → commit` or `begin → update* → cancel`. Updates only change
- * [displayed]; the history receives at most one entry when the gesture is committed, and nothing when
- * it is cancelled.
+ * 제스처는 `begin → update* → commit` 또는 `begin → update* → cancel`이다. update는 [displayed]만
+ * 바꾸며, 히스토리에는 제스처를 커밋할 때 최대 한 항목이 추가되고 취소하면 아무것도 추가되지 않는다.
  */
 public data class HistoryTransaction<T : ProjectSnapshot<T>>(
     val history: EditHistory<T>,
     val draft: T? = null,
 ) {
-    /** State that preview should render: the draft while a gesture is active, otherwise the current snapshot. */
+    /** 미리보기가 렌더링할 상태. 제스처가 진행 중이면 초안, 아니면 현재 스냅샷이다. */
     public val displayed: T get() = draft ?: history.current
 
     public val isActive: Boolean get() = draft != null
 
-    /** Starts a gesture from the current snapshot. Restarting an active gesture keeps its draft. */
+    /** 현재 스냅샷에서 제스처를 시작한다. 진행 중인 제스처를 다시 시작하면 초안을 유지한다. */
     public fun begin(): HistoryTransaction<T> = if (isActive) this else copy(draft = history.current)
 
-    /** Replaces the draft. Starts a gesture implicitly when none is active. */
+    /** 초안을 교체한다. 진행 중인 제스처가 없으면 암묵적으로 시작한다. */
     public fun update(value: T): HistoryTransaction<T> = copy(draft = value)
 
-    /** Commits the draft as one history entry and ends the gesture. */
+    /** 초안을 히스토리 한 항목으로 커밋하고 제스처를 끝낸다. */
     public fun commit(): HistoryTransaction<T> {
         val value = draft ?: return this
         return HistoryTransaction(history.commit(value))
     }
 
-    /** Drops the draft and returns to the state before [begin]. */
+    /** 초안을 버리고 [begin] 이전 상태로 돌아간다. */
     public fun cancel(): HistoryTransaction<T> = copy(draft = null)
 
-    /** Undo is only applied between gestures so that a draft never mixes with history navigation. */
+    /** 초안이 히스토리 탐색과 섞이지 않도록 실행 취소는 제스처 사이에서만 적용한다. */
     public fun undo(): HistoryTransaction<T> = if (isActive) this else copy(history = history.undo())
 
     public fun redo(): HistoryTransaction<T> = if (isActive) this else copy(history = history.redo())

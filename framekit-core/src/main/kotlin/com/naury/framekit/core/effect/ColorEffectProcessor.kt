@@ -9,17 +9,16 @@ import kotlin.math.roundToInt
 import kotlin.math.sqrt
 
 /**
- * CPU reference implementation of [ColorEffectSpec].
+ * [ColorEffectSpec]의 CPU 기준 구현.
  *
- * It defines the expected output that the GPU renderer is compared against and serves as the
- * fallback on devices without OpenGL ES 3.0. Pixels are non-premultiplied ARGB, processed in place;
- * alpha is preserved.
+ * GPU 렌더러를 비교할 기대 출력을 정의하고, OpenGL ES 3.0이 없는 기기에서는 대체 경로로 쓰인다.
+ * 픽셀은 premultiply되지 않은 ARGB이며 제자리에서 처리하고, alpha는 유지한다.
  */
 public object ColorEffectProcessor {
 
     /**
-     * @param includeCanvasEffects `false` skips vignette and grain, for previews that do not show the
-     *   final canvas (for example the uncropped view of the crop tool).
+     * @param includeCanvasEffects `false`이면 vignette와 grain을 건너뛴다. 최종 캔버스를 보여주지 않는
+     *   미리보기(예: 자르기 도구의 자르기 전 화면)용이다.
      */
     public fun process(pixels: IntArray, width: Int, height: Int, spec: ColorEffectSpec, includeCanvasEffects: Boolean = true) {
         require(pixels.size >= width * height) { "Pixel buffer is too small" }
@@ -54,7 +53,7 @@ public object ColorEffectProcessor {
         }
     }
 
-    /** Steps 1 and 2 of the pipeline on one pixel; [rgb] enters linear and leaves clamped display RGB. */
+    /** 픽셀 하나에 대한 파이프라인 1·2단계. [rgb]는 linear로 들어와 clamp된 display RGB로 나간다. */
     public fun pointOps(spec: ColorEffectSpec, rgb: FloatArray) {
         val wb = spec.whiteBalance
         rgb[0] = linearToSrgb((rgb[0] * spec.exposureGain * wb.red).coerceIn(0f, 1f))
@@ -83,7 +82,7 @@ public object ColorEffectProcessor {
         for (c in 0..2) rgb[c] = rgb[c].coerceIn(0f, 1f)
     }
 
-    /** Step 3 after sharpening: fade, vignette and grain on clamped display RGB. */
+    /** 샤프닝 이후의 3단계: clamp된 display RGB에 fade, vignette, grain을 적용한다. */
     public fun finishOps(
         spec: ColorEffectSpec,
         rgb: FloatArray,
@@ -114,7 +113,7 @@ public object ColorEffectProcessor {
         }
     }
 
-    /** Separable Gaussian blur with edge clamping, on 8-bit RGB; alpha is copied. */
+    /** 가장자리를 clamp하는 분리형 Gaussian blur. 8비트 RGB에 적용하고 alpha는 복사한다. */
     public fun blur(pixels: IntArray, width: Int, height: Int, weights: FloatArray): IntArray {
         val radius = weights.size - 1
         val horizontal = IntArray(width * height)
@@ -145,7 +144,7 @@ public object ColorEffectProcessor {
         return result
     }
 
-    /** Normalized 1D Gaussian weights for [sigma] pixels, from the center tap outwards. */
+    /** [sigma] 픽셀에 대한 정규화된 1D Gaussian 가중치. 중앙 탭부터 바깥쪽 순서다. */
     public fun gaussianWeights(sigma: Float, maxRadius: Int = ColorEffectSpec.MAX_BLUR_RADIUS): FloatArray {
         val safeSigma = maxOf(0.5f, sigma)
         val radius = min(maxRadius, ceil(3f * safeSigma).toInt())
@@ -155,7 +154,7 @@ public object ColorEffectProcessor {
         return weights
     }
 
-    /** Integer hash shared bit for bit with the shader; returns `0..1`. */
+    /** shader와 비트 단위까지 동일한 정수 해시. `0..1`을 반환한다. */
     public fun grainNoise(x: Int, y: Int, seed: Int): Float {
         var h = x * HASH_X + y * HASH_Y + seed * HASH_SEED
         h = (h xor (h ushr 13)) * HASH_MIX

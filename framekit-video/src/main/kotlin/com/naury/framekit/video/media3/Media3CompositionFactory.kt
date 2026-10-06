@@ -25,11 +25,11 @@ import com.naury.framekit.video.ResolvedClip
 import com.naury.framekit.video.VideoRenderPlan
 
 /**
- * Turns a [VideoRenderPlan] into a Media3 [Composition]. Preview and export call the same factory so
- * they apply the same trim, speed, geometry and color. Media3 types never leave this package.
+ * [VideoRenderPlan]을 Media3 [Composition]으로 변환한다. 미리보기와 내보내기가 같은 factory를 호출하므로
+ * trim, 속도, geometry, 색 보정이 똑같이 적용된다. Media3 타입은 이 패키지 밖으로 나가지 않는다.
  *
- * Per clip: trim (clipping), speed, mute/volume, geometry, canvas fit and color. Composition-wide:
- * timed privacy masks on the output canvas, and HDR is tone-mapped to SDR.
+ * 클립 단위: trim(clipping), 속도, 음소거/볼륨, geometry, 캔버스 맞춤, 색 보정. Composition 전체:
+ * 출력 캔버스의 구간별 가리기 마스크, HDR을 SDR로 tone-map.
  */
 internal object Media3CompositionFactory {
 

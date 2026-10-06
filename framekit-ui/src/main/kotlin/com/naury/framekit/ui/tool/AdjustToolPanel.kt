@@ -28,8 +28,8 @@ import com.naury.framekit.ui.component.ValueSlider
 import com.naury.framekit.ui.design.FrameKitTheme
 
 /**
- * Horizontal list of adjustments and the slider of the selected one. Each drag is one undo step;
- * double-tapping the slider returns the value to zero.
+ * 보정 항목의 가로 목록과 선택한 항목의 슬라이더. 드래그 한 번이 실행 취소 한 단계이며,
+ * 슬라이더를 더블탭하면 값이 0으로 돌아간다.
  */
 @Composable
 public fun AdjustToolPanel(

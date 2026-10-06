@@ -2,12 +2,12 @@ package com.naury.framekit.image.decode
 
 import java.io.InputStream
 
-/** Reads the RIFF header of a WEBP file to tell animated files from still images. */
+/** WEBP 파일의 RIFF header를 읽어 애니메이션 파일과 정지 이미지를 구분한다. */
 internal object WebpHeader {
     private const val HEADER_SIZE = 21
     private const val ANIMATION_FLAG = 0x02
 
-    /** `true` when the stream starts with an extended WEBP header whose animation flag is set. */
+    /** 스트림이 animation flag가 켜진 확장 WEBP header로 시작하면 `true`다. */
     fun isAnimated(stream: InputStream): Boolean {
         val header = ByteArray(HEADER_SIZE)
         var read = 0

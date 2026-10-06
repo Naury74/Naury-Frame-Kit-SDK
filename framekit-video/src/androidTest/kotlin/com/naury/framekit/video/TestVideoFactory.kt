@@ -11,9 +11,9 @@ import kotlin.math.PI
 import kotlin.math.sin
 
 /**
- * Writes a deterministic test video: quadrants red (top left), green (top right), blue (bottom left)
- * and white (bottom right), H.264 at 30 fps, with an optional 440 Hz AAC tone. Generated on the
- * device so the repository needs no binary fixtures.
+ * 결정적인 테스트 영상을 만든다. 사분면은 빨강(왼쪽 위), 초록(오른쪽 위), 파랑(왼쪽 아래),
+ * 흰색(오른쪽 아래)이고 H.264 30 fps이며, 선택적으로 440 Hz AAC 톤을 넣는다. 기기에서 생성하므로
+ * 저장소에 바이너리 fixture가 필요 없다.
  */
 internal object TestVideoFactory {
 

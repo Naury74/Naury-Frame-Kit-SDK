@@ -7,13 +7,13 @@ import com.naury.framekit.core.validation.ValidationResult
 import kotlinx.parcelize.Parcelize
 
 /**
- * Output settings for video export. The output is MP4 with H.264 video and AAC audio in SDR.
+ * 영상 내보내기 출력 설정이다. 출력은 H.264 영상과 AAC 오디오를 담은 SDR MP4다.
  *
- * @property maxShortSide upper bound of the shorter output side in pixels; 1080 gives 1080p for
- *   both landscape and portrait video. The output is never larger than the edited source.
- * @property maxFrameRate frames above this rate are dropped; the actual rate is reported.
- * @property allowFallback when `false`, export fails instead of accepting a different resolution
- *   or codec setting from the encoder.
+ * @property maxShortSide 출력 짧은 변의 상한(픽셀). 1080이면 가로·세로 영상 모두 1080p가 된다.
+ *   출력은 편집된 원본보다 커지지 않는다.
+ * @property maxFrameRate 이 frame rate를 넘는 프레임은 버린다. 실제 frame rate는 결과에 보고한다.
+ * @property allowFallback `false`면 인코더가 다른 해상도나 코덱 설정을 제안할 때 받아들이지 않고
+ *   내보내기를 실패시킨다.
  */
 @Parcelize
 public data class VideoExportConfig(

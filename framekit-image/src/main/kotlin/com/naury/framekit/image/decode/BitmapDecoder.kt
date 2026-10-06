@@ -25,15 +25,14 @@ import kotlin.math.ceil
 import kotlin.math.floor
 
 /**
- * Decodes upright, sRGB, software bitmaps without reading the whole file into memory.
+ * 파일 전체를 메모리에 읽지 않고 정방향 sRGB software bitmap으로 디코딩한다.
  *
- * API 28+ hands the file or Uri directly to [ImageDecoder], which applies the EXIF orientation itself.
- * API 26/27, and sources whose location is unknown, stream through [BitmapFactory]; this class then
- * applies the orientation matrix the core model defines, so mirrored orientations behave the same on
- * every path.
+ * API 28+에서는 파일이나 Uri를 [ImageDecoder]에 직접 넘기며, [ImageDecoder]가 EXIF 방향을 직접 적용한다.
+ * API 26/27과 위치를 알 수 없는 원본은 [BitmapFactory]로 스트리밍하고, 이 클래스가 core 모델이 정의한
+ * 방향 행렬을 적용하므로 반전(mirror) 방향도 모든 경로에서 같게 동작한다.
  *
- * @param contentResolver lets [ImageDecoder] open `content://` sources directly. Without it those
- *   sources take the streaming path.
+ * @param contentResolver [ImageDecoder]가 `content://` 원본을 직접 열 수 있게 한다. 없으면 해당
+ *   원본은 스트리밍 경로를 탄다.
  */
 public class BitmapDecoder(
     private val resolver: SourceResolver,
@@ -41,10 +40,10 @@ public class BitmapDecoder(
 ) {
 
     /**
-     * Decodes the whole image subsampled by [sampleSize].
+     * 이미지 전체를 [sampleSize]로 subsampling해 디코딩한다.
      *
-     * @param sampleSize power-of-two subsampling factor, see [SampleSize].
-     * @throws FrameKitException with `DECODE_FAILED`, `INSUFFICIENT_MEMORY` or a source error.
+     * @param sampleSize 2의 거듭제곱 subsampling 배율. [SampleSize] 참고.
+     * @throws FrameKitException `DECODE_FAILED`, `INSUFFICIENT_MEMORY` 또는 원본 오류.
      */
     public fun decode(info: ImageSourceInfo, sampleSize: Int): DecodedImage {
         requireSampleSize(sampleSize)
@@ -59,13 +58,12 @@ public class BitmapDecoder(
     }
 
     /**
-     * Decodes only [uprightRegion] of the image, subsampled by [sampleSize]. Memory use is proportional
-     * to the region instead of the whole picture, which keeps exports of small crops from very large
-     * photos within budget.
+     * 이미지 중 [uprightRegion]만 [sampleSize]로 subsampling해 디코딩한다. 메모리 사용량이 사진 전체가 아니라
+     * 영역 크기에 비례하므로, 아주 큰 사진에서 작게 crop한 결과도 예산 안에서 내보낼 수 있다.
      *
-     * @param uprightRegion area in upright source pixels; it is clamped to the image.
-     * @return `null` when the format does not support region decoding; use [decode] instead.
-     * @throws FrameKitException with `DECODE_FAILED`, `INSUFFICIENT_MEMORY` or a source error.
+     * @param uprightRegion 정방향 원본 px 기준 영역. 이미지 범위로 clamp된다.
+     * @return 포맷이 영역 디코딩을 지원하지 않으면 `null`. 이때는 [decode]를 쓴다.
+     * @throws FrameKitException `DECODE_FAILED`, `INSUFFICIENT_MEMORY` 또는 원본 오류.
      */
     public fun decodeRegion(info: ImageSourceInfo, uprightRegion: PixelRect, sampleSize: Int): DecodedImage? {
         requireSampleSize(sampleSize)
@@ -200,7 +198,7 @@ public class BitmapDecoder(
     }
 
     internal companion object {
-        /** Returns an upright copy of [encoded] and recycles the original when they differ. */
+        /** [encoded]의 정방향 사본을 반환하며, 원본과 다르면 원본을 recycle한다. */
         fun applyOrientation(encoded: Bitmap, orientation: ExifOrientation): Bitmap {
             if (orientation == ExifOrientation.NORMAL) return encoded
             val matrix = orientation.encodedToUpright(encoded.width.toDouble(), encoded.height.toDouble()).toAndroidMatrix()

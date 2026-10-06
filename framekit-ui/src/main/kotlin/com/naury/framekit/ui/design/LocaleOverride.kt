@@ -11,8 +11,8 @@ import androidx.compose.ui.platform.LocalResources
 import java.util.Locale
 
 /**
- * Resolves editor strings in [localeTag] instead of the device locale. `null` keeps the device
- * locale. Only the editor's composition is affected; the host's locale stays untouched.
+ * 에디터 문자열을 기기 로케일 대신 [localeTag]로 해석한다. `null`이면 기기 로케일을 유지한다.
+ * 에디터 composition에만 영향을 주며 호스트의 로케일은 그대로 둔다.
  */
 // 언어별 split을 쓰는 App Bundle에서는 기기 언어가 아닌 리소스가 빠질 수 있다. 호스트가 localeTag를 쓸 때
 // bundle language split을 끄도록 integration 문서에 안내한다.

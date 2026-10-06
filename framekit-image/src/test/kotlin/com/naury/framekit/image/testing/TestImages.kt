@@ -16,7 +16,7 @@ import java.io.File
 import java.io.FileInputStream
 import java.io.InputStream
 
-/** Builds labeled test images: each quadrant of the upright picture has its own color. */
+/** 표식이 있는 테스트 이미지를 만든다. 정방향 그림의 사분면마다 고유한 색을 가진다. */
 internal object TestImages {
     const val TOP_LEFT = Color.RED
     const val TOP_RIGHT = Color.GREEN
@@ -38,7 +38,7 @@ internal object TestImages {
         return bitmap
     }
 
-    /** Writes a JPEG whose stored pixels need [orientation] to look like [upright]. */
+    /** 저장된 픽셀에 [orientation]을 적용해야 [upright]처럼 보이는 JPEG를 쓴다. */
     fun writeOrientedJpeg(upright: Bitmap, orientation: ExifOrientation, file: File) {
         val toEncoded = orientation.encodedToUpright(
             if (orientation.swapsDimensions) upright.height.toDouble() else upright.width.toDouble(),
@@ -57,9 +57,9 @@ internal object TestImages {
 }
 
 /**
- * Resolver over local files keyed by their [SourceId] value.
+ * [SourceId] 값을 키로 로컬 파일을 찾는 resolver다.
  *
- * @param exposeLocation `false` hides the file location so decoders must use streams.
+ * @param exposeLocation `false`면 파일 위치를 숨겨 decoder가 스트림을 쓰도록 강제한다.
  */
 internal class FileSourceResolver(
     private val files: Map<String, File>,
@@ -76,7 +76,7 @@ internal class FileSourceResolver(
     override fun reportedMimeType(id: SourceId): String? = null
 }
 
-/** Asserts that a pixel is close to [expected] on every channel; JPEG is lossy. */
+/** 픽셀이 모든 채널에서 [expected]에 가까운지 확인한다. JPEG는 손실 압축이기 때문이다. */
 internal fun Bitmap.colorNear(x: Int, y: Int, expected: Int, tolerance: Int = 40): Boolean {
     val actual = getPixel(x, y)
     return Math.abs(Color.red(actual) - Color.red(expected)) <= tolerance &&

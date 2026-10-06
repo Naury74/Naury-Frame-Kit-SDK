@@ -6,27 +6,27 @@ import com.naury.framekit.core.validation.ValidationIssue
 import com.naury.framekit.core.validation.ValidationResult
 import kotlinx.parcelize.Parcelize
 
-/** Color scheme selection for the editor. */
+/** 에디터의 색 구성 선택. */
 public enum class ThemeMode {
     DARK,
     LIGHT,
 
-    /** Follows the device setting. */
+    /** 기기 설정을 따른다. */
     SYSTEM,
 }
 
 /**
- * Appearance of the built-in editor.
+ * 내장 에디터의 외관.
  *
- * Only primitives are stored so the config can travel inside the launch Intent and survive
- * recreation. Compose colors are created inside the editor.
+ * 설정이 실행 Intent에 담겨 전달되고 재생성 후에도 유지되도록 원시 타입만 저장한다.
+ * Compose 색상은 에디터 안에서 만든다.
  *
- * @property accentArgb accent color as ARGB, or `null` for the default `#635BFF`.
- * @property cornerRadiusDp corner radius of panels and chips, `0..32`.
- * @property showExportProgress whether the export overlay shows the current stage.
- * @property enableHaptics whether snapping and selection play a short haptic. The device setting is
- *   still respected when this is `true`.
- * @property localeTag BCP 47 language tag such as `ko` or `en`, or `null` for the device locale.
+ * @property accentArgb ARGB 강조 색상. `null`이면 기본값 `#635BFF`.
+ * @property cornerRadiusDp 패널과 칩의 모서리 반경, `0..32`.
+ * @property showExportProgress 내보내기 오버레이에 현재 단계를 표시할지 여부.
+ * @property enableHaptics 스냅과 선택 시 짧은 햅틱을 재생할지 여부. `true`여도 기기 설정은
+ *   그대로 존중한다.
+ * @property localeTag `ko`, `en` 같은 BCP 47 언어 태그. `null`이면 기기 로케일.
  */
 @Parcelize
 public data class EditorUiConfig(

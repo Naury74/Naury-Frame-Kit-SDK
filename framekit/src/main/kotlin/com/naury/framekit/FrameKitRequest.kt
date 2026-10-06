@@ -15,10 +15,10 @@ import com.naury.framekit.video.export.VideoExportConfig
 import kotlinx.parcelize.Parcelize
 
 /**
- * Launch request for [FrameKitContract]. FrameKit opens the photo or the video editor depending on
- * the source, so both configurations are given up front.
+ * [FrameKitContract] 실행 요청이다. FrameKit은 소스에 따라 사진 편집기 또는 영상 편집기를 열기 때문에
+ * 두 편집기 설정을 모두 미리 전달한다.
  *
- * `EditorInput.Pick(MediaKind.ANY)` lets the user pick a photo or a video in the system picker.
+ * `EditorInput.Pick(MediaKind.ANY)`를 쓰면 사용자가 시스템 picker에서 사진이나 영상을 고를 수 있다.
  */
 @Parcelize
 public data class FrameKitRequest(
@@ -31,7 +31,7 @@ public data class FrameKitRequest(
     val output: OutputTarget = OutputTarget.AppFile,
 ) : Parcelable {
 
-    /** Validates both editor configurations; the result is `INVALID_CONFIGURATION` when this fails. */
+    /** 두 편집기 설정을 모두 검증한다. 검증에 실패하면 결과는 `INVALID_CONFIGURATION`이 된다. */
     public fun validate(): ValidationResult {
         val issues = mutableListOf<ValidationIssue>()
         listOf(image.validate(), imageExport.validate(), video.validate(), videoExport.validate(), ui.validate()).forEach { result ->

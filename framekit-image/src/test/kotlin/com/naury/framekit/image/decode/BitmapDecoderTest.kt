@@ -21,7 +21,7 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 import java.io.File
 
-/** G01 end to end: stored pixels plus EXIF tag must decode to the same upright picture. */
+/** G01 end to end: 저장된 픽셀과 EXIF 태그를 합쳐 디코딩하면 같은 정방향 그림이 나와야 한다. */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 class BitmapDecoderTest {

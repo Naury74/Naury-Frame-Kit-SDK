@@ -9,7 +9,7 @@ import com.naury.framekit.core.geometry.CropAspectRatio
 import com.naury.framekit.ui.component.ChoiceChips
 import com.naury.framekit.ui.R
 
-/** Ratio chips of the crop tool. The frame itself is dragged on the canvas. */
+/** 자르기 도구의 비율 칩. 프레임 자체는 캔버스에서 드래그한다. */
 @Composable
 public fun CropToolPanel(
     aspect: CropAspectRatio,

@@ -10,12 +10,12 @@ import com.naury.framekit.core.video.TimelineTimeMapper
 import com.naury.framekit.core.video.VideoClip
 import com.naury.framekit.core.video.VideoProject
 
-/** Checks that a [VideoProject] can be played and exported with the given sources. */
+/** 주어진 소스로 [VideoProject]를 재생하고 내보낼 수 있는지 검사한다. */
 public object VideoProjectValidator {
 
     /**
-     * @param sources metadata of every source the project refers to.
-     * @param minClipOutputDurationUs shortest allowed clip in output time, after speed.
+     * @param sources 프로젝트가 참조하는 모든 소스의 메타데이터.
+     * @param minClipOutputDurationUs 출력 시간 기준(속도 적용 후) 허용되는 가장 짧은 clip 길이.
      */
     public fun validate(project: VideoProject, sources: Map<SourceId, SourceMetadata>, minClipOutputDurationUs: Long): ValidationResult {
         val issues = mutableListOf<ValidationIssue>()

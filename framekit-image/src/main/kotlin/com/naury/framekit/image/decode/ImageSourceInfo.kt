@@ -5,11 +5,11 @@ import com.naury.framekit.core.model.PixelSize
 import com.naury.framekit.core.model.SourceMetadata
 
 /**
- * What the decoder learned about an image without decoding its pixels.
+ * 픽셀을 디코딩하지 않고 decoder가 알아낸 이미지 정보다.
  *
- * @property encodedSize size of the stored pixels before [orientation] is applied.
- * @property isSrgb `false` when the image declares another color space and will be converted.
- * @property hasGainMap `true` for Ultra HDR images whose gain map the editor does not preserve.
+ * @property encodedSize [orientation]을 적용하기 전 저장된 픽셀의 크기.
+ * @property isSrgb 이미지가 다른 색 공간을 선언해 변환될 예정이면 `false`.
+ * @property hasGainMap 에디터가 gain map을 보존하지 않는 Ultra HDR 이미지면 `true`.
  */
 public data class ImageSourceInfo(
     val metadata: SourceMetadata,

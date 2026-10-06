@@ -11,32 +11,32 @@ import com.naury.framekit.android.session.ProjectAssetStore
 import java.io.IOException
 
 /**
- * Finds the subject of a photo for background removal.
+ * 배경 제거를 위해 사진의 피사체를 찾는다.
  *
- * FrameKit ships no model itself. Adding the optional `framekit-segmentation` artifact registers an
- * implementation through manifest meta-data; without it [BackgroundRemovers.find] returns `null` and
- * the editor hides the tool.
+ * FrameKit 자체는 모델을 포함하지 않는다. 선택 artifact인 `framekit-segmentation`을 추가하면 manifest
+ * meta-data로 구현이 등록되며, 없으면 [BackgroundRemovers.find]가 `null`을 반환하고 에디터는
+ * 도구를 숨긴다.
  */
 public interface BackgroundRemover {
 
     /**
-     * @param image upright source, usually the preview-sized decode.
-     * @return mask of the same size whose alpha is 255 on the subject and 0 on the background.
-     * @throws FrameKitException with `UNSUPPORTED_OPERATION` when the model is not available yet
-     *   (for example still downloading) or another code for other failures.
+     * @param image 정방향 원본. 보통 미리보기 크기로 디코딩한 이미지다.
+     * @return 같은 크기의 mask. 피사체의 alpha는 255, 배경은 0이다.
+     * @throws FrameKitException 모델을 아직 쓸 수 없으면(예: 다운로드 중) `UNSUPPORTED_OPERATION`,
+     *   그 밖의 실패는 다른 코드.
      */
     public suspend fun subjectMask(image: Bitmap): Bitmap
 }
 
-/** Discovery of the [BackgroundRemover] registered by an optional module. */
+/** 선택 모듈이 등록한 [BackgroundRemover]를 찾는다. */
 public object BackgroundRemovers {
 
-    /** Application meta-data key whose value is the implementation class name. */
+    /** 값이 구현 클래스 이름인 application meta-data 키. */
     public const val META_DATA_KEY: String = "com.naury.framekit.BACKGROUND_REMOVER"
 
     /**
-     * Instantiates the registered remover through its `(Context)` constructor, or returns `null` when
-     * no module is installed or it cannot be created.
+     * 등록된 remover를 `(Context)` 생성자로 인스턴스화한다. 모듈이 설치되지 않았거나 생성할 수 없으면
+     * `null`을 반환한다.
      */
     public fun find(context: Context): BackgroundRemover? {
         val appContext = context.applicationContext
@@ -57,12 +57,12 @@ public object BackgroundRemovers {
     }
 }
 
-/** Stores subject masks as project assets and loads them back for rendering. */
+/** 피사체 mask를 프로젝트 asset으로 저장하고 렌더링을 위해 다시 불러온다. */
 public object CutoutMasks {
 
     /**
-     * Saves [mask] as a PNG whose alpha carries the mask and returns the asset id.
-     * The mask may be ALPHA_8 or ARGB_8888.
+     * [mask]를 alpha에 mask를 담은 PNG로 저장하고 asset id를 반환한다.
+     * mask는 ALPHA_8 또는 ARGB_8888일 수 있다.
      */
     public fun save(mask: Bitmap, assets: ProjectAssetStore): String {
         val argb = if (mask.config == Bitmap.Config.ARGB_8888) mask else toArgb(mask)
@@ -75,7 +75,7 @@ public object CutoutMasks {
         }
     }
 
-    /** Loads a saved mask, or `null` when the asset is missing or unreadable. */
+    /** 저장된 mask를 불러온다. asset이 없거나 읽을 수 없으면 `null`. */
     public fun load(assets: ProjectAssetStore, id: String): Bitmap? {
         val file = assets.file(id) ?: return null
         val options = BitmapFactory.Options().apply { inPreferredConfig = Bitmap.Config.ARGB_8888 }

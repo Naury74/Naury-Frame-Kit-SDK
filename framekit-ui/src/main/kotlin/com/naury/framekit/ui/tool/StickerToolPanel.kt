@@ -21,7 +21,7 @@ import com.naury.framekit.core.overlay.EmojiCatalog
 import com.naury.framekit.ui.component.ChoiceChips
 import com.naury.framekit.ui.R
 
-/** Emoji catalog grouped by category. Tapping an emoji places it at the canvas center. */
+/** 카테고리별로 묶인 이모지 목록. 이모지를 탭하면 캔버스 중앙에 놓인다. */
 @Composable
 public fun StickerToolPanel(
     category: EmojiCatalog.Category,

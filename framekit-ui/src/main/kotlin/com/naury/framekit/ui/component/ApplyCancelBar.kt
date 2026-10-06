@@ -20,10 +20,9 @@ import com.naury.framekit.ui.R
 import com.naury.framekit.ui.design.FrameKitTheme
 
 /**
- * Bottom bar of an open tool: Cancel (only for draft tools), title, optional reset and Apply.
+ * 열린 도구의 하단 바. 취소(초안 도구만), 제목, 선택적 초기화, 적용으로 구성된다.
  *
- * @param onCancel `null` for tools whose changes are already committed; the check button then closes
- *   the tool.
+ * @param onCancel 변경이 이미 커밋되는 도구는 `null`. 이때 체크 버튼은 도구를 닫는다.
  */
 @Composable
 public fun ApplyCancelBar(

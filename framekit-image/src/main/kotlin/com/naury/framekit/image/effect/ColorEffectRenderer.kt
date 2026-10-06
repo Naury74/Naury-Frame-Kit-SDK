@@ -5,28 +5,28 @@ import com.naury.framekit.core.effect.ColorEffectProcessor
 import com.naury.framekit.core.effect.ColorEffectSpec
 
 /**
- * Applies a [ColorEffectSpec] to a bitmap in place.
+ * bitmap에 [ColorEffectSpec]을 제자리에서 적용한다.
  *
- * Preview and export use the same renderer instance, so the same spec produces the same pixels at any
- * size up to the documented tolerance.
+ * 미리보기와 내보내기가 같은 renderer 인스턴스를 쓰므로, 같은 spec은 크기와 관계없이 문서화된
+ * 허용 오차 안에서 같은 픽셀을 만든다.
  */
 public interface ColorEffectRenderer {
 
     /**
-     * @param bitmap mutable ARGB_8888 bitmap; it is overwritten with the result.
-     * @param includeCanvasEffects `false` skips vignette and grain for views that are not the final
-     *   canvas.
+     * @param bitmap 변경 가능한 ARGB_8888 bitmap. 결과로 덮어쓴다.
+     * @param includeCanvasEffects `false`면 최종 캔버스가 아닌 화면을 위해 비네트와 그레인을
+     *   건너뛴다.
      */
     public fun apply(bitmap: Bitmap, spec: ColorEffectSpec, includeCanvasEffects: Boolean = true)
 
-    /** Extra memory in bytes that [apply] needs for a bitmap of this size, for export preflight. */
+    /** 이 크기의 bitmap에 [apply]가 추가로 필요로 하는 메모리(바이트). 내보내기 사전 점검에 쓴다. */
     public fun workingBytes(width: Int, height: Int, spec: ColorEffectSpec): Long
 
-    /** Frees GPU resources. The renderer must not be used afterwards. */
+    /** GPU 자원을 해제한다. 이후에는 renderer를 사용하면 안 된다. */
     public fun release()
 }
 
-/** CPU reference renderer. Slower than the GPU path but available on every device. */
+/** CPU 기준 renderer. GPU 경로보다 느리지만 모든 기기에서 동작한다. */
 public object CpuColorEffectRenderer : ColorEffectRenderer {
 
     override fun apply(bitmap: Bitmap, spec: ColorEffectSpec, includeCanvasEffects: Boolean) {

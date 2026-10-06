@@ -1,10 +1,10 @@
 package com.naury.framekit.android.result
 
 /**
- * Final result of an editor launch. Delivered exactly once per launch.
+ * 편집기 실행의 최종 결과. 실행 한 번당 정확히 한 번 전달된다.
  *
- * Cancelling a running export returns to the editor and does not produce [Cancelled]; only closing
- * the editor or dismissing the picker does.
+ * 진행 중인 export를 취소하면 편집기로 돌아갈 뿐 [Cancelled]를 만들지 않는다.
+ * [Cancelled]는 편집기를 닫거나 picker를 닫았을 때만 전달된다.
  */
 public sealed interface FrameKitResult {
     public data class Success(val output: EditedMedia) : FrameKitResult

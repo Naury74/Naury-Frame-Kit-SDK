@@ -15,7 +15,7 @@ import com.naury.framekit.ui.component.ExportStageUi
 import com.naury.framekit.ui.image.contract.ImageTool
 
 internal sealed interface ImageEditorUiState {
-    /** Waiting for the system picker. */
+    /** 시스템 피커를 기다리는 중. */
     data object AwaitingPick : ImageEditorUiState
 
     data object Loading : ImageEditorUiState
@@ -49,7 +49,7 @@ internal sealed interface ImageEditorUiState {
     }
 }
 
-/** Current drawing tool settings; they are UI state, not part of the project until a stroke is drawn. */
+/** 현재 그리기 도구 설정. UI 상태이며 획을 그리기 전까지는 프로젝트에 포함되지 않는다. */
 internal data class BrushSettings(
     val kind: BrushKind = BrushKind.PEN,
     val colorArgb: Int = 0xFFFFFFFF.toInt(),
@@ -57,18 +57,18 @@ internal data class BrushSettings(
     val opacity: Double = 1.0,
 )
 
-/** Progress of a background removal request. */
+/** 배경 제거 요청의 진행 상태. */
 internal sealed interface CutoutStatus {
     data object Processing : CutoutStatus
     data class Failed(val code: EditorErrorCode) : CutoutStatus
 }
 
-/** One-time message after a session was restored from disk. */
+/** 디스크에서 세션을 복원한 뒤 한 번 보여주는 메시지. */
 internal enum class SessionNotice {
-    /** Committed edits came back after process death; undo history starts empty. */
+    /** 프로세스 종료 후 커밋된 편집이 복원되었다. 실행 취소 히스토리는 비어 있는 상태로 시작한다. */
     RESTORED,
 
-    /** The process died during a save. The file was not created and must be saved again. */
+    /** 저장 중 프로세스가 종료되었다. 파일이 만들어지지 않았으므로 다시 저장해야 한다. */
     EXPORT_INTERRUPTED,
 }
 

@@ -1,36 +1,36 @@
 package com.naury.framekit.core.validation
 
-/** Category of a validation failure. Hosts map these to their own messages. */
+/** 검증 실패의 분류. 호스트가 자체 메시지로 매핑한다. */
 public enum class ValidationCode {
-    /** A number is NaN or infinite. */
+    /** 숫자가 NaN이거나 무한대다. */
     NOT_FINITE,
 
-    /** A value is outside its documented range. */
+    /** 값이 문서화된 범위를 벗어났다. */
     OUT_OF_RANGE,
 
-    /** A rectangle is empty, inverted or outside the unit square. */
+    /** 사각형이 비었거나 뒤집혔거나 단위 정사각형을 벗어났다. */
     INVALID_RECT,
 
-    /** A size is zero or negative. */
+    /** 크기가 0이거나 음수다. */
     INVALID_SIZE,
 
-    /** The crop leaves the image area or produces fewer pixels than the minimum output size. */
+    /** 자르기가 이미지 영역을 벗어나거나 최소 출력 크기보다 적은 픽셀을 만든다. */
     INVALID_CROP,
 
-    /** Two overlays or strokes share an id. */
+    /** 두 오버레이 또는 획이 같은 id를 쓴다. */
     DUPLICATE_ID,
 
-    /** A preset, font or asset id does not exist in its catalog. */
+    /** 프리셋, 폰트 또는 에셋 id가 해당 카탈로그에 없다. */
     UNKNOWN_REFERENCE,
 
-    /** The project refers to a source that does not match the supplied metadata. */
+    /** 프로젝트가 참조하는 소스가 제공된 메타데이터와 맞지 않는다. */
     SOURCE_MISMATCH,
 }
 
 /**
- * One reason why a value was rejected.
+ * 값이 거부된 이유 하나.
  *
- * @property path dotted path of the offending field, for example `geometry.crop`.
+ * @property path 문제가 된 필드의 점 구분 경로. 예: `geometry.crop`.
  */
 public data class ValidationIssue(
     val code: ValidationCode,
@@ -38,7 +38,7 @@ public data class ValidationIssue(
     val message: String,
 )
 
-/** Result of validating host input or a project. Invalid input is never silently corrected. */
+/** 호스트 입력이나 프로젝트의 검증 결과. 잘못된 입력을 조용히 고치지 않는다. */
 public sealed interface ValidationResult {
     public data object Valid : ValidationResult
 

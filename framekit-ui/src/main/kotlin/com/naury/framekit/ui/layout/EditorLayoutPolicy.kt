@@ -1,37 +1,37 @@
 package com.naury.framekit.ui.layout
 
-/** Posture of a foldable device, with the hinge position in window pixels. */
+/** 폴더블 기기의 자세와 창 픽셀 단위 힌지 위치. */
 public sealed interface FoldPosture {
-    /** Not a foldable, fully open or fully closed. */
+    /** 폴더블이 아니거나, 완전히 펼쳤거나 완전히 접은 상태. */
     public data object Flat : FoldPosture
 
-    /** Half-opened with a horizontal hinge, like a laptop: content above, controls below. */
+    /** 노트북처럼 가로 힌지로 반쯤 펼친 상태. 콘텐츠는 위, 컨트롤은 아래. */
     public data class Tabletop(val hingeTopPx: Int, val hingeBottomPx: Int) : FoldPosture
 
-    /** Half-opened with a vertical hinge, like a book: content left, controls right. */
+    /** 책처럼 세로 힌지로 반쯤 펼친 상태. 콘텐츠는 왼쪽, 컨트롤은 오른쪽. */
     public data class Book(val hingeLeftPx: Int, val hingeRightPx: Int) : FoldPosture
 }
 
-/** Arrangement of the canvas and the tool controls. */
+/** 캔버스와 도구 컨트롤의 배치. */
 public sealed interface EditorLayout {
-    /** Canvas on top, controls below. [maxControlsWidthDp] limits control width on medium screens. */
+    /** 캔버스는 위, 컨트롤은 아래. 중간 크기 화면에서는 [maxControlsWidthDp]로 컨트롤 폭을 제한한다. */
     public data class Stacked(val maxControlsWidthDp: Int?) : EditorLayout
 
-    /** Canvas on the left, controls in a side panel of [panelWidthDp]. */
+    /** 캔버스는 왼쪽, 컨트롤은 폭 [panelWidthDp]의 사이드 패널. */
     public data class SidePanel(val panelWidthDp: Int) : EditorLayout
 
-    /** Canvas above the horizontal hinge, controls below it. */
+    /** 캔버스는 가로 힌지 위, 컨트롤은 그 아래. */
     public data class SplitAtHorizontalHinge(val hingeTopPx: Int, val hingeBottomPx: Int) : EditorLayout
 
-    /** Canvas left of the vertical hinge, controls right of it. */
+    /** 캔버스는 세로 힌지 왼쪽, 컨트롤은 그 오른쪽. */
     public data class SplitAtVerticalHinge(val hingeLeftPx: Int, val hingeRightPx: Int) : EditorLayout
 }
 
 /**
- * Chooses the editor layout from the window size and fold posture.
+ * 창 크기와 폴드 자세로 에디터 레이아웃을 고른다.
  *
- * The project and its normalized coordinates never depend on the layout, so switching layouts while
- * folding, unfolding or resizing keeps every edit in place.
+ * 프로젝트와 정규화 좌표는 레이아웃에 의존하지 않으므로, 접기·펼치기·크기 변경으로 레이아웃이
+ * 바뀌어도 모든 편집이 제자리에 유지된다.
  */
 public object EditorLayoutPolicy {
     public const val EXPANDED_WIDTH_DP: Int = 840

@@ -43,9 +43,9 @@ import java.util.UUID
 import kotlin.random.Random
 
 /**
- * A source opened by [ImageProcessor].
+ * [ImageProcessor]로 연 원본이다.
  *
- * @property metadata upright size and MIME type; build crops and overlays against this.
+ * @property metadata 정방향 크기와 MIME type. crop과 오버레이는 이 값을 기준으로 만든다.
  */
 public class ImageSource internal constructor(
     public val metadata: SourceMetadata,
@@ -53,7 +53,7 @@ public class ImageSource internal constructor(
 )
 
 /**
- * Edits and exports images without any UI.
+ * UI 없이 이미지를 편집하고 내보낸다.
  *
  * ```
  * ImageProcessor(context).use { processor ->
@@ -64,8 +64,8 @@ public class ImageSource internal constructor(
  * }
  * ```
  *
- * Uses the same decoder, renderers and export pipeline as the editor, so headless and UI exports of
- * the same project are identical. Call [close] to release the GPU context and imported bitmaps.
+ * 에디터와 같은 decoder, renderer, 내보내기 파이프라인을 쓰므로 같은 프로젝트를 headless로 내보내든
+ * UI로 내보내든 결과가 같다. GPU context와 가져온 bitmap을 해제하려면 [close]를 호출한다.
  */
 public class ImageProcessor(
     context: Context,
@@ -90,15 +90,15 @@ public class ImageProcessor(
     private val assets = ProjectAssetStore(File(appContext.cacheDir, "$ASSET_DIRECTORY/${UUID.randomUUID()}"))
     private val remover: BackgroundRemover? = backgroundRemover ?: BackgroundRemovers.find(appContext)
 
-    /** `true` when the optional `framekit-segmentation` artifact is installed. */
+    /** 선택 artifact인 `framekit-segmentation`이 설치되어 있으면 `true`. */
     public val canRemoveBackground: Boolean get() = remover != null
     private val imports = mutableListOf<File>()
 
     /**
-     * Opens a Uri or file source and reads its metadata.
+     * Uri 또는 파일 원본을 열고 메타데이터를 읽는다.
      *
-     * @throws FrameKitException with a source or format error, or `INVALID_CONFIGURATION` for
-     *   [EditorInput.Pick], which needs a UI.
+     * @throws FrameKitException 원본·포맷 오류, 또는 UI가 필요한 [EditorInput.Pick]이면
+     *   `INVALID_CONFIGURATION`.
      */
     public suspend fun open(input: EditorInput): ImageSource = withContext(ioDispatcher) {
         if (input is EditorInput.Pick) throw FrameKitException(EditorErrorCode.INVALID_CONFIGURATION, "Picking needs the editor UI")
@@ -108,8 +108,8 @@ public class ImageProcessor(
     }
 
     /**
-     * Opens an in-memory bitmap. The bitmap is copied to a private PNG first, which costs time and
-     * storage proportional to its size; the caller keeps ownership and may recycle it afterwards.
+     * 메모리상의 bitmap을 연다. bitmap은 먼저 private PNG로 복사되므로 크기에 비례한 시간과 저장 공간이
+     * 든다. 소유권은 호출자에게 남으며 이후 recycle해도 된다.
      */
     public suspend fun open(bitmap: Bitmap): ImageSource = withContext(ioDispatcher) {
         if (!importDirectory.isDirectory && !importDirectory.mkdirs()) {
@@ -128,18 +128,18 @@ public class ImageProcessor(
         open(EditorInput.FileSource(file.absolutePath))
     }
 
-    /** An unedited project for [source] with a fresh grain seed. */
+    /** 새 grain seed를 가진, [source]에 대한 편집 전 프로젝트. */
     public fun newProject(source: ImageSource): ImageProject =
         ImageProject(ProjectId(UUID.randomUUID().toString()), source.metadata.id, grainSeed = Random.nextLong())
 
     /**
-     * Removes the background of [source] and returns [project] with the cutout applied.
+     * [source]의 배경을 제거하고 누끼가 적용된 [project]를 반환한다.
      *
-     * The subject is found on a preview-sized decode, and the mask is kept for this processor's
-     * lifetime, so export it before calling [close].
+     * 피사체는 미리보기 크기로 디코딩한 이미지에서 찾고, mask는 이 processor의 수명 동안만 유지되므로
+     * [close]를 호출하기 전에 내보내야 한다.
      *
-     * @throws FrameKitException with `UNSUPPORTED_OPERATION` when no remover is installed or its model
-     *   is not ready yet.
+     * @throws FrameKitException remover가 설치되지 않았거나 모델이 아직 준비되지 않았으면
+     *   `UNSUPPORTED_OPERATION`.
      */
     public suspend fun removeBackground(project: ImageProject, source: ImageSource): ImageProject {
         val remover = remover ?: throw FrameKitException(EditorErrorCode.UNSUPPORTED_OPERATION, "Add framekit-segmentation to remove backgrounds")
@@ -157,10 +157,10 @@ public class ImageProcessor(
     }
 
     /**
-     * Validates [project] and starts exporting it in [scope] right away.
+     * [project]를 검증하고 [scope]에서 즉시 내보내기를 시작한다.
      *
-     * @throws FrameKitException with `INVALID_PROJECT` or `INVALID_CONFIGURATION` before anything
-     *   starts. Failures during the export are reported through the handle instead.
+     * @throws FrameKitException 시작 전에 `INVALID_PROJECT` 또는 `INVALID_CONFIGURATION`. 내보내기 도중의
+     *   실패는 대신 handle로 전달된다.
      */
     public fun startExport(
         project: ImageProject,
@@ -190,10 +190,10 @@ public class ImageProcessor(
         }
     }
 
-    /** Deletes an exported file; see `FrameKitOutputs.deleteOutput`. */
+    /** 내보낸 파일을 삭제한다. `FrameKitOutputs.deleteOutput` 참고. */
     public fun deleteOutput(uri: Uri): Boolean = outputStore.delete(uri)
 
-    /** Releases the GPU context, imported bitmaps and background masks. Exported files are kept. */
+    /** GPU context, 가져온 bitmap, 배경 mask를 해제한다. 내보낸 파일은 유지한다. */
     override fun close() {
         colorRenderer.release()
         synchronized(imports) {

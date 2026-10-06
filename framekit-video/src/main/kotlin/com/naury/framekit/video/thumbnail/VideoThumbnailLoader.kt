@@ -14,11 +14,11 @@ import kotlinx.coroutines.withContext
 import java.io.Closeable
 
 /**
- * Timeline thumbnails extracted with [MediaMetadataRetriever].
+ * [MediaMetadataRetriever]로 추출하는 타임라인 썸네일이다.
  *
- * Frames are the nearest sync frame, which is fine for orientation but not for exact editing; seeks
- * and export never use these images. Results are cached in a 24 MiB LRU keyed by source, time bucket
- * and size, and extraction runs one frame at a time so a fast scroll cannot pile up decoders.
+ * 프레임은 가장 가까운 sync frame이라 위치 파악에는 충분하지만 정확한 편집에는 맞지 않는다. seek와
+ * 내보내기는 이 이미지를 쓰지 않는다. 결과는 원본·시간 구간·크기를 키로 하는 24 MiB LRU에 캐시하고,
+ * 빠르게 스크롤해도 디코더가 쌓이지 않도록 한 번에 한 프레임씩 추출한다.
  */
 public class VideoThumbnailLoader(
     context: Context,
@@ -32,10 +32,10 @@ public class VideoThumbnailLoader(
     }
 
     /**
-     * @param sourceKey stable key of the source, for example its fingerprint.
-     * @param timeUs source time; rounded to [BUCKET_US] for caching.
-     * @param heightPx thumbnail height in pixels, at most [MAX_HEIGHT_PX].
-     * @return the frame, or `null` when the source cannot be read.
+     * @param sourceKey 원본의 안정적인 키(예: fingerprint).
+     * @param timeUs 원본 시간. 캐시를 위해 [BUCKET_US] 단위로 내림한다.
+     * @param heightPx 썸네일 높이(픽셀), 최대 [MAX_HEIGHT_PX].
+     * @return 프레임. 원본을 읽을 수 없으면 `null`.
      */
     public suspend fun load(location: SourceLocation, sourceKey: String, timeUs: Long, heightPx: Int): Bitmap? {
         val height = heightPx.coerceIn(1, MAX_HEIGHT_PX)

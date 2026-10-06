@@ -4,7 +4,7 @@ import android.app.ActivityManager
 import android.content.Context
 import android.content.pm.ApplicationInfo
 
-/** Memory the export may use for bitmaps, based on the app's memory class. */
+/** 앱의 memory class를 기준으로 내보내기가 bitmap에 쓸 수 있는 메모리다. */
 public object ImageMemoryBudget {
     private const val BYTES_PER_MEGABYTE = 1024L * 1024L
 
@@ -15,6 +15,6 @@ public object ImageMemoryBudget {
         return megabytes * BYTES_PER_MEGABYTE
     }
 
-    /** ARGB_8888 bitmap size: four bytes per pixel. */
+    /** ARGB_8888 bitmap 크기로, 픽셀당 4바이트다. */
     internal fun argbBytes(width: Int, height: Int): Long = width.toLong() * height.toLong() * 4L
 }

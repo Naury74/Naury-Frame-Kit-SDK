@@ -7,12 +7,12 @@ import com.naury.framekit.core.validation.ValidationResult
 import kotlinx.parcelize.Parcelize
 
 /**
- * Behavior of the image editor.
+ * 이미지 에디터의 동작.
  *
- * @property enabledTools tools shown in the rail. Disabled tools are hidden and their edits are
- *   rejected. An empty set opens a preview that can only be saved.
- * @property allowUndo shows the undo button. Must be `true` when [allowRedo] is `true`.
- * @property allowRedo shows the redo button.
+ * @property enabledTools 레일에 표시할 도구. 비활성 도구는 숨겨지고 그 편집은 거부된다.
+ *   빈 집합이면 저장만 가능한 미리보기로 열린다.
+ * @property allowUndo 실행 취소 버튼을 표시한다. [allowRedo]가 `true`이면 반드시 `true`여야 한다.
+ * @property allowRedo 다시 실행 버튼을 표시한다.
  */
 @Parcelize
 public data class ImageEditorConfig(

@@ -16,10 +16,10 @@ import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
 /**
- * Sources registered for one editing session.
+ * 한 편집 세션에 등록된 원본 목록.
  *
- * The registry never takes or releases grants that the host provided. It only remembers which
- * reference belongs to which [SourceId].
+ * 레지스트리는 호스트가 제공한 권한을 가져가거나 해제하지 않는다. 어떤 참조가 어떤 [SourceId]에
+ * 해당하는지만 기억한다.
  */
 public class SessionSourceRegistry(context: Context) : SourceResolver {
 
@@ -27,9 +27,9 @@ public class SessionSourceRegistry(context: Context) : SourceResolver {
     private val sources = ConcurrentHashMap<SourceId, RegisteredSource>()
 
     /**
-     * Registers a source and verifies that it can be opened.
+     * 원본을 등록하고 열 수 있는지 확인한다.
      *
-     * @throws FrameKitException when the source is not readable or [input] is a picker request.
+     * @throws FrameKitException 원본을 읽을 수 없거나 [input]이 picker 요청일 때.
      */
     public fun register(input: EditorInput): SourceId {
         val source = when (input) {
@@ -43,7 +43,7 @@ public class SessionSourceRegistry(context: Context) : SourceResolver {
         return id
     }
 
-    /** Uri form of a registered source, used for restoring the session after recreation. */
+    /** 등록된 원본의 Uri 형태. 재생성 후 세션을 복원할 때 사용한다. */
     public fun describe(id: SourceId): EditorInput = when (val source = requireSource(id)) {
         is RegisteredSource.Content -> EditorInput.UriSource(source.uri)
         is RegisteredSource.LocalFile -> EditorInput.FileSource(source.file.absolutePath)

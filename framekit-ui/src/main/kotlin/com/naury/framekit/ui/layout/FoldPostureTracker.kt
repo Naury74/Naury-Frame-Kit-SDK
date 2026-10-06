@@ -8,10 +8,10 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 
 /**
- * Fold posture of the window that hosts [activity].
+ * [activity]를 호스팅하는 창의 폴드 자세.
  *
- * Collect it in the Activity rather than in a composable: inside the editor the composition context
- * may be a locale wrapper that is not an Activity.
+ * composable이 아니라 Activity에서 수집한다. 에디터 안의 composition context는 Activity가 아닌
+ * 로케일 래퍼일 수 있기 때문이다.
  */
 public fun foldPostureFlow(activity: Activity): Flow<FoldPosture> =
     WindowInfoTracker.getOrCreate(activity).windowLayoutInfo(activity)

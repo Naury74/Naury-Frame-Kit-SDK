@@ -24,7 +24,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import java.io.File
 
-/** The preview player prepares trimmed, sped-up plans and reports the output duration. */
+/** 미리보기 플레이어가 trim·배속된 계획을 prepare하고 출력 길이를 보고하는지 확인한다. */
 @RunWith(AndroidJUnit4::class)
 class VideoPreviewEngineTest {
 

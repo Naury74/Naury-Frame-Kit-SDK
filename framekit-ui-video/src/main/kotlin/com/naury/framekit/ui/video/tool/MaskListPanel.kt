@@ -21,7 +21,7 @@ import com.naury.framekit.ui.design.FrameKitTheme
 import com.naury.framekit.ui.video.R
 import com.naury.framekit.ui.video.timeline.formatTime
 
-/** Time range of the selected mask, or a hint when none is selected. */
+/** 선택한 마스크의 시간 범위. 선택한 마스크가 없으면 안내 문구. */
 @Composable
 internal fun MaskRangeRow(
     mask: TimedPrivacyMask?,

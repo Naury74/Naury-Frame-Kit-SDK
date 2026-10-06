@@ -30,8 +30,8 @@ public fun Modifier.excludeCropHandleGestures(frame: RectN, radius: Float): Modi
 }
 
 /**
- * Crop frame shared by the photo and video editors: dimmed outside, optional thirds grid and handles.
- * [frame] is in viewport pixels.
+ * 사진·영상 에디터가 함께 쓰는 자르기 프레임. 바깥은 어둡게, 선택적 3분할 격자와 핸들을 그린다.
+ * [frame]은 viewport 픽셀 단위다.
  */
 public fun DrawScope.drawCropFrame(frame: RectN, accent: Color, showGrid: Boolean, showHandles: Boolean) {
     val left = frame.left.toFloat()

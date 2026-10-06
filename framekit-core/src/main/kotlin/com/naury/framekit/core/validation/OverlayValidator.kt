@@ -9,7 +9,7 @@ import com.naury.framekit.core.overlay.OverlayTransform
 import com.naury.framekit.core.overlay.PrivacyEffect
 import com.naury.framekit.core.overlay.PrivacyMask
 
-/** Validation of text, stickers and drawing strokes. */
+/** 텍스트, 스티커, 그리기 획의 검증. */
 internal object OverlayValidator {
 
     fun validate(overlays: List<ImageOverlay>, drawing: List<DrawingStroke>, issues: MutableList<ValidationIssue>) {

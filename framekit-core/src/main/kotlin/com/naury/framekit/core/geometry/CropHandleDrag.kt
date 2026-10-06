@@ -1,6 +1,6 @@
 package com.naury.framekit.core.geometry
 
-/** Part of the crop frame that a pointer grabbed. */
+/** 포인터가 잡은 자르기 프레임의 부분. */
 public enum class CropHandle(
     internal val movesLeft: Boolean,
     internal val movesTop: Boolean,
@@ -18,17 +18,17 @@ public enum class CropHandle(
     MOVE(true, true, true, true),
 }
 
-/** Resizes or moves a crop rectangle in response to a drag, keeping it valid. */
+/** 드래그에 따라 자르기 사각형의 크기를 바꾸거나 이동하며, 항상 유효하게 유지한다. */
 public object CropHandleDrag {
 
     /**
-     * Returns the crop after dragging [handle] by ([dx], [dy]) from the gesture start.
+     * 제스처 시작점부터 [handle]을 ([dx], [dy])만큼 드래그한 뒤의 자르기를 반환한다.
      *
-     * @param start crop when the gesture began. It must be valid; it is the fallback position when
-     *   the pointer leaves the image area.
-     * @param dx total horizontal movement in normalized G units.
-     * @param dy total vertical movement in normalized G units.
-     * @param pixelAspect locked width / height ratio in pixels, or `null` for a free crop.
+     * @param start 제스처가 시작될 때의 자르기. 유효해야 하며, 포인터가 이미지 영역을 벗어나면
+     *   대체 위치로 쓰인다.
+     * @param dx 정규화된 G 단위의 총 가로 이동량.
+     * @param dy 정규화된 G 단위의 총 세로 이동량.
+     * @param pixelAspect 픽셀 기준으로 고정된 width / height 비율. 자유 자르기면 `null`.
      */
     public fun drag(
         frame: GeometryFrame,

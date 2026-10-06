@@ -16,8 +16,8 @@ import kotlin.math.abs
 import kotlin.random.Random
 
 /**
- * Preview/export equivalence on a real GPU: the GL renderer must match the CPU reference for every
- * adjustment, every preset and the spatial effects. Target from the QA plan: MAE ≤ 3/255.
+ * 실제 GPU에서 미리보기/내보내기 동등성을 검증한다. GL renderer는 모든 보정, 모든 preset, 공간 효과에서
+ * CPU 기준 결과와 일치해야 한다. QA 계획의 목표치는 MAE ≤ 3/255다.
  */
 @RunWith(AndroidJUnit4::class)
 class GlColorEffectRendererTest {

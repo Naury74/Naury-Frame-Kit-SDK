@@ -15,7 +15,7 @@ import com.naury.framekit.ui.video.contract.VideoTool
 import com.naury.framekit.video.source.VideoSourceInfo
 
 internal sealed interface VideoEditorUiState {
-    /** Waiting for the system picker. */
+    /** 시스템 피커를 기다리는 중. */
     data object AwaitingPick : VideoEditorUiState
 
     data object Loading : VideoEditorUiState
@@ -47,7 +47,7 @@ internal sealed interface VideoEditorUiState {
     }
 }
 
-/** One-time message shown as a snackbar. */
+/** 스낵바로 한 번 보여주는 메시지. */
 internal enum class VideoNotice {
     MASK_LIMIT,
 
@@ -61,7 +61,7 @@ internal enum class VideoNotice {
 }
 
 internal sealed interface ExportUiState {
-    /** @property progress `0..1` while encoding when Media3 can estimate it. */
+    /** @property progress Media3가 추정할 수 있을 때 인코딩 중의 `0..1` 진행률. */
     data class Running(val stage: ExportStageUi, val progress: Float? = null) : ExportUiState
     data class Failed(val code: EditorErrorCode) : ExportUiState
 }

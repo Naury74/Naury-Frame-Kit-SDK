@@ -1,6 +1,6 @@
 package com.naury.framekit.core.model
 
-/** Integer rectangle in pixels, `[left, right) × [top, bottom)`. */
+/** 픽셀 단위 정수 사각형, `[left, right) × [top, bottom)`. */
 public data class PixelRect(val left: Int, val top: Int, val right: Int, val bottom: Int) {
     public val width: Int get() = right - left
     public val height: Int get() = bottom - top

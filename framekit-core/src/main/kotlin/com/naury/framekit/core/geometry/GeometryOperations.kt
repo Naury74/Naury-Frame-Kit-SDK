@@ -3,15 +3,15 @@ package com.naury.framekit.core.geometry
 import com.naury.framekit.core.model.PixelSize
 
 /**
- * Edits that the user sees as rotating or mirroring the current result.
+ * 사용자에게 현재 결과를 회전하거나 반전하는 것으로 보이는 편집.
  *
- * Because flip is applied after rotation, a visual clockwise turn of a mirrored image is a
- * counter-clockwise quarter turn in the model. These functions keep that bookkeeping in one place and
- * move the crop with the content so that the selected area is preserved.
+ * 뒤집기는 회전 뒤에 적용되므로, 반전된 이미지를 화면상 시계 방향으로 돌리는 것은 모델에서는 반시계
+ * 방향 90° 회전이다. 이 함수들은 그 계산을 한곳에서 처리하고, 선택 영역이 유지되도록 자르기를 내용과
+ * 함께 옮긴다.
  */
 public object GeometryOperations {
 
-    /** Rotates the visible result 90° clockwise. */
+    /** 보이는 결과를 시계 방향으로 90° 회전한다. */
     public fun rotateClockwise(geometry: GeometryEdit): GeometryEdit {
         val step = if (geometry.flipX != geometry.flipY) -1 else 1
         val crop = geometry.crop
@@ -21,29 +21,29 @@ public object GeometryOperations {
         )
     }
 
-    /** Rotates the visible result 90° counter-clockwise. */
+    /** 보이는 결과를 반시계 방향으로 90° 회전한다. */
     public fun rotateCounterClockwise(geometry: GeometryEdit): GeometryEdit =
         rotateClockwise(rotateClockwise(rotateClockwise(geometry)))
 
-    /** Mirrors the visible result left to right. */
+    /** 보이는 결과를 좌우 반전한다. */
     public fun flipHorizontal(geometry: GeometryEdit): GeometryEdit {
         val crop = geometry.crop
         return geometry.copy(flipX = !geometry.flipX, crop = RectN(1.0 - crop.right, crop.top, 1.0 - crop.left, crop.bottom))
     }
 
-    /** Mirrors the visible result top to bottom. */
+    /** 보이는 결과를 상하 반전한다. */
     public fun flipVertical(geometry: GeometryEdit): GeometryEdit {
         val crop = geometry.crop
         return geometry.copy(flipY = !geometry.flipY, crop = RectN(crop.left, 1.0 - crop.bottom, crop.right, 1.0 - crop.top))
     }
 
     /**
-     * Applies a new straighten angle to [start] and fits the crop into the new image area.
+     * [start]에 새 수평 보정 각도를 적용하고 자르기를 새 이미지 영역에 맞춘다.
      *
-     * Always derive from the geometry at the start of the gesture. Applying small steps one after
-     * another would shrink the crop permanently even when the slider returns to its start value.
+     * 항상 제스처 시작 시점의 기하에서 계산한다. 작은 단계를 연달아 적용하면 슬라이더가 시작 값으로
+     * 돌아와도 자르기가 영구적으로 줄어든다.
      *
-     * @param degrees clockwise angle, clamped to `-45.0..45.0`.
+     * @param degrees 시계 방향 각도. `-45.0..45.0`으로 제한된다.
      */
     public fun withStraighten(sourceSize: PixelSize, start: GeometryEdit, degrees: Double): GeometryEdit {
         require(degrees.isFinite()) { "Straighten angle must be finite" }
@@ -65,7 +65,7 @@ public object GeometryOperations {
         return next.copy(crop = CropBoundsCalculator.clampCrop(nextFrame, moved))
     }
 
-    /** Replaces the crop with the largest centered crop for [aspect]. */
+    /** 자르기를 [aspect]에 대한 가장 큰 중앙 자르기로 바꾼다. */
     public fun withAspect(sourceSize: PixelSize, geometry: GeometryEdit, aspect: CropAspectRatio): GeometryEdit =
         geometry.copy(crop = CropBoundsCalculator.maxCrop(GeometryFrame(sourceSize, geometry), aspect))
 }

@@ -6,15 +6,15 @@ import kotlin.math.min
 import kotlin.math.roundToInt
 import kotlin.math.sqrt
 
-/** Chooses the encoded output size for a crop. Output is never upscaled. */
+/** 자르기에 대한 인코딩 출력 크기를 정한다. 출력은 절대 확대하지 않는다. */
 public object OutputSizeCalculator {
 
     /**
-     * @param cropSize crop size in source pixels.
-     * @param maxPixels upper bound of `width × height`.
-     * @param maxWidth optional upper bound of the output width.
-     * @param maxHeight optional upper bound of the output height.
-     * @throws IllegalArgumentException when a limit is not positive or [cropSize] is empty.
+     * @param cropSize 원본 픽셀 기준 자르기 크기.
+     * @param maxPixels `width × height`의 상한.
+     * @param maxWidth 출력 너비의 선택적 상한.
+     * @param maxHeight 출력 높이의 선택적 상한.
+     * @throws IllegalArgumentException 한도가 양수가 아니거나 [cropSize]가 비어 있을 때.
      */
     public fun compute(cropSize: Size2D, maxPixels: Long, maxWidth: Int? = null, maxHeight: Int? = null): PixelSize {
         require(cropSize.width > 0.0 && cropSize.height > 0.0) { "Crop size must be positive" }

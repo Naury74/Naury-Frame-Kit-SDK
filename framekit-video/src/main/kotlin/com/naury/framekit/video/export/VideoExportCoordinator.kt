@@ -46,21 +46,21 @@ import java.io.File
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
-/** Progress of a video export. */
+/** 영상 내보내기 진행 상태다. */
 public sealed interface VideoExportProgress {
     public data object Preparing : VideoExportProgress
 
-    /** @property percent `0..100`, or `null` when Media3 cannot estimate progress. */
+    /** @property percent `0..100`. Media3가 진행률을 추정할 수 없으면 `null`. */
     public data class Encoding(val percent: Int?) : VideoExportProgress
     public data object Finalizing : VideoExportProgress
 }
 
 /**
- * Exports a [VideoProject] to MP4 (H.264/AAC) with Media3 Transformer.
+ * Media3 Transformer로 [VideoProject]를 MP4(H.264/AAC)로 내보낸다.
  *
- * Transformer is created, started, polled and cancelled on the main looper; the encoding itself runs
- * on Media3's own threads. Cancelling the coroutine cancels the Transformer, waits for it to stop and
- * deletes the partial file. The output is checked (video track and duration) before it is published.
+ * Transformer의 생성·시작·polling·취소는 main looper에서 하고, 인코딩 자체는 Media3의 자체 thread에서
+ * 실행된다. coroutine을 취소하면 Transformer를 취소하고 멈출 때까지 기다린 뒤 partial 파일을 지운다.
+ * 결과물은 공개하기 전에 영상 트랙과 길이를 검사한다.
  */
 public class VideoExportCoordinator(
     context: Context,
@@ -71,9 +71,9 @@ public class VideoExportCoordinator(
     private val appContext = context.applicationContext
 
     /**
-     * @param minClipOutputDurationUs shortest allowed clip, as in the editor config.
-     * @throws FrameKitException with `INVALID_PROJECT`, `INVALID_CONFIGURATION`, `INSUFFICIENT_STORAGE`,
-     *   `DECODE_FAILED`, `UNSUPPORTED_FORMAT`, `ENCODE_FAILED`, `SOURCE_UNAVAILABLE` or
+     * @param minClipOutputDurationUs 허용하는 최소 클립 길이. 편집기 설정 값과 같다.
+     * @throws FrameKitException `INVALID_PROJECT`, `INVALID_CONFIGURATION`, `INSUFFICIENT_STORAGE`,
+     *   `DECODE_FAILED`, `UNSUPPORTED_FORMAT`, `ENCODE_FAILED`, `SOURCE_UNAVAILABLE` 또는
      *   `OUTPUT_WRITE_FAILED`.
      */
     public suspend fun export(
@@ -219,7 +219,7 @@ public class VideoExportCoordinator(
         if (outputStore.allocatableBytes() < estimate) throw FrameKitException(EditorErrorCode.INSUFFICIENT_STORAGE, "Not enough space")
     }
 
-    /** Removes partial files of interrupted exports; see [AppFileOutputStore.deleteStalePartials]. */
+    /** 중단된 내보내기의 partial 파일을 지운다. [AppFileOutputStore.deleteStalePartials] 참고. */
     public fun deleteStalePartials() {
         outputStore.deleteStalePartials()
     }
@@ -233,7 +233,7 @@ public class VideoExportCoordinator(
     }
 }
 
-/** Maps Media3 export errors to FrameKit codes. */
+/** Media3 내보내기 오류를 FrameKit 오류 코드로 변환한다. */
 internal object VideoExportErrors {
     fun map(error: ExportException): FrameKitException {
         val code = when (error.errorCode) {

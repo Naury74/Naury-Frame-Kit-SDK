@@ -4,7 +4,7 @@ import androidx.annotation.StringRes
 import com.naury.framekit.android.result.EditorErrorCode
 import com.naury.framekit.ui.R
 
-/** Localized message that tells the user what happened and what to do next. */
+/** 무슨 일이 일어났고 다음에 무엇을 해야 하는지 알려주는 현지화된 메시지. */
 @StringRes
 public fun EditorErrorCode.messageRes(): Int = when (this) {
     EditorErrorCode.INVALID_SOURCE -> R.string.framekit_error_invalid_source

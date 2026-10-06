@@ -1,17 +1,16 @@
 package com.naury.framekit.core.effect
 
-/** Small additive color shift in display RGB, used for split toning. */
+/** display RGB에서 더하는 작은 색 이동. split toning에 쓴다. */
 public data class RgbShift(val red: Double = 0.0, val green: Double = 0.0, val blue: Double = 0.0) {
     public val isZero: Boolean get() = red == 0.0 && green == 0.0 && blue == 0.0
 }
 
 /**
- * Look of a filter preset, defined with the same operations and ranges as [Adjustments] so presets
- * and adjustments share one renderer.
+ * 필터 프리셋의 룩. [Adjustments]와 같은 연산·범위로 정의하므로 프리셋과 보정이 하나의 렌더러를
+ * 공유한다.
  *
- * All operations run in display (sRGB-encoded) space in this order: temperature, tint, brightness,
- * contrast, saturation, split toning ([shadowTint] on dark tones, [highlightTint] on bright tones),
- * fade.
+ * 모든 연산은 display(sRGB 인코딩) 공간에서 다음 순서로 실행된다: temperature, tint, 밝기, 대비,
+ * 채도, split toning(어두운 톤에 [shadowTint], 밝은 톤에 [highlightTint]), fade.
  */
 public data class FilterGrade(
     val temperature: Double = 0.0,
@@ -25,15 +24,15 @@ public data class FilterGrade(
 )
 
 /**
- * A filter preset. [version] changes whenever [grade] changes so cached thumbnails and saved projects
- * can tell old looks from new ones.
+ * 필터 프리셋. [grade]가 바뀔 때마다 [version]도 바뀌므로, 캐시된 썸네일과 저장된 프로젝트가 이전
+ * 룩과 새 룩을 구분할 수 있다.
  */
 public data class FilterPreset(val id: String, val version: Int, val grade: FilterGrade)
 
 /**
- * Selected preset and how strongly it is blended over the adjusted image.
+ * 선택된 프리셋과, 보정된 이미지 위에 섞는 강도.
  *
- * @property intensity `0..1`; the result is `mix(adjusted, filtered, intensity)`.
+ * @property intensity `0..1`. 결과는 `mix(adjusted, filtered, intensity)`이다.
  */
 public data class FilterSelection(
     val presetId: String = FilterCatalog.ORIGINAL_ID,
@@ -42,7 +41,7 @@ public data class FilterSelection(
     public val isIdentity: Boolean get() = presetId == FilterCatalog.ORIGINAL_ID || intensity == 0.0
 }
 
-/** Built-in presets. Parameters live here, not in the UI. */
+/** 내장 프리셋. 파라미터는 UI가 아니라 여기에 둔다. */
 public object FilterCatalog {
     public const val ORIGINAL_ID: String = "original"
 

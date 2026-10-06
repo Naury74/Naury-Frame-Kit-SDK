@@ -13,7 +13,7 @@ import com.naury.framekit.core.model.ImageProject
 import com.naury.framekit.core.model.MediaType
 import com.naury.framekit.core.model.SourceMetadata
 
-/** Checks that an [ImageProject] can be rendered for the given source. */
+/** 주어진 소스에 대해 [ImageProject]를 렌더링할 수 있는지 검사한다. */
 public object ImageProjectValidator {
 
     public fun validate(project: ImageProject, metadata: SourceMetadata): ValidationResult {

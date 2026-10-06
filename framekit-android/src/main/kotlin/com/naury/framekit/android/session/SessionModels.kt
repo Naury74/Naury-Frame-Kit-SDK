@@ -27,13 +27,13 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
- * Values that identify the exact image a session was editing.
+ * 세션이 편집하던 이미지를 정확히 식별하는 값.
  *
- * After process death the source is opened again and compared with this fingerprint. A different
- * image behind the same reference is never treated as the edited one.
+ * 프로세스가 종료된 뒤에는 원본을 다시 열어 이 fingerprint와 비교한다. 같은 참조 뒤에 다른 이미지가
+ * 있으면 편집하던 이미지로 취급하지 않는다.
  *
- * @property encodedWidth stored pixel width before orientation.
- * @property encodedHeight stored pixel height before orientation.
+ * @property encodedWidth orientation 적용 전 저장된 픽셀 너비.
+ * @property encodedHeight orientation 적용 전 저장된 픽셀 높이.
  * @property orientation EXIF orientation 태그 값. 영상은 컨테이너 회전 각도(도).
  * @property durationUs 영상 길이(µs). 이미지는 `null`.
  */
@@ -46,7 +46,7 @@ public data class SourceFingerprint(
     val durationUs: Long? = null,
 )
 
-/** Reference that can reopen a source after recreation. Only strings are stored. */
+/** 재생성 후 원본을 다시 열 수 있는 참조. 문자열만 저장한다. */
 @Serializable
 public sealed interface SourceReference {
     @Serializable
@@ -59,10 +59,10 @@ public sealed interface SourceReference {
 }
 
 /**
- * Committed image edits as stored on disk. Drafts of an open tool are never written.
+ * 디스크에 저장되는 확정된 이미지 편집. 열려 있는 도구의 초안은 기록하지 않는다.
  *
- * The source key is not stored because a [SourceId] is only valid for one registry; the restored
- * project gets the key of the newly registered source.
+ * [SourceId]는 하나의 레지스트리 안에서만 유효하므로 원본 키는 저장하지 않는다. 복원된 프로젝트는
+ * 새로 등록한 원본의 키를 받는다.
  */
 @Serializable
 public data class ImageProjectSnapshot(
@@ -131,7 +131,7 @@ public data class ImageProjectSnapshot(
     }
 }
 
-/** Stored form of [Adjustments]; every field defaults to 0 so older snapshots still load. */
+/** [Adjustments]의 저장 형태. 이전 snapshot도 읽을 수 있도록 모든 필드의 기본값은 0이다. */
 @Serializable
 public data class AdjustmentsSnapshot(
     val brightness: Double = 0.0,
@@ -158,7 +158,7 @@ public data class AdjustmentsSnapshot(
     }
 }
 
-/** Stored form of an [ImageOverlay]. */
+/** [ImageOverlay]의 저장 형태. */
 @Serializable
 public sealed interface OverlaySnapshot {
     public fun toModel(): ImageOverlay
@@ -264,7 +264,7 @@ public data class TextStyleSnapshot(
     }
 }
 
-/** Stored form of a [DrawingStroke]; points are packed as x, y, pressure triples. */
+/** [DrawingStroke]의 저장 형태. 점은 x, y, pressure 세 값씩 묶어 저장한다. */
 @Serializable
 public data class StrokeSnapshot(
     val id: String,
@@ -296,8 +296,8 @@ public data class StrokeSnapshot(
 }
 
 /**
- * Stored form of a [PrivacyMask]. [shape] is `brush`, `rectangle` or `ellipse`; [values] holds the
- * rectangle edges or the brush points as x, y pairs; [effect] is `blur` or `mosaic`.
+ * [PrivacyMask]의 저장 형태. [shape]는 `brush`, `rectangle`, `ellipse` 중 하나이고, [values]는
+ * 사각형 경계 또는 x, y 쌍으로 묶은 브러시 점을 담는다. [effect]는 `blur` 또는 `mosaic`이다.
  */
 @Serializable
 public data class PrivacyMaskSnapshot(
@@ -356,12 +356,12 @@ internal data class SessionSnapshotFile(
 )
 
 /**
- * Everything restored for a session.
+ * 세션에 대해 복원된 모든 정보.
  *
  * @property snapshot 마지막으로 확정된 이미지 편집. 아직 확정한 것이 없으면 `null`.
  * @property videoSnapshot 마지막으로 확정된 영상 편집. 없으면 `null`.
- * @property exportWasInterrupted `true` when the process died while an export was running. The
- *   export did not complete and must be started again.
+ * @property exportWasInterrupted export 실행 중에 프로세스가 종료되었으면 `true`. export는 완료되지
+ *   않았으므로 다시 시작해야 한다.
  */
 public data class SessionRecord(
     val sessionId: String,

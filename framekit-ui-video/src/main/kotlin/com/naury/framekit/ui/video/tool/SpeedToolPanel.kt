@@ -12,7 +12,7 @@ import com.naury.framekit.ui.component.ChoiceChips
 import com.naury.framekit.ui.video.R
 import java.text.DecimalFormat
 
-/** Constant playback speed presets; audio keeps its pitch. */
+/** 고정 재생 속도 프리셋. 오디오는 음높이를 유지한다. */
 @Composable
 internal fun SpeedToolPanel(speed: Double, onSelect: (Double) -> Unit, modifier: Modifier = Modifier) {
     val format = DecimalFormat("0.##")

@@ -22,7 +22,7 @@ import com.naury.framekit.ui.R
 import com.naury.framekit.ui.design.FrameKitTheme
 import com.naury.framekit.ui.text.messageRes
 
-/** Shown while the source is checked and the preview is decoded. */
+/** 소스를 확인하고 미리보기를 디코딩하는 동안 표시한다. */
 @Composable
 public fun EditorLoadingView(modifier: Modifier = Modifier) {
     val colors = FrameKitTheme.colors
@@ -34,7 +34,7 @@ public fun EditorLoadingView(modifier: Modifier = Modifier) {
     }
 }
 
-/** Full-screen error for a source that could not be opened. */
+/** 열 수 없는 소스에 대한 전체 화면 오류. */
 @Composable
 public fun EditorErrorView(
     code: EditorErrorCode,

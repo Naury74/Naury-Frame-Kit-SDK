@@ -16,7 +16,7 @@ import com.naury.framekit.ui.design.FrameKitTheme
 import com.naury.framekit.ui.R
 import kotlin.math.roundToInt
 
-/** Mosaic or blur, mask shape and strength. Masks are drawn with one finger on the canvas. */
+/** 모자이크/블러, 마스크 모양과 강도. 마스크는 캔버스에 한 손가락으로 그린다. */
 @Composable
 public fun PrivacyToolPanel(
     settings: PrivacySettings,
@@ -78,14 +78,14 @@ public fun PrivacyToolPanel(
     }
 }
 
-/** Mask kind for the privacy tool. */
+/** 가리기 도구의 마스크 종류. */
 public enum class PrivacyShape { BRUSH, RECTANGLE, ELLIPSE }
 
 /**
- * Privacy tool settings.
+ * 가리기 도구 설정.
  *
- * @property strength `0..1`, mapped to the mosaic block or blur radius.
- * @property brushWidthShortEdgeRatio brush diameter relative to the canvas short edge.
+ * @property strength `0..1`. 모자이크 블록 크기 또는 블러 반경에 대응한다.
+ * @property brushWidthShortEdgeRatio 캔버스 짧은 변 대비 브러시 지름.
  */
 public data class PrivacySettings(
     val mosaic: Boolean = true,

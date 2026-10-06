@@ -25,7 +25,7 @@ import com.naury.framekit.ui.design.FrameKitTheme
 import com.naury.framekit.ui.image.R
 import com.naury.framekit.ui.image.editor.CutoutStatus
 
-/** One-tap background removal and restore. */
+/** 한 번의 탭으로 배경 제거와 복원. */
 @Composable
 internal fun CutoutToolPanel(
     applied: Boolean,

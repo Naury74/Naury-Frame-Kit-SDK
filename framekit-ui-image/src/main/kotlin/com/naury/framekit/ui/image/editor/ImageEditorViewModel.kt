@@ -76,11 +76,11 @@ import kotlin.math.abs
 import kotlin.random.Random
 
 /**
- * State holder of one image editing session.
+ * 이미지 편집 세션 하나의 상태 홀더.
  *
- * Every edit goes through [HistoryTransaction]: a tool session is `begin → update* → apply/cancel`,
- * so one crop or rotate session becomes exactly one undo step. Export always uses the committed
- * snapshot, never the draft.
+ * 모든 편집은 [HistoryTransaction]을 거친다. 도구 세션은 `begin → update* → apply/cancel`이므로
+ * 자르기나 회전 세션 하나가 정확히 실행 취소 한 단계가 된다. 내보내기는 초안이 아니라 항상
+ * 커밋된 스냅샷을 사용한다.
  */
 internal class ImageEditorViewModel(
     private val request: ImageEditorRequest,
@@ -103,7 +103,7 @@ internal class ImageEditorViewModel(
 
     private val _result = MutableStateFlow<FrameKitResult?>(null)
 
-    /** Final result; the Activity finishes as soon as this is not `null`. */
+    /** 최종 결과. 이 값이 `null`이 아니게 되는 즉시 Activity가 종료된다. */
     val result: StateFlow<FrameKitResult?> = _result.asStateFlow()
 
     private var exportJob: Job? = null
@@ -115,18 +115,18 @@ internal class ImageEditorViewModel(
 
     private val previewController = ImagePreviewController(viewModelScope, colorRenderer, renderDispatcher)
 
-    /** Color-effected preview of the displayed project, or `null` when the canvas draws directly. */
+    /** 표시 중인 프로젝트의 색상 효과 미리보기. 캔버스가 직접 그리면 `null`. */
     val renderedPreview: StateFlow<RenderedPreview?> = previewController.rendered
 
-    /** Filter thumbnails by preset id. */
+    /** 프리셋 id별 필터 썸네일. */
     val filterThumbnails: StateFlow<Map<String, Bitmap>> = previewController.thumbnails
 
     private val _cutoutMasks = MutableStateFlow<Map<String, Bitmap>>(emptyMap())
 
-    /** Loaded background-removal masks by asset id. */
+    /** 에셋 id별로 로드된 배경 제거 마스크. */
     val cutoutMasks: StateFlow<Map<String, Bitmap>> = _cutoutMasks.asStateFlow()
 
-    /** `true` when an optional background remover is installed and the tool is enabled. */
+    /** 선택적 배경 제거기가 설치되어 있고 도구가 활성화되어 있으면 `true`. */
     val cutoutAvailable: Boolean get() = backgroundRemover != null && ImageTool.CUTOUT in config.enabledTools
 
     // 권한을 잃은 원본을 다시 고를 때까지 이전 세션을 들고 있다가, 같은 이미지인지 확인한 뒤에만 복원한다.
@@ -160,7 +160,7 @@ internal class ImageEditorViewModel(
         if (ready.activeTool == ImageTool.FILTER) previewController.ensureThumbnails(ready.preview)
     }
 
-    /** Called by the canvas with its size in pixels; previews are rendered at this size. */
+    /** 캔버스가 픽셀 단위 크기와 함께 호출한다. 미리보기는 이 크기로 렌더링된다. */
     override fun onViewportSize(width: Int, height: Int) = previewController.onViewport(width, height)
 
     private fun start() {
@@ -184,7 +184,7 @@ internal class ImageEditorViewModel(
         }
     }
 
-    /** Called with the picker result. `null` means the user dismissed the picker. */
+    /** 피커 결과와 함께 호출된다. `null`은 사용자가 피커를 닫았다는 뜻이다. */
     fun onPicked(uri: Uri?) {
         if (uri == null) {
             if (_state.value is ImageEditorUiState.AwaitingPick) finish(FrameKitResult.Cancelled)
@@ -194,7 +194,7 @@ internal class ImageEditorViewModel(
         load(EditorInput.UriSource(uri))
     }
 
-    /** Returns to the picker after a source failed to open. */
+    /** 소스를 열지 못한 뒤 피커로 돌아간다. */
     fun chooseAnother() {
         savedState.remove<Uri>(KEY_PICKED_URI)
         _state.value = ImageEditorUiState.AwaitingPick
@@ -264,7 +264,7 @@ internal class ImageEditorViewModel(
         }
     }
 
-    /** Opens the text tool on an existing text overlay. */
+    /** 기존 텍스트 오버레이에 대해 텍스트 도구를 연다. */
     override fun editText(id: String) = updateReady { ready ->
         val canEdit = ready.activeTool == null && ready.export == null && !ready.transaction.isActive && ImageTool.TEXT in config.enabledTools
         if (!canEdit || ready.displayed.overlays.none { it.id == id && it is ImageOverlay.Text }) ready else openText(ready, id)
@@ -310,7 +310,7 @@ internal class ImageEditorViewModel(
         updateReady { it.copy(selectedOverlayId = id) }
     }
 
-    /** Pan in normalized canvas units, zoom as a factor and rotation in degrees, all since the gesture began. */
+    /** 제스처 시작 이후의 이동(정규화 캔버스 단위), 확대(배율), 회전(도). */
     override fun updateOverlayGesture(panX: Double, panY: Double, zoom: Double, rotation: Double, snapX: Double, snapY: Double) {
         val start = overlayGestureStart ?: return
         updateGesture { _, project ->
@@ -325,7 +325,7 @@ internal class ImageEditorViewModel(
 
     fun selectStickerCategory(category: EmojiCatalog.Category) = updateReady { it.copy(stickerCategory = category) }
 
-    /** Adds an emoji sticker at the canvas center as one undo step and selects it. */
+    /** 캔버스 중앙에 이모지 스티커를 실행 취소 한 단계로 추가하고 선택한다. */
     fun addSticker(emoji: String) {
         val id = newId()
         commitImmediate { it.copy(overlays = it.overlays + ImageOverlay.Sticker(id, EmojiCatalog.assetId(emoji))) }
@@ -335,8 +335,8 @@ internal class ImageEditorViewModel(
     fun updateBrush(transform: (BrushSettings) -> BrushSettings) = updateReady { it.copy(brush = transform(it.brush)) }
 
     /**
-     * Starts a stroke at a normalized canvas point; [finishStroke] commits it. With the privacy tool
-     * open, the stroke paints a brush mask or spans a rectangle or ellipse instead.
+     * 정규화 캔버스 좌표에서 획을 시작한다. 커밋은 [finishStroke]가 한다. 가리기 도구가 열려 있으면
+     * 획 대신 브러시 마스크를 칠하거나 사각형·타원 영역을 잡는다.
      */
     override fun beginStroke(x: Double, y: Double, pressure: Double) = updateGesture { ready, project ->
         if (ready.activeTool == ImageTool.PRIVACY) {
@@ -354,7 +354,7 @@ internal class ImageEditorViewModel(
         project.copy(drawing = project.drawing + stroke)
     }
 
-    /** @param minDistanceX smallest movement recorded, in normalized units, to throttle samples. */
+    /** @param minDistanceX 샘플을 솎아내기 위해 기록하는 최소 이동 거리(정규화 단위). */
     override fun extendStroke(x: Double, y: Double, pressure: Double, minDistanceX: Double, minDistanceY: Double) = updateGesture { ready, project ->
         if (ready.activeTool == ImageTool.PRIVACY) return@updateGesture extendMask(project, x, y, minDistanceX, minDistanceY)
         val last = project.drawing.lastOrNull() ?: return@updateGesture project
@@ -394,7 +394,7 @@ internal class ImageEditorViewModel(
 
     fun updatePrivacy(transform: (PrivacySettings) -> PrivacySettings) = updateReady { it.copy(privacy = transform(it.privacy)) }
 
-    /** Apply of a draft tool: the whole tool session becomes one undo step. Empty text is dropped. */
+    /** 초안 도구 적용. 도구 세션 전체가 실행 취소 한 단계가 된다. 빈 텍스트는 버린다. */
     fun applyTool() = updateReady { ready ->
         if (ready.activeTool?.isDraft != true) return@updateReady ready
         var transaction = ready.transaction
@@ -409,7 +409,7 @@ internal class ImageEditorViewModel(
         ready.copy(activeTool = null, transaction = committed, editingTextId = null, selectedOverlayId = selected)
     }
 
-    /** Cancel of a draft tool: the project returns to the state before the tool opened. */
+    /** 초안 도구 취소. 프로젝트는 도구를 열기 전 상태로 돌아간다. */
     fun cancelTool() = updateReady { ready ->
         if (ready.activeTool?.isDraft != true) return@updateReady ready
         val cancelled = ready.transaction.cancel()
@@ -417,7 +417,7 @@ internal class ImageEditorViewModel(
         ready.copy(activeTool = null, transaction = cancelled, editingTextId = null, selectedOverlayId = selected)
     }
 
-    /** Closes a tool whose changes are already committed (adjust, filter). */
+    /** 변경이 이미 커밋된 도구(보정, 필터)를 닫는다. */
     fun closeTool() = updateReady { ready ->
         if (ready.activeTool?.isDraft != false || ready.transaction.isActive) ready else ready.copy(activeTool = null)
     }
@@ -438,7 +438,7 @@ internal class ImageEditorViewModel(
         }
     }
 
-    /** Finds the subject in the preview, stores the mask as an asset and commits the cutout as one undo step. */
+    /** 미리보기에서 피사체를 찾아 마스크를 에셋으로 저장하고 누끼를 실행 취소 한 단계로 커밋한다. */
     fun removeBackground() {
         val ready = _state.value as? ImageEditorUiState.Ready ?: return
         val remover = backgroundRemover ?: return
@@ -464,7 +464,7 @@ internal class ImageEditorViewModel(
         }
     }
 
-    /** Turns the cutout off; the mask asset stays so undo can bring it back. */
+    /** 누끼를 끈다. 실행 취소로 되돌릴 수 있도록 마스크 에셋은 남겨 둔다. */
     fun restoreBackground() = commitImmediate { it.copy(cutout = null) }
 
     private fun assets(): ProjectAssetStore? = session.assets() ?: assetFallback
@@ -480,18 +480,18 @@ internal class ImageEditorViewModel(
 
     fun selectAdjustment(kind: AdjustmentKind) = updateReady { it.copy(adjustKind = kind) }
 
-    /** Slider movement of the selected adjustment; the first call of a drag starts the gesture. */
+    /** 선택한 보정 항목의 슬라이더 이동. 드래그의 첫 호출이 제스처를 시작한다. */
     fun changeAdjustment(display: Float) = updateGesture { ready, project ->
         val kind = ready.adjustKind
         project.copy(adjustments = project.adjustments.with(kind, kind.fromDisplay(display)))
     }
 
-    /** End of a slider drag: commits it as one undo step. */
+    /** 슬라이더 드래그 종료. 실행 취소 한 단계로 커밋한다. */
     fun finishGesture() = updateReady { ready ->
         if (ready.activeTool?.isDraft == true || !ready.transaction.isActive) ready else ready.copy(transaction = ready.transaction.commit())
     }
 
-    /** Selecting a preset is one undo step. Reselecting keeps its intensity; a new preset starts at full strength. */
+    /** 프리셋 선택은 실행 취소 한 단계다. 다시 선택하면 강도를 유지하고, 새 프리셋은 최대 강도로 시작한다. */
     fun selectFilter(presetId: String) = commitImmediate { project ->
         val intensity = when {
             presetId == FilterCatalog.ORIGINAL_ID -> 0.0
@@ -533,7 +533,7 @@ internal class ImageEditorViewModel(
         updateReady { it.copy(draggingCrop = true) }
     }
 
-    /** @param dx total horizontal movement since [beginCropDrag], in normalized G units. */
+    /** @param dx [beginCropDrag] 이후의 총 가로 이동량(정규화 G 단위). */
     override fun dragCrop(dx: Double, dy: Double) {
         val (handle, start) = cropDragStart ?: return
         updateDraft { ready, geometry ->
@@ -629,7 +629,7 @@ internal class ImageEditorViewModel(
 
     fun dismissApplyHint() = updateReady { it.copy(showApplyHint = false) }
 
-    /** Close button or system back. */
+    /** 닫기 버튼 또는 시스템 뒤로 가기. */
     fun requestClose() {
         when (val current = _state.value) {
             is ImageEditorUiState.Ready -> when {
@@ -642,7 +642,7 @@ internal class ImageEditorViewModel(
         }
     }
 
-    /** System back: closes an open tool first, then behaves like [requestClose]. */
+    /** 시스템 뒤로 가기. 열린 도구를 먼저 닫고, 그다음에는 [requestClose]처럼 동작한다. */
     fun onBack() {
         val ready = _state.value as? ImageEditorUiState.Ready
         when {

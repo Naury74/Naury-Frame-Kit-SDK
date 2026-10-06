@@ -64,10 +64,10 @@ import com.naury.framekit.ui.image.contract.ImageTool
 import com.naury.framekit.ui.R as UiR
 
 /**
- * Draws the project with the shared renderer and handles canvas gestures.
+ * 공용 렌더러로 프로젝트를 그리고 캔버스 제스처를 처리한다.
  *
- * Outside a tool the edited result is shown; long-pressing shows the original. While a geometry tool
- * is open the whole rotated image is shown with the crop frame on top.
+ * 도구 밖에서는 편집 결과를 보여주고, 길게 누르면 원본을 보여준다. 기하 도구가 열려 있는 동안에는
+ * 회전된 이미지 전체 위에 자르기 프레임을 표시한다.
  */
 @Composable
 internal fun ImageCanvas(

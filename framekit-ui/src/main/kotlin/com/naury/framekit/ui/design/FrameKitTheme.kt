@@ -16,7 +16,7 @@ import androidx.compose.ui.unit.dp
 import com.naury.framekit.ui.config.EditorUiConfig
 import com.naury.framekit.ui.config.ThemeMode
 
-/** Named editor colors. Status colors are exposed by name so hosts can check their contrast. */
+/** 이름이 붙은 에디터 색상. 호스트가 대비를 확인할 수 있도록 상태 색상도 이름으로 노출한다. */
 @Immutable
 public data class FrameKitColors(
     val accent: Color,
@@ -61,7 +61,7 @@ public data class FrameKitColors(
     }
 }
 
-/** Values derived from [EditorUiConfig] that editor components read. */
+/** 에디터 컴포넌트가 읽는, [EditorUiConfig]에서 파생된 값. */
 @Immutable
 public data class FrameKitDesign(
     val colors: FrameKitColors,
@@ -70,7 +70,7 @@ public data class FrameKitDesign(
 
 private val LocalFrameKitDesign = staticCompositionLocalOf { FrameKitDesign(FrameKitColors.dark(), EditorUiConfig()) }
 
-/** Accessors for the current editor design inside [FrameKitTheme]. */
+/** [FrameKitTheme] 안에서 현재 에디터 디자인에 접근하는 접근자. */
 public object FrameKitTheme {
     public val colors: FrameKitColors
         @Composable get() = LocalFrameKitDesign.current.colors
@@ -79,7 +79,7 @@ public object FrameKitTheme {
         @Composable get() = LocalFrameKitDesign.current.config
 }
 
-/** Applies the editor colors, shapes and Material theme described by [config]. */
+/** [config]에 기술된 에디터 색상, 모양, Material 테마를 적용한다. */
 @Composable
 public fun FrameKitTheme(config: EditorUiConfig, content: @Composable () -> Unit) {
     val dark = when (config.themeMode) {

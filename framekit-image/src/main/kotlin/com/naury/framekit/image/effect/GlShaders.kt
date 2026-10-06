@@ -5,12 +5,11 @@ import com.naury.framekit.core.effect.ColorEffectSpec
 import kotlin.math.min
 
 /**
- * GLSL ES 3.00 building blocks of the color pipeline, shared by the image renderer and the video
- * effect so photos and videos get identical colors.
+ * 색 파이프라인의 GLSL ES 3.00 구성 요소다. 이미지 renderer와 영상 effect가 공유해 사진과 영상이
+ * 같은 색을 얻는다.
  *
- * Every constant and step mirrors `ColorEffectProcessor`; change both together and bump
- * `ColorEffectSpec.VERSION`. This object is FrameKit-internal API and not covered by compatibility
- * promises.
+ * 모든 상수와 단계는 `ColorEffectProcessor`와 대응한다. 둘을 함께 바꾸고 `ColorEffectSpec.VERSION`을
+ * 올려야 한다. 이 object는 FrameKit 내부 API이며 호환성 보장 대상이 아니다.
  */
 public object ColorEffectShaders {
 
@@ -53,7 +52,7 @@ uniform vec3 uHighlightTint;
 uniform float uGradeFade;
 """
 
-    /** `vec3 applyColor(vec4 premultiplied)`: steps 1 and 2, returns clamped display RGB. */
+    /** `vec3 applyColor(vec4 premultiplied)`: 1·2단계를 수행하고 clamp된 표시용 RGB를 반환한다. */
     private const val COLOR_FUNCTION = """
 float toLinear(float c) { return c <= 0.04045 ? c / 12.92 : pow((c + 0.055) / 1.055, 2.4); }
 float toSrgb(float c) { return c <= 0.0031308 ? c * 12.92 : 1.055 * pow(c, 1.0 / 2.4) - 0.055; }
@@ -101,8 +100,8 @@ uniform ivec2 uSize;
 """
 
     /**
-     * `vec3 applyFinish(vec3 base, vec3 blurred, bool hasBlur, ivec2 pos, bool flipY)`: step 3.
-     * [flipY] maps GL rows (bottom-up) to canvas rows (top-down) for inputs stored upside down.
+     * `vec3 applyFinish(vec3 base, vec3 blurred, bool hasBlur, ivec2 pos, bool flipY)`: 3단계.
+     * [flipY]는 위아래가 뒤집혀 저장된 입력을 위해 GL 행(아래→위)을 canvas 행(위→아래)으로 매핑한다.
      */
     private const val FINISH_FUNCTION = """
 uint grainHash(int x, int y, int seed) {
@@ -134,7 +133,7 @@ vec3 applyFinish(vec3 base, vec3 blurred, bool hasBlur, ivec2 pos, bool flipY) {
 }
 """
 
-    /** Image pass 1: point operations. Output is non-premultiplied RGB with alpha. */
+    /** 이미지 1차 pass: 점 연산. 출력은 premultiply하지 않은 RGB와 alpha다. */
     internal const val COLOR: String = HEADER + "uniform sampler2D uInput;\nout vec4 outColor;\n" + COLOR_UNIFORMS + COMMON + COLOR_FUNCTION + """
 void main() {
     vec4 p = texelFetch(uInput, ivec2(gl_FragCoord.xy), 0);
@@ -142,7 +141,7 @@ void main() {
 }
 """
 
-    /** Separable Gaussian pass over 8-bit non-premultiplied RGB with edge clamping. */
+    /** premultiply하지 않은 8비트 RGB에 대한 분리형 Gaussian pass. 가장자리는 clamp한다. */
     internal const val BLUR: String = HEADER + """
 uniform sampler2D uSource;
 uniform float uWeights[49];
@@ -161,7 +160,7 @@ void main() {
 }
 """
 
-    /** Image last pass: sharpening, fade, vignette and grain; output stays non-premultiplied. */
+    /** 이미지 마지막 pass: 선명도·페이드·비네트·그레인. 출력은 premultiply하지 않은 상태로 유지한다. */
     internal const val FINISH: String = HEADER + "uniform sampler2D uBase;\nuniform sampler2D uBlur;\nuniform int uHasBlur;\nout vec4 outColor;\n" +
         FINISH_UNIFORMS + COMMON + FINISH_FUNCTION + """
 void main() {
@@ -173,9 +172,8 @@ void main() {
 """
 
     /**
-     * Single pass for video frames: point operations, fade, vignette and grain. Sharpening needs a
-     * separate blur pass and is not part of it. Video textures are stored bottom-up, so canvas
-     * effects flip the row.
+     * 영상 프레임용 단일 pass: 점 연산·페이드·비네트·그레인. 선명도는 별도 blur pass가 필요해
+     * 포함하지 않는다. 영상 텍스처는 아래에서 위로 저장되므로 캔버스 효과는 행을 뒤집는다.
      */
     public const val VIDEO: String = HEADER + "uniform sampler2D uInput;\nout vec4 outColor;\n" + COLOR_UNIFORMS + FINISH_UNIFORMS +
         COMMON + COLOR_FUNCTION + FINISH_FUNCTION + """
@@ -188,7 +186,7 @@ void main() {
 """
 }
 
-/** Sets the uniforms declared by [ColorEffectShaders] on the current program. FrameKit-internal API. */
+/** 현재 program에 [ColorEffectShaders]가 선언한 uniform을 설정한다. FrameKit 내부 API다. */
 public object ColorEffectUniforms {
 
     public fun setColor(program: Int, spec: ColorEffectSpec) {

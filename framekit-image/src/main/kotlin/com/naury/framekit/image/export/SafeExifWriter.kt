@@ -7,7 +7,7 @@ import com.naury.framekit.core.model.SourceId
 import java.io.File
 import java.io.IOException
 
-/** Writes source EXIF into a freshly encoded JPEG or WEBP, either the [MetadataPolicy.SAFE] subset or all known tags. */
+/** 새로 인코딩한 JPEG 또는 WEBP에 원본 EXIF를 기록한다. [MetadataPolicy.SAFE] 부분집합이나 알려진 전체 태그를 쓴다. */
 internal class SafeExifWriter(private val resolver: SourceResolver) {
 
     fun write(source: SourceId, output: File, outputSize: PixelSize, includeAll: Boolean = false) {

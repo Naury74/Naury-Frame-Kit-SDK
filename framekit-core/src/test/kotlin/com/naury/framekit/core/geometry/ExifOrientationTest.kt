@@ -5,8 +5,8 @@ import com.naury.framekit.core.model.PixelSize
 import org.junit.Test
 
 /**
- * G01: each orientation stores the upright top-left corner at a different encoded corner. Mapping
- * that encoded corner must land on the upright top-left (0, 0).
+ * G01: 각 orientation은 바로 세운 이미지의 왼쪽 위 모서리를 서로 다른 인코딩 모서리에 저장한다.
+ * 그 인코딩 모서리를 변환하면 바로 세운 이미지의 왼쪽 위 (0, 0)에 와야 한다.
  */
 class ExifOrientationTest {
 

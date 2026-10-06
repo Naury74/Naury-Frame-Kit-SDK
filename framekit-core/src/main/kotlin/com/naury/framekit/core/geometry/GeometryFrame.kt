@@ -6,12 +6,12 @@ import kotlin.math.cos
 import kotlin.math.sin
 
 /**
- * Geometry of one upright source under a [GeometryEdit], in source pixel units.
+ * [GeometryEdit]가 적용된 바로 세운 원본 하나의 기하. 원본 픽셀 단위다.
  *
- * The G space is the axis-aligned bounding box of the image after quarter turn, straighten and flip.
- * Its size is [bounds]; normalized G coordinates divide by it.
+ * G 공간은 90° 회전, 수평 보정, 뒤집기를 거친 이미지의 축 정렬 경계 상자다.
+ * 그 크기가 [bounds]이며, 정규화된 G 좌표는 이 크기로 나눈 값이다.
  *
- * @throws IllegalArgumentException when [sourceSize] is not positive.
+ * @throws IllegalArgumentException [sourceSize]가 양수가 아닐 때.
  */
 public class GeometryFrame(
     public val sourceSize: PixelSize,
@@ -21,17 +21,17 @@ public class GeometryFrame(
         require(sourceSize.isValid) { "Source size must be positive: $sourceSize" }
     }
 
-    /** Image size after quarter turns, before straighten. */
+    /** 90° 회전 이후, 수평 보정 이전의 이미지 크기. */
     public val rotatedSize: Size2D = if (Math.floorMod(geometry.quarterTurns, 2) == 1) {
         Size2D(sourceSize.height.toDouble(), sourceSize.width.toDouble())
     } else {
         Size2D(sourceSize.width.toDouble(), sourceSize.height.toDouble())
     }
 
-    /** Size of the G space in source pixels. */
+    /** 원본 픽셀 기준 G 공간의 크기. */
     public val bounds: Size2D
 
-    /** Transform from upright source pixels (S) to G pixels. */
+    /** 바로 세운 원본 픽셀(S)에서 G 픽셀로의 변환. */
     public val uprightToBounds: Affine2D
 
     init {
@@ -49,7 +49,7 @@ public class GeometryFrame(
             Affine2D.translate(-sourceSize.width / 2.0, -sourceSize.height / 2.0)
     }
 
-    /** Corners of the image area in normalized G coordinates, in a consistent winding order. */
+    /** 정규화된 G 좌표에서 이미지 영역의 모서리들. 일관된 감김 순서를 따른다. */
     public val imageQuad: List<PointN> = listOf(
         uprightToBounds.map(0.0, 0.0),
         uprightToBounds.map(sourceSize.width.toDouble(), 0.0),
@@ -57,13 +57,13 @@ public class GeometryFrame(
         uprightToBounds.map(0.0, sourceSize.height.toDouble()),
     ).map { PointN(it.x / bounds.width, it.y / bounds.height) }
 
-    /** Crop size in source pixels. */
+    /** 원본 픽셀 기준 자르기 크기. */
     public fun cropPixelSize(crop: RectN): Size2D = Size2D(crop.width * bounds.width, crop.height * bounds.height)
 
-    /** Width-to-height ratio of [crop] in pixels. */
+    /** 픽셀 기준 [crop]의 가로:세로 비율. */
     public fun pixelAspect(crop: RectN): Double = cropPixelSize(crop).aspectRatio
 
-    /** `true` when the normalized G point lies inside the image area. Edges count as inside. */
+    /** 정규화된 G 점이 이미지 영역 안에 있으면 `true`. 경계 위도 안으로 친다. */
     public fun containsPoint(point: PointN): Boolean {
         var sign = 0
         for (index in imageQuad.indices) {
@@ -79,14 +79,14 @@ public class GeometryFrame(
         return true
     }
 
-    /** `true` when every corner of [rect] lies inside the image area. */
+    /** [rect]의 모든 모서리가 이미지 영역 안에 있으면 `true`. */
     public fun containsRect(rect: RectN): Boolean = rect.corners().all(::containsPoint)
 
     /**
-     * Transform from upright source pixels to output pixels for [crop] rendered at [outputSize].
+     * [crop]을 [outputSize]로 렌더링할 때 바로 세운 원본 픽셀에서 출력 픽셀로의 변환.
      *
-     * This is `M_scaleOutput × M_cropTranslate × M_flip × M_straighten × M_quarterTurn`. The EXIF
-     * orientation is not part of it because decoders hand over upright pixels.
+     * `M_scaleOutput × M_cropTranslate × M_flip × M_straighten × M_quarterTurn`이다. 디코더가 이미
+     * 바로 세운 픽셀을 넘겨주므로 EXIF 방향은 포함하지 않는다.
      */
     public fun sourceToOutput(crop: RectN, outputSize: PixelSize): Affine2D {
         val cropSize = cropPixelSize(crop)

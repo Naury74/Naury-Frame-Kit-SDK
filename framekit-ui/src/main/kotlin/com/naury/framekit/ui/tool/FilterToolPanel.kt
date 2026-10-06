@@ -35,7 +35,7 @@ import com.naury.framekit.ui.component.ValueSlider
 import com.naury.framekit.ui.design.FrameKitTheme
 import com.naury.framekit.ui.R
 
-/** Preset thumbnails and the intensity slider of the selected preset. */
+/** 프리셋 썸네일과 선택한 프리셋의 강도 슬라이더. */
 @Composable
 public fun FilterToolPanel(
     selection: FilterSelection,

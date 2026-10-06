@@ -15,7 +15,7 @@ import com.naury.framekit.ui.image.R
 import com.naury.framekit.ui.image.editor.BrushSettings
 import kotlin.math.roundToInt
 
-/** Brush, color, width and opacity of the drawing tool. Strokes are drawn with one finger on the canvas. */
+/** 그리기 도구의 브러시, 색상, 굵기, 불투명도. 획은 캔버스에 한 손가락으로 그린다. */
 @Composable
 internal fun DrawToolPanel(
     brush: BrushSettings,

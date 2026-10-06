@@ -14,13 +14,13 @@ import java.util.Locale
 import java.util.UUID
 
 /**
- * Writes exports to `files/framekit/exports/` and exposes them through the SDK FileProvider.
+ * export 결과를 `files/framekit/exports/`에 쓰고 SDK FileProvider로 노출한다.
  *
- * Partial files live next to the final files so that publishing is a rename on the same volume.
- * Hidden `.partial` files are never returned to the host.
+ * partial 파일을 최종 파일과 같은 위치에 두어, 확정이 같은 volume 안의 rename으로 끝나게 한다.
+ * 숨김 `.partial` 파일은 호스트에 반환하지 않는다.
  *
- * @param availableBytes replaces the platform free-space query, for tests and hosts with their own
- *   storage quota. `null` uses `StorageManager.getAllocatableBytes`.
+ * @param availableBytes 플랫폼 여유 공간 조회를 대체한다. 테스트나 자체 저장 용량 한도를 둔 호스트용이다.
+ *   `null`이면 `StorageManager.getAllocatableBytes`를 사용한다.
  */
 public class AppFileOutputStore(
     context: Context,
@@ -29,15 +29,15 @@ public class AppFileOutputStore(
 ) {
     private val appContext = context.applicationContext
 
-    /** Directory that holds published results and in-progress partial files. */
+    /** 확정된 결과와 진행 중인 partial 파일을 담는 디렉터리. */
     public val directory: File = File(appContext.filesDir, EXPORT_DIRECTORY)
 
     private val authority: String = authorityFor(appContext)
 
     /**
-     * Creates an empty hidden partial file for an export.
+     * export용 빈 숨김 partial 파일을 만든다.
      *
-     * @throws FrameKitException with `OUTPUT_WRITE_FAILED` when the directory cannot be created.
+     * @throws FrameKitException 디렉터리를 만들 수 없을 때 `OUTPUT_WRITE_FAILED` 코드로 던진다.
      */
     public fun createPartial(extension: String): File {
         ensureDirectory()
@@ -47,8 +47,7 @@ public class AppFileOutputStore(
     }
 
     /**
-     * Bytes that can be written to the volume that holds [directory], including cache space the
-     * system can free on demand.
+     * [directory]가 있는 volume에 쓸 수 있는 바이트 수. 시스템이 필요 시 비울 수 있는 캐시 공간을 포함한다.
      */
     public fun allocatableBytes(): Long {
         ensureDirectory()
@@ -65,10 +64,10 @@ public class AppFileOutputStore(
     }
 
     /**
-     * Renames a finished partial file to its final name.
+     * 완료된 partial 파일을 최종 이름으로 바꾼다.
      *
-     * @throws FrameKitException with `OUTPUT_WRITE_FAILED` when the rename fails. The partial file is
-     *   deleted in that case.
+     * @throws FrameKitException rename에 실패하면 `OUTPUT_WRITE_FAILED` 코드로 던진다. 이때 partial
+     *   파일은 삭제된다.
      */
     public fun publish(partial: File, extension: String): File {
         val target = uniqueFinalFile(extension)
@@ -79,14 +78,13 @@ public class AppFileOutputStore(
         return target
     }
 
-    /** `content://` Uri for a published file. */
+    /** 확정된 파일의 `content://` Uri. */
     public fun uriFor(file: File): Uri = FileProvider.getUriForFile(appContext, authority, file)
 
     /**
-     * Deletes partial files older than [maxAgeMillis] that an interrupted export left behind.
+     * 중단된 export가 남긴 partial 파일 중 [maxAgeMillis]보다 오래된 것을 삭제한다.
      *
-     * Only names created by [createPartial] are touched. Failures are ignored so that cleanup never
-     * crashes the editor.
+     * [createPartial]이 만든 이름만 건드린다. 정리 작업이 편집기를 죽이지 않도록 실패는 무시한다.
      */
     public fun deleteStalePartials(maxAgeMillis: Long = STALE_PARTIAL_AGE_MILLIS) {
         val now = clock()
@@ -99,7 +97,7 @@ public class AppFileOutputStore(
         }
     }
 
-    /** Deletes a published result. Returns `false` when [uri] does not belong to this store. */
+    /** 확정된 결과를 삭제한다. [uri]가 이 저장소의 것이 아니면 `false`를 반환한다. */
     public fun delete(uri: Uri): Boolean {
         if (uri.authority != authority) return false
         val name = uri.lastPathSegment ?: return false
@@ -133,7 +131,7 @@ public class AppFileOutputStore(
         internal const val PARTIAL_SUFFIX = ".partial"
         internal const val STALE_PARTIAL_AGE_MILLIS = 24L * 60 * 60 * 1000
 
-        /** FileProvider authority used for exported files: `<applicationId>.framekit.files`. */
+        /** export 파일에 쓰는 FileProvider authority: `<applicationId>.framekit.files`. */
         public fun authorityFor(context: Context): String = "${context.packageName}.framekit.files"
     }
 }

@@ -18,8 +18,8 @@ import com.naury.framekit.image.effect.ColorEffectShaders
 import com.naury.framekit.image.effect.ColorEffectUniforms
 
 /**
- * Applies a [ColorEffectSpec] to video frames with the same GLSL as the image renderer. Sharpening
- * needs an extra blur pass and is not applied to video.
+ * 이미지 렌더러와 같은 GLSL로 영상 프레임에 [ColorEffectSpec]을 적용한다. 선명하게(sharpen)는
+ * 별도 blur pass가 필요해 영상에는 적용하지 않는다.
  */
 internal class ColorGlEffect(private val spec: ColorEffectSpec) : GlEffect {
 
@@ -65,7 +65,7 @@ private class ColorShaderProgram(private val spec: ColorEffectSpec) : BaseGlShad
     }
 }
 
-/** Small GL helpers for FrameKit's Media3 shader programs; called on Media3's GL thread. */
+/** FrameKit의 Media3 셰이더 프로그램용 GL 보조 함수다. Media3의 GL thread에서 호출한다. */
 internal object GlPrograms {
 
     fun link(vertex: String, fragment: String): Int {

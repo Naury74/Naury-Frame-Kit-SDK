@@ -4,7 +4,7 @@ import android.net.Uri
 import android.os.Parcelable
 import kotlinx.parcelize.Parcelize
 
-/** Media kinds that the built-in picker can offer. */
+/** 내장 picker가 제공할 수 있는 미디어 종류. */
 public enum class MediaKind {
     IMAGE,
     VIDEO,
@@ -12,33 +12,32 @@ public enum class MediaKind {
 }
 
 /**
- * Where the editor gets its source.
+ * 편집기가 원본을 가져오는 위치.
  *
- * Only references travel through the Activity request. Bitmaps, drawables and callbacks are never
- * accepted here because they cannot survive process recreation and may exceed the Binder limit.
+ * Activity 요청에는 참조만 담는다. Bitmap, Drawable, 콜백은 프로세스 재생성 후 살아남지 못하고
+ * Binder 한도를 넘을 수 있으므로 받지 않는다.
  */
 public sealed interface EditorInput : Parcelable {
 
     /**
-     * A `content://` or `file://` Uri the host can already read.
+     * 호스트가 이미 읽을 수 있는 `content://` 또는 `file://` Uri.
      *
-     * For a Uri from another app, the host must pass a read grant along with the launch, for
-     * example by keeping the grant from its own picker result. The editor checks access before it
-     * opens and reports `PERMISSION_DENIED` instead of assuming that a scheme implies permission.
+     * 다른 앱의 Uri라면 호스트가 실행 시 읽기 권한을 함께 넘겨야 한다. 예를 들어 자체 picker 결과로
+     * 받은 권한을 유지하면 된다. 편집기는 scheme만 보고 권한이 있다고 가정하지 않고, 열기 전에
+     * 접근 가능 여부를 확인해 불가능하면 `PERMISSION_DENIED`를 보고한다.
      */
     @Parcelize
     public data class UriSource(val uri: Uri) : EditorInput
 
     /**
-     * A file inside the host app's private storage, given as an absolute path.
+     * 호스트 앱 전용 저장소 안의 파일로, 절대 경로로 전달한다.
      *
-     * The editor runs in the host process, so it reads the file directly without exposing it
-     * through a provider.
+     * 편집기는 호스트 프로세스에서 실행되므로 provider로 노출하지 않고 파일을 직접 읽는다.
      */
     @Parcelize
     public data class FileSource(val absolutePath: String) : EditorInput
 
-    /** Opens the system Photo Picker first. Dismissing the picker returns `Cancelled`. */
+    /** 먼저 시스템 Photo Picker를 연다. picker를 닫으면 `Cancelled`를 반환한다. */
     @Parcelize
     public data class Pick(val kind: MediaKind = MediaKind.IMAGE) : EditorInput
 }

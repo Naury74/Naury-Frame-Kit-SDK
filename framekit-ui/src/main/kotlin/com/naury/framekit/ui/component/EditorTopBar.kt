@@ -20,7 +20,7 @@ import androidx.compose.ui.unit.dp
 import com.naury.framekit.ui.R
 import com.naury.framekit.ui.design.FrameKitTheme
 
-/** Close on the left, Save on the right. */
+/** 왼쪽은 닫기, 오른쪽은 저장. */
 @Composable
 public fun EditorTopBar(
     onClose: () -> Unit,

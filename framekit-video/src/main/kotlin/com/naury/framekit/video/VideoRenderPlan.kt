@@ -13,15 +13,15 @@ import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
 
-/** A clip with everything the Media3 adapter needs to build it. */
+/** Media3 어댑터가 클립을 만드는 데 필요한 정보를 모두 담은 클립이다. */
 public data class ResolvedClip(val clip: VideoClip, val source: VideoSourceInfo, val location: SourceLocation)
 
 /**
- * Snapshot of a [VideoProject] resolved against its sources. Preview and export build their Media3
- * composition from the same plan.
+ * 원본 정보로 해석한 [VideoProject]의 스냅샷이다. 미리보기와 내보내기는 같은 계획으로 Media3
+ * composition을 만든다.
  *
- * @property canvasSize output frame size: the first clip's edited size, limited to [maxShortSide]
- *   and rounded to even numbers as encoders require.
+ * @property canvasSize 출력 프레임 크기. 첫 클립의 편집 후 크기를 [maxShortSide]로 제한하고,
+ *   인코더 요구에 맞춰 짝수로 반올림한다.
  */
 public data class VideoRenderPlan(
     val projectRevision: Long,
@@ -30,11 +30,11 @@ public data class VideoRenderPlan(
     val clips: List<ResolvedClip>,
 )
 
-/** Builds [VideoRenderPlan]s. */
+/** [VideoRenderPlan]을 만든다. */
 public object VideoPlanFactory {
 
     /**
-     * @throws FrameKitException with `INVALID_PROJECT` when a clip refers to an unknown source.
+     * @throws FrameKitException 클립이 알 수 없는 원본을 가리키면 `INVALID_PROJECT`.
      */
     public fun create(
         project: VideoProject,

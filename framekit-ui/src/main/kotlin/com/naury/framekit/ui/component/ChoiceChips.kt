@@ -16,7 +16,7 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
 import com.naury.framekit.ui.design.FrameKitTheme
 
-/** Horizontally scrolling single-choice chips, used for crop ratios and presets. */
+/** 가로로 스크롤되는 단일 선택 칩. 자르기 비율과 프리셋에 쓴다. */
 @Composable
 public fun <T> ChoiceChips(
     options: List<T>,

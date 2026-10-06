@@ -16,19 +16,19 @@ import java.io.FileNotFoundException
 import java.io.IOException
 
 /**
- * Reads tracks, duration, rotation and codec support of a video with [MediaExtractor].
+ * [MediaExtractor]로 영상의 트랙, 길이, 회전, 코덱 지원 여부를 읽는다.
  *
- * Durations come from container timestamps in microseconds; they are never estimated from frame
- * count and frame rate, so variable frame rate files report correct lengths.
+ * 길이는 컨테이너 타임스탬프(마이크로초)에서 가져온다. 프레임 수와 frame rate로 추정하지 않으므로
+ * 가변 frame rate 파일도 길이가 정확하다.
  */
 public class VideoMetadataReader(context: Context, private val resolver: SourceResolver) {
 
     private val appContext = context.applicationContext
 
     /**
-     * @throws FrameKitException with `INVALID_SOURCE` without a video track, `UNSUPPORTED_FORMAT`
-     *   when no decoder exists for the video codec, `PERMISSION_DENIED`, `SOURCE_UNAVAILABLE` or
-     *   `DECODE_FAILED` for unreadable files.
+     * @throws FrameKitException 영상 트랙이 없으면 `INVALID_SOURCE`, 영상 코덱용 디코더가 없으면
+     *   `UNSUPPORTED_FORMAT`, 읽을 수 없는 파일이면 `PERMISSION_DENIED`, `SOURCE_UNAVAILABLE` 또는
+     *   `DECODE_FAILED`.
      */
     public fun read(id: SourceId): VideoSourceInfo {
         val extractor = MediaExtractor()

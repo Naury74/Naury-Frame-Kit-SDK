@@ -19,10 +19,10 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /**
- * Connects one editor screen to its on-disk session.
+ * 에디터 화면 하나를 디스크의 세션과 연결한다.
  *
- * Only the session id is kept in [SavedStateHandle]. Committed snapshots are written after a short
- * debounce so a burst of undo taps produces one write; drafts of an open tool are never written.
+ * [SavedStateHandle]에는 세션 id만 보관한다. 커밋된 스냅샷은 짧은 디바운스 후 기록하므로 실행 취소를
+ * 연달아 눌러도 한 번만 쓴다. 열린 도구의 초안은 절대 기록하지 않는다.
  */
 internal class ImageSessionRecorder(
     private val store: EditorSessionStore,
@@ -34,18 +34,17 @@ internal class ImageSessionRecorder(
     private var sessionId: String? = null
     private var pendingSave: Job? = null
 
-    /** Session left behind by a previous process, or `null`. Call from a background thread. */
+    /** 이전 프로세스가 남긴 세션, 없으면 `null`. 백그라운드 스레드에서 호출한다. */
     fun loadPrevious(): SessionRecord? {
         val id = savedState.get<String>(KEY_SESSION_ID) ?: return null
         return store.load(id).also { if (it == null) savedState.remove<String>(KEY_SESSION_ID) }
     }
 
     /**
-     * Binds the screen to a session for the source that was just opened.
+     * 방금 연 소스의 세션에 화면을 연결한다.
      *
-     * @return [previous] when it belongs to the same image, otherwise `null`. A previous session for a
-     *   different image is deleted and a new session is created, so edits are never applied to
-     *   another picture.
+     * @return 같은 이미지의 세션이면 [previous], 아니면 `null`. 다른 이미지의 이전 세션은 삭제하고
+     *   새 세션을 만들므로 편집이 다른 사진에 적용되는 일은 없다.
      */
     fun attach(previous: SessionRecord?, input: EditorInput, info: ImageSourceInfo): SessionRecord? {
         val fingerprint = info.fingerprint()
@@ -61,7 +60,7 @@ internal class ImageSessionRecorder(
         return matched
     }
 
-    /** Writes the committed snapshot after the debounce, replacing any pending write. */
+    /** 디바운스 후 커밋된 스냅샷을 기록한다. 대기 중인 기록이 있으면 대체한다. */
     fun saveCommitted(project: ImageProject) {
         val id = sessionId ?: return
         pendingSave?.cancel()
@@ -71,14 +70,14 @@ internal class ImageSessionRecorder(
         }
     }
 
-    /** Records whether an export of [project] is running, immediately. */
+    /** [project]의 내보내기 진행 여부를 즉시 기록한다. */
     suspend fun markExport(project: ImageProject, running: Boolean) {
         val id = sessionId ?: return
         pendingSave?.cancel()
         withContext(ioDispatcher) { store.saveSnapshot(id, ImageProjectSnapshot.of(project), exportInProgress = running) }
     }
 
-    /** The editor finished: the session is no longer needed. */
+    /** 에디터가 종료되어 세션이 더 이상 필요 없다. */
     fun end() {
         pendingSave?.cancel()
         sessionId?.let(store::deleteAsync)
@@ -86,15 +85,15 @@ internal class ImageSessionRecorder(
         savedState.remove<String>(KEY_SESSION_ID)
     }
 
-    /** Asset store of the current session, or `null` when no session could be created. */
+    /** 현재 세션의 에셋 저장소. 세션을 만들지 못했으면 `null`. */
     fun assets(): ProjectAssetStore? = sessionId?.let(store::assets)
 
-    /** Deletes a previous session that could not be reopened and will not be restored. */
+    /** 다시 열 수 없어 복원하지 않을 이전 세션을 삭제한다. */
     fun discard(record: SessionRecord) {
         store.deleteAsync(record.sessionId)
     }
 
-    /** The screen went away without a result; keep the files for the stale-session cleanup. */
+    /** 결과 없이 화면이 사라졌다. 오래된 세션 정리를 위해 파일은 남겨 둔다. */
     fun detach() {
         sessionId?.let(store::release)
     }

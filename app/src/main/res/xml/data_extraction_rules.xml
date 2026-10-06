@@ -1,11 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?><!--
-   Sample data extraction rules file; uncomment and customize as necessary.
-   See https://developer.android.com/about/versions/12/backup-restore#xml-changes
-   for details.
+   샘플 데이터 추출 규칙 파일. 필요하면 주석을 풀고 수정한다.
+   자세한 내용은 https://developer.android.com/about/versions/12/backup-restore#xml-changes 참고.
 -->
 <data-extraction-rules>
     <cloud-backup>
-        <!-- TODO: Use <include> and <exclude> to control what is backed up.
+        <!-- TODO: <include>와 <exclude>로 백업 대상을 지정한다.
         <include .../>
         <exclude .../>
         -->

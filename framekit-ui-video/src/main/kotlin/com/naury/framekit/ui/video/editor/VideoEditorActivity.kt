@@ -41,7 +41,7 @@ import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
-/** Hosts the video editor. Launch it through [VideoEditorContract]; it is not exported. */
+/** 영상 에디터를 호스팅한다. [VideoEditorContract]로 실행하며 exported되지 않는다. */
 internal class VideoEditorActivity : ComponentActivity() {
 
     private var delivered = false

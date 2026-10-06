@@ -36,9 +36,9 @@ import kotlin.math.ceil
 import kotlin.math.roundToInt
 
 /**
- * Trim handles of the timeline as fractions of its width.
+ * 타임라인 폭에 대한 비율로 나타낸 트림 핸들.
  *
- * @property onDrag receives the handle position as a fraction of the timeline width.
+ * @property onDrag 핸들 위치를 타임라인 폭에 대한 비율로 받는다.
  */
 internal class TrimSelection(
     val start: Float,
@@ -49,12 +49,12 @@ internal class TrimSelection(
 )
 
 /**
- * Thumbnail strip with a playhead. Tapping or dragging scrubs; with [trim] the handles at both ends
- * of the kept part can be dragged and the rest is dimmed.
+ * 재생 헤드가 있는 썸네일 띠. 탭하거나 드래그하면 탐색한다. [trim]이 있으면 남길 구간 양 끝의
+ * 핸들을 드래그할 수 있고 나머지는 어둡게 표시한다.
  *
- * @param frameKey changes whenever [frameTimeAt] maps fractions to different source times.
- * @param frameTimeAt source time shown at a fraction of the width.
- * @param frameAspect width / height of a frame.
+ * @param frameKey [frameTimeAt]이 비율을 다른 소스 시간에 대응시킬 때마다 바뀐다.
+ * @param frameTimeAt 폭의 각 비율 위치에 표시할 소스 시간.
+ * @param frameAspect 프레임의 너비 / 높이.
  */
 @Composable
 internal fun VideoTimeline(
@@ -167,7 +167,7 @@ internal fun VideoTimeline(
     }
 }
 
-/** `m:ss.d`, or `h:mm:ss` from one hour. */
+/** `m:ss.d`, 1시간 이상이면 `h:mm:ss`. */
 internal fun formatTime(us: Long): String {
     val tenths = (us.coerceAtLeast(0) + 50_000) / 100_000
     val totalSeconds = tenths / 10

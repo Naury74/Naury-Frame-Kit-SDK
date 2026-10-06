@@ -25,23 +25,23 @@ import androidx.compose.ui.unit.dp
 import com.naury.framekit.ui.R
 import com.naury.framekit.ui.design.FrameKitTheme
 
-/** Stage shown while an export runs. */
+/** 내보내기 중 표시하는 단계. */
 public enum class ExportStageUi {
     PREPARING,
     RENDERING,
     ENCODING,
     FINALIZING,
 
-    /** Used when the engine does not report separate stages. */
+    /** 엔진이 단계를 따로 보고하지 않을 때 사용한다. */
     EXPORTING,
     CANCELLING,
 }
 
 /**
- * Blocks editing while an export runs. Cancel takes effect immediately without a confirmation and the
- * overlay switches to [ExportStageUi.CANCELLING] until the engine stops.
+ * 내보내기 중에는 편집을 막는다. 취소는 확인 없이 즉시 적용되며, 엔진이 멈출 때까지 오버레이는
+ * [ExportStageUi.CANCELLING]으로 바뀐다.
  *
- * @param progress `0..1` when the engine can estimate it; the indicator is indeterminate otherwise.
+ * @param progress 엔진이 추정할 수 있으면 `0..1`. 그렇지 않으면 인디케이터는 불확정 상태로 표시된다.
  */
 @Composable
 public fun ExportOverlay(stage: ExportStageUi, onCancel: () -> Unit, modifier: Modifier = Modifier, progress: Float? = null) {

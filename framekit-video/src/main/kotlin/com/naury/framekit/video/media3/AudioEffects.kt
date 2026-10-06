@@ -12,16 +12,16 @@ import androidx.media3.common.audio.ChannelMixingMatrix
 import androidx.media3.common.audio.SpeedProvider
 import androidx.media3.common.C
 
-/** Audio processors for clip volume. */
+/** 클립 볼륨용 오디오 프로세서다. */
 internal object AudioEffects {
 
-    /** Constant gain for mono and stereo input. Values above 1 can clip; the UI caps volume at 2. */
+    /** 모노·스테레오 입력에 일정한 gain을 적용한다. 1을 넘으면 클리핑될 수 있으며 UI는 볼륨을 2로 제한한다. */
     fun volume(gain: Float): AudioProcessor = ChannelMixingAudioProcessor().apply {
         for (channels in 1..2) putChannelMixingMatrix(ChannelMixingMatrix.createForConstantGain(channels, channels).scaleBy(gain))
     }
 }
 
-/** Same speed for the whole clip. */
+/** 클립 전체에 같은 속도를 적용한다. */
 internal class ConstantSpeedProvider(private val speed: Float) : SpeedProvider {
     override fun getSpeed(timeUs: Long): Float = speed
 

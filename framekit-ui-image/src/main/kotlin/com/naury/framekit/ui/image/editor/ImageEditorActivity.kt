@@ -45,7 +45,7 @@ import java.io.File
 import java.util.UUID
 import kotlinx.coroutines.launch
 
-/** Hosts the image editor. Launch it through [ImageEditorContract]; it is not exported. */
+/** 이미지 에디터를 호스팅한다. [ImageEditorContract]로 실행하며 exported되지 않는다. */
 internal class ImageEditorActivity : ComponentActivity() {
 
     private var delivered = false

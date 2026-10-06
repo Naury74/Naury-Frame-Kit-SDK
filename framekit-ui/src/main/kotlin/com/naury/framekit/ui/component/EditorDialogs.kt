@@ -10,7 +10,7 @@ import com.naury.framekit.ui.R
 import com.naury.framekit.ui.design.FrameKitTheme
 import com.naury.framekit.ui.text.messageRes
 
-/** Asks before closing an editor with unsaved changes. */
+/** 저장하지 않은 변경이 있는 에디터를 닫기 전에 확인한다. */
 @Composable
 public fun DiscardChangesDialog(onDiscard: () -> Unit, onKeepEditing: () -> Unit) {
     val colors = FrameKitTheme.colors
@@ -28,7 +28,7 @@ public fun DiscardChangesDialog(onDiscard: () -> Unit, onKeepEditing: () -> Unit
     )
 }
 
-/** Explains a failed export. The project stays as it was, so the user can retry or keep editing. */
+/** 내보내기 실패를 설명한다. 프로젝트는 그대로이므로 사용자는 다시 시도하거나 편집을 이어갈 수 있다. */
 @Composable
 public fun ExportErrorDialog(code: EditorErrorCode, onRetry: () -> Unit, onDismiss: () -> Unit) {
     val colors = FrameKitTheme.colors

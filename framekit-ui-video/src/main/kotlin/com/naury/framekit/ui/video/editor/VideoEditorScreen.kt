@@ -256,8 +256,8 @@ private fun CanvasArea(state: VideoEditorUiState.Ready, viewModel: VideoEditorVi
 }
 
 /**
- * Wide layouts: the preview with its playback row and a full-width timeline underneath, so the
- * timeline gets as much room as the video.
+ * 넓은 레이아웃. 미리보기와 재생 행 아래에 전체 폭 타임라인을 두어 타임라인이 영상만큼
+ * 공간을 갖게 한다.
  */
 @Composable
 private fun PreviewColumn(state: VideoEditorUiState.Ready, viewModel: VideoEditorViewModel, modifier: Modifier) {
@@ -270,7 +270,7 @@ private fun PreviewColumn(state: VideoEditorUiState.Ready, viewModel: VideoEdito
     }
 }
 
-/** Wide layouts: top bar, then the tool grid or the open tool right below it. */
+/** 넓은 레이아웃. 상단 바, 그 바로 아래에 도구 격자 또는 열린 도구를 둔다. */
 @Composable
 private fun SidePanel(state: VideoEditorUiState.Ready, viewModel: VideoEditorViewModel, topBar: @Composable () -> Unit, modifier: Modifier) {
     Column(modifier.background(FrameKitTheme.colors.background)) {
@@ -281,7 +281,7 @@ private fun SidePanel(state: VideoEditorUiState.Ready, viewModel: VideoEditorVie
     }
 }
 
-/** Playback row, timeline and the tool area below the preview. */
+/** 미리보기 아래의 재생 행, 타임라인, 도구 영역. */
 @Composable
 private fun ControlArea(state: VideoEditorUiState.Ready, viewModel: VideoEditorViewModel, modifier: Modifier, maxWidthDp: Int?) {
     Column(

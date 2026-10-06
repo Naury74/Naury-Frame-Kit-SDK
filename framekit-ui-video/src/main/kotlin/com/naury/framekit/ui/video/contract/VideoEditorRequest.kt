@@ -12,8 +12,8 @@ import com.naury.framekit.video.export.VideoExportConfig
 import kotlinx.parcelize.Parcelize
 
 /**
- * Launch request for [VideoEditorContract]. Every field is Parcelable, so the request survives
- * Activity recreation.
+ * [VideoEditorContract]의 실행 요청. 모든 필드가 Parcelable이므로 요청은 Activity 재생성 후에도
+ * 유지된다.
  */
 @Parcelize
 public data class VideoEditorRequest(
@@ -24,7 +24,7 @@ public data class VideoEditorRequest(
     val output: OutputTarget = OutputTarget.AppFile,
 ) : Parcelable {
 
-    /** Validates every part of the request. The editor returns `INVALID_CONFIGURATION` when this fails. */
+    /** 요청의 모든 부분을 검증한다. 검증에 실패하면 에디터는 `INVALID_CONFIGURATION`을 반환한다. */
     public fun validate(): ValidationResult {
         val issues = mutableListOf<ValidationIssue>()
         if (input is EditorInput.Pick && input.kind != MediaKind.VIDEO) {
