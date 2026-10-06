@@ -5,6 +5,7 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Canvas
+import android.os.Build
 import com.naury.framekit.android.output.AppFileOutputStore
 import com.naury.framekit.android.output.OutputTarget
 import com.naury.framekit.android.result.EditedMedia
@@ -86,6 +87,9 @@ public class ImageExportCoordinator(
         if (validation is ValidationResult.Invalid) {
             throw FrameKitException(EditorErrorCode.INVALID_CONFIGURATION, validation.issues.joinToString { it.path })
         }
+        if (config.format == ImageFormat.WEBP_LOSSLESS && Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
+            throw FrameKitException(EditorErrorCode.UNSUPPORTED_FORMAT, "Lossless WEBP needs API 30")
+        }
         val metadata = source.metadata
         val outputSize = ImageRenderPlanFactory.outputSize(project, metadata, config.maxOutputPixels, config.maxWidth, config.maxHeight)
         val plan = ImageRenderPlanFactory.create(project, metadata, outputSize)
@@ -104,7 +108,7 @@ public class ImageExportCoordinator(
             coroutineContext.ensureActive()
             onStage(ImageExportStage.RENDERING)
             if (source.hasGainMap) warnings += ExportWarning.HDR_GAIN_MAP_DROPPED
-            val background = if (config.format == ImageFormat.JPEG) config.jpegBackgroundArgb else null
+            val background = if (config.format.supportsAlpha) null else config.jpegBackgroundArgb
             val rendered = try {
                 when (strategy) {
                     RenderStrategy.Whole -> {
@@ -159,8 +163,8 @@ public class ImageExportCoordinator(
             coroutineContext.ensureActive()
             onStage(ImageExportStage.FINALIZING)
             verify(partial, outputSize, config.format)
-            if (config.format == ImageFormat.JPEG && config.metadataPolicy == MetadataPolicy.SAFE) {
-                writeMetadata(project, partial, outputSize)
+            if (config.format != ImageFormat.PNG && config.metadataPolicy != MetadataPolicy.NONE) {
+                writeMetadata(project, partial, outputSize, config.metadataPolicy)
             }
             coroutineContext.ensureActive()
             val finished = partial
@@ -264,7 +268,7 @@ public class ImageExportCoordinator(
 
     private fun checkStorage(outputSize: PixelSize, format: ImageFormat) {
         // PNG는 압축되지 않는 최악의 경우를, JPEG는 고품질 평균보다 넉넉한 픽셀당 1바이트를 잡는다.
-        val bytesPerPixel = if (format == ImageFormat.PNG) 4L else 1L
+        val bytesPerPixel = if (format == ImageFormat.PNG || format == ImageFormat.WEBP_LOSSLESS) 4L else 1L
         val estimate = outputSize.pixelCount * bytesPerPixel + STORAGE_MARGIN_BYTES
         if (outputStore.allocatableBytes() < estimate) {
             throw FrameKitException(EditorErrorCode.INSUFFICIENT_STORAGE, "Not enough free space")
@@ -272,16 +276,29 @@ public class ImageExportCoordinator(
     }
 
     private fun encode(bitmap: Bitmap, config: ImageExportConfig, file: File) {
-        val compressFormat = when (config.format) {
-            ImageFormat.JPEG -> Bitmap.CompressFormat.JPEG
-            ImageFormat.PNG -> Bitmap.CompressFormat.PNG
-        }
+        val compressFormat = compressFormatOf(config.format)
         val success = try {
             file.outputStream().buffered().use { bitmap.compress(compressFormat, config.quality, it) }
         } catch (error: IOException) {
             throw FrameKitException(storageAwareCode(), "Writing output failed", error)
         }
         if (!success) throw FrameKitException(EditorErrorCode.ENCODE_FAILED, "Encoder rejected the bitmap")
+    }
+
+    private fun compressFormatOf(format: ImageFormat): Bitmap.CompressFormat = when (format) {
+        ImageFormat.JPEG -> Bitmap.CompressFormat.JPEG
+        ImageFormat.PNG -> Bitmap.CompressFormat.PNG
+        ImageFormat.WEBP_LOSSY -> if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            Bitmap.CompressFormat.WEBP_LOSSY
+        } else {
+            @Suppress("DEPRECATION")
+            Bitmap.CompressFormat.WEBP
+        }
+        ImageFormat.WEBP_LOSSLESS -> if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            Bitmap.CompressFormat.WEBP_LOSSLESS
+        } else {
+            throw FrameKitException(EditorErrorCode.UNSUPPORTED_FORMAT, "Lossless WEBP needs API 30")
+        }
     }
 
     private fun verify(file: File, expected: PixelSize, format: ImageFormat) {
@@ -295,9 +312,9 @@ public class ImageExportCoordinator(
         }
     }
 
-    private fun writeMetadata(project: ImageProject, file: File, outputSize: PixelSize) {
+    private fun writeMetadata(project: ImageProject, file: File, outputSize: PixelSize, policy: MetadataPolicy) {
         try {
-            exifWriter.write(project.source, file, outputSize)
+            exifWriter.write(project.source, file, outputSize, includeAll = policy == MetadataPolicy.ALL)
         } catch (error: IOException) {
             throw FrameKitException(storageAwareCode(), "Writing metadata failed", error)
         }

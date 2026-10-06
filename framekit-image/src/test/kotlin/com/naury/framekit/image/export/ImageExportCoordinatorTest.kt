@@ -45,6 +45,7 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 import java.io.File
 
@@ -237,6 +238,53 @@ class ImageExportCoordinatorTest {
         var dark = 0
         for (y in 55 until 95) for (x in 110 until 190) if (Color.red(output.getPixel(x, y)) < 100) dark++
         assertThat(dark).isGreaterThan(20)
+    }
+
+    @Test
+    fun `lossy and lossless WEBP are written with the right type and alpha`() = runBlocking {
+        writePng(TestImages.quadrants(200, 100, hasAlpha = true))
+
+        val lossy = coordinator.export(project, info(), ImageExportConfig(format = ImageFormat.WEBP_LOSSY, quality = 80))
+        assertThat(lossy.mimeType).isEqualTo("image/webp")
+        assertThat(publishedFiles().single().name).endsWith(".webp")
+        publishedFiles().single().delete()
+
+        coordinator.export(project, info(), ImageExportConfig(format = ImageFormat.WEBP_LOSSLESS))
+        assertThat(Color.alpha(decodeOutput().getPixel(175, 75))).isEqualTo(0)
+        assertThat(decodeOutput().getPixel(25, 25)).isEqualTo(TestImages.TOP_LEFT)
+    }
+
+    @Test
+    @Config(sdk = [27])
+    fun `lossless WEBP before API 30 is reported as unsupported`() {
+        writePng(TestImages.quadrants(40, 20))
+
+        val error = assertThrows(FrameKitException::class.java) {
+            runBlocking { coordinator.export(project, info(), ImageExportConfig(format = ImageFormat.WEBP_LOSSLESS)) }
+        }
+
+        assertThat(error.code).isEqualTo(EditorErrorCode.UNSUPPORTED_FORMAT)
+        assertThat(publishedFiles()).isEmpty()
+    }
+
+    @Test
+    fun `ALL metadata keeps location only when the host asks for it`() = runBlocking {
+        TestImages.writeOrientedJpeg(TestImages.quadrants(64, 32), ExifOrientation.NORMAL, sourceFile)
+        ExifInterface(sourceFile).apply {
+            setLatLong(37.5665, 126.9780)
+            setAttribute(ExifInterface.TAG_ARTIST, "naury")
+            saveAttributes()
+        }
+
+        coordinator.export(project, info(), ImageExportConfig(format = ImageFormat.WEBP_LOSSY, metadataPolicy = MetadataPolicy.SAFE))
+        assertThat(ExifInterface(publishedFiles().single()).latLong).isNull()
+        publishedFiles().single().delete()
+
+        coordinator.export(project, info(), ImageExportConfig(metadataPolicy = MetadataPolicy.ALL))
+        val exif = ExifInterface(publishedFiles().single())
+        assertThat(exif.latLong).isNotNull()
+        assertThat(exif.getAttribute(ExifInterface.TAG_ARTIST)).isEqualTo("naury")
+        assertThat(exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, 0)).isEqualTo(ExifInterface.ORIENTATION_NORMAL)
     }
 
     @Test

@@ -7,10 +7,10 @@ import com.naury.framekit.core.model.SourceId
 import java.io.File
 import java.io.IOException
 
-/** Writes the [MetadataPolicy.SAFE] subset of the source EXIF into a freshly encoded JPEG. */
+/** Writes source EXIF into a freshly encoded JPEG or WEBP, either the [MetadataPolicy.SAFE] subset or all known tags. */
 internal class SafeExifWriter(private val resolver: SourceResolver) {
 
-    fun write(source: SourceId, output: File, outputSize: PixelSize) {
+    fun write(source: SourceId, output: File, outputSize: PixelSize, includeAll: Boolean = false) {
         val sourceExif = try {
             resolver.openInputStream(source).use(::ExifInterface)
         } catch (_: IOException) {
@@ -18,7 +18,7 @@ internal class SafeExifWriter(private val resolver: SourceResolver) {
         }
         val target = ExifInterface(output)
         sourceExif?.let { exif ->
-            SAFE_TAGS.forEach { tag -> exif.getAttribute(tag)?.let { target.setAttribute(tag, it) } }
+            (if (includeAll) SAFE_TAGS + EXTENDED_TAGS else SAFE_TAGS).forEach { tag -> exif.getAttribute(tag)?.let { target.setAttribute(tag, it) } }
         }
         target.setAttribute(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL.toString())
         target.setAttribute(ExifInterface.TAG_PIXEL_X_DIMENSION, outputSize.width.toString())
@@ -44,6 +44,38 @@ internal class SafeExifWriter(private val resolver: SourceResolver) {
             ExifInterface.TAG_FLASH,
             ExifInterface.TAG_WHITE_BALANCE,
             ExifInterface.TAG_EXPOSURE_BIAS_VALUE,
+        )
+
+        // ALL 정책에서만 추가로 복사한다. 원본 썸네일과 크기·방향 태그는 여기서도 제외한다.
+        val EXTENDED_TAGS = listOf(
+            ExifInterface.TAG_DATETIME,
+            ExifInterface.TAG_OFFSET_TIME,
+            ExifInterface.TAG_ARTIST,
+            ExifInterface.TAG_COPYRIGHT,
+            ExifInterface.TAG_IMAGE_DESCRIPTION,
+            ExifInterface.TAG_USER_COMMENT,
+            ExifInterface.TAG_SOFTWARE,
+            ExifInterface.TAG_CAMERA_OWNER_NAME,
+            ExifInterface.TAG_BODY_SERIAL_NUMBER,
+            ExifInterface.TAG_LENS_MAKE,
+            ExifInterface.TAG_LENS_MODEL,
+            ExifInterface.TAG_LENS_SERIAL_NUMBER,
+            ExifInterface.TAG_LENS_SPECIFICATION,
+            ExifInterface.TAG_METERING_MODE,
+            ExifInterface.TAG_EXPOSURE_PROGRAM,
+            ExifInterface.TAG_SCENE_CAPTURE_TYPE,
+            ExifInterface.TAG_GPS_VERSION_ID,
+            ExifInterface.TAG_GPS_LATITUDE,
+            ExifInterface.TAG_GPS_LATITUDE_REF,
+            ExifInterface.TAG_GPS_LONGITUDE,
+            ExifInterface.TAG_GPS_LONGITUDE_REF,
+            ExifInterface.TAG_GPS_ALTITUDE,
+            ExifInterface.TAG_GPS_ALTITUDE_REF,
+            ExifInterface.TAG_GPS_TIMESTAMP,
+            ExifInterface.TAG_GPS_DATESTAMP,
+            ExifInterface.TAG_GPS_PROCESSING_METHOD,
+            ExifInterface.TAG_GPS_IMG_DIRECTION,
+            ExifInterface.TAG_GPS_IMG_DIRECTION_REF,
         )
     }
 }
