@@ -29,6 +29,7 @@ kotlin {
 
 dependencies {
     api(project(":framekit-android"))
+    implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.exifinterface)
     implementation(libs.kotlinx.coroutines.android)
 
