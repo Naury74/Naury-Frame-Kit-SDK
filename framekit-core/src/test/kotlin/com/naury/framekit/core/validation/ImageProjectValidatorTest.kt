@@ -1,6 +1,8 @@
 package com.naury.framekit.core.validation
 
 import com.google.common.truth.Truth.assertThat
+import com.naury.framekit.core.effect.Adjustments
+import com.naury.framekit.core.effect.FilterSelection
 import com.naury.framekit.core.geometry.GeometryEdit
 import com.naury.framekit.core.geometry.RectN
 import com.naury.framekit.core.model.ImageProject
@@ -78,6 +80,21 @@ class ImageProjectValidatorTest {
         val result = validate(GeometryEdit(crop = RectN(0.5, 0.5, 0.502, 0.502)))
 
         assertThat(result.codes()).containsExactly(ValidationCode.INVALID_CROP)
+    }
+
+    @Test
+    fun `adjustments outside their range and unknown presets are rejected`() {
+        val result = ImageProjectValidator.validate(
+            project.copy(adjustments = Adjustments(exposure = 3.0, grain = Double.NaN), filter = FilterSelection("nope", 1.5)),
+            metadata,
+        )
+
+        assertThat(result.codes()).containsExactly(
+            ValidationCode.OUT_OF_RANGE,
+            ValidationCode.NOT_FINITE,
+            ValidationCode.UNKNOWN_REFERENCE,
+            ValidationCode.OUT_OF_RANGE,
+        )
     }
 
     private fun validate(geometry: GeometryEdit): ValidationResult =

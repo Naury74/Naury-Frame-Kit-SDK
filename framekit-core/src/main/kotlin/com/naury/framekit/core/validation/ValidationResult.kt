@@ -17,6 +17,9 @@ public enum class ValidationCode {
     /** The crop leaves the image area or produces fewer pixels than the minimum output size. */
     INVALID_CROP,
 
+    /** A preset, font or asset id does not exist in its catalog. */
+    UNKNOWN_REFERENCE,
+
     /** The project refers to a source that does not match the supplied metadata. */
     SOURCE_MISMATCH,
 }

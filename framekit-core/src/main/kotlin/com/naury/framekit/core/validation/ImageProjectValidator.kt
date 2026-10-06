@@ -1,5 +1,7 @@
 package com.naury.framekit.core.validation
 
+import com.naury.framekit.core.effect.AdjustmentKind
+import com.naury.framekit.core.effect.FilterCatalog
 import com.naury.framekit.core.geometry.CropBoundsCalculator
 import com.naury.framekit.core.geometry.GeometryEdit
 import com.naury.framekit.core.geometry.GeometryFrame
@@ -20,6 +22,7 @@ public object ImageProjectValidator {
             issues += ValidationIssue(ValidationCode.SOURCE_MISMATCH, "metadata.mediaType", "Source is not an image")
         }
         validateGeometry(project.geometry, issues)
+        validateEffects(project, issues)
         if (issues.isEmpty()) validateCropArea(project.geometry, metadata, issues)
         return ValidationResult.of(issues)
     }
@@ -34,6 +37,27 @@ public object ImageProjectValidator {
                 "geometry.crop",
                 "Crop must be at least ${CropBoundsCalculator.MIN_CROP_SIDE_PX} px on each side",
             )
+        }
+    }
+
+    private fun validateEffects(project: ImageProject, issues: MutableList<ValidationIssue>) {
+        AdjustmentKind.entries.forEach { kind ->
+            val value = project.adjustments[kind]
+            val path = "adjustments.${kind.name.lowercase()}"
+            when {
+                !value.isFinite() -> issues += ValidationIssue(ValidationCode.NOT_FINITE, path, "Must be finite")
+                value !in kind.minimum..kind.maximum ->
+                    issues += ValidationIssue(ValidationCode.OUT_OF_RANGE, path, "Expected ${kind.minimum}..${kind.maximum}")
+            }
+        }
+        val filter = project.filter
+        if (FilterCatalog.find(filter.presetId) == null) {
+            issues += ValidationIssue(ValidationCode.UNKNOWN_REFERENCE, "filter.presetId", "Unknown preset")
+        }
+        if (!filter.intensity.isFinite()) {
+            issues += ValidationIssue(ValidationCode.NOT_FINITE, "filter.intensity", "Must be finite")
+        } else if (filter.intensity !in 0.0..1.0) {
+            issues += ValidationIssue(ValidationCode.OUT_OF_RANGE, "filter.intensity", "Expected 0..1")
         }
     }
 
