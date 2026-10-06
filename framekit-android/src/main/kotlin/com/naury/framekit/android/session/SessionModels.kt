@@ -4,6 +4,17 @@ import com.naury.framekit.core.effect.Adjustments
 import com.naury.framekit.core.effect.FilterCatalog
 import com.naury.framekit.core.effect.FilterSelection
 import com.naury.framekit.core.geometry.GeometryEdit
+import com.naury.framekit.core.geometry.PointN
+import com.naury.framekit.core.overlay.BackgroundSpec
+import com.naury.framekit.core.overlay.BrushKind
+import com.naury.framekit.core.overlay.DrawingStroke
+import com.naury.framekit.core.overlay.ImageOverlay
+import com.naury.framekit.core.overlay.OverlayTransform
+import com.naury.framekit.core.overlay.ShadowSpec
+import com.naury.framekit.core.overlay.StrokePoint
+import com.naury.framekit.core.overlay.StrokeSpec
+import com.naury.framekit.core.overlay.TextAlignment
+import com.naury.framekit.core.overlay.TextStyleSpec
 import com.naury.framekit.core.geometry.RectN
 import com.naury.framekit.core.model.ImageProject
 import com.naury.framekit.core.model.ProjectId
@@ -63,6 +74,8 @@ public data class ImageProjectSnapshot(
     val filterPresetId: String = FilterCatalog.ORIGINAL_ID,
     val filterIntensity: Double = 0.0,
     val grainSeed: Long = 0L,
+    val overlays: List<OverlaySnapshot> = emptyList(),
+    val drawing: List<StrokeSnapshot> = emptyList(),
 ) {
     public fun toProject(source: SourceId): ImageProject = ImageProject(
         id = ProjectId(projectId),
@@ -77,6 +90,8 @@ public data class ImageProjectSnapshot(
         adjustments = adjustments.toModel(),
         filter = FilterSelection(filterPresetId, filterIntensity),
         grainSeed = grainSeed,
+        overlays = overlays.map(OverlaySnapshot::toModel),
+        drawing = drawing.map(StrokeSnapshot::toModel),
         revision = revision,
     )
 
@@ -97,6 +112,8 @@ public data class ImageProjectSnapshot(
                 filterPresetId = project.filter.presetId,
                 filterIntensity = project.filter.intensity,
                 grainSeed = project.grainSeed,
+                overlays = project.overlays.map(OverlaySnapshot::of),
+                drawing = project.drawing.map(StrokeSnapshot::of),
             )
         }
     }
@@ -125,6 +142,143 @@ public data class AdjustmentsSnapshot(
         public fun of(a: Adjustments): AdjustmentsSnapshot = AdjustmentsSnapshot(
             a.brightness, a.exposure, a.contrast, a.highlights, a.shadows, a.saturation, a.temperature, a.tint,
             a.sharpness, a.fade, a.vignette, a.grain,
+        )
+    }
+}
+
+/** Stored form of an [ImageOverlay]. */
+@Serializable
+public sealed interface OverlaySnapshot {
+    public fun toModel(): ImageOverlay
+
+    @Serializable
+    @SerialName("text")
+    public data class Text(
+        val id: String,
+        val text: String,
+        val style: TextStyleSnapshot,
+        val transform: TransformSnapshot,
+    ) : OverlaySnapshot {
+        override fun toModel(): ImageOverlay = ImageOverlay.Text(id, text, style.toModel(), transform.toModel())
+    }
+
+    @Serializable
+    @SerialName("sticker")
+    public data class Sticker(
+        val id: String,
+        val assetId: String,
+        val widthRatio: Double,
+        val transform: TransformSnapshot,
+    ) : OverlaySnapshot {
+        override fun toModel(): ImageOverlay = ImageOverlay.Sticker(id, assetId, widthRatio, transform.toModel())
+    }
+
+    public companion object {
+        public fun of(overlay: ImageOverlay): OverlaySnapshot = when (overlay) {
+            is ImageOverlay.Text -> Text(overlay.id, overlay.text, TextStyleSnapshot.of(overlay.style), TransformSnapshot.of(overlay.transform))
+            is ImageOverlay.Sticker -> Sticker(overlay.id, overlay.assetId, overlay.widthRatio, TransformSnapshot.of(overlay.transform))
+        }
+    }
+}
+
+@Serializable
+public data class TransformSnapshot(val x: Double, val y: Double, val scale: Double, val rotation: Double, val opacity: Double) {
+    public fun toModel(): OverlayTransform = OverlayTransform(PointN(x, y), scale, rotation, opacity)
+
+    public companion object {
+        public fun of(t: OverlayTransform): TransformSnapshot = TransformSnapshot(t.center.x, t.center.y, t.scale, t.rotationDegrees, t.opacity)
+    }
+}
+
+@Serializable
+public data class TextStyleSnapshot(
+    val fontId: String,
+    val fontSize: Double,
+    val color: Int,
+    val alignment: String,
+    val letterSpacing: Double,
+    val lineSpacing: Double,
+    val maxWidth: Double,
+    val strokeColor: Int? = null,
+    val strokeWidth: Double? = null,
+    val shadowColor: Int? = null,
+    val shadowDx: Double? = null,
+    val shadowDy: Double? = null,
+    val shadowBlur: Double? = null,
+    val backgroundColor: Int? = null,
+    val backgroundPadding: Double? = null,
+    val backgroundCorner: Double? = null,
+) {
+    public fun toModel(): TextStyleSpec = TextStyleSpec(
+        fontId = fontId,
+        fontSizeHeightRatio = fontSize,
+        colorArgb = color,
+        alignment = TextAlignment.entries.firstOrNull { it.name == alignment } ?: TextAlignment.CENTER,
+        letterSpacingEm = letterSpacing,
+        lineSpacingMultiplier = lineSpacing,
+        maxWidthRatio = maxWidth,
+        stroke = if (strokeColor != null && strokeWidth != null) StrokeSpec(strokeColor, strokeWidth) else null,
+        shadow = if (shadowColor != null && shadowDx != null && shadowDy != null && shadowBlur != null) {
+            ShadowSpec(shadowColor, shadowDx, shadowDy, shadowBlur)
+        } else {
+            null
+        },
+        background = if (backgroundColor != null && backgroundPadding != null && backgroundCorner != null) {
+            BackgroundSpec(backgroundColor, backgroundPadding, backgroundCorner)
+        } else {
+            null
+        },
+    )
+
+    public companion object {
+        public fun of(s: TextStyleSpec): TextStyleSnapshot = TextStyleSnapshot(
+            fontId = s.fontId,
+            fontSize = s.fontSizeHeightRatio,
+            color = s.colorArgb,
+            alignment = s.alignment.name,
+            letterSpacing = s.letterSpacingEm,
+            lineSpacing = s.lineSpacingMultiplier,
+            maxWidth = s.maxWidthRatio,
+            strokeColor = s.stroke?.colorArgb,
+            strokeWidth = s.stroke?.widthHeightRatio,
+            shadowColor = s.shadow?.colorArgb,
+            shadowDx = s.shadow?.offsetXHeightRatio,
+            shadowDy = s.shadow?.offsetYHeightRatio,
+            shadowBlur = s.shadow?.blurHeightRatio,
+            backgroundColor = s.background?.colorArgb,
+            backgroundPadding = s.background?.paddingHeightRatio,
+            backgroundCorner = s.background?.cornerHeightRatio,
+        )
+    }
+}
+
+/** Stored form of a [DrawingStroke]; points are packed as x, y, pressure triples. */
+@Serializable
+public data class StrokeSnapshot(
+    val id: String,
+    val points: List<Double>,
+    val width: Double,
+    val color: Int,
+    val opacity: Double,
+    val brush: String,
+) {
+    public fun toModel(): DrawingStroke = DrawingStroke(
+        id = id,
+        points = points.chunked(3).filter { it.size == 3 }.map { StrokePoint(it[0], it[1], it[2]) },
+        widthShortEdgeRatio = width,
+        colorArgb = color,
+        opacity = opacity,
+        brush = BrushKind.entries.firstOrNull { it.name == brush } ?: BrushKind.PEN,
+    )
+
+    public companion object {
+        public fun of(stroke: DrawingStroke): StrokeSnapshot = StrokeSnapshot(
+            id = stroke.id,
+            points = stroke.points.flatMap { listOf(it.x, it.y, it.pressure) },
+            width = stroke.widthShortEdgeRatio,
+            color = stroke.colorArgb,
+            opacity = stroke.opacity,
+            brush = stroke.brush.name,
         )
     }
 }

@@ -8,6 +8,15 @@ import com.google.common.truth.Truth.assertThat
 import com.naury.framekit.core.effect.Adjustments
 import com.naury.framekit.core.effect.FilterSelection
 import com.naury.framekit.core.geometry.GeometryEdit
+import com.naury.framekit.core.geometry.PointN
+import com.naury.framekit.core.overlay.BackgroundSpec
+import com.naury.framekit.core.overlay.BrushKind
+import com.naury.framekit.core.overlay.DrawingStroke
+import com.naury.framekit.core.overlay.ImageOverlay
+import com.naury.framekit.core.overlay.OverlayTransform
+import com.naury.framekit.core.overlay.StrokePoint
+import com.naury.framekit.core.overlay.StrokeSpec
+import com.naury.framekit.core.overlay.TextStyleSpec
 import com.naury.framekit.core.geometry.RectN
 import com.naury.framekit.core.model.ImageProject
 import com.naury.framekit.core.model.ProjectId
@@ -34,6 +43,11 @@ class EditorSessionStoreTest {
         adjustments = Adjustments(exposure = 0.5, vignette = 0.3),
         filter = FilterSelection("film02", 0.7),
         grainSeed = 42L,
+        overlays = listOf(
+            ImageOverlay.Text("t", "안녕 👋", TextStyleSpec(stroke = StrokeSpec(-16777216, 0.004), background = BackgroundSpec(0x80000000.toInt())), OverlayTransform(PointN(0.3, 0.7), 1.5, 12.0, 0.9)),
+            ImageOverlay.Sticker("s", "emoji:🎉", 0.2, OverlayTransform(PointN(0.8, 0.2))),
+        ),
+        drawing = listOf(DrawingStroke("d", listOf(StrokePoint(0.1, 0.2, 0.5), StrokePoint(0.3, 0.4, 1.0)), 0.01, -65536, 0.8, BrushKind.HIGHLIGHTER)),
         revision = 3,
     )
 
