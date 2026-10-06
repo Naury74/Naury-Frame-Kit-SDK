@@ -1,5 +1,6 @@
 package com.naury.framekit.ui.image.editor
 
+import android.content.ContentResolver
 import android.net.Uri
 import android.util.Log
 import androidx.lifecycle.SavedStateHandle
@@ -65,6 +66,7 @@ internal class ImageEditorViewModel(
     private val ioDispatcher: CoroutineDispatcher,
     sessionStore: EditorSessionStore,
     snapshotDebounceMillis: Long = SNAPSHOT_DEBOUNCE_MILLIS,
+    private val contentResolver: ContentResolver? = null,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow<ImageEditorUiState>(ImageEditorUiState.Loading)
@@ -135,7 +137,7 @@ internal class ImageEditorViewModel(
                     val sourceId = registry.register(input)
                     val info = ImageMetadataReader(registry).read(sourceId)
                     val sample = SampleSize.forMinimumLongEdge(info.encodedSize, previewLongEdge)
-                    val preview = BitmapDecoder(registry).decode(info, sample)
+                    val preview = BitmapDecoder(registry, contentResolver).decode(info, sample)
                     val restored = session.attach(pendingRestore, input, info)
                     pendingRestore = null
                     restoredState(restored, sourceId, info, preview)

@@ -1,5 +1,6 @@
 package com.naury.framekit.image.export
 
+import android.content.ContentResolver
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -14,6 +15,7 @@ import com.naury.framekit.core.geometry.ExifOrientation
 import com.naury.framekit.core.geometry.GeometryFrame
 import com.naury.framekit.core.model.ImageProject
 import com.naury.framekit.core.model.MediaType
+import com.naury.framekit.core.model.PixelRect
 import com.naury.framekit.core.model.PixelSize
 import com.naury.framekit.core.validation.ValidationResult
 import com.naury.framekit.image.decode.BitmapDecoder
@@ -30,6 +32,7 @@ import java.io.File
 import java.io.IOException
 import kotlin.coroutines.coroutineContext
 import kotlin.math.ceil
+import kotlin.math.floor
 
 /**
  * Exports one immutable [ImageProject] snapshot to a file.
@@ -43,14 +46,16 @@ public class ImageExportCoordinator(
     private val outputStore: AppFileOutputStore,
     private val memoryBudgetBytes: Long,
     private val dispatcher: CoroutineDispatcher = Dispatchers.Default,
+    contentResolver: ContentResolver? = null,
 ) {
     public constructor(context: Context, resolver: SourceResolver) : this(
         resolver = resolver,
         outputStore = AppFileOutputStore(context),
         memoryBudgetBytes = ImageMemoryBudget.bytes(context),
+        contentResolver = context.applicationContext.contentResolver,
     )
 
-    private val decoder = BitmapDecoder(resolver)
+    private val decoder = BitmapDecoder(resolver, contentResolver)
     private val exifWriter = SafeExifWriter(resolver)
 
     /**
@@ -77,8 +82,8 @@ public class ImageExportCoordinator(
         val metadata = source.metadata
         val outputSize = ImageRenderPlanFactory.outputSize(project, metadata, config.maxOutputPixels, config.maxWidth, config.maxHeight)
         val plan = ImageRenderPlanFactory.create(project, metadata, outputSize)
-        val sampleSize = decodeSampleSize(source, project, outputSize)
-        checkMemory(source, sampleSize, outputSize)
+        val decodePlan = decodePlan(source, project, outputSize)
+        checkMemory(source, decodePlan, outputSize)
         checkStorage(outputSize, config.format)
 
         val warnings = buildList { if (!source.isSrgb) add(ExportWarning.COLOR_SPACE_CONVERTED_TO_SRGB) }.toMutableList()
@@ -86,7 +91,8 @@ public class ImageExportCoordinator(
         try {
             coroutineContext.ensureActive()
             onStage(ImageExportStage.RENDERING)
-            val decoded = decoder.decode(source, sampleSize)
+            val decoded = decoder.decodeRegion(source, decodePlan.region, decodePlan.sampleSize)
+                ?: decoder.decode(source, decodePlan.fullSampleSize)
             if (decoded.hasGainMap) warnings += ExportWarning.HDR_GAIN_MAP_DROPPED
             val background = if (config.format == ImageFormat.JPEG) config.jpegBackgroundArgb else null
             val rendered = try {
@@ -139,29 +145,51 @@ public class ImageExportCoordinator(
         outputStore.deleteStalePartials()
     }
 
-    private fun decodeSampleSize(source: ImageSourceInfo, project: ImageProject, outputSize: PixelSize): Int {
-        val frame = GeometryFrame(source.metadata.uprightSize, project.geometry)
+    /**
+     * Decides which part of the source to decode and how much to subsample it.
+     *
+     * Only the bounding box of the crop is decoded, so exporting a small crop from a 200 MP photo needs
+     * memory for the crop rather than for the whole picture.
+     */
+    private fun decodePlan(source: ImageSourceInfo, project: ImageProject, outputSize: PixelSize): DecodePlan {
+        val upright = source.metadata.uprightSize
+        val frame = GeometryFrame(upright, project.geometry)
         val cropSize = frame.cropPixelSize(project.geometry.crop)
         val scale = minOf(1.0, outputSize.width / cropSize.width, outputSize.height / cropSize.height)
-        val upright = source.metadata.uprightSize
-        val needed = PixelSize(
-            ceil(upright.width * scale).toInt().coerceAtLeast(1),
-            ceil(upright.height * scale).toInt().coerceAtLeast(1),
+
+        val toUpright = frame.uprightToBounds.inverted()
+        val corners = project.geometry.crop.corners().map { toUpright.map(it.x * frame.bounds.width, it.y * frame.bounds.height) }
+        // 보간에 필요한 가장자리 픽셀을 포함하도록 2px 여유를 둔다.
+        val region = PixelRect(
+            (floor(corners.minOf { it.x }).toInt() - REGION_PADDING_PX).coerceIn(0, upright.width),
+            (floor(corners.minOf { it.y }).toInt() - REGION_PADDING_PX).coerceIn(0, upright.height),
+            (ceil(corners.maxOf { it.x }).toInt() + REGION_PADDING_PX).coerceIn(0, upright.width),
+            (ceil(corners.maxOf { it.y }).toInt() + REGION_PADDING_PX).coerceIn(0, upright.height),
         )
-        // 디코더는 저장된(encoded) 축 기준으로 축소하므로 비율이 같은 upright 크기로 계산해도 결과가 같다.
-        return SampleSize.forMinimumSize(upright, needed)
+        return DecodePlan(
+            region = region,
+            sampleSize = SampleSize.forMinimumSize(region.size, region.size.scaledUp(scale)),
+            fullSampleSize = SampleSize.forMinimumSize(upright, upright.scaledUp(scale)),
+        )
     }
 
-    private fun checkMemory(source: ImageSourceInfo, sampleSize: Int, outputSize: PixelSize) {
-        val upright = source.metadata.uprightSize
-        val decodedBytes = ImageMemoryBudget.argbBytes(upright.width / sampleSize, upright.height / sampleSize)
-        // API 26/27 경로는 EXIF 회전을 위해 디코딩 사본을 하나 더 만든다.
+    private fun checkMemory(source: ImageSourceInfo, plan: DecodePlan, outputSize: PixelSize) {
+        val region = plan.region.size
+        val decodedBytes = ImageMemoryBudget.argbBytes(region.width / plan.sampleSize, region.height / plan.sampleSize)
+        // EXIF 방향을 적용할 때 디코딩 결과 사본을 하나 더 만든다.
         val orientationCopy = if (source.orientation != ExifOrientation.NORMAL) decodedBytes else 0L
         val required = decodedBytes + orientationCopy + ImageMemoryBudget.argbBytes(outputSize.width, outputSize.height)
         if (required > memoryBudgetBytes) {
             throw FrameKitException(EditorErrorCode.INSUFFICIENT_MEMORY, "Export needs $required bytes")
         }
     }
+
+    private fun PixelSize.scaledUp(scale: Double) = PixelSize(
+        ceil(width * scale).toInt().coerceAtLeast(1),
+        ceil(height * scale).toInt().coerceAtLeast(1),
+    )
+
+    private data class DecodePlan(val region: PixelRect, val sampleSize: Int, val fullSampleSize: Int)
 
     private fun checkStorage(outputSize: PixelSize, format: ImageFormat) {
         // PNG는 압축되지 않는 최악의 경우를, JPEG는 고품질 평균보다 넉넉한 픽셀당 1바이트를 잡는다.
@@ -211,5 +239,6 @@ public class ImageExportCoordinator(
 
     private companion object {
         const val STORAGE_MARGIN_BYTES = 1L * 1024 * 1024
+        const val REGION_PADDING_PX = 2
     }
 }

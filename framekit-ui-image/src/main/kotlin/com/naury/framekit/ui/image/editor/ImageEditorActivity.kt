@@ -81,6 +81,7 @@ internal class ImageEditorActivity : ComponentActivity() {
                 previewLongEdge = PreviewResolution.longEdge(application),
                 ioDispatcher = Dispatchers.IO,
                 sessionStore = EditorSessionStore(application),
+                contentResolver = application.contentResolver,
             )
         }
     }

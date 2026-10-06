@@ -7,6 +7,7 @@ import android.graphics.Paint
 import androidx.exifinterface.media.ExifInterface
 import com.naury.framekit.android.result.EditorErrorCode
 import com.naury.framekit.android.result.FrameKitException
+import com.naury.framekit.android.source.SourceLocation
 import com.naury.framekit.android.source.SourceResolver
 import com.naury.framekit.core.geometry.ExifOrientation
 import com.naury.framekit.core.model.SourceId
@@ -55,9 +56,19 @@ internal object TestImages {
     }
 }
 
-/** Resolver over local files keyed by their [SourceId] value. */
-internal class FileSourceResolver(private val files: Map<String, File>) : SourceResolver {
+/**
+ * Resolver over local files keyed by their [SourceId] value.
+ *
+ * @param exposeLocation `false` hides the file location so decoders must use streams.
+ */
+internal class FileSourceResolver(
+    private val files: Map<String, File>,
+    private val exposeLocation: Boolean = true,
+) : SourceResolver {
     constructor(vararg entries: Pair<String, File>) : this(entries.toMap())
+
+    override fun location(id: SourceId): SourceLocation? =
+        if (exposeLocation) files[id.value]?.let(SourceLocation::LocalFile) else null
 
     override fun openInputStream(id: SourceId): InputStream =
         files[id.value]?.let(::FileInputStream) ?: throw FrameKitException(EditorErrorCode.SOURCE_UNAVAILABLE)

@@ -32,6 +32,7 @@
     <string name="framekit_error_invalid_source">This file can\'t be edited. Choose another file.</string>
     <string name="framekit_error_permission_denied">FrameKit isn\'t allowed to open this file. Choose it again.</string>
     <string name="framekit_error_source_unavailable">The file was moved or deleted. Choose it again.</string>
+    <string name="framekit_error_source_too_large">This image is too large to open. Choose a smaller file.</string>
     <string name="framekit_error_unsupported_format">This format isn\'t supported. Choose a JPEG, PNG or WEBP file.</string>
     <string name="framekit_error_unsupported_operation">This device can\'t apply this edit. Change the edit or output settings.</string>
     <string name="framekit_error_invalid_configuration">The editor was opened with invalid settings.</string>

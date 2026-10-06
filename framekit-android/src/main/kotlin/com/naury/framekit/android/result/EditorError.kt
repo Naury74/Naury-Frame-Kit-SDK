@@ -18,6 +18,9 @@ public enum class EditorErrorCode(
     /** The source was deleted, moved or its provider is offline. */
     SOURCE_UNAVAILABLE(true, SuggestedAction.CHOOSE_ANOTHER_SOURCE),
 
+    /** The source is larger than the editor accepts, so opening it could exhaust memory. */
+    SOURCE_TOO_LARGE(true, SuggestedAction.CHOOSE_ANOTHER_SOURCE),
+
     /** The container, codec or image format is not supported. */
     UNSUPPORTED_FORMAT(true, SuggestedAction.CHOOSE_ANOTHER_SOURCE),
 

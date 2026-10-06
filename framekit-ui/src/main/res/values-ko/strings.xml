@@ -32,6 +32,7 @@
     <string name="framekit_error_invalid_source">편집할 수 없는 파일입니다. 다른 파일을 선택해 주세요.</string>
     <string name="framekit_error_permission_denied">이 파일을 열 권한이 없습니다. 다시 선택해 주세요.</string>
     <string name="framekit_error_source_unavailable">파일이 이동되었거나 삭제되었습니다. 다시 선택해 주세요.</string>
+    <string name="framekit_error_source_too_large">이미지가 너무 커서 열 수 없습니다. 더 작은 파일을 선택해 주세요.</string>
     <string name="framekit_error_unsupported_format">지원하지 않는 형식입니다. JPEG, PNG, WEBP 파일을 선택해 주세요.</string>
     <string name="framekit_error_unsupported_operation">이 기기에서는 적용할 수 없는 편집입니다. 편집이나 저장 설정을 바꿔 주세요.</string>
     <string name="framekit_error_invalid_configuration">편집기 설정이 올바르지 않습니다.</string>

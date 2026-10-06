@@ -56,6 +56,11 @@ public class SessionSourceRegistry(context: Context) : SourceResolver {
         is RegisteredSource.LocalFile -> null
     }
 
+    override fun location(id: SourceId): SourceLocation = when (val source = requireSource(id)) {
+        is RegisteredSource.Content -> SourceLocation.Content(source.uri)
+        is RegisteredSource.LocalFile -> SourceLocation.LocalFile(source.file)
+    }
+
     private fun requireSource(id: SourceId): RegisteredSource =
         sources[id] ?: throw FrameKitException(EditorErrorCode.SOURCE_UNAVAILABLE, "Unknown source")
 

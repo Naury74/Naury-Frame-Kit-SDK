@@ -30,10 +30,9 @@ public object CanvasGeometryRenderer {
         outputToTarget: Affine2D = Affine2D.Identity,
     ) {
         val bitmap = source.bitmap
-        val decodedToUpright = Affine2D.scale(
-            source.uprightSize.width.toDouble() / bitmap.width,
-            source.uprightSize.height.toDouble() / bitmap.height,
-        )
+        val region = source.uprightRegion
+        val decodedToUpright = Affine2D.translate(region.left.toDouble(), region.top.toDouble()) *
+            Affine2D.scale(region.width.toDouble() / bitmap.width, region.height.toDouble() / bitmap.height)
         canvas.withMatrix(outputToTarget.toAndroidMatrix()) {
             clipRect(0f, 0f, plan.outputSize.width.toFloat(), plan.outputSize.height.toFloat())
             drawBitmap(bitmap, (plan.sourceToOutput * decodedToUpright).toAndroidMatrix(), PAINT)

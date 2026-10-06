@@ -1,8 +1,16 @@
 package com.naury.framekit.android.source
 
+import android.net.Uri
 import com.naury.framekit.android.result.FrameKitException
 import com.naury.framekit.core.model.SourceId
+import java.io.File
 import java.io.InputStream
+
+/** Where a source lives, for decoders that read directly from a file or Uri instead of a stream. */
+public sealed interface SourceLocation {
+    public data class Content(val uri: Uri) : SourceLocation
+    public data class LocalFile(val file: File) : SourceLocation
+}
 
 /**
  * Opens the bytes behind a [SourceId].
@@ -20,4 +28,10 @@ public interface SourceResolver {
 
     /** MIME type reported by the provider, or `null` when it is unknown. */
     public fun reportedMimeType(id: SourceId): String?
+
+    /**
+     * Direct location of the source, or `null` when only streams are available. Decoders use it to
+     * avoid loading a large file into memory.
+     */
+    public fun location(id: SourceId): SourceLocation? = null
 }

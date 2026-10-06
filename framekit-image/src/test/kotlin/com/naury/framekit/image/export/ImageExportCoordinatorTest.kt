@@ -125,6 +125,21 @@ class ImageExportCoordinatorTest {
     }
 
     @Test
+    fun `small crop of a large image fits a budget the whole image would exceed`() = runBlocking {
+        TestImages.writeOrientedJpeg(TestImages.quadrants(2000, 1000), ExifOrientation.ROTATE_90, sourceFile)
+        // 전체 디코딩은 회전 사본까지 약 17.6MB가 필요하지만, 오른쪽 20% 영역만 디코딩하면 약 4.8MB로 들어간다.
+        val tight = ImageExportCoordinator(resolver, store, memoryBudgetBytes = 6L * 1024 * 1024, dispatcher = Dispatchers.Unconfined)
+        val crop = project.copy(geometry = GeometryEdit(crop = RectN(0.8, 0.0, 1.0, 1.0)))
+
+        val result = tight.export(crop, info(), ImageExportConfig())
+
+        assertThat(result.width to result.height).isEqualTo(400 to 1000)
+        val output = decodeOutput()
+        assertThat(output.colorNear(200, 100, TestImages.TOP_RIGHT)).isTrue()
+        assertThat(output.colorNear(200, 900, TestImages.BOTTOM_RIGHT)).isTrue()
+    }
+
+    @Test
     fun `memory budget overflow fails before any file is written`() {
         writePng(TestImages.quadrants(400, 200))
         val tight = ImageExportCoordinator(resolver, store, memoryBudgetBytes = 1024L, dispatcher = Dispatchers.Unconfined)

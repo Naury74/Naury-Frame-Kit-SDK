@@ -17,8 +17,9 @@ import java.io.IOException
 public class ImageMetadataReader(private val resolver: SourceResolver) {
 
     /**
-     * @throws FrameKitException with `DECODE_FAILED` for empty or damaged headers and
-     *   `UNSUPPORTED_FORMAT` for formats outside [SupportedImageFormats] or animated images.
+     * @throws FrameKitException with `DECODE_FAILED` for empty or damaged headers,
+     *   `UNSUPPORTED_FORMAT` for formats outside [SupportedImageFormats] or animated images, and
+     *   `SOURCE_TOO_LARGE` above [MAX_SOURCE_PIXELS].
      */
     public fun read(id: SourceId): ImageSourceInfo {
         val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
@@ -38,8 +39,12 @@ public class ImageMetadataReader(private val resolver: SourceResolver) {
             throw FrameKitException(EditorErrorCode.UNSUPPORTED_FORMAT, "Animated WEBP is not supported")
         }
 
-        val orientation = readOrientation(id)
         val encoded = PixelSize(options.outWidth, options.outHeight)
+        if (encoded.pixelCount > MAX_SOURCE_PIXELS) {
+            throw FrameKitException(EditorErrorCode.SOURCE_TOO_LARGE, "Image has ${encoded.pixelCount} pixels")
+        }
+        val exif = readExif(id)
+        val orientation = exif.orientation
         val colorSpace = options.outColorSpace
         return ImageSourceInfo(
             metadata = SourceMetadata(
@@ -51,16 +56,30 @@ public class ImageMetadataReader(private val resolver: SourceResolver) {
             encodedSize = encoded,
             orientation = orientation,
             isSrgb = colorSpace == null || colorSpace == ColorSpace.get(ColorSpace.Named.SRGB),
+            hasGainMap = exif.hasGainMap,
         )
     }
 
-    private fun readOrientation(id: SourceId): ExifOrientation = try {
+    private fun readExif(id: SourceId): ExifSummary = try {
         resolver.openInputStream(id).use { stream ->
-            val value = ExifInterface(stream).getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL)
-            ExifOrientation.fromExifValue(value)
+            val exif = ExifInterface(stream)
+            val value = exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL)
+            // Ultra HDR은 XMP의 hdrgm 네임스페이스로 gain map을 선언한다. 디코딩 경로와 관계없이 같은 판단을 하기 위해 header에서 확인한다.
+            val xmp = exif.getAttribute(ExifInterface.TAG_XMP).orEmpty()
+            ExifSummary(ExifOrientation.fromExifValue(value), xmp.contains("hdrgm:"))
         }
     } catch (_: IOException) {
         // EXIF가 깨져 있어도 픽셀은 읽을 수 있으므로 방향 정보만 기본값으로 둔다.
-        ExifOrientation.NORMAL
+        ExifSummary(ExifOrientation.NORMAL, hasGainMap = false)
+    }
+
+    private data class ExifSummary(val orientation: ExifOrientation, val hasGainMap: Boolean)
+
+    public companion object {
+        /**
+         * Largest accepted source, 250 MP. Current 200 MP phone cameras fit; larger or forged headers
+         * are rejected with `SOURCE_TOO_LARGE` before any pixel is allocated.
+         */
+        public const val MAX_SOURCE_PIXELS: Long = 250_000_000L
     }
 }
