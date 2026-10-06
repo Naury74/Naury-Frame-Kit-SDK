@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">FrameKit</string>
+    <string name="app_name" translatable="false">FrameKit</string>
     <string name="home_subtitle">Non-destructive image editing SDK for Android</string>
     <string name="home_edit_photo">Edit photo</string>
     <string name="home_examples">Examples</string>

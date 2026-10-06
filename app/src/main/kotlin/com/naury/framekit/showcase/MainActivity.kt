@@ -8,10 +8,12 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import com.naury.framekit.android.output.FrameKitOutputs
 import com.naury.framekit.android.result.EditedMedia
 import com.naury.framekit.android.result.FrameKitResult
@@ -25,10 +27,11 @@ class MainActivity : ComponentActivity() {
         setContent {
             ShowcaseTheme {
                 val context = LocalContext.current
+                val resources = LocalResources.current
                 var result by rememberSaveable { mutableStateOf<EditedMedia?>(null) }
-                var elapsedMs by rememberSaveable { mutableStateOf(0L) }
+                var elapsedMs by rememberSaveable { mutableLongStateOf(0L) }
                 var lastMessage by rememberSaveable { mutableStateOf<String?>(null) }
-                var launchedAt by rememberSaveable { mutableStateOf(0L) }
+                var launchedAt by rememberSaveable { mutableLongStateOf(0L) }
 
                 val editor = rememberLauncherForActivityResult(ImageEditorContract()) { outcome ->
                     when (outcome) {
@@ -37,8 +40,8 @@ class MainActivity : ComponentActivity() {
                             result = outcome.output
                             lastMessage = null
                         }
-                        FrameKitResult.Cancelled -> lastMessage = context.getString(R.string.result_cancelled)
-                        is FrameKitResult.Failure -> lastMessage = context.getString(
+                        FrameKitResult.Cancelled -> lastMessage = resources.getString(R.string.result_cancelled)
+                        is FrameKitResult.Failure -> lastMessage = resources.getString(
                             R.string.result_failed,
                             outcome.error.code.name,
                             outcome.error.diagnosticId,
@@ -64,7 +67,7 @@ class MainActivity : ComponentActivity() {
                         onDelete = {
                             FrameKitOutputs.deleteOutput(context, current.uri)
                             result = null
-                            lastMessage = context.getString(R.string.result_deleted)
+                            lastMessage = resources.getString(R.string.result_deleted)
                         },
                     )
                 }
