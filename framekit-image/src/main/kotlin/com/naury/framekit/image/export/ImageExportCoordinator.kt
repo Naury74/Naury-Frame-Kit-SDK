@@ -21,6 +21,8 @@ import com.naury.framekit.core.validation.ValidationResult
 import com.naury.framekit.image.decode.BitmapDecoder
 import com.naury.framekit.image.decode.ImageSourceInfo
 import com.naury.framekit.image.decode.SampleSize
+import com.naury.framekit.image.effect.ColorEffectRenderer
+import com.naury.framekit.image.effect.CpuColorEffectRenderer
 import com.naury.framekit.image.render.CanvasGeometryRenderer
 import com.naury.framekit.image.render.ImageRenderPlanFactory
 import kotlinx.coroutines.CoroutineDispatcher
@@ -47,6 +49,7 @@ public class ImageExportCoordinator(
     private val memoryBudgetBytes: Long,
     private val dispatcher: CoroutineDispatcher = Dispatchers.Default,
     contentResolver: ContentResolver? = null,
+    private val colorRenderer: ColorEffectRenderer = CpuColorEffectRenderer,
 ) {
     public constructor(context: Context, resolver: SourceResolver) : this(
         resolver = resolver,
@@ -83,7 +86,9 @@ public class ImageExportCoordinator(
         val outputSize = ImageRenderPlanFactory.outputSize(project, metadata, config.maxOutputPixels, config.maxWidth, config.maxHeight)
         val plan = ImageRenderPlanFactory.create(project, metadata, outputSize)
         val decodePlan = decodePlan(source, project, outputSize)
-        val strategy = renderStrategy(source, decodePlan, outputSize)
+        val colorSpec = project.colorSpec
+        val colorBytes = colorRenderer.workingBytes(outputSize.width, outputSize.height, colorSpec)
+        val strategy = renderStrategy(source, decodePlan, outputSize, colorBytes)
         checkStorage(outputSize, config.format)
 
         val warnings = buildList { if (!source.isSrgb) add(ExportWarning.COLOR_SPACE_CONVERTED_TO_SRGB) }.toMutableList()
@@ -118,6 +123,12 @@ public class ImageExportCoordinator(
                 }
             } catch (error: OutOfMemoryError) {
                 throw FrameKitException(EditorErrorCode.INSUFFICIENT_MEMORY, "Output bitmap allocation failed", error)
+            }
+            try {
+                colorRenderer.apply(rendered, colorSpec, includeCanvasEffects = true)
+            } catch (error: OutOfMemoryError) {
+                rendered.recycle()
+                throw FrameKitException(EditorErrorCode.INSUFFICIENT_MEMORY, "Color effects did not fit in memory", error)
             }
 
             coroutineContext.ensureActive()
@@ -196,8 +207,12 @@ public class ImageExportCoordinator(
      *
      * @throws FrameKitException with `INSUFFICIENT_MEMORY` when even the output bitmap does not fit.
      */
-    private fun renderStrategy(source: ImageSourceInfo, plan: DecodePlan, outputSize: PixelSize): RenderStrategy {
+    private fun renderStrategy(source: ImageSourceInfo, plan: DecodePlan, outputSize: PixelSize, colorBytes: Long): RenderStrategy {
+        // 보정은 geometry 렌더가 끝난 뒤 실행되므로 디코딩 메모리와 동시에 잡히지 않는다. 둘 중 큰 쪽이 기준이다.
         val outputBytes = ImageMemoryBudget.argbBytes(outputSize.width, outputSize.height)
+        if (outputBytes + colorBytes > memoryBudgetBytes) {
+            throw FrameKitException(EditorErrorCode.INSUFFICIENT_MEMORY, "Export needs ${outputBytes + colorBytes} bytes")
+        }
         val available = memoryBudgetBytes - outputBytes
         // EXIF 방향을 적용할 때 디코딩 결과 사본을 하나 더 만든다.
         val copies = if (source.orientation != ExifOrientation.NORMAL) 2L else 1L

@@ -11,6 +11,8 @@ import com.google.common.truth.Truth.assertThat
 import com.naury.framekit.android.output.AppFileOutputStore
 import com.naury.framekit.android.result.EditorErrorCode
 import com.naury.framekit.android.result.FrameKitException
+import com.naury.framekit.core.effect.Adjustments
+import com.naury.framekit.core.effect.FilterSelection
 import com.naury.framekit.core.geometry.ExifOrientation
 import com.naury.framekit.core.geometry.GeometryEdit
 import com.naury.framekit.core.geometry.GeometryOperations
@@ -18,7 +20,11 @@ import com.naury.framekit.core.geometry.RectN
 import com.naury.framekit.core.model.ImageProject
 import com.naury.framekit.core.model.ProjectId
 import com.naury.framekit.core.model.SourceId
+import com.naury.framekit.image.decode.BitmapDecoder
 import com.naury.framekit.image.decode.ImageMetadataReader
+import com.naury.framekit.image.effect.CpuColorEffectRenderer
+import com.naury.framekit.image.render.ImagePreviewRenderer
+import com.naury.framekit.image.render.PreviewMode
 import com.naury.framekit.image.decode.ImageSourceInfo
 import com.naury.framekit.image.testing.FileSourceResolver
 import com.naury.framekit.image.testing.TestImages
@@ -182,6 +188,33 @@ class ImageExportCoordinatorTest {
         }
 
         assertThat(error.code).isEqualTo(EditorErrorCode.INSUFFICIENT_MEMORY)
+    }
+
+    @Test
+    fun `adjustments and filter are applied to the exported file`() = runBlocking {
+        writePng(TestImages.quadrants(200, 100))
+        val graded = project.copy(adjustments = Adjustments(brightness = 0.2), filter = FilterSelection("mono", 1.0))
+
+        coordinator.export(graded, info(), ImageExportConfig(format = ImageFormat.PNG))
+
+        val red = decodeOutput().getPixel(50, 25)
+        assertThat(Color.red(red)).isEqualTo(Color.green(red))
+        assertThat(Color.green(red)).isEqualTo(Color.blue(red))
+    }
+
+    @Test
+    fun `preview renderer and export produce the same colors`() = runBlocking {
+        writePng(TestImages.quadrants(200, 100))
+        val graded = project.copy(adjustments = Adjustments(exposure = 0.5, saturation = 0.4, vignette = 0.5, grain = 0.3), grainSeed = 5L)
+        coordinator.export(graded, info(), ImageExportConfig(format = ImageFormat.PNG))
+        val exported = decodeOutput()
+        val decoded = BitmapDecoder(resolver).decode(info(), sampleSize = 1)
+
+        val preview = ImagePreviewRenderer(CpuColorEffectRenderer).render(decoded, graded, info().metadata, PreviewMode.RESULT, 200, 100)
+
+        for (y in 0 until 100 step 7) for (x in 0 until 200 step 7) {
+            assertThat(preview.getPixel(x, y)).isEqualTo(exported.getPixel(x, y))
+        }
     }
 
     @Test
