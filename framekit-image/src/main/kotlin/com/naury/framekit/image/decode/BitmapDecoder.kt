@@ -8,6 +8,7 @@ import android.graphics.ImageDecoder
 import android.graphics.Paint
 import android.os.Build
 import androidx.annotation.RequiresApi
+import androidx.core.graphics.createBitmap
 import com.naury.framekit.android.result.EditorErrorCode
 import com.naury.framekit.android.result.FrameKitException
 import com.naury.framekit.android.source.SourceResolver
@@ -88,7 +89,7 @@ public class BitmapDecoder(private val resolver: SourceResolver) {
             if (orientation == ExifOrientation.NORMAL) return encoded
             val matrix = orientation.encodedToUpright(encoded.width.toDouble(), encoded.height.toDouble()).toAndroidMatrix()
             val upright = orientation.uprightSize(PixelSize(encoded.width, encoded.height))
-            val result = Bitmap.createBitmap(upright.width, upright.height, Bitmap.Config.ARGB_8888)
+            val result = createBitmap(upright.width, upright.height)
             Canvas(result).drawBitmap(encoded, matrix, Paint(Paint.FILTER_BITMAP_FLAG))
             encoded.recycle()
             return result

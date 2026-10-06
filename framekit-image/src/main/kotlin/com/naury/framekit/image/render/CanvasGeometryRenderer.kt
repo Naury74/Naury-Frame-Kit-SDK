@@ -3,6 +3,8 @@ package com.naury.framekit.image.render
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Paint
+import androidx.core.graphics.createBitmap
+import androidx.core.graphics.withMatrix
 import com.naury.framekit.core.geometry.Affine2D
 import com.naury.framekit.image.decode.DecodedImage
 
@@ -32,11 +34,10 @@ public object CanvasGeometryRenderer {
             source.uprightSize.width.toDouble() / bitmap.width,
             source.uprightSize.height.toDouble() / bitmap.height,
         )
-        val checkpoint = canvas.save()
-        canvas.concat(outputToTarget.toAndroidMatrix())
-        canvas.clipRect(0f, 0f, plan.outputSize.width.toFloat(), plan.outputSize.height.toFloat())
-        canvas.drawBitmap(bitmap, (plan.sourceToOutput * decodedToUpright).toAndroidMatrix(), PAINT)
-        canvas.restoreToCount(checkpoint)
+        canvas.withMatrix(outputToTarget.toAndroidMatrix()) {
+            clipRect(0f, 0f, plan.outputSize.width.toFloat(), plan.outputSize.height.toFloat())
+            drawBitmap(bitmap, (plan.sourceToOutput * decodedToUpright).toAndroidMatrix(), PAINT)
+        }
     }
 
     /**
@@ -45,7 +46,7 @@ public object CanvasGeometryRenderer {
      * @param backgroundArgb color painted below the image, or `null` to keep transparency.
      */
     public fun render(source: DecodedImage, plan: ImageRenderPlan, backgroundArgb: Int?): Bitmap {
-        val output = Bitmap.createBitmap(plan.outputSize.width, plan.outputSize.height, Bitmap.Config.ARGB_8888)
+        val output = createBitmap(plan.outputSize.width, plan.outputSize.height)
         val canvas = Canvas(output)
         if (backgroundArgb != null) canvas.drawColor(backgroundArgb)
         draw(canvas, source, plan)
