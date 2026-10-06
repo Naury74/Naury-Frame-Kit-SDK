@@ -10,6 +10,8 @@
     <string name="example_rotate_only_description">Only the rotate tool is enabled; crop is hidden and rejected</string>
     <string name="example_png_title">PNG output</string>
     <string name="example_png_description">Lossless PNG that keeps transparency</string>
+    <string name="example_cutout_title">Remove background</string>
+    <string name="example_cutout_description">Cut out the subject and save a transparent PNG</string>
     <string name="example_restricted_title">Restricted</string>
     <string name="example_restricted_description">Crop only, no undo, output up to 1080 px at quality 85</string>
     <string name="example_brand_title">Custom brand</string>

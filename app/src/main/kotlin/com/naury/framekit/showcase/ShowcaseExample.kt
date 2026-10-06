@@ -31,6 +31,15 @@ enum class ShowcaseExample(
         R.string.example_png_description,
         ImageEditorRequest(EditorInput.Pick(), export = ImageExportConfig(format = ImageFormat.PNG)),
     ),
+    CUTOUT(
+        R.string.example_cutout_title,
+        R.string.example_cutout_description,
+        ImageEditorRequest(
+            EditorInput.Pick(),
+            config = ImageEditorConfig(enabledTools = setOf(ImageTool.CUTOUT, ImageTool.CROP, ImageTool.STICKER)),
+            export = ImageExportConfig(format = ImageFormat.PNG),
+        ),
+    ),
     RESTRICTED(
         R.string.example_restricted_title,
         R.string.example_restricted_description,

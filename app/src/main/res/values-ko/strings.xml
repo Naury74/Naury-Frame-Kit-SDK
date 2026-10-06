@@ -9,6 +9,8 @@
     <string name="example_rotate_only_description">회전 도구만 켜고 자르기는 숨기며 요청도 거부</string>
     <string name="example_png_title">PNG 저장</string>
     <string name="example_png_description">투명도를 유지하는 무손실 PNG</string>
+    <string name="example_cutout_title">배경 제거</string>
+    <string name="example_cutout_description">피사체만 남겨 투명 PNG로 저장</string>
     <string name="example_restricted_title">제한 모드</string>
     <string name="example_restricted_description">자르기만, 실행 취소 없음, 최대 1080px·품질 85</string>
     <string name="example_brand_title">브랜드 테마</string>
