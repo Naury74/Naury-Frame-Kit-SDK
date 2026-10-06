@@ -293,4 +293,20 @@ app                 Showcase 앱
 
 ## License
 
-배포 라이선스는 Maven 배포 전에 확정합니다. 편집기 아이콘 일부는 Apache License 2.0인 [Material Icons](https://github.com/google/material-design-icons)의 path 데이터를 사용합니다([NOTICE](NOTICE)).
+```
+Copyright 2026 Naury74
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+```
+
+전문은 [LICENSE](LICENSE)에 있습니다. 편집기 아이콘 일부는 같은 Apache License 2.0인 [Material Icons](https://github.com/google/material-design-icons)의 path 데이터를 사용합니다([NOTICE](NOTICE)).
