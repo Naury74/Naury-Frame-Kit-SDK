@@ -17,6 +17,9 @@ public enum class ValidationCode {
     /** The crop leaves the image area or produces fewer pixels than the minimum output size. */
     INVALID_CROP,
 
+    /** Two overlays or strokes share an id. */
+    DUPLICATE_ID,
+
     /** A preset, font or asset id does not exist in its catalog. */
     UNKNOWN_REFERENCE,
 

@@ -4,6 +4,8 @@ import com.naury.framekit.core.effect.Adjustments
 import com.naury.framekit.core.effect.ColorEffectSpec
 import com.naury.framekit.core.effect.FilterSelection
 import com.naury.framekit.core.geometry.GeometryEdit
+import com.naury.framekit.core.overlay.DrawingStroke
+import com.naury.framekit.core.overlay.ImageOverlay
 
 /**
  * Final edit state of one image.
@@ -16,6 +18,9 @@ import com.naury.framekit.core.geometry.GeometryEdit
  * @property geometry rotation, flip, straighten and crop applied to the upright source.
  * @property adjustments color and tone adjustments, applied after geometry.
  * @property filter preset and intensity, applied after the adjustments.
+ * @property overlays text and stickers in z-order, last on top, positioned in the output canvas.
+ * @property drawing strokes of the drawing layer, drawn below [overlays]. The eraser only affects
+ *   this layer.
  * @property grainSeed fixes the grain pattern so it does not change between redraws or between
  *   preview and export.
  */
@@ -25,6 +30,8 @@ public data class ImageProject(
     val geometry: GeometryEdit = GeometryEdit(),
     val adjustments: Adjustments = Adjustments(),
     val filter: FilterSelection = FilterSelection(),
+    val overlays: List<ImageOverlay> = emptyList(),
+    val drawing: List<DrawingStroke> = emptyList(),
     val grainSeed: Long = 0L,
     override val revision: Long = 0L,
 ) : ProjectSnapshot<ImageProject> {
@@ -36,5 +43,6 @@ public data class ImageProject(
 
     override fun sameContentAs(other: ImageProject): Boolean =
         id == other.id && source == other.source && geometry == other.geometry &&
-            adjustments == other.adjustments && filter == other.filter && grainSeed == other.grainSeed
+            adjustments == other.adjustments && filter == other.filter && overlays == other.overlays &&
+            drawing == other.drawing && grainSeed == other.grainSeed
 }
