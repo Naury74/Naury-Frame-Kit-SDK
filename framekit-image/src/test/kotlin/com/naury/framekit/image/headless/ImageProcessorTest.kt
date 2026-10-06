@@ -1,5 +1,7 @@
 package com.naury.framekit.image.headless
 
+import com.naury.framekit.core.pdf.PdfPageSize
+import com.naury.framekit.image.export.PdfOptions
 import android.app.Application
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -65,6 +67,44 @@ class ImageProcessorTest {
         assertThat(published()).hasSize(1)
         processor.close()
         assertThat(File(context.cacheDir, "framekit/imports").listFiles().orEmpty()).isEmpty()
+    }
+
+    @Test
+    fun `several photos become one pdf document or one document each`() = runTest {
+        val dispatcher = UnconfinedTestDispatcher(testScheduler)
+        val processor = ImageProcessor(context, CpuColorEffectRenderer, ioDispatcher = dispatcher, exportDispatcher = dispatcher)
+        val first = processor.open(TestImages.quadrants(400, 300))
+        val second = processor.open(TestImages.quadrants(300, 400))
+        val pages = listOf(processor.newProject(first) to first, processor.newProject(second) to second)
+
+        val combined = processor.startPdfExport(pages, ImageExportConfig(format = ImageFormat.PDF), this).awaitResult() as FrameKitResult.Success
+        assertThat(combined.outputs).hasSize(1)
+        assertThat(combined.output.pageCount).isEqualTo(2)
+        assertThat(combined.output.mimeType).isEqualTo("application/pdf")
+        // 첫 사진이 가로로 길어 A4 가로(842×595pt) 쪽이 된다.
+        assertThat(combined.output.width to combined.output.height).isEqualTo(842 to 595)
+        val bytes = published().single().readBytes()
+        assertThat(String(bytes, 0, 5, Charsets.US_ASCII)).isEqualTo("%PDF-")
+        assertThat(String(bytes, Charsets.ISO_8859_1)).contains("/Count 2")
+
+        published().forEach(File::delete)
+        val separate = ImageExportConfig(format = ImageFormat.PDF, pdf = PdfOptions(combinePages = false, pageSize = PdfPageSize.FIT_IMAGE, marginMm = 0.0))
+        val each = processor.startPdfExport(pages, separate, this).awaitResult() as FrameKitResult.Success
+        assertThat(each.outputs.map { it.pageCount }).containsExactly(1, 1)
+        assertThat(published()).hasSize(2)
+        processor.close()
+    }
+
+    @Test
+    fun `pdf export rejects an empty page list and bad options before starting`() = runTest {
+        val processor = ImageProcessor(context, CpuColorEffectRenderer)
+        val source = processor.open(TestImages.quadrants(40, 40))
+
+        assertThrows(FrameKitException::class.java) { processor.startPdfExport(emptyList(), scope = this) }
+        assertThrows(FrameKitException::class.java) {
+            processor.startPdfExport(listOf(processor.newProject(source) to source), ImageExportConfig(pdf = PdfOptions(dpi = 10)), this)
+        }
+        processor.close()
     }
 
     @Test

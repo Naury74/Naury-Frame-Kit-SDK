@@ -37,7 +37,50 @@ public sealed interface EditorInput : Parcelable {
     @Parcelize
     public data class FileSource(val absolutePath: String) : EditorInput
 
-    /** 먼저 시스템 Photo Picker를 연다. picker를 닫으면 `Cancelled`를 반환한다. */
+    /**
+     * 먼저 시스템 Photo Picker를 연다. picker를 닫으면 `Cancelled`를 반환한다.
+     *
+     * @property maxItems 한 번에 고를 수 있는 개수. 1이면 한 장(한 개), 2 이상이면 여러 장 사진 편집이나
+     *   여러 클립 영상 편집으로 열린다. 편집기 설정의 최대 개수를 넘을 수 없다.
+     */
     @Parcelize
-    public data class Pick(val kind: MediaKind = MediaKind.IMAGE) : EditorInput
+    public data class Pick(val kind: MediaKind = MediaKind.IMAGE, val maxItems: Int = 1) : EditorInput
+
+    /**
+     * 호스트가 이미 가진 여러 원본을 한 번에 연다. 모두 사진이면 여러 장 사진 편집, 모두 영상이면 여러 클립
+     * 영상 편집으로 열린다. 사진과 영상을 섞을 수는 없다.
+     *
+     * @property items [UriSource]나 [FileSource]만 담는다. 순서가 편집·결과 순서다.
+     */
+    @Parcelize
+    public data class Multiple(val items: List<EditorInput>) : EditorInput
+
+    /**
+     * 기기 카메라 앱으로 바로 찍은 사진(또는 영상)을 연다. 촬영을 취소하면 `Cancelled`를 반환한다.
+     *
+     * 찍은 파일은 앱 캐시에 임시로 두었다가 편집이 끝나면 지운다. 호스트가 manifest에 `CAMERA` 권한을
+     * 선언했다면 편집기가 권한을 요청하고, 거부되면 `PERMISSION_DENIED`를 반환한다. 카메라 앱이 없으면
+     * `CAMERA_UNAVAILABLE`.
+     *
+     * @property kind [MediaKind.IMAGE] 또는 [MediaKind.VIDEO].
+     */
+    @Parcelize
+    public data class Capture(val kind: MediaKind = MediaKind.IMAGE) : EditorInput
+
+    public companion object {
+        /** 여러 개를 고를 수 있는 picker 개수 상한. 시스템 picker 한도와 같다. */
+        public const val MAX_PICK_ITEMS: Int = 100
+    }
 }
+
+/** [EditorInput.Multiple]에 담을 수 있는 단일 원본이면 `true`. */
+public val EditorInput.isSingleSource: Boolean
+    get() = this is EditorInput.UriSource || this is EditorInput.FileSource
+
+/** 이 입력이 한 번에 여는 원본 개수의 상한. picker는 고를 수 있는 최대 개수. */
+public val EditorInput.maxItemCount: Int
+    get() = when (this) {
+        is EditorInput.Pick -> maxItems
+        is EditorInput.Multiple -> items.size
+        else -> 1
+    }

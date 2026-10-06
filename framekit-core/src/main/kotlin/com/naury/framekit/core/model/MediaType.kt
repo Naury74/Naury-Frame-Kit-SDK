@@ -7,4 +7,7 @@ public enum class MediaType {
 
     /** 영상의 배경 음악 원본. 편집 결과로는 나오지 않는다. */
     AUDIO,
+
+    /** 사진을 쪽으로 묶은 PDF 문서. */
+    DOCUMENT,
 }

@@ -2,4 +2,6 @@
 <paths>
     <!-- 완성된 export 결과만 노출한다. 세션 파일과 원본 사본은 이 경로 밖에 둔다. -->
     <files-path name="framekit_exports" path="framekit/exports/" />
+    <!-- 카메라 앱이 찍은 사진·영상을 쓸 임시 위치. 촬영 Intent에만 쓰기 권한으로 넘긴다. -->
+    <cache-path name="framekit_captures" path="framekit/captures/" />
 </paths>

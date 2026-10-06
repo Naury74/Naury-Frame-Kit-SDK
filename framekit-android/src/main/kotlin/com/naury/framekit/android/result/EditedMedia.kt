@@ -32,6 +32,7 @@ public enum class ExportWarning {
  * @property height 인코딩된 높이(픽셀).
  * @property durationMs 영상 길이(밀리초). 이미지는 `null`이다.
  * @property fileSize 파일 크기(바이트).
+ * @property pageCount PDF 문서의 쪽 수. 사진·영상은 `null`이다. PDF의 [width]·[height]는 첫 쪽 크기(pt, 1/72인치)다.
  */
 @Parcelize
 public data class EditedMedia(
@@ -43,4 +44,5 @@ public data class EditedMedia(
     val mimeType: String,
     val fileSize: Long,
     val warnings: List<ExportWarning> = emptyList(),
+    val pageCount: Int? = null,
 ) : Parcelable

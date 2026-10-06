@@ -164,7 +164,7 @@ internal class VideoSessionRecorder(
         fun EditorInput.toReference(): SourceReference? = when (this) {
             is EditorInput.UriSource -> SourceReference.Content(uri.toString())
             is EditorInput.FileSource -> SourceReference.LocalFile(absolutePath)
-            is EditorInput.Pick -> null
+            is EditorInput.Pick, is EditorInput.Capture, is EditorInput.Multiple -> null
         }
 
         fun SourceReference.toInput(): EditorInput = when (this) {

@@ -29,13 +29,14 @@ public class SessionSourceRegistry(context: Context) : SourceResolver {
     /**
      * 원본을 등록하고 열 수 있는지 확인한다.
      *
-     * @throws FrameKitException 원본을 읽을 수 없거나 [input]이 picker 요청일 때.
+     * @throws FrameKitException 원본을 읽을 수 없거나 [input]이 picker·촬영·목록 요청일 때.
      */
     public fun register(input: EditorInput): SourceId {
         val source = when (input) {
             is EditorInput.UriSource -> RegisteredSource.Content(input.uri)
             is EditorInput.FileSource -> RegisteredSource.LocalFile(File(input.absolutePath))
-            is EditorInput.Pick -> throw FrameKitException(EditorErrorCode.INVALID_CONFIGURATION, "Pick must be resolved before registration")
+            is EditorInput.Pick, is EditorInput.Capture, is EditorInput.Multiple ->
+                throw FrameKitException(EditorErrorCode.INVALID_CONFIGURATION, "Pick, capture and lists must be resolved before registration")
         }
         val id = SourceId(UUID.randomUUID().toString())
         open(source).close()

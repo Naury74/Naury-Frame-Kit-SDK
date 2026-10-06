@@ -4,6 +4,8 @@ import android.os.Parcelable
 import com.naury.framekit.core.validation.ValidationCode
 import com.naury.framekit.core.validation.ValidationIssue
 import com.naury.framekit.core.validation.ValidationResult
+import com.naury.framekit.core.pdf.PdfOrientation
+import com.naury.framekit.core.pdf.PdfPageSize
 import kotlinx.parcelize.Parcelize
 
 /** 인코딩할 이미지 포맷이다. */
@@ -21,10 +23,16 @@ public enum class ImageFormat(public val mimeType: String, public val extension:
      * 손실 파일을 쓰는 대신 `UNSUPPORTED_FORMAT`을 반환한다.
      */
     WEBP_LOSSLESS("image/webp", "webp"),
+
+    /**
+     * 사진을 쪽으로 담은 PDF 문서. 쪽마다 JPEG([ImageExportConfig.quality])로 넣고, 쪽 크기·여백·해상도는
+     * [ImageExportConfig.pdf]를 따른다. 여러 장을 편집하면 기본으로 하나의 문서로 묶는다.
+     */
+    PDF("application/pdf", "pdf"),
     ;
 
     /** 투명도를 유지하는 포맷이면 `true`. */
-    public val supportsAlpha: Boolean get() = this != JPEG
+    public val supportsAlpha: Boolean get() = this == PNG || this == WEBP_LOSSY || this == WEBP_LOSSLESS
 }
 
 /** 출력에 기록할 원본 메타데이터의 범위다. */
@@ -54,7 +62,8 @@ public enum class MetadataPolicy {
  * @property maxOutputPixels `width × height` 상한. 기본값 16 MP는 중급 기기 메모리 안에서 전체 내보내기가
  *   가능하도록 정한 값이다. 출력은 crop보다 커지지 않는다.
  * @property jpegBackgroundArgb JPEG 출력에서 투명 영역을 대신할 색.
- * @property metadataPolicy JPEG와 WEBP 출력에 기록할 원본 메타데이터. PNG 출력에는 기록하지 않는다.
+ * @property metadataPolicy JPEG와 WEBP 출력에 기록할 원본 메타데이터. PNG·PDF 출력에는 기록하지 않는다.
+ * @property pdf [ImageFormat.PDF]일 때 쪽 설정.
  */
 @Parcelize
 public data class ImageExportConfig(
@@ -65,6 +74,7 @@ public data class ImageExportConfig(
     val maxOutputPixels: Long = DEFAULT_MAX_OUTPUT_PIXELS,
     val metadataPolicy: MetadataPolicy = MetadataPolicy.SAFE,
     val jpegBackgroundArgb: Int = 0xFF000000.toInt(),
+    val pdf: PdfOptions = PdfOptions(),
 ) : Parcelable {
 
     public fun validate(): ValidationResult {
@@ -73,10 +83,43 @@ public data class ImageExportConfig(
         if (maxWidth != null && maxWidth <= 0) issues += ValidationIssue(ValidationCode.INVALID_SIZE, "export.maxWidth", "Must be positive")
         if (maxHeight != null && maxHeight <= 0) issues += ValidationIssue(ValidationCode.INVALID_SIZE, "export.maxHeight", "Must be positive")
         if (maxOutputPixels <= 0) issues += ValidationIssue(ValidationCode.INVALID_SIZE, "export.maxOutputPixels", "Must be positive")
+        if (format == ImageFormat.PDF) issues += pdf.validate()
         return ValidationResult.of(issues)
     }
 
     public companion object {
         public const val DEFAULT_MAX_OUTPUT_PIXELS: Long = 16_000_000L
+    }
+}
+
+/**
+ * PDF 쪽 설정.
+ *
+ * @property pageSize 쪽 크기. [PdfPageSize.FIT_IMAGE]면 사진 크기에 맞춘다.
+ * @property orientation [PdfOrientation.AUTO]는 사진이 가로로 길면 가로 쪽.
+ * @property marginMm 네 변 여백(mm), `0..50`.
+ * @property dpi 쪽에 넣는 해상도, `72..600`. 높을수록 선명하고 파일이 크다. 원본보다 키우지는 않는다.
+ * @property backgroundArgb 여백과 투명 영역의 색.
+ * @property combinePages 여러 장을 편집할 때 하나의 문서로 묶을지. `false`면 사진마다 PDF를 만든다.
+ */
+@Parcelize
+public data class PdfOptions(
+    val pageSize: PdfPageSize = PdfPageSize.A4,
+    val orientation: PdfOrientation = PdfOrientation.AUTO,
+    val marginMm: Double = 10.0,
+    val dpi: Int = 200,
+    val backgroundArgb: Int = 0xFFFFFFFF.toInt(),
+    val combinePages: Boolean = true,
+) : Parcelable {
+
+    internal fun validate(): List<ValidationIssue> = buildList {
+        if (!marginMm.isFinite() || marginMm !in 0.0..MAX_MARGIN_MM) add(ValidationIssue(ValidationCode.OUT_OF_RANGE, "export.pdf.marginMm", "Expected 0..$MAX_MARGIN_MM"))
+        if (dpi !in MIN_DPI..MAX_DPI) add(ValidationIssue(ValidationCode.OUT_OF_RANGE, "export.pdf.dpi", "Expected $MIN_DPI..$MAX_DPI"))
+    }
+
+    public companion object {
+        public const val MAX_MARGIN_MM: Double = 50.0
+        public const val MIN_DPI: Int = 72
+        public const val MAX_DPI: Int = 600
     }
 }

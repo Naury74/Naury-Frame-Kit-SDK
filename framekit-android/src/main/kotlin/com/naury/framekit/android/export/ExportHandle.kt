@@ -29,7 +29,8 @@ public sealed interface ExportState {
     public data class Running(val progress: Float? = null) : ExportState
     public data object Finalizing : ExportState
     public data object Cancelling : ExportState
-    public data class Completed(val output: EditedMedia) : ExportState
+    /** @property outputs 모든 결과. 여러 파일을 만드는 export(사진마다 PDF 등)가 아니면 [output] 하나다. */
+    public data class Completed(val output: EditedMedia, val outputs: List<EditedMedia> = listOf(output)) : ExportState
     public data object Cancelled : ExportState
     public data class Failed(val error: EditorError) : ExportState
 
@@ -61,19 +62,24 @@ public interface ExportHandle {
  *
  * @param work export를 수행하고 인자로 받은 함수로 진행 상황을 보고한다.
  */
-public class CoroutineExportHandle(
+public class CoroutineExportHandle private constructor(
     scope: CoroutineScope,
-    work: suspend (report: (ExportState) -> Unit) -> EditedMedia,
+    work: suspend (report: (ExportState) -> Unit) -> List<EditedMedia>,
+    @Suppress("UNUSED_PARAMETER") many: Boolean,
 ) : ExportHandle {
+
+    public constructor(scope: CoroutineScope, work: suspend (report: (ExportState) -> Unit) -> EditedMedia) :
+        this(scope, { report -> listOf(work(report)) }, true)
 
     private val _state = MutableStateFlow<ExportState>(ExportState.Idle)
     override val state: StateFlow<ExportState> = _state.asStateFlow()
 
     private val job: Deferred<FrameKitResult> = scope.async(start = CoroutineStart.UNDISPATCHED) {
         try {
-            val media = work(::report)
-            finish(ExportState.Completed(media))
-            FrameKitResult.Success(media)
+            val outputs = work(::report)
+            check(outputs.isNotEmpty()) { "Export produced no output" }
+            finish(ExportState.Completed(outputs.first(), outputs))
+            FrameKitResult.Success(outputs.first(), outputs)
         } catch (cancelled: CancellationException) {
             finish(ExportState.Cancelled)
             throw cancelled
@@ -108,5 +114,11 @@ public class CoroutineExportHandle(
 
     private fun finish(state: ExportState) {
         _state.update { current -> if (current.isTerminal) current else state }
+    }
+
+    public companion object {
+        /** 결과 파일을 여러 개 만들 수 있는 export(사진마다 PDF 등)의 핸들. 빈 목록은 실패로 처리한다. */
+        public fun ofMany(scope: CoroutineScope, work: suspend (report: (ExportState) -> Unit) -> List<EditedMedia>): CoroutineExportHandle =
+            CoroutineExportHandle(scope, work, true)
     }
 }

@@ -22,4 +22,5 @@ public fun EditorErrorCode.messageRes(): Int = when (this) {
     EditorErrorCode.OUTPUT_WRITE_FAILED -> R.string.framekit_error_output_write_failed
     EditorErrorCode.RESULT_UNAVAILABLE -> R.string.framekit_error_result_unavailable
     EditorErrorCode.UNKNOWN -> R.string.framekit_error_unknown
+    EditorErrorCode.CAMERA_UNAVAILABLE -> R.string.framekit_error_camera_unavailable
 }

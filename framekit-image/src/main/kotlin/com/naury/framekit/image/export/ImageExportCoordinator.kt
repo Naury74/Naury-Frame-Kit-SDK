@@ -1,5 +1,9 @@
 package com.naury.framekit.image.export
 
+import kotlin.math.roundToInt
+import com.naury.framekit.core.pdf.PdfWriter
+import com.naury.framekit.core.pdf.PdfPageLayout
+import com.naury.framekit.core.pdf.PdfLayout
 import android.content.ContentResolver
 import android.content.Context
 import android.graphics.Bitmap
@@ -41,6 +45,13 @@ import java.io.IOException
 import kotlin.coroutines.coroutineContext
 import kotlin.math.ceil
 import kotlin.math.floor
+
+/**
+ * PDF 한 쪽이 될 사진.
+ *
+ * @property assets 배경 제거 mask처럼 프로젝트가 참조하는 asset 저장소.
+ */
+public data class PdfPage(val project: ImageProject, val source: ImageSourceInfo, val assets: ProjectAssetStore? = null)
 
 /**
  * 불변 [ImageProject] 스냅샷 하나를 파일로 내보낸다.
@@ -87,81 +98,22 @@ public class ImageExportCoordinator(
         assets: ProjectAssetStore? = null,
         onStage: (ImageExportStage) -> Unit = {},
     ): EditedMedia = withContext(dispatcher) {
+        if (config.format == ImageFormat.PDF) {
+            return@withContext exportPdf(listOf(PdfPage(project, source, assets)), config, target) { _, _, stage -> onStage(stage) }.single()
+        }
         onStage(ImageExportStage.PREPARING)
-        val validation = config.validate()
-        if (validation is ValidationResult.Invalid) {
-            throw FrameKitException(EditorErrorCode.INVALID_CONFIGURATION, validation.issues.joinToString { it.path })
-        }
-        if (config.format == ImageFormat.WEBP_LOSSLESS && Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
-            throw FrameKitException(EditorErrorCode.UNSUPPORTED_FORMAT, "Lossless WEBP needs API 30")
-        }
+        checkConfig(config)
         val metadata = source.metadata
         val outputSize = ImageRenderPlanFactory.outputSize(project, metadata, config.maxOutputPixels, config.maxWidth, config.maxHeight)
-        val plan = ImageRenderPlanFactory.create(project, metadata, outputSize)
-        val decodePlan = decodePlan(source, project, outputSize)
-        val cutoutMask = project.cutout?.let { cutout ->
-            assets?.let { CutoutMasks.load(it, cutout.maskAssetId) }
-                ?: throw FrameKitException(EditorErrorCode.INVALID_PROJECT, "Background removal mask is missing")
-        }
-        val colorSpec = project.colorSpec
-        val colorBytes = maxOf(
-            colorRenderer.workingBytes(outputSize.width, outputSize.height, colorSpec),
-            PrivacyRenderer.workingBytes(outputSize.width, outputSize.height, project.privacyMasks),
-        )
-        val strategy = renderStrategy(source, decodePlan, outputSize, colorBytes)
         checkStorage(outputSize, config.format)
 
-        val warnings = buildList { if (!source.isSrgb) add(ExportWarning.COLOR_SPACE_CONVERTED_TO_SRGB) }.toMutableList()
+        val warnings = mutableListOf<ExportWarning>()
         var partial: File? = null
         try {
             coroutineContext.ensureActive()
             onStage(ImageExportStage.RENDERING)
-            if (source.hasGainMap) warnings += ExportWarning.HDR_GAIN_MAP_DROPPED
             val background = if (config.format.supportsAlpha) null else config.jpegBackgroundArgb
-            val rendered = try {
-                when (strategy) {
-                    RenderStrategy.Whole -> {
-                        val decoded = decoder.decodeRegion(source, decodePlan.region, decodePlan.sampleSize)
-                            ?: decoder.decode(source, decodePlan.fullSampleSize)
-                        try {
-                            CanvasGeometryRenderer.render(decoded, plan, background, cutoutMask)
-                        } finally {
-                            decoded.recycle()
-                        }
-                    }
-                    is RenderStrategy.Banded -> CanvasGeometryRenderer.renderBanded(
-                        plan = plan,
-                        backgroundArgb = background,
-                        bands = strategy.bands,
-                        padding = strategy.padding,
-                        uprightSize = source.metadata.uprightSize,
-                        cutoutMask = cutoutMask,
-                    ) { band ->
-                        coroutineContext.ensureActive()
-                        decoder.decodeRegion(source, band, decodePlan.sampleSize)
-                            ?: throw FrameKitException(EditorErrorCode.INSUFFICIENT_MEMORY, "Format cannot be decoded in bands")
-                    }
-                }
-            } catch (error: OutOfMemoryError) {
-                throw FrameKitException(EditorErrorCode.INSUFFICIENT_MEMORY, "Output bitmap allocation failed", error)
-            } finally {
-                cutoutMask?.recycle()
-            }
-            try {
-                colorRenderer.apply(rendered, colorSpec, includeCanvasEffects = true)
-            } catch (error: OutOfMemoryError) {
-                rendered.recycle()
-                throw FrameKitException(EditorErrorCode.INSUFFICIENT_MEMORY, "Color effects did not fit in memory", error)
-            }
-            try {
-                PrivacyRenderer.apply(rendered, project.privacyMasks)
-            } catch (error: OutOfMemoryError) {
-                rendered.recycle()
-                throw FrameKitException(EditorErrorCode.INSUFFICIENT_MEMORY, "Privacy masks did not fit in memory", error)
-            }
-            if (project.overlays.isNotEmpty() || project.drawing.isNotEmpty()) {
-                overlayRenderer.draw(Canvas(rendered), outputSize, project.overlays, project.drawing)
-            }
+            val rendered = render(project, source, outputSize, background, assets, warnings)
 
             coroutineContext.ensureActive()
             onStage(ImageExportStage.ENCODING)
@@ -192,12 +144,211 @@ public class ImageExportCoordinator(
                     durationMs = null,
                     mimeType = config.format.mimeType,
                     fileSize = published.length(),
-                    warnings = warnings.toList(),
+                    warnings = warnings.distinct(),
                 )
             }
         } finally {
             partial?.delete()
         }
+    }
+
+    /**
+     * 여러 사진을 PDF로 내보낸다. [ImageExportConfig.pdf]의 [PdfOptions.combinePages]가 `true`면 하나의 문서,
+     * `false`면 사진마다 문서를 만든다. 쪽은 하나씩 렌더링해 바로 파일에 쓰므로 메모리는 한 쪽만큼만 쓴다.
+     *
+     * 여러 문서를 만들다 하나라도 실패하거나 취소되면 이번에 만든 문서를 모두 지운다.
+     *
+     * @param onProgress 쪽마다 (`0`부터의 쪽 번호, 전체 쪽 수, 단계)로 내보내기 스레드에서 호출된다.
+     * @return 만든 문서들. 묶으면 하나다.
+     * @throws FrameKitException [export]와 같은 코드.
+     */
+    public suspend fun exportPdf(
+        pages: List<PdfPage>,
+        config: ImageExportConfig,
+        target: OutputTarget = OutputTarget.AppFile,
+        onProgress: (Int, Int, ImageExportStage) -> Unit = { _, _, _ -> },
+    ): List<EditedMedia> = withContext(dispatcher) {
+        require(pages.isNotEmpty()) { "At least one page is needed" }
+        onProgress(0, pages.size, ImageExportStage.PREPARING)
+        checkConfig(config.copy(format = ImageFormat.PDF))
+        val options = config.pdf
+        val layouts = pages.map { page ->
+            val natural = ImageRenderPlanFactory.outputSize(page.project, page.source.metadata, config.maxOutputPixels, config.maxWidth, config.maxHeight)
+            PdfLayout.layout(natural, options.pageSize, options.orientation, options.marginMm, options.dpi, config.maxOutputPixels)
+        }
+        val estimate = layouts.sumOf { it.pixels.pixelCount } + STORAGE_MARGIN_BYTES
+        if (outputStore.allocatableBytes() < estimate) throw FrameKitException(EditorErrorCode.INSUFFICIENT_STORAGE, "Not enough free space")
+
+        val groups = if (options.combinePages) listOf(pages.indices.toList()) else pages.indices.map { listOf(it) }
+        val published = mutableListOf<File>()
+        val results = mutableListOf<EditedMedia>()
+        var completed = false
+        try {
+            for (group in groups) {
+                results += writePdf(group, pages, layouts, config, published, onProgress)
+            }
+            completed = true
+            results
+        } finally {
+            // 사진마다 문서를 만들다 중간에 실패하면 이번 호출의 결과는 하나도 남기지 않는다.
+            if (!completed) withContext(NonCancellable) { published.forEach(File::delete) }
+        }
+    }
+
+    private suspend fun writePdf(
+        indices: List<Int>,
+        pages: List<PdfPage>,
+        layouts: List<PdfPageLayout>,
+        config: ImageExportConfig,
+        published: MutableList<File>,
+        onProgress: (Int, Int, ImageExportStage) -> Unit,
+    ): EditedMedia {
+        val warnings = mutableListOf<ExportWarning>()
+        var partial: File? = outputStore.createPartial(ImageFormat.PDF.extension)
+        try {
+            try {
+                checkNotNull(partial).outputStream().use { stream ->
+                    PdfWriter(stream).use { writer ->
+                        indices.forEach { index ->
+                            coroutineContext.ensureActive()
+                            onProgress(index, pages.size, ImageExportStage.RENDERING)
+                            val page = pages[index]
+                            val layout = layouts[index]
+                            val rendered = render(page.project, page.source, layout.pixels, config.pdf.backgroundArgb, page.assets, warnings)
+                            onProgress(index, pages.size, ImageExportStage.ENCODING)
+                            val jpeg = try {
+                                java.io.ByteArrayOutputStream().also { buffer ->
+                                    if (!rendered.compress(Bitmap.CompressFormat.JPEG, config.quality, buffer)) {
+                                        throw FrameKitException(EditorErrorCode.ENCODE_FAILED, "Page could not be encoded")
+                                    }
+                                }.toByteArray()
+                            } finally {
+                                rendered.recycle()
+                            }
+                            writer.addPage(jpeg, layout.pixels.width, layout.pixels.height, layout)
+                        }
+                    }
+                }
+            } catch (error: IOException) {
+                throw FrameKitException(storageAwareCode(), "Writing the PDF failed", error)
+            } catch (error: OutOfMemoryError) {
+                throw FrameKitException(EditorErrorCode.INSUFFICIENT_MEMORY, "PDF page did not fit in memory", error)
+            }
+            coroutineContext.ensureActive()
+            onProgress(indices.last(), pages.size, ImageExportStage.FINALIZING)
+            val finished = checkNotNull(partial)
+            verifyPdf(finished)
+            return withContext(NonCancellable) {
+                val file = outputStore.publish(finished, ImageFormat.PDF.extension)
+                partial = null
+                published += file
+                val first = layouts[indices.first()]
+                EditedMedia(
+                    uri = outputStore.uriFor(file),
+                    mediaType = MediaType.DOCUMENT,
+                    width = first.pageWidthPt.roundToInt(),
+                    height = first.pageHeightPt.roundToInt(),
+                    durationMs = null,
+                    mimeType = ImageFormat.PDF.mimeType,
+                    fileSize = file.length(),
+                    warnings = warnings.distinct(),
+                    pageCount = indices.size,
+                )
+            }
+        } finally {
+            partial?.delete()
+        }
+    }
+
+    // 디코딩·기하·색·가리기·오버레이까지 그린 출력 크기의 bitmap. 호출한 쪽이 recycle한다.
+    private suspend fun render(
+        project: ImageProject,
+        source: ImageSourceInfo,
+        outputSize: PixelSize,
+        background: Int?,
+        assets: ProjectAssetStore?,
+        warnings: MutableList<ExportWarning>,
+    ): Bitmap {
+        val metadata = source.metadata
+        val plan = ImageRenderPlanFactory.create(project, metadata, outputSize)
+        val decodePlan = decodePlan(source, project, outputSize)
+        val cutoutMask = project.cutout?.let { cutout ->
+            assets?.let { CutoutMasks.load(it, cutout.maskAssetId) }
+                ?: throw FrameKitException(EditorErrorCode.INVALID_PROJECT, "Background removal mask is missing")
+        }
+        val colorSpec = project.colorSpec
+        val colorBytes = maxOf(
+            colorRenderer.workingBytes(outputSize.width, outputSize.height, colorSpec),
+            PrivacyRenderer.workingBytes(outputSize.width, outputSize.height, project.privacyMasks),
+        )
+        val strategy = try {
+            renderStrategy(source, decodePlan, outputSize, colorBytes)
+        } catch (error: FrameKitException) {
+            cutoutMask?.recycle()
+            throw error
+        }
+        val context = coroutineContext
+        if (!source.isSrgb) warnings += ExportWarning.COLOR_SPACE_CONVERTED_TO_SRGB
+        if (source.hasGainMap) warnings += ExportWarning.HDR_GAIN_MAP_DROPPED
+        val rendered = try {
+            when (strategy) {
+                RenderStrategy.Whole -> {
+                    val decoded = decoder.decodeRegion(source, decodePlan.region, decodePlan.sampleSize)
+                        ?: decoder.decode(source, decodePlan.fullSampleSize)
+                    try {
+                        CanvasGeometryRenderer.render(decoded, plan, background, cutoutMask)
+                    } finally {
+                        decoded.recycle()
+                    }
+                }
+                is RenderStrategy.Banded -> CanvasGeometryRenderer.renderBanded(
+                    plan = plan,
+                    backgroundArgb = background,
+                    bands = strategy.bands,
+                    padding = strategy.padding,
+                    uprightSize = source.metadata.uprightSize,
+                    cutoutMask = cutoutMask,
+                ) { band ->
+                    context.ensureActive()
+                    decoder.decodeRegion(source, band, decodePlan.sampleSize)
+                        ?: throw FrameKitException(EditorErrorCode.INSUFFICIENT_MEMORY, "Format cannot be decoded in bands")
+                }
+            }
+        } catch (error: OutOfMemoryError) {
+            throw FrameKitException(EditorErrorCode.INSUFFICIENT_MEMORY, "Output bitmap allocation failed", error)
+        } finally {
+            cutoutMask?.recycle()
+        }
+        try {
+            colorRenderer.apply(rendered, colorSpec, includeCanvasEffects = true)
+            PrivacyRenderer.apply(rendered, project.privacyMasks)
+            if (project.overlays.isNotEmpty() || project.drawing.isNotEmpty()) {
+                overlayRenderer.draw(Canvas(rendered), outputSize, project.overlays, project.drawing)
+            }
+        } catch (error: OutOfMemoryError) {
+            rendered.recycle()
+            throw FrameKitException(EditorErrorCode.INSUFFICIENT_MEMORY, "Effects did not fit in memory", error)
+        } catch (error: Throwable) {
+            rendered.recycle()
+            throw error
+        }
+        return rendered
+    }
+
+    private fun checkConfig(config: ImageExportConfig) {
+        val validation = config.validate()
+        if (validation is ValidationResult.Invalid) {
+            throw FrameKitException(EditorErrorCode.INVALID_CONFIGURATION, validation.issues.joinToString { it.path })
+        }
+        if (config.format == ImageFormat.WEBP_LOSSLESS && Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
+            throw FrameKitException(EditorErrorCode.UNSUPPORTED_FORMAT, "Lossless WEBP needs API 30")
+        }
+    }
+
+    private fun verifyPdf(file: File) {
+        val head = ByteArray(5)
+        val read = runCatching { file.inputStream().use { it.read(head) } }.getOrDefault(-1)
+        if (read != 5 || String(head, Charsets.US_ASCII) != "%PDF-") throw FrameKitException(EditorErrorCode.ENCODE_FAILED, "PDF header is missing")
     }
 
     /** 중단된 내보내기가 남긴 지 하루가 넘은 partial 파일을 삭제한다. */
@@ -311,6 +462,7 @@ public class ImageExportCoordinator(
         } else {
             throw FrameKitException(EditorErrorCode.UNSUPPORTED_FORMAT, "Lossless WEBP needs API 30")
         }
+        ImageFormat.PDF -> Bitmap.CompressFormat.JPEG
     }
 
     private fun verify(file: File, expected: PixelSize, format: ImageFormat) {

@@ -1,5 +1,7 @@
 package com.naury.framekit.image.headless
 
+import com.naury.framekit.image.export.ImageFormat
+import com.naury.framekit.image.export.PdfPage
 import com.naury.framekit.android.catalog.EditorCatalog
 import com.naury.framekit.image.catalog.CatalogAssets
 import android.content.Context
@@ -188,6 +190,45 @@ public class ImageProcessor(
                     when (stage) {
                         ImageExportStage.PREPARING -> ExportState.Preparing
                         ImageExportStage.RENDERING, ImageExportStage.ENCODING -> ExportState.Running()
+                        ImageExportStage.FINALIZING -> ExportState.Finalizing
+                    },
+                )
+            }
+        }
+    }
+
+    /**
+     * 여러 사진을 PDF로 내보낸다. [ImageExportConfig.pdf]의 `combinePages`가 `true`(기본)면 문서 하나, `false`면
+     * 사진마다 문서 하나다. 쪽 순서는 [pages] 순서다.
+     *
+     * @param config `format`은 무시하고 PDF로 만든다. `quality`는 쪽 이미지의 JPEG 품질이다.
+     * @throws FrameKitException 시작 전에 `INVALID_PROJECT` 또는 `INVALID_CONFIGURATION`.
+     */
+    public fun startPdfExport(
+        pages: List<Pair<ImageProject, ImageSource>>,
+        config: ImageExportConfig = ImageExportConfig(format = ImageFormat.PDF),
+        scope: CoroutineScope,
+        target: OutputTarget = OutputTarget.AppFile,
+    ): ExportHandle {
+        if (pages.isEmpty()) throw FrameKitException(EditorErrorCode.INVALID_PROJECT, "At least one page is needed")
+        pages.forEachIndexed { index, (project, source) ->
+            val check = ImageProjectValidator.validate(project, source.metadata)
+            if (check is ValidationResult.Invalid) {
+                throw FrameKitException(EditorErrorCode.INVALID_PROJECT, "pages[$index]: " + check.issues.joinToString { "${it.path}: ${it.code}" })
+            }
+        }
+        val pdfConfig = config.copy(format = ImageFormat.PDF)
+        val configCheck = pdfConfig.validate()
+        if (configCheck is ValidationResult.Invalid) {
+            throw FrameKitException(EditorErrorCode.INVALID_CONFIGURATION, configCheck.issues.joinToString { it.path })
+        }
+        val pdfPages = pages.map { (project, source) -> PdfPage(project, source.info, assets) }
+        return CoroutineExportHandle.ofMany(scope) { report ->
+            coordinator.exportPdf(pdfPages, pdfConfig, target) { page, total, stage ->
+                report(
+                    when (stage) {
+                        ImageExportStage.PREPARING -> ExportState.Preparing
+                        ImageExportStage.RENDERING, ImageExportStage.ENCODING -> ExportState.Running((page + 0.5f) / total)
                         ImageExportStage.FINALIZING -> ExportState.Finalizing
                     },
                 )

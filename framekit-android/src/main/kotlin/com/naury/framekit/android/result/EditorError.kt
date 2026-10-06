@@ -53,6 +53,9 @@ public enum class EditorErrorCode(
 
     /** 다른 어떤 코드에도 해당하지 않는 엔진 실패. */
     UNKNOWN(true, SuggestedAction.RETRY),
+
+    /** 촬영 입력인데 기기에 카메라 앱이 없거나 카메라를 쓸 수 없다. */
+    CAMERA_UNAVAILABLE(true, SuggestedAction.CHOOSE_ANOTHER_SOURCE),
 }
 
 /** 사용자가 다음에 할 수 있는 조치. */
