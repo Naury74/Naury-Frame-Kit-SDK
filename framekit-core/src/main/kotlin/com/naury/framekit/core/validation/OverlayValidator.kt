@@ -1,7 +1,7 @@
 package com.naury.framekit.core.validation
 
 import com.naury.framekit.core.overlay.DrawingStroke
-import com.naury.framekit.core.overlay.EmojiCatalog
+import com.naury.framekit.core.overlay.StickerCatalog
 import com.naury.framekit.core.overlay.FontCatalog
 import com.naury.framekit.core.overlay.ImageOverlay
 import com.naury.framekit.core.overlay.MaskShape
@@ -33,7 +33,7 @@ internal object OverlayValidator {
                     }
                 }
                 is ImageOverlay.Sticker -> {
-                    if (EmojiCatalog.emojiOf(overlay.assetId) == null) {
+                    if (!StickerCatalog.contains(overlay.assetId)) {
                         issues += ValidationIssue(ValidationCode.UNKNOWN_REFERENCE, "$path.assetId", "Unknown sticker asset")
                     }
                     if (!positive(overlay.widthRatio)) {

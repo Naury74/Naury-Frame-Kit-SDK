@@ -135,9 +135,54 @@ public data class DrawingStroke(
     }
 }
 
-/** 모든 기기가 렌더링할 수 있는 폰트. 호스트 폰트 추가는 v1.0에서 지원한다. */
+/**
+ * 텍스트 폰트 id 목록. 모든 기기가 렌더링할 수 있는 내장 폰트([fontIds])와 호스트가 등록한 폰트([custom]).
+ * 호스트 폰트 파일은 Android 모듈이 불러오고, 여기에는 id만 둔다.
+ */
 public object FontCatalog {
     public val fontIds: List<String> = listOf("sans", "sans-bold", "serif", "serif-bold", "mono", "handwriting")
 
-    public fun contains(id: String): Boolean = id in fontIds
+    @Volatile
+    private var installed: List<String> = emptyList()
+
+    /** 호스트가 등록한 폰트 id. */
+    public val custom: List<String> get() = installed
+
+    public fun contains(id: String): Boolean = id in fontIds || id in installed
+
+    /**
+     * 호스트 폰트 id를 바꾼다.
+     *
+     * @throws IllegalArgumentException 내장 폰트와 id가 겹치거나 id가 중복될 때.
+     */
+    public fun install(ids: List<String>) {
+        require(ids.none { it in fontIds }) { "Custom font ids must not reuse built-in ids" }
+        require(ids.toSet().size == ids.size) { "Custom font ids must be unique" }
+        installed = ids.toList()
+    }
+}
+
+/**
+ * 호스트가 등록한 이미지 스티커. 에셋 id는 [ASSET_PREFIX] + 호스트 id이고, 이미지는 Android 모듈이 불러온다.
+ * 이모지 스티커는 [EmojiCatalog]를 쓴다.
+ */
+public object StickerCatalog {
+    public const val ASSET_PREFIX: String = "sticker:"
+
+    @Volatile
+    private var installed: List<String> = emptyList()
+
+    /** 등록한 스티커의 에셋 id. */
+    public val assetIds: List<String> get() = installed
+
+    public fun assetId(id: String): String = ASSET_PREFIX + id
+
+    /** 이모지 스티커이거나 등록한 이미지 스티커이면 `true`. */
+    public fun contains(assetId: String): Boolean = EmojiCatalog.emojiOf(assetId) != null || assetId in installed
+
+    /** @throws IllegalArgumentException id가 중복될 때. */
+    public fun install(ids: List<String>) {
+        require(ids.toSet().size == ids.size) { "Custom sticker ids must be unique" }
+        installed = ids.map(::assetId)
+    }
 }

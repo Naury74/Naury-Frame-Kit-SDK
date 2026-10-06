@@ -41,7 +41,12 @@ public data class FilterSelection(
     public val isIdentity: Boolean get() = presetId == FilterCatalog.ORIGINAL_ID || intensity == 0.0
 }
 
-/** 내장 프리셋. 파라미터는 UI가 아니라 여기에 둔다. */
+/**
+ * 필터 프리셋 목록. 내장 프리셋([presets])과 호스트가 등록한 프리셋([custom])을 id로 찾는다.
+ *
+ * 호스트 프리셋은 프로세스 전체에서 하나의 목록이다. 편집기와 headless 처리기가 시작할 때 요청에 담긴
+ * 목록으로 [install]하므로, 미리보기·저장·실행 취소 기록이 같은 id로 같은 값을 얻는다.
+ */
 public object FilterCatalog {
     public const val ORIGINAL_ID: String = "original"
 
@@ -79,5 +84,25 @@ public object FilterCatalog {
         FilterPreset("cinema", 1, FilterGrade(contrast = 0.2, saturation = -0.1, shadowTint = RgbShift(0.0, 0.03, 0.05), highlightTint = RgbShift(0.05, 0.02, -0.02))),
     )
 
-    public fun find(id: String): FilterPreset? = presets.firstOrNull { it.id == id }
+    @Volatile
+    private var installed: List<FilterPreset> = emptyList()
+
+    /** 호스트가 등록한 프리셋. */
+    public val custom: List<FilterPreset> get() = installed
+
+    /** 내장 프리셋 뒤에 호스트 프리셋을 붙인 전체 목록. */
+    public val all: List<FilterPreset> get() = presets + installed
+
+    public fun find(id: String): FilterPreset? = presets.firstOrNull { it.id == id } ?: installed.firstOrNull { it.id == id }
+
+    /**
+     * 호스트 프리셋을 바꾼다. 이전에 등록한 목록은 대체된다.
+     *
+     * @throws IllegalArgumentException 내장 프리셋과 id가 겹치거나 id가 중복될 때.
+     */
+    public fun install(custom: List<FilterPreset>) {
+        require(custom.none { preset -> presets.any { it.id == preset.id } }) { "Custom filter ids must not reuse built-in ids" }
+        require(custom.map { it.id }.toSet().size == custom.size) { "Custom filter ids must be unique" }
+        installed = custom.toList()
+    }
 }
