@@ -42,6 +42,7 @@ import com.naury.framekit.core.overlay.PrivacyMask
 import com.naury.framekit.core.overlay.TextStyleSpec
 import com.naury.framekit.core.validation.VideoProjectValidator
 import com.naury.framekit.core.video.AudioClip
+import com.naury.framekit.core.video.CanvasSpec
 import com.naury.framekit.core.video.TimeRangeUs
 import com.naury.framekit.core.video.TimedOverlay
 import com.naury.framekit.core.video.TimedPrivacyMask
@@ -457,6 +458,7 @@ internal class VideoEditorViewModel(
                 updateDraftGeometry { r, geometry -> geometry.copy(crop = CropBoundsCalculator.maxCrop(frameOf(r, geometry), CropAspectRatio.Free)) }
             }
             VideoTool.ROTATE -> updateDraftGeometry { _, _ -> GeometryEdit() }
+            VideoTool.CANVAS -> setCanvas(CanvasSpec())
             null -> Unit
         }
     }
@@ -647,6 +649,11 @@ internal class VideoEditorViewModel(
     fun finishStraighten() {
         straightenStart = null
     }
+
+    // ---- 화면 비율 ----
+
+    /** 결과 화면 비율과 맞춤 방식을 바꾼다. 한 번 고를 때마다 한 단계다. */
+    fun setCanvas(canvas: CanvasSpec) = commitImmediate { it.copy(canvas = canvas) }
 
     // ---- 보정·필터 ----
 

@@ -5,6 +5,7 @@ public enum class VideoTool {
     TRIM,
     CROP,
     ROTATE,
+    CANVAS,
     ADJUST,
     FILTER,
     SPEED,

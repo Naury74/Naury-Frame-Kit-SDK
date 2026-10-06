@@ -21,6 +21,8 @@ import com.naury.framekit.core.overlay.ImageOverlay
 import com.naury.framekit.core.overlay.OverlayTransform
 import com.naury.framekit.core.overlay.TextStyleSpec
 import com.naury.framekit.core.video.AudioClip
+import com.naury.framekit.core.video.CanvasFit
+import com.naury.framekit.core.video.CanvasSpec
 import com.naury.framekit.core.video.TimeRangeUs
 import com.naury.framekit.core.video.TimedOverlay
 import com.naury.framekit.core.video.Timeline
@@ -119,8 +121,22 @@ class MultiTrackExportTest {
         assertWithMessage("after #${Integer.toHexString(after)}").that(brightness(after)).isGreaterThan(60)
     }
 
-    private suspend fun export(timeline: Timeline) = coordinator.export(
-        project = VideoProject(ProjectId("p"), timeline),
+    @Test
+    fun squareCanvasFitsWithBarsOrFillsWithoutThem() = runBlocking {
+        val timeline = Timeline(listOf(VideoClip("a", withSound, TimeRangeUs(0, 1_000_000))))
+
+        val fit = export(timeline, CanvasSpec(1, 1, CanvasFit.FIT))
+        assertThat(fit.width).isEqualTo(fit.height)
+        assertWithMessage("fit top").that(brightness(frameAt(300_000).getPixel(fit.width / 2, 4))).isLessThan(20)
+        store.directory.listFiles()?.forEach(File::delete)
+
+        val fill = export(timeline, CanvasSpec(1, 1, CanvasFit.FILL))
+        assertThat(fill.width).isEqualTo(fill.height)
+        assertWithMessage("fill top").that(brightness(frameAt(300_000).getPixel(fill.width / 4, 4))).isGreaterThan(60)
+    }
+
+    private suspend fun export(timeline: Timeline, canvas: CanvasSpec = CanvasSpec()) = coordinator.export(
+        project = VideoProject(ProjectId("p"), timeline, canvas),
         sources = timeline.videoClips.map { it.source }.distinct().associateWith { reader.read(it) },
         locations = (timeline.videoClips.map { it.source } + timeline.audioClips.map { it.source }).distinct()
             .associateWith { checkNotNull(registry.location(it)) },

@@ -47,4 +47,9 @@
     <string name="framekit_music_untitled">음악</string>
     <string name="framekit_sticker_help">스티커는 재생 위치부터 3초 동안 보여요. 끌어서 옮기고 두 손가락으로 크기와 각도를 바꿔요.</string>
     <string name="framekit_item_delete">삭제</string>
+    <string name="framekit_tool_canvas">화면 비율</string>
+    <string name="framekit_canvas_original">첫 클립</string>
+    <string name="framekit_canvas_fit">맞추기</string>
+    <string name="framekit_canvas_fill">채우기</string>
+    <string name="framekit_canvas_help">모양이 다른 클립은 검은 여백을 두고 맞추거나, 가장자리를 잘라 화면을 채워요.</string>
 </resources>

@@ -49,4 +49,9 @@
     <string name="framekit_music_untitled">Music</string>
     <string name="framekit_sticker_help">Stickers show for 3 seconds from the playhead. Drag to move; use two fingers to resize or rotate.</string>
     <string name="framekit_item_delete">Delete</string>
+    <string name="framekit_tool_canvas">Canvas</string>
+    <string name="framekit_canvas_original">First clip</string>
+    <string name="framekit_canvas_fit">Fit</string>
+    <string name="framekit_canvas_fill">Fill</string>
+    <string name="framekit_canvas_help">Clips with a different shape are fitted with black bars, or fill the frame and lose their edges.</string>
 </resources>

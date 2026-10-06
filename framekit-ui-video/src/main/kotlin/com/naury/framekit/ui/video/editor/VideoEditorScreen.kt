@@ -106,6 +106,7 @@ import com.naury.framekit.ui.video.timeline.TrimSelection
 import com.naury.framekit.ui.video.timeline.VideoTimeline
 import com.naury.framekit.ui.video.timeline.formatTime
 import com.naury.framekit.ui.video.tool.AudioToolPanel
+import com.naury.framekit.ui.video.tool.CanvasToolPanel
 import com.naury.framekit.ui.video.tool.SpeedToolPanel
 
 @Composable
@@ -495,6 +496,9 @@ private fun ToolArea(state: VideoEditorUiState.Ready, viewModel: VideoEditorView
                         onStraightenFinished = viewModel::finishStraighten,
                     )
                 }
+                VideoTool.CANVAS -> ToolPanelWithActions(R.string.framekit_tool_canvas, viewModel, isDraft = false) {
+                    CanvasToolPanel(canvas = state.displayed.canvas, onChange = viewModel::setCanvas)
+                }
                 VideoTool.ADJUST -> ToolPanelWithActions(UiR.string.framekit_tool_adjust, viewModel, isDraft = false) {
                     AdjustToolPanel(
                         adjustments = state.clip.effects.adjustments,
@@ -607,6 +611,7 @@ private fun VideoTool.railItem(): ToolRailItem<VideoTool> = when (this) {
     VideoTool.TRIM -> ToolRailItem(this, stringResource(R.string.framekit_tool_trim), painterResource(UiR.drawable.framekit_ic_trim))
     VideoTool.CROP -> ToolRailItem(this, stringResource(UiR.string.framekit_tool_crop), painterResource(UiR.drawable.framekit_ic_crop))
     VideoTool.ROTATE -> ToolRailItem(this, stringResource(UiR.string.framekit_tool_rotate), painterResource(UiR.drawable.framekit_ic_rotate_right))
+    VideoTool.CANVAS -> ToolRailItem(this, stringResource(R.string.framekit_tool_canvas), painterResource(UiR.drawable.framekit_ic_aspect))
     VideoTool.ADJUST -> ToolRailItem(this, stringResource(UiR.string.framekit_tool_adjust), painterResource(UiR.drawable.framekit_ic_adjust))
     VideoTool.FILTER -> ToolRailItem(this, stringResource(UiR.string.framekit_tool_filter), painterResource(UiR.drawable.framekit_ic_filter))
     VideoTool.SPEED -> ToolRailItem(this, stringResource(R.string.framekit_tool_speed), painterResource(UiR.drawable.framekit_ic_speed))
