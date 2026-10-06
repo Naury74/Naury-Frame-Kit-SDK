@@ -83,7 +83,7 @@ public class ImageExportCoordinator(
         val outputSize = ImageRenderPlanFactory.outputSize(project, metadata, config.maxOutputPixels, config.maxWidth, config.maxHeight)
         val plan = ImageRenderPlanFactory.create(project, metadata, outputSize)
         val decodePlan = decodePlan(source, project, outputSize)
-        checkMemory(source, decodePlan, outputSize)
+        val strategy = renderStrategy(source, decodePlan, outputSize)
         checkStorage(outputSize, config.format)
 
         val warnings = buildList { if (!source.isSrgb) add(ExportWarning.COLOR_SPACE_CONVERTED_TO_SRGB) }.toMutableList()
@@ -91,16 +91,33 @@ public class ImageExportCoordinator(
         try {
             coroutineContext.ensureActive()
             onStage(ImageExportStage.RENDERING)
-            val decoded = decoder.decodeRegion(source, decodePlan.region, decodePlan.sampleSize)
-                ?: decoder.decode(source, decodePlan.fullSampleSize)
-            if (decoded.hasGainMap) warnings += ExportWarning.HDR_GAIN_MAP_DROPPED
+            if (source.hasGainMap) warnings += ExportWarning.HDR_GAIN_MAP_DROPPED
             val background = if (config.format == ImageFormat.JPEG) config.jpegBackgroundArgb else null
             val rendered = try {
-                CanvasGeometryRenderer.render(decoded, plan, background)
+                when (strategy) {
+                    RenderStrategy.Whole -> {
+                        val decoded = decoder.decodeRegion(source, decodePlan.region, decodePlan.sampleSize)
+                            ?: decoder.decode(source, decodePlan.fullSampleSize)
+                        try {
+                            CanvasGeometryRenderer.render(decoded, plan, background)
+                        } finally {
+                            decoded.recycle()
+                        }
+                    }
+                    is RenderStrategy.Banded -> CanvasGeometryRenderer.renderBanded(
+                        plan = plan,
+                        backgroundArgb = background,
+                        bands = strategy.bands,
+                        padding = strategy.padding,
+                        uprightSize = source.metadata.uprightSize,
+                    ) { band ->
+                        coroutineContext.ensureActive()
+                        decoder.decodeRegion(source, band, decodePlan.sampleSize)
+                            ?: throw FrameKitException(EditorErrorCode.INSUFFICIENT_MEMORY, "Format cannot be decoded in bands")
+                    }
+                }
             } catch (error: OutOfMemoryError) {
                 throw FrameKitException(EditorErrorCode.INSUFFICIENT_MEMORY, "Output bitmap allocation failed", error)
-            } finally {
-                decoded.recycle()
             }
 
             coroutineContext.ensureActive()
@@ -173,15 +190,38 @@ public class ImageExportCoordinator(
         )
     }
 
-    private fun checkMemory(source: ImageSourceInfo, plan: DecodePlan, outputSize: PixelSize) {
-        val region = plan.region.size
-        val decodedBytes = ImageMemoryBudget.argbBytes(region.width / plan.sampleSize, region.height / plan.sampleSize)
+    /**
+     * Decodes the crop region in one piece when it fits the memory budget, otherwise in horizontal
+     * bands so only the output and one band are in memory together.
+     *
+     * @throws FrameKitException with `INSUFFICIENT_MEMORY` when even the output bitmap does not fit.
+     */
+    private fun renderStrategy(source: ImageSourceInfo, plan: DecodePlan, outputSize: PixelSize): RenderStrategy {
+        val outputBytes = ImageMemoryBudget.argbBytes(outputSize.width, outputSize.height)
+        val available = memoryBudgetBytes - outputBytes
         // EXIF 방향을 적용할 때 디코딩 결과 사본을 하나 더 만든다.
-        val orientationCopy = if (source.orientation != ExifOrientation.NORMAL) decodedBytes else 0L
-        val required = decodedBytes + orientationCopy + ImageMemoryBudget.argbBytes(outputSize.width, outputSize.height)
-        if (required > memoryBudgetBytes) {
-            throw FrameKitException(EditorErrorCode.INSUFFICIENT_MEMORY, "Export needs $required bytes")
+        val copies = if (source.orientation != ExifOrientation.NORMAL) 2L else 1L
+        val region = plan.region
+        val sample = plan.sampleSize
+        val bytesPerRow = ImageMemoryBudget.argbBytes(region.width / sample + 1, 1) * copies
+        val wholeBytes = bytesPerRow * (region.height / sample + 1)
+        if (wholeBytes <= available) return RenderStrategy.Whole
+
+        val padding = REGION_PADDING_PX * sample + REGION_PADDING_PX
+        val rowsPerBand = (available / bytesPerRow) * sample - 2 * padding
+        if (rowsPerBand < MIN_BAND_ROWS * sample) {
+            throw FrameKitException(EditorErrorCode.INSUFFICIENT_MEMORY, "Export needs ${outputBytes + bytesPerRow * MIN_BAND_ROWS} bytes")
         }
+        val step = (rowsPerBand / sample).toInt() * sample
+        val bands = (region.top until region.bottom step step).map { top ->
+            PixelRect(region.left, top, region.right, minOf(top + step, region.bottom))
+        }
+        return RenderStrategy.Banded(bands, padding)
+    }
+
+    private sealed interface RenderStrategy {
+        data object Whole : RenderStrategy
+        data class Banded(val bands: List<PixelRect>, val padding: Int) : RenderStrategy
     }
 
     private fun PixelSize.scaledUp(scale: Double) = PixelSize(
@@ -240,5 +280,6 @@ public class ImageExportCoordinator(
     private companion object {
         const val STORAGE_MARGIN_BYTES = 1L * 1024 * 1024
         const val REGION_PADDING_PX = 2
+        const val MIN_BAND_ROWS = 64
     }
 }

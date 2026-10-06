@@ -3,9 +3,13 @@ package com.naury.framekit.image.render
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Paint
+import android.graphics.Rect
 import androidx.core.graphics.createBitmap
+import androidx.core.graphics.withClip
 import androidx.core.graphics.withMatrix
 import com.naury.framekit.core.geometry.Affine2D
+import com.naury.framekit.core.model.PixelRect
+import com.naury.framekit.core.model.PixelSize
 import com.naury.framekit.image.decode.DecodedImage
 
 /**
@@ -49,6 +53,57 @@ public object CanvasGeometryRenderer {
         val canvas = Canvas(output)
         if (backgroundArgb != null) canvas.drawColor(backgroundArgb)
         draw(canvas, source, plan)
+        return output
+    }
+
+    /**
+     * Renders [plan] band by band so that only one band of the source is in memory at a time.
+     *
+     * Each band is decoded with padding so filtering at its edges has real neighbors, and drawing is
+     * clipped to the band's own rows. Android canvas clips are not anti-aliased, so every output pixel
+     * is painted by exactly one band and no seam appears.
+     *
+     * @param bands upright source rows of each band, top to bottom, covering the visible area.
+     * @param decodeBand decodes the given padded upright rectangle; the result is recycled after use.
+     */
+    public fun renderBanded(
+        plan: ImageRenderPlan,
+        backgroundArgb: Int?,
+        bands: List<PixelRect>,
+        padding: Int,
+        uprightSize: PixelSize,
+        decodeBand: (PixelRect) -> DecodedImage,
+    ): Bitmap {
+        val output = createBitmap(plan.outputSize.width, plan.outputSize.height)
+        val canvas = Canvas(output)
+        if (backgroundArgb != null) canvas.drawColor(backgroundArgb)
+        val outputClip = Rect(0, 0, plan.outputSize.width, plan.outputSize.height)
+        try {
+            bands.forEach { band ->
+                val padded = PixelRect(
+                    band.left,
+                    (band.top - padding).coerceAtLeast(0),
+                    band.right,
+                    (band.bottom + padding).coerceAtMost(uprightSize.height),
+                )
+                val decoded = decodeBand(padded)
+                try {
+                    val region = decoded.uprightRegion
+                    val decodedToUpright = Affine2D.translate(region.left.toDouble(), region.top.toDouble()) *
+                        Affine2D.scale(region.width.toDouble() / decoded.bitmap.width, region.height.toDouble() / decoded.bitmap.height)
+                    canvas.withClip(outputClip) {
+                        concat(plan.sourceToOutput.toAndroidMatrix())
+                        clipRect(band.left.toFloat(), band.top.toFloat(), band.right.toFloat(), band.bottom.toFloat())
+                        drawBitmap(decoded.bitmap, decodedToUpright.toAndroidMatrix(), PAINT)
+                    }
+                } finally {
+                    decoded.recycle()
+                }
+            }
+        } catch (error: Throwable) {
+            output.recycle()
+            throw error
+        }
         return output
     }
 

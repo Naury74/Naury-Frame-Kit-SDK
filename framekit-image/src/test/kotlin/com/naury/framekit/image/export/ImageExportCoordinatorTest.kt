@@ -140,6 +140,51 @@ class ImageExportCoordinatorTest {
     }
 
     @Test
+    fun `banded export matches a single pass without seams`() = runBlocking {
+        val gradient = Bitmap.createBitmap(1200, 800, Bitmap.Config.ARGB_8888).apply {
+            for (y in 0 until height) for (x in 0 until width) setPixel(x, y, Color.rgb(x * 255 / width, y * 255 / height, (x + y) * 255 / (width + height)))
+        }
+        sourceFile.outputStream().use { gradient.compress(Bitmap.CompressFormat.PNG, 100, it) }
+        val geometry = GeometryOperations.withStraighten(
+            com.naury.framekit.core.model.PixelSize(1200, 800),
+            GeometryOperations.rotateClockwise(GeometryEdit()),
+            8.0,
+        )
+        val edited = project.copy(geometry = geometry)
+        val png = ImageExportConfig(format = ImageFormat.PNG)
+
+        coordinator.export(edited, info(), png)
+        val single = decodeOutput()
+        publishedFiles().single().delete()
+        val outputBytes = single.width.toLong() * single.height * 4
+        // 출력 + 띠 몇 개 분량만 허용해 여러 띠로 나눠 그리게 한다.
+        val banded = ImageExportCoordinator(resolver, store, memoryBudgetBytes = outputBytes + 400_000L, dispatcher = Dispatchers.Unconfined)
+        banded.export(edited, info(), png)
+        val bandedOutput = decodeOutput()
+
+        var maxDiff = 0
+        for (y in 0 until single.height step 3) for (x in 0 until single.width step 3) {
+            val a = single.getPixel(x, y)
+            val b = bandedOutput.getPixel(x, y)
+            val d = maxOf(Math.abs(Color.red(a) - Color.red(b)), Math.abs(Color.green(a) - Color.green(b)), Math.abs(Color.blue(a) - Color.blue(b)))
+            maxDiff = maxOf(maxDiff, d)
+        }
+        assertThat(maxDiff).isAtMost(2)
+    }
+
+    @Test
+    fun `output larger than the memory budget fails without crashing`() {
+        writePng(TestImages.quadrants(400, 200))
+        val tooSmall = ImageExportCoordinator(resolver, store, memoryBudgetBytes = 100_000L, dispatcher = Dispatchers.Unconfined)
+
+        val error = assertThrows(FrameKitException::class.java) {
+            runBlocking { tooSmall.export(project, info(), ImageExportConfig()) }
+        }
+
+        assertThat(error.code).isEqualTo(EditorErrorCode.INSUFFICIENT_MEMORY)
+    }
+
+    @Test
     fun `memory budget overflow fails before any file is written`() {
         writePng(TestImages.quadrants(400, 200))
         val tight = ImageExportCoordinator(resolver, store, memoryBudgetBytes = 1024L, dispatcher = Dispatchers.Unconfined)
