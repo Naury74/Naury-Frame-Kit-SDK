@@ -20,6 +20,8 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -60,6 +62,7 @@ import com.naury.framekit.ui.component.EditorTopBar
 import com.naury.framekit.ui.component.ExportErrorDialog
 import com.naury.framekit.ui.component.ExportOverlay
 import com.naury.framekit.ui.component.HistoryControls
+import com.naury.framekit.ui.component.ToolGrid
 import com.naury.framekit.ui.component.ToolRail
 import com.naury.framekit.ui.component.ToolRailItem
 import com.naury.framekit.ui.design.FrameKitTheme
@@ -154,8 +157,10 @@ private fun ReadyContent(state: ImageEditorUiState.Ready, viewModel: ImageEditor
                 CanvasArea(state, viewModel, Modifier.weight(1f).fillMaxHeight())
                 Column(Modifier.width(layout.panelWidthDp.dp).fillMaxHeight()) {
                     topBar()
-                    Spacer(Modifier.weight(1f))
-                    ToolArea(state, viewModel, Modifier.fillMaxWidth(), maxWidthDp = null)
+                    // 넓은 화면에서는 도구를 패널 위쪽부터 채워 빈 영역을 줄이고, 길어지면 스크롤한다.
+                    Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
+                        ToolArea(state, viewModel, Modifier.fillMaxWidth(), maxWidthDp = null, wide = true)
+                    }
                 }
             }
             is EditorLayout.SplitAtHorizontalHinge -> Column(Modifier.fillMaxSize()) {
@@ -196,8 +201,10 @@ private fun ReadyContent(state: ImageEditorUiState.Ready, viewModel: ImageEditor
                         .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Vertical + WindowInsetsSides.End)),
                 ) {
                     topBar()
-                    Spacer(Modifier.weight(1f))
-                    ToolArea(state, viewModel, Modifier.fillMaxWidth(), maxWidthDp = null)
+                    // 넓은 화면에서는 도구를 패널 위쪽부터 채워 빈 영역을 줄이고, 길어지면 스크롤한다.
+                    Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
+                        ToolArea(state, viewModel, Modifier.fillMaxWidth(), maxWidthDp = null, wide = true)
+                    }
                 }
             }
         }
@@ -247,7 +254,7 @@ private fun CanvasArea(state: ImageEditorUiState.Ready, viewModel: ImageEditorVi
 }
 
 @Composable
-private fun ToolArea(state: ImageEditorUiState.Ready, viewModel: ImageEditorViewModel, modifier: Modifier, maxWidthDp: Int?) {
+private fun ToolArea(state: ImageEditorUiState.Ready, viewModel: ImageEditorViewModel, modifier: Modifier, maxWidthDp: Int?, wide: Boolean = false) {
     val tools = viewModel.config.enabledTools.filter { it != ImageTool.CUTOUT || viewModel.cutoutAvailable }
     AnimatedContent(
         targetState = state.activeTool,
@@ -313,12 +320,10 @@ private fun ToolArea(state: ImageEditorUiState.Ready, viewModel: ImageEditorView
                         onIntensityFinished = viewModel::finishGesture,
                     )
                 }
-                null -> if (tools.isNotEmpty()) {
-                    ToolRail(
-                        items = tools.map { it.railItem() },
-                        selected = null,
-                        onSelect = viewModel::selectTool,
-                    )
+                null -> when {
+                    tools.isEmpty() -> Unit
+                    wide -> ToolGrid(items = tools.map { it.railItem() }, onSelect = viewModel::selectTool)
+                    else -> ToolRail(items = tools.map { it.railItem() }, selected = null, onSelect = viewModel::selectTool)
                 }
             }
         }

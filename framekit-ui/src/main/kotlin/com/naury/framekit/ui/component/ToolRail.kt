@@ -1,6 +1,8 @@
 package com.naury.framekit.ui.component
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
@@ -79,3 +81,39 @@ public fun <T> ToolRail(
 }
 
 private const val EVEN_ITEMS = 5
+
+/**
+ * All tools at once in rows of [columns], for side panels on wide screens where a scrolling row
+ * would hide tools and leave the panel mostly empty.
+ */
+@Composable
+public fun <T> ToolGrid(
+    items: List<ToolRailItem<T>>,
+    onSelect: (T) -> Unit,
+    modifier: Modifier = Modifier,
+    columns: Int = 3,
+) {
+    val colors = FrameKitTheme.colors
+    Column(modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        items.chunked(columns).forEach { row ->
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                row.forEach { item ->
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .background(colors.surface, MaterialTheme.shapes.medium)
+                            .clip(MaterialTheme.shapes.medium)
+                            .clickable(role = Role.Button) { onSelect(item.key) }
+                            .padding(vertical = 14.dp, horizontal = 4.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        Icon(item.icon, contentDescription = null, tint = colors.foreground, modifier = Modifier.size(24.dp))
+                        Spacer(Modifier.height(6.dp))
+                        Text(item.label, style = MaterialTheme.typography.labelMedium, color = colors.foregroundMuted, textAlign = TextAlign.Center)
+                    }
+                }
+                repeat(columns - row.size) { Spacer(Modifier.weight(1f)) }
+            }
+        }
+    }
+}

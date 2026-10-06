@@ -10,6 +10,8 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -63,6 +65,7 @@ import com.naury.framekit.ui.component.EditorTopBar
 import com.naury.framekit.ui.component.ExportErrorDialog
 import com.naury.framekit.ui.component.ExportOverlay
 import com.naury.framekit.ui.component.HistoryControls
+import com.naury.framekit.ui.component.ToolGrid
 import com.naury.framekit.ui.component.ToolRail
 import com.naury.framekit.ui.component.ToolRailItem
 import com.naury.framekit.ui.design.FrameKitTheme
@@ -157,12 +160,8 @@ private fun ReadyContent(state: VideoEditorUiState.Ready, viewModel: VideoEditor
                 ControlArea(state, viewModel, Modifier.fillMaxWidth(), layout.maxControlsWidthDp)
             }
             is EditorLayout.SidePanel -> Row(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)) {
-                CanvasArea(state, viewModel, Modifier.weight(1f).fillMaxHeight())
-                Column(Modifier.width(layout.panelWidthDp.dp).fillMaxHeight()) {
-                    topBar()
-                    Spacer(Modifier.weight(1f))
-                    ControlArea(state, viewModel, Modifier.fillMaxWidth(), maxWidthDp = null)
-                }
+                PreviewColumn(state, viewModel, Modifier.weight(1f).fillMaxHeight())
+                SidePanel(state, viewModel, topBar, Modifier.width(layout.panelWidthDp.dp).fillMaxHeight())
             }
             is EditorLayout.SplitAtHorizontalHinge -> Column(Modifier.fillMaxSize()) {
                 Column(
@@ -186,7 +185,7 @@ private fun ReadyContent(state: VideoEditorUiState.Ready, viewModel: VideoEditor
                 }
             }
             is EditorLayout.SplitAtVerticalHinge -> Row(Modifier.fillMaxSize()) {
-                CanvasArea(
+                PreviewColumn(
                     state,
                     viewModel,
                     Modifier
@@ -195,16 +194,15 @@ private fun ReadyContent(state: VideoEditorUiState.Ready, viewModel: VideoEditor
                         .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Vertical + WindowInsetsSides.Start)),
                 )
                 Spacer(Modifier.width(with(density) { (layout.hingeRightPx - layout.hingeLeftPx).toDp() }))
-                Column(
+                SidePanel(
+                    state,
+                    viewModel,
+                    topBar,
                     Modifier
                         .weight(1f)
                         .fillMaxHeight()
                         .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Vertical + WindowInsetsSides.End)),
-                ) {
-                    topBar()
-                    Spacer(Modifier.weight(1f))
-                    ControlArea(state, viewModel, Modifier.fillMaxWidth(), maxWidthDp = null)
-                }
+                )
             }
         }
         SnackbarHost(
@@ -255,6 +253,32 @@ private fun CanvasArea(state: VideoEditorUiState.Ready, viewModel: VideoEditorVi
     }
 }
 
+/**
+ * Wide layouts: the preview with its playback row and a full-width timeline underneath, so the
+ * timeline gets as much room as the video.
+ */
+@Composable
+private fun PreviewColumn(state: VideoEditorUiState.Ready, viewModel: VideoEditorViewModel, modifier: Modifier) {
+    Column(modifier) {
+        CanvasArea(state, viewModel, Modifier.weight(1f).fillMaxWidth())
+        if (state.activeTool?.isGeometry != true) {
+            PlaybackRow(state, viewModel)
+            TimelineRow(state, viewModel)
+        }
+    }
+}
+
+/** Wide layouts: top bar, then the tool grid or the open tool right below it. */
+@Composable
+private fun SidePanel(state: VideoEditorUiState.Ready, viewModel: VideoEditorViewModel, topBar: @Composable () -> Unit, modifier: Modifier) {
+    Column(modifier.background(FrameKitTheme.colors.background)) {
+        topBar()
+        Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
+            ToolArea(state, viewModel, wide = true)
+        }
+    }
+}
+
 /** Playback row, timeline and the tool area below the preview. */
 @Composable
 private fun ControlArea(state: VideoEditorUiState.Ready, viewModel: VideoEditorViewModel, modifier: Modifier, maxWidthDp: Int?) {
@@ -266,7 +290,7 @@ private fun ControlArea(state: VideoEditorUiState.Ready, viewModel: VideoEditorV
                 PlaybackRow(state, viewModel)
                 TimelineRow(state, viewModel)
             }
-            ToolArea(state, viewModel)
+            ToolArea(state, viewModel, wide = false)
         }
     }
 }
@@ -287,7 +311,19 @@ private fun PlaybackRow(state: VideoEditorUiState.Ready, viewModel: VideoEditorV
             stringResource(R.string.framekit_time_position, formatTime(playback.positionUs), formatTime(state.durationUs)),
             color = colors.foregroundMuted,
             style = MaterialTheme.typography.labelLarge,
+            modifier = Modifier.weight(1f),
         )
+        // 소리 도구를 열지 않고도 바로 음소거할 수 있게 재생 줄에 둔다. 한 번 누를 때마다 실행 취소 한 단계다.
+        if (state.source.metadata.hasAudio && VideoTool.AUDIO in viewModel.config.enabledTools && state.export == null) {
+            val muted = state.clip.muted
+            IconButton(onClick = { viewModel.setMuted(!muted) }, enabled = !state.transaction.isActive) {
+                Icon(
+                    painterResource(if (muted) UiR.drawable.framekit_ic_volume_off else UiR.drawable.framekit_ic_volume),
+                    contentDescription = stringResource(if (muted) R.string.framekit_audio_unmute else R.string.framekit_audio_mute),
+                    tint = if (muted) colors.accent else colors.foreground,
+                )
+            }
+        }
     }
 }
 
@@ -344,7 +380,7 @@ private fun TimelineRow(state: VideoEditorUiState.Ready, viewModel: VideoEditorV
 }
 
 @Composable
-private fun ToolArea(state: VideoEditorUiState.Ready, viewModel: VideoEditorViewModel) {
+private fun ToolArea(state: VideoEditorUiState.Ready, viewModel: VideoEditorViewModel, wide: Boolean) {
     val tools = viewModel.config.enabledTools.toList().sortedBy { it.ordinal }
     AnimatedContent(
         targetState = state.activeTool,
@@ -416,8 +452,10 @@ private fun ToolArea(state: VideoEditorUiState.Ready, viewModel: VideoEditorView
                         shapes = listOf(PrivacyShape.RECTANGLE, PrivacyShape.ELLIPSE),
                     )
                 }
-                null -> if (tools.isNotEmpty()) {
-                    ToolRail(items = tools.map { it.railItem() }, selected = null, onSelect = viewModel::selectTool)
+                null -> when {
+                    tools.isEmpty() -> Unit
+                    wide -> ToolGrid(items = tools.map { it.railItem() }, onSelect = viewModel::selectTool)
+                    else -> ToolRail(items = tools.map { it.railItem() }, selected = null, onSelect = viewModel::selectTool)
                 }
             }
         }
