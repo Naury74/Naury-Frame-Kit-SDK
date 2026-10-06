@@ -34,7 +34,8 @@ import kotlinx.serialization.Serializable
  *
  * @property encodedWidth stored pixel width before orientation.
  * @property encodedHeight stored pixel height before orientation.
- * @property orientation EXIF orientation tag value.
+ * @property orientation EXIF orientation 태그 값. 영상은 컨테이너 회전 각도(도).
+ * @property durationUs 영상 길이(µs). 이미지는 `null`.
  */
 @Serializable
 public data class SourceFingerprint(
@@ -42,6 +43,7 @@ public data class SourceFingerprint(
     val encodedWidth: Int,
     val encodedHeight: Int,
     val orientation: Int,
+    val durationUs: Long? = null,
 )
 
 /** Reference that can reopen a source after recreation. Only strings are stored. */
@@ -350,12 +352,14 @@ internal data class SessionSnapshotFile(
     val updatedAt: Long,
     val exportInProgress: Boolean,
     val image: ImageProjectSnapshot?,
+    val video: VideoProjectSnapshot? = null,
 )
 
 /**
  * Everything restored for a session.
  *
- * @property snapshot last committed edits, or `null` when nothing was committed yet.
+ * @property snapshot 마지막으로 확정된 이미지 편집. 아직 확정한 것이 없으면 `null`.
+ * @property videoSnapshot 마지막으로 확정된 영상 편집. 없으면 `null`.
  * @property exportWasInterrupted `true` when the process died while an export was running. The
  *   export did not complete and must be started again.
  */
@@ -365,4 +369,5 @@ public data class SessionRecord(
     val fingerprint: SourceFingerprint,
     val snapshot: ImageProjectSnapshot?,
     val exportWasInterrupted: Boolean,
+    val videoSnapshot: VideoProjectSnapshot? = null,
 )

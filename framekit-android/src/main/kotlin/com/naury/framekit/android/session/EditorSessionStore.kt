@@ -87,6 +87,7 @@ public class EditorSessionStore(
                 fingerprint = descriptor.fingerprint,
                 snapshot = snapshot?.image,
                 exportWasInterrupted = snapshot?.exportInProgress == true,
+                videoSnapshot = snapshot?.video,
             )
         } catch (error: SerializationException) {
             log("load", error)
@@ -108,10 +109,16 @@ public class EditorSessionStore(
      *
      * @return `false` when writing failed; the previous snapshot is still on disk.
      */
-    public fun saveSnapshot(sessionId: String, snapshot: ImageProjectSnapshot?, exportInProgress: Boolean = false): Boolean {
+    public fun saveSnapshot(sessionId: String, snapshot: ImageProjectSnapshot?, exportInProgress: Boolean = false): Boolean =
+        write(sessionId, SessionSnapshotFile(SCHEMA_VERSION, clock(), exportInProgress, snapshot))
+
+    /** [saveSnapshot]의 영상 버전. */
+    public fun saveVideoSnapshot(sessionId: String, snapshot: VideoProjectSnapshot?, exportInProgress: Boolean = false): Boolean =
+        write(sessionId, SessionSnapshotFile(SCHEMA_VERSION, clock(), exportInProgress, image = null, video = snapshot))
+
+    private fun write(sessionId: String, file: SessionSnapshotFile): Boolean {
         val dir = sessionDir(sessionId)
         if (!dir.isDirectory) return false
-        val file = SessionSnapshotFile(SCHEMA_VERSION, clock(), exportInProgress, snapshot)
         return try {
             writeAtomically(File(dir, SNAPSHOT_FILE), json.encodeToString(SessionSnapshotFile.serializer(), file))
             true

@@ -1,5 +1,11 @@
 package com.naury.framekit.android.session
 
+import com.naury.framekit.core.video.VideoProject
+import com.naury.framekit.core.video.VideoClip
+import com.naury.framekit.core.video.Timeline
+import com.naury.framekit.core.video.TimedPrivacyMask
+import com.naury.framekit.core.video.TimeRangeUs
+import com.naury.framekit.core.video.ClipEffects
 import android.app.Application
 import android.content.Intent
 import android.net.Uri
@@ -160,5 +166,41 @@ class EditorSessionStoreTest {
     @Test
     fun `ids that are not session ids are rejected`() {
         assertThrows(IllegalArgumentException::class.java) { store.saveSnapshot("../exports", null) }
+    }
+
+    @Test
+    fun `video edits survive a round trip with sources remapped`() {
+        val old = SourceId("old")
+        val video = VideoProject(
+            id = ProjectId("v"),
+            timeline = Timeline(
+                videoClips = listOf(
+                    VideoClip(
+                        id = "c",
+                        source = old,
+                        sourceRange = TimeRangeUs(1_000_000, 4_000_000),
+                        speed = 1.5,
+                        effects = ClipEffects(GeometryEdit(quarterTurns = 1, crop = RectN(0.1, 0.1, 0.9, 0.8)), Adjustments(contrast = 0.2), FilterSelection("bright", 0.6)),
+                        muted = true,
+                    ),
+                ),
+                privacyMasks = listOf(
+                    TimedPrivacyMask(PrivacyMask("m", MaskShape.Rectangle(RectN(0.2, 0.2, 0.4, 0.5)), PrivacyEffect.Mosaic(0.05)), TimeRangeUs(0, 1_500_000)),
+                ),
+            ),
+            grainSeed = 7L,
+            revision = 4,
+        )
+        val id = checkNotNull(store.create(source, SourceFingerprint("video/mp4", 1920, 1080, 90, durationUs = 5_000_000)))
+
+        assertThat(store.saveVideoSnapshot(id, VideoProjectSnapshot.of(video, listOf(old)))).isTrue()
+        val record = checkNotNull(store.load(id))
+
+        val restored = checkNotNull(record.videoSnapshot).toProject(listOf(SourceId("new")))
+        assertThat(restored.timeline.videoClips.single().source).isEqualTo(SourceId("new"))
+        assertThat(restored.copy(timeline = restored.timeline.copy(videoClips = restored.timeline.videoClips.map { it.copy(source = old) })))
+            .isEqualTo(video)
+        assertThat(record.fingerprint.durationUs).isEqualTo(5_000_000)
+        assertThat(record.snapshot).isNull()
     }
 }
