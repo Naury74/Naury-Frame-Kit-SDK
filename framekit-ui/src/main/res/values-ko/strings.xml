@@ -146,4 +146,8 @@
     <string name="framekit_text_opacity">불투명도</string>
     <string name="framekit_text_letter_spacing">자간</string>
     <string name="framekit_text_line_spacing">행간</string>
+    <string name="framekit_ratio_custom">직접 입력</string>
+    <string name="framekit_ratio_custom_value">직접 %1$d:%2$d</string>
+    <string name="framekit_ratio_width">가로</string>
+    <string name="framekit_ratio_height">세로</string>
 </resources>

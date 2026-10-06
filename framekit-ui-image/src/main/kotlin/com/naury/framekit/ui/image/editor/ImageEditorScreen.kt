@@ -299,7 +299,13 @@ private fun ToolArea(
         Column(if (maxWidthDp != null) Modifier.widthIn(max = maxWidthDp.dp).fillMaxWidth() else Modifier.fillMaxWidth()) {
             when (tool) {
                 ImageTool.CROP -> ToolPanelWithActions(UiR.string.framekit_tool_crop, viewModel, isDraft = true, scrollPanel) {
-                    CropToolPanel(aspect = state.cropAspect, onSelectAspect = viewModel::selectAspect)
+                    CropToolPanel(
+                        aspect = state.cropAspect,
+                        onSelectAspect = viewModel::selectAspect,
+                        onRotateLeft = viewModel::rotateLeft,
+                        onRotateRight = viewModel::rotateRight,
+                        onFlipHorizontal = viewModel::flipHorizontal,
+                    )
                 }
                 ImageTool.ROTATE -> ToolPanelWithActions(UiR.string.framekit_tool_rotate, viewModel, isDraft = true, scrollPanel) {
                     RotateToolPanel(

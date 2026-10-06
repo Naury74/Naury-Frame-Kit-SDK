@@ -533,7 +533,13 @@ private fun ToolArea(
             when (tool) {
                 VideoTool.TRIM -> ToolPanelWithActions(R.string.framekit_tool_trim, viewModel, isDraft = true, scrollPanel) {}
                 VideoTool.CROP -> ToolPanelWithActions(UiR.string.framekit_tool_crop, viewModel, isDraft = true, scrollPanel) {
-                    CropToolPanel(aspect = state.cropAspect, onSelectAspect = viewModel::selectAspect)
+                    CropToolPanel(
+                        aspect = state.cropAspect,
+                        onSelectAspect = viewModel::selectAspect,
+                        onRotateLeft = viewModel::rotateLeft,
+                        onRotateRight = viewModel::rotateRight,
+                        onFlipHorizontal = viewModel::flipHorizontal,
+                    )
                 }
                 VideoTool.ROTATE -> ToolPanelWithActions(UiR.string.framekit_tool_rotate, viewModel, isDraft = true, scrollPanel) {
                     RotateToolPanel(

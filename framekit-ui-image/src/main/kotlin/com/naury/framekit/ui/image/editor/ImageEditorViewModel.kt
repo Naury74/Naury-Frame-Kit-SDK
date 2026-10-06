@@ -783,9 +783,17 @@ internal class ImageEditorViewModel(
         updateReady { it.copy(draggingCrop = false) }
     }
 
-    fun rotateLeft() = updateDraft { _, geometry -> GeometryOperations.rotateCounterClockwise(geometry) }
+    fun rotateLeft() = updateDraft { ready, geometry -> keepAspect(ready, GeometryOperations.rotateCounterClockwise(geometry)) }
 
-    fun rotateRight() = updateDraft { _, geometry -> GeometryOperations.rotateClockwise(geometry) }
+    fun rotateRight() = updateDraft { ready, geometry -> keepAspect(ready, GeometryOperations.rotateClockwise(geometry)) }
+
+    // 자르기 중 90° 회전하면 프레임의 가로세로가 뒤바뀐다. 고른 비율 칩과 실제 프레임이 어긋나지 않도록 다시 맞춘다.
+    private fun keepAspect(ready: ImageEditorUiState.Ready, geometry: GeometryEdit): GeometryEdit =
+        if (ready.activeTool == ImageTool.CROP && ready.cropAspect != CropAspectRatio.Free) {
+            GeometryOperations.withAspect(ready.source.metadata.uprightSize, geometry, ready.cropAspect)
+        } else {
+            geometry
+        }
 
     fun flipHorizontal() = updateDraft { _, geometry -> GeometryOperations.flipHorizontal(geometry) }
 
