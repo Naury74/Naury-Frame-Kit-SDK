@@ -28,7 +28,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 
 @Composable
-fun HomeScreen(message: String?, onLaunch: (ShowcaseExample) -> Unit) {
+fun HomeScreen(message: String?, onLaunch: (ShowcaseExample) -> Unit, onPlayground: () -> Unit) {
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
@@ -59,6 +59,17 @@ fun HomeScreen(message: String?, onLaunch: (ShowcaseExample) -> Unit) {
                 if (message != null) {
                     Spacer(Modifier.height(12.dp))
                     Text(message, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodyMedium)
+                }
+                Spacer(Modifier.height(16.dp))
+                Column(
+                    Modifier
+                        .fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(14.dp))
+                        .clickable(onClick = onPlayground)
+                        .padding(16.dp),
+                ) {
+                    Text(stringResource(R.string.home_playground), style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurface)
+                    Text(stringResource(R.string.home_playground_description), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 Spacer(Modifier.height(28.dp))
                 Text(stringResource(R.string.home_examples), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onBackground)

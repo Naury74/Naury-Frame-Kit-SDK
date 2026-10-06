@@ -32,6 +32,7 @@ class MainActivity : ComponentActivity() {
                 var elapsedMs by rememberSaveable { mutableLongStateOf(0L) }
                 var lastMessage by rememberSaveable { mutableStateOf<String?>(null) }
                 var launchedAt by rememberSaveable { mutableLongStateOf(0L) }
+                var playground by rememberSaveable { mutableStateOf(false) }
 
                 val editor = rememberLauncherForActivityResult(FrameKitContract()) { outcome ->
                     when (outcome) {
@@ -50,13 +51,23 @@ class MainActivity : ComponentActivity() {
                 }
 
                 val current = result
-                if (current == null) {
+                if (current == null && playground) {
+                    BackHandler { playground = false }
+                    PlaygroundScreen(
+                        onBack = { playground = false },
+                        onLaunch = { request ->
+                            launchedAt = SystemClock.elapsedRealtime()
+                            editor.launch(request)
+                        },
+                    )
+                } else if (current == null) {
                     HomeScreen(
                         message = lastMessage,
                         onLaunch = { example ->
                             launchedAt = SystemClock.elapsedRealtime()
                             editor.launch(example.request)
                         },
+                        onPlayground = { playground = true },
                     )
                 } else {
                     BackHandler { result = null }
