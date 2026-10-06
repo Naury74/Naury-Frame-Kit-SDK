@@ -14,6 +14,7 @@ Android 앱에 넣어 쓰는 **비파괴 이미지·영상 편집 SDK**입니다
 | 저장 | JPEG(품질 0..100)·PNG, 최대 16MP, 확대 없음, SAFE EXIF | v0.1 지원 |
 | 입력 | content Uri, 앱 내부 파일, 시스템 Photo Picker | v0.1 지원 |
 | 결과 | Success/Cancelled/Failure 한 번만 반환, 오류 코드와 다음 행동 | v0.1 지원 |
+| 세션 복원 | 프로세스가 종료돼도 확정한 편집 복원, 원본이 같은 이미지인지 확인 | v0.1 지원 |
 | 테마·언어 | 다크(기본)/라이트/시스템, accent 색, 모서리, ko/en, localeTag | v0.1 지원 |
 
 계획된 기능(아직 **미지원**): 보정·필터, 텍스트·스티커·그리기, 블러·모자이크, WEBP 저장, headless export handle(v0.2) · 단일 영상 편집(v0.3) · 다중 클립 타임라인(v0.4) · 사용자 정의 카탈로그, Maven 배포(v1.0). 자세한 순서는 [Roadmap](#roadmap)을 보세요.
@@ -122,14 +123,14 @@ app                 Showcase 앱
 | 범위 | 내용 |
 | --- | --- |
 | JVM 단위 테스트 | undo/redo(D01~D07), 검증(V01), EXIF·crop·좌표 변환(G01~G04) |
-| Robolectric | EXIF 1..8 디코딩(API 27/36 두 경로), renderer 결과 픽셀, preview/export 일치, export 실패·취소 정리(Q07~Q09), 편집 흐름(Q01·Q10) |
+| Robolectric | EXIF 1..8 디코딩(API 27/36 두 경로), renderer 결과 픽셀, preview/export 일치, export 실패·취소 정리(Q07~Q09), 편집 흐름(Q01·Q10), 세션 저장·복원(Q13·Q14) |
 | 에뮬레이터 | API 36 폴더블 에뮬레이터에서 Picker → 자르기 → 수평 맞추기 → 저장 → 결과 확인 (debug 빌드) |
 
-**아직 검증하지 않은 것**: 실기기(API 26/27 저사양, Galaxy S23 등), release 빌드의 기기 실행, 성능 수치, 프로세스 종료 후 복원. 검증 전에는 지원한다고 표시하지 않습니다.
+**아직 검증하지 않은 것**: 실기기(API 26/27 저사양, Galaxy S23 등), release 빌드의 기기 실행, 성능 수치, 기기에서 실제 프로세스를 종료한 뒤의 복원(자동 테스트로만 확인). 검증 전에는 지원한다고 표시하지 않습니다.
 
 ## Known Issues
 
-- 프로세스가 종료되면 Picker로 고른 원본만 다시 열고 편집 내용은 처음부터 시작합니다. 세션 복원은 다음 작업(A02)입니다.
+- 프로세스 종료 후에는 확정한 편집만 돌아오고 undo 기록과 열려 있던 도구의 미적용 변경은 사라집니다(설계상 동작).
 - `localeTag`를 쓰는 호스트가 App Bundle language split을 켜 두면 기기 언어가 아닌 문구 리소스가 빠질 수 있습니다. [integration 문서](docs/integration.md#언어)를 참고하세요.
 - 확대·이동(pan/zoom) 제스처는 아직 없습니다.
 - 출력 대상은 `OutputTarget.AppFile`만 지원합니다. MediaStore·SAF 문서 저장은 계획 중입니다.

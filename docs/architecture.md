@@ -88,4 +88,19 @@ SourceMetadata┴─► ImageRenderPlanFactory ─► ImageRenderPlan ─► Can
 
 ## 편집 화면
 
-`ImageEditorActivity`는 request를 검증하고 `ImageEditorViewModel`을 만듭니다. ViewModel은 `Loading → Ready → (Exporting)` 상태와 결과를 가지며, 결과가 정해지면 Activity가 한 번만 `setResult` 후 종료합니다. Picker로 고른 Uri는 `SavedStateHandle`에 저장해 재생성 시 Picker를 다시 띄우지 않습니다.
+## 세션 복원
+
+`EditorSessionStore`(framekit-android)가 세션 파일을 관리하고, 편집 화면의 `ImageSessionRecorder`가 화면과 세션을 연결합니다.
+
+```
+도구 적용·undo·redo ─► history.current 변경 ─► 300ms 묶음 ─► project.snapshot (임시 파일 → rename)
+프로세스 재시작 ─► SavedStateHandle의 세션 id ─► descriptor로 원본 재등록 ─► 지문 비교 ─► EditHistory.restore(baseline, snapshot)
+```
+
+- snapshot에는 `SourceId`를 저장하지 않습니다. `SourceId`는 등록할 때마다 새로 만들어지므로 복원 시 새 id를 붙입니다.
+- `EditHistory.restore`는 undo 기록 없이 현재 상태만 되살리지만 baseline은 원래 사진으로 두어 `isDirty`가 유지됩니다.
+- 저장(export)을 시작할 때 snapshot에 진행 중 표시를 남겨, 저장 중 종료를 다음 실행에서 알립니다.
+
+## 편집 화면
+
+`ImageEditorActivity`는 request를 검증하고 `ImageEditorViewModel`을 만듭니다. ViewModel은 `Loading → Ready → (Exporting)` 상태와 결과를 가지며, 결과가 정해지면 Activity가 한 번만 `setResult` 후 종료합니다. Picker로 고른 Uri와 세션 id는 `SavedStateHandle`에 저장해 재생성 시 Picker를 다시 띄우지 않습니다.
