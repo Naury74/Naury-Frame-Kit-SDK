@@ -27,6 +27,10 @@ public class VideoThumbnailLoader(
 
     private val appContext = context.applicationContext
     private val retrievers = mutableMapOf<String, MediaMetadataRetriever>()
+
+    // 추출과 해제를 같은 잠금으로 묶어 close 뒤에 해제된 retriever를 쓰거나 새로 만들지 않는다.
+    private val lock = Any()
+    private var closed = false
     private val cache = object : LruCache<String, Bitmap>(CACHE_BYTES) {
         override fun sizeOf(key: String, value: Bitmap): Int = value.byteCount
     }
@@ -43,12 +47,15 @@ public class VideoThumbnailLoader(
         val key = "$sourceKey/$bucket/$height"
         cache.get(key)?.let { return it }
         return withContext(dispatcher) {
-            cache.get(key) ?: runCatching { extract(location, sourceKey, bucket, height) }.getOrNull()?.also { cache.put(key, it) }
+            cache.get(key) ?: synchronized(lock) {
+                if (closed) null else runCatching { extract(location, sourceKey, bucket, height) }.getOrNull()
+            }?.also { cache.put(key, it) }
         }
     }
 
     override fun close() {
-        synchronized(retrievers) {
+        synchronized(lock) {
+            closed = true
             retrievers.values.forEach { runCatching { it.release() } }
             retrievers.clear()
         }
@@ -56,22 +63,14 @@ public class VideoThumbnailLoader(
     }
 
     private fun extract(location: SourceLocation, sourceKey: String, timeUs: Long, height: Int): Bitmap? {
-        val retriever = synchronized(retrievers) {
-            retrievers.getOrPut(sourceKey) {
-                MediaMetadataRetriever().apply {
-                    when (location) {
-                        is SourceLocation.Content -> setDataSource(appContext, location.uri)
-                        is SourceLocation.LocalFile -> setDataSource(location.file.absolutePath)
-                    }
-                }
-            }
-        }
+        val retriever = retrievers.getOrPut(sourceKey) { open(location) }
         val width = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH)?.toIntOrNull() ?: return null
         val sourceHeight = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT)?.toIntOrNull() ?: return null
         val rotation = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_ROTATION)?.toIntOrNull() ?: 0
         val swapped = rotation == 90 || rotation == 270
         val uprightWidth = if (swapped) sourceHeight else width
         val uprightHeight = if (swapped) width else sourceHeight
+        if (width <= 0 || sourceHeight <= 0) return null
         val targetWidth = maxOf(1, uprightWidth * height / uprightHeight)
         val frame = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
             retriever.getScaledFrameAtTime(timeUs, MediaMetadataRetriever.OPTION_CLOSEST_SYNC, targetWidth, height)
@@ -81,6 +80,21 @@ public class VideoThumbnailLoader(
         return upright(frame, uprightWidth > uprightHeight, rotation).let { image ->
             if (image.height != height) image.scale(maxOf(1, image.width * height / image.height), height).also { if (it !== image) image.recycle() } else image
         }
+    }
+
+    // 원본을 열지 못하면 만든 retriever를 바로 해제해 네이티브 자원이 남지 않게 한다.
+    private fun open(location: SourceLocation): MediaMetadataRetriever {
+        val retriever = MediaMetadataRetriever()
+        try {
+            when (location) {
+                is SourceLocation.Content -> retriever.setDataSource(appContext, location.uri)
+                is SourceLocation.LocalFile -> retriever.setDataSource(location.file.absolutePath)
+            }
+        } catch (error: Exception) {
+            runCatching { retriever.release() }
+            throw error
+        }
+        return retriever
     }
 
     // 기기에 따라 회전 메타데이터가 적용되지 않은 프레임이 오므로 가로·세로 방향이 다르면 직접 돌린다.

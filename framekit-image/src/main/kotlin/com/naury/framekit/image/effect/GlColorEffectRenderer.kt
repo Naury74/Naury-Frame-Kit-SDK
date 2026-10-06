@@ -154,8 +154,10 @@ public class GlColorEffectRenderer : ColorEffectRenderer {
                 uniform1i(finishProgram, "uHasBlur", if (blurred != 0) 1 else 0)
                 ColorEffectUniforms.setFinish(finishProgram, spec, width, height, includeCanvasEffects)
             }
-            readBack(scratch, bitmap)
+            // 원본 bitmap을 덮어쓰기 전에 오류를 확인해야 실패 시 CPU 경로가 손상되지 않은 원본으로 다시 그린다.
             checkGlError("render")
+            readBack(scratch, bitmap)
+            checkGlError("readback")
         } finally {
             GLES30.glDeleteTextures(textures.size, textures.toIntArray(), 0)
         }
@@ -293,7 +295,7 @@ public class GlColorEffectRenderer : ColorEffectRenderer {
 public class GlUnavailableException(message: String, cause: Throwable?) : Exception(message, cause)
 
 /**
- * 가능하면 GPU를 쓰고, context를 만들 수 없거나 bitmap이 GPU 크기 한도를 넘으면
+ * 가능하면 GPU를 쓰고, context를 만들 수 없거나, bitmap이 GPU 크기 한도를 넘거나, 실행 중 GL 오류가 나면
  * [CpuColorEffectRenderer]로 대체한다. 두 경로는 같은 명세를 구현한다.
  */
 public class DefaultColorEffectRenderer : ColorEffectRenderer {
@@ -305,14 +307,26 @@ public class DefaultColorEffectRenderer : ColorEffectRenderer {
             null
         }
     }
-    private val gl: GlColorEffectRenderer? by glDelegate
+    private val gl: GlColorEffectRenderer? get() = if (glFailed) null else glDelegate.value
+
+    // 드라이버 오류나 GPU 메모리 부족으로 실행 중 GL이 실패하면 이후 요청은 CPU로만 처리한다.
+    @Volatile
+    private var glFailed = false
 
     /** GPU 경로를 사용 중이면 `true`. */
     public val usesGpu: Boolean get() = gl != null
 
     override fun apply(bitmap: Bitmap, spec: ColorEffectSpec, includeCanvasEffects: Boolean) {
-        val renderer = gl?.takeIf { it.supports(bitmap.width, bitmap.height) } ?: CpuColorEffectRenderer
-        renderer.apply(bitmap, spec, includeCanvasEffects)
+        val gpu = gl?.takeIf { it.supports(bitmap.width, bitmap.height) }
+        if (gpu != null) {
+            try {
+                gpu.apply(bitmap, spec, includeCanvasEffects)
+                return
+            } catch (_: IllegalStateException) {
+                glFailed = true
+            }
+        }
+        CpuColorEffectRenderer.apply(bitmap, spec, includeCanvasEffects)
     }
 
     override fun workingBytes(width: Int, height: Int, spec: ColorEffectSpec): Long {

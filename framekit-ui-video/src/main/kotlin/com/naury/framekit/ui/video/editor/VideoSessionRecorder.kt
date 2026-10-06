@@ -74,6 +74,7 @@ internal class VideoSessionRecorder(
         if (id in sources) return
         sources += id
         extraReferences += reference ?: MISSING
+        retain(reference)
     }
 
     /** 배경 음악 원본을 기록한다. */
@@ -81,6 +82,14 @@ internal class VideoSessionRecorder(
         if (id in audio) return
         audio += id
         audioReferences += reference ?: MISSING
+        retain(reference)
+    }
+
+    // 추가한 원본도 세션 원본처럼 권한을 붙잡아 두어야 프로세스 종료 후 복원할 때 다시 열린다.
+    private fun retain(reference: SourceReference?) {
+        val id = sessionId ?: return
+        if (reference !is SourceReference.Content) return
+        scope.launch(ioDispatcher) { store.retain(id, reference) }
     }
 
     /**

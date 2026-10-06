@@ -75,13 +75,14 @@ public class AudioSource internal constructor(
  * looper가 있는 프로세스에서 실행해야 한다(Media3 Transformer 요구).
  *
  * @param catalog 호스트 필터·스티커·폰트. 프로젝트가 호스트 항목 id를 쓰면 같은 카탈로그를 넘긴다.
+ *   `null`이면 이미 등록된 카탈로그(편집기가 등록한 것 포함)를 그대로 쓴다.
  */
 public class VideoProcessor(
     context: Context,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
-    catalog: EditorCatalog = EditorCatalog(),
+    catalog: EditorCatalog? = null,
 ) {
-    private val appContext = context.applicationContext.also { CatalogAssets.install(it, catalog) }
+    private val appContext = context.applicationContext.also { if (catalog != null) CatalogAssets.install(it, catalog) else CatalogAssets.attach(it) }
     private val registry = SessionSourceRegistry(appContext)
     private val reader = VideoMetadataReader(appContext, registry)
     private val outputStore = AppFileOutputStore(appContext)

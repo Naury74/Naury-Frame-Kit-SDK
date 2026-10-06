@@ -124,6 +124,24 @@ public class EditorSessionStore(
         }
     }
 
+    /**
+     * 세션을 시작한 뒤 추가한 원본(이어 붙인 영상, 배경 음악 등)도 프로세스 종료 후 다시 열 수 있도록
+     * persistable 읽기 권한을 얻는다. 저장소가 직접 얻은 권한만 기록해 두고 [delete] 때 해제한다.
+     * 디스크를 쓰므로 백그라운드 스레드에서 호출한다. 실패는 무시하며, 그때는 복원 시 그 원본만 빠진다.
+     */
+    public fun retain(sessionId: String, source: SourceReference) {
+        val uri = (source as? SourceReference.Content)?.uri ?: return
+        val dir = sessionDir(sessionId)
+        if (!dir.isDirectory) return
+        if (!takeGrantIfNeeded(uri.toUri())) return
+        try {
+            File(dir, GRANTS_FILE).appendText(uri + "\n")
+        } catch (error: IOException) {
+            log("retain", error)
+            releaseGrant(source)
+        }
+    }
+
     /** 세션 폴더 안의 asset 저장소. 세션과 함께 삭제된다. */
     public fun assets(sessionId: String): ProjectAssetStore = ProjectAssetStore(File(sessionDir(sessionId), ASSETS_DIRECTORY))
 
@@ -133,6 +151,9 @@ public class EditorSessionStore(
         runCatching {
             val descriptor = json.decodeFromString(SessionDescriptor.serializer(), File(dir, DESCRIPTOR_FILE).readText())
             if (descriptor.persistedGrant) releaseGrant(descriptor.source)
+        }
+        runCatching {
+            File(dir, GRANTS_FILE).takeIf(File::isFile)?.readLines()?.filter(String::isNotBlank)?.forEach { releaseGrant(SourceReference.Content(it)) }
         }
         dir.deleteRecursively()
         activeSessions -= sessionId
@@ -205,6 +226,7 @@ public class EditorSessionStore(
         internal const val DESCRIPTOR_FILE = "descriptor.json"
         internal const val SNAPSHOT_FILE = "project.snapshot"
         internal const val ASSETS_DIRECTORY = "assets"
+        internal const val GRANTS_FILE = "grants.txt"
         internal const val SCHEMA_VERSION = 1
 
         /** 이보다 오래된 중단 세션은 삭제한다: 7일. */

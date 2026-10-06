@@ -48,10 +48,16 @@ public object CatalogAssets {
                 stickers.evictAll()
                 typefaces.clear()
             }
+            // 여러 화면·처리기가 동시에 등록해도 세 카탈로그가 서로 다른 등록으로 섞이지 않도록 잠금 안에서 바꾼다.
+            FilterCatalog.install(catalog.filters.map { it.toPreset() })
+            FontCatalog.install(catalog.fonts.map { it.id })
+            StickerCatalog.install(catalog.stickers.map { it.id })
         }
-        FilterCatalog.install(catalog.filters.map { it.toPreset() })
-        FontCatalog.install(catalog.fonts.map { it.id })
-        StickerCatalog.install(catalog.stickers.map { it.id })
+    }
+
+    /** 등록된 카탈로그는 그대로 두고 파일을 읽을 [Context]만 연결한다. */
+    public fun attach(context: Context) {
+        synchronized(lock) { if (appContext == null) appContext = context.applicationContext }
     }
 
     /** 등록한 스티커 에셋 id([StickerCatalog.assetId])의 이미지. 없거나 읽지 못하면 `null`. */
