@@ -26,7 +26,6 @@ jobs:
         with:
           distribution: temurin
           java-version: 25
-      - uses: android-actions/setup-android@v3
       - uses: gradle/actions/setup-gradle@v5
       - run: ./gradlew test lint :app:assembleDebug :app:assembleRelease
       - if: always()
