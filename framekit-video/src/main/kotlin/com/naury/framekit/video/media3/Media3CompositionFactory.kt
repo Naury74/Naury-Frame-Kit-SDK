@@ -66,6 +66,8 @@ internal object Media3CompositionFactory {
         }
         val audio = if (!clip.muted && clip.volume != 1.0) listOf<AudioProcessor>(AudioEffects.volume(clip.volume.toFloat())) else emptyList()
         return EditedMediaItem.Builder(mediaItem)
+            // CompositionPlayer는 클립 길이를 미리 알아야 timeline을 만든다. 원본 전체 길이를 넘긴다.
+            .apply { resolved.source.metadata.durationUs?.let(::setDurationUs) }
             .setRemoveAudio(clip.muted || !resolved.source.metadata.hasAudio)
             .setEffects(Effects(audio, video))
             .apply { if (clip.speed != 1.0) setSpeed(SpeedParameters(ConstantSpeedProvider(clip.speed.toFloat()), true)) }
