@@ -1,4 +1,4 @@
-package com.naury.framekit.ui.image.tool
+package com.naury.framekit.ui.tool
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -19,11 +19,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.naury.framekit.core.overlay.EmojiCatalog
 import com.naury.framekit.ui.component.ChoiceChips
-import com.naury.framekit.ui.image.R
+import com.naury.framekit.ui.R
 
 /** Emoji catalog grouped by category. Tapping an emoji places it at the canvas center. */
 @Composable
-internal fun StickerToolPanel(
+public fun StickerToolPanel(
     category: EmojiCatalog.Category,
     onCategory: (EmojiCatalog.Category) -> Unit,
     onAdd: (String) -> Unit,

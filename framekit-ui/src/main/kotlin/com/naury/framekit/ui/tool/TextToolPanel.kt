@@ -1,4 +1,4 @@
-package com.naury.framekit.ui.image.tool
+package com.naury.framekit.ui.tool
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -23,11 +23,11 @@ import com.naury.framekit.core.overlay.TextAlignment
 import com.naury.framekit.core.overlay.TextStyleSpec
 import com.naury.framekit.ui.component.ChoiceChips
 import com.naury.framekit.ui.design.FrameKitTheme
-import com.naury.framekit.ui.image.R
+import com.naury.framekit.ui.R
 
 /** Text input with font, color, alignment, outline, background and shadow. */
 @Composable
-internal fun TextToolPanel(
+public fun TextToolPanel(
     text: ImageOverlay.Text,
     onText: (String) -> Unit,
     onStyle: ((TextStyleSpec) -> TextStyleSpec) -> Unit,

@@ -1,13 +1,13 @@
-package com.naury.framekit.ui.image.editor
+package com.naury.framekit.ui.canvas
 
 import com.naury.framekit.core.geometry.CropHandle
 import com.naury.framekit.core.geometry.RectN
 import kotlin.math.abs
 
 /** Finds the crop handle under a pointer, in viewport pixels. Corners win over edges, edges over the body. */
-internal object CropFrameHitTest {
+public object CropFrameHitTest {
 
-    fun find(frame: RectN, x: Double, y: Double, touchRadius: Double): CropHandle? {
+    public fun find(frame: RectN, x: Double, y: Double, touchRadius: Double): CropHandle? {
         val nearLeft = abs(x - frame.left) <= touchRadius
         val nearRight = abs(x - frame.right) <= touchRadius
         val nearTop = abs(y - frame.top) <= touchRadius

@@ -1,4 +1,4 @@
-package com.naury.framekit.ui.image.tool
+package com.naury.framekit.ui.tool
 
 import android.graphics.Bitmap
 import androidx.compose.foundation.Image
@@ -33,11 +33,11 @@ import com.naury.framekit.core.effect.FilterCatalog
 import com.naury.framekit.core.effect.FilterSelection
 import com.naury.framekit.ui.component.ValueSlider
 import com.naury.framekit.ui.design.FrameKitTheme
-import com.naury.framekit.ui.image.R
+import com.naury.framekit.ui.R
 
 /** Preset thumbnails and the intensity slider of the selected preset. */
 @Composable
-internal fun FilterToolPanel(
+public fun FilterToolPanel(
     selection: FilterSelection,
     thumbnails: Map<String, Bitmap>,
     onSelect: (String) -> Unit,

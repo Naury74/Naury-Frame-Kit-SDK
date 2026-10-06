@@ -1,5 +1,6 @@
 package com.naury.framekit.ui.image.editor
 
+import com.naury.framekit.ui.tool.PrivacyShape
 import android.app.Application
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory

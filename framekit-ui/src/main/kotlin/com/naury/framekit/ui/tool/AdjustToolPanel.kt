@@ -1,4 +1,4 @@
-package com.naury.framekit.ui.image.tool
+package com.naury.framekit.ui.tool
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -32,7 +32,7 @@ import com.naury.framekit.ui.design.FrameKitTheme
  * double-tapping the slider returns the value to zero.
  */
 @Composable
-internal fun AdjustToolPanel(
+public fun AdjustToolPanel(
     adjustments: Adjustments,
     selected: AdjustmentKind,
     onSelect: (AdjustmentKind) -> Unit,

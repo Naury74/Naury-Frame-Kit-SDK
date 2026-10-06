@@ -1,11 +1,11 @@
-package com.naury.framekit.ui.image.tool
+package com.naury.framekit.ui.tool
 
 import androidx.annotation.StringRes
 import com.naury.framekit.core.effect.AdjustmentKind
-import com.naury.framekit.ui.image.R
+import com.naury.framekit.ui.R
 
 @StringRes
-internal fun AdjustmentKind.labelRes(): Int = when (this) {
+public fun AdjustmentKind.labelRes(): Int = when (this) {
     AdjustmentKind.BRIGHTNESS -> R.string.framekit_adjust_brightness
     AdjustmentKind.EXPOSURE -> R.string.framekit_adjust_exposure
     AdjustmentKind.CONTRAST -> R.string.framekit_adjust_contrast
@@ -22,7 +22,7 @@ internal fun AdjustmentKind.labelRes(): Int = when (this) {
 
 // 카탈로그에 없는 id(호스트가 추가할 사용자 정의 프리셋 등)는 id를 그대로 보여 준다.
 @StringRes
-internal fun filterLabelRes(presetId: String): Int? = when (presetId) {
+public fun filterLabelRes(presetId: String): Int? = when (presetId) {
     "original" -> R.string.framekit_filter_original
     "bright" -> R.string.framekit_filter_bright
     "soft" -> R.string.framekit_filter_soft

@@ -1,4 +1,4 @@
-package com.naury.framekit.ui.image.tool
+package com.naury.framekit.ui.tool
 
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
@@ -7,11 +7,11 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.naury.framekit.core.geometry.CropAspectRatio
 import com.naury.framekit.ui.component.ChoiceChips
-import com.naury.framekit.ui.image.R
+import com.naury.framekit.ui.R
 
 /** Ratio chips of the crop tool. The frame itself is dragged on the canvas. */
 @Composable
-internal fun CropToolPanel(
+public fun CropToolPanel(
     aspect: CropAspectRatio,
     onSelectAspect: (CropAspectRatio) -> Unit,
     modifier: Modifier = Modifier,

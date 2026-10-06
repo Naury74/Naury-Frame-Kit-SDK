@@ -1,5 +1,6 @@
 package com.naury.framekit.ui.image.editor
 
+import com.naury.framekit.ui.tool.PrivacySettings
 import com.naury.framekit.android.result.EditorErrorCode
 import com.naury.framekit.core.effect.AdjustmentKind
 import com.naury.framekit.core.overlay.BrushKind
@@ -60,35 +61,6 @@ internal data class BrushSettings(
 internal sealed interface CutoutStatus {
     data object Processing : CutoutStatus
     data class Failed(val code: EditorErrorCode) : CutoutStatus
-}
-
-/** Mask kind for the privacy tool. */
-internal enum class PrivacyShape { BRUSH, RECTANGLE, ELLIPSE }
-
-/**
- * Privacy tool settings.
- *
- * @property strength `0..1`, mapped to the mosaic block or blur radius.
- * @property brushWidthShortEdgeRatio brush diameter relative to the canvas short edge.
- */
-internal data class PrivacySettings(
-    val mosaic: Boolean = true,
-    val shape: PrivacyShape = PrivacyShape.BRUSH,
-    val strength: Double = 0.4,
-    val brushWidthShortEdgeRatio: Double = 0.06,
-) {
-    fun effect(): PrivacyEffect = if (mosaic) {
-        PrivacyEffect.Mosaic(MIN_BLOCK + strength * (MAX_BLOCK - MIN_BLOCK))
-    } else {
-        PrivacyEffect.Blur(MIN_BLUR + strength * (MAX_BLUR - MIN_BLUR))
-    }
-
-    private companion object {
-        const val MIN_BLOCK = 0.01
-        const val MAX_BLOCK = 0.08
-        const val MIN_BLUR = 0.005
-        const val MAX_BLUR = 0.05
-    }
 }
 
 /** One-time message after a session was restored from disk. */

@@ -1,4 +1,4 @@
-package com.naury.framekit.ui.image.tool
+package com.naury.framekit.ui.tool
 
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
@@ -18,13 +18,12 @@ import androidx.compose.ui.unit.dp
 import com.naury.framekit.core.geometry.GeometryEdit
 import com.naury.framekit.ui.component.ValueSlider
 import com.naury.framekit.ui.design.FrameKitTheme
-import com.naury.framekit.ui.image.R
+import com.naury.framekit.ui.R
 import java.util.Locale
-import com.naury.framekit.ui.R as UiR
 
 /** 90° rotation, flips and the straighten slider. */
 @Composable
-internal fun RotateToolPanel(
+public fun RotateToolPanel(
     straightenDegrees: Double,
     onRotateLeft: () -> Unit,
     onRotateRight: () -> Unit,
@@ -37,10 +36,10 @@ internal fun RotateToolPanel(
     val resources = LocalResources.current
     Column(modifier.fillMaxWidth().padding(vertical = 8.dp)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-            ToolIconButton(UiR.drawable.framekit_ic_rotate_left, R.string.framekit_rotate_left, onRotateLeft)
-            ToolIconButton(UiR.drawable.framekit_ic_rotate_right, R.string.framekit_rotate_right, onRotateRight)
-            ToolIconButton(UiR.drawable.framekit_ic_flip_horizontal, R.string.framekit_flip_horizontal, onFlipHorizontal)
-            ToolIconButton(UiR.drawable.framekit_ic_flip_vertical, R.string.framekit_flip_vertical, onFlipVertical)
+            ToolIconButton(R.drawable.framekit_ic_rotate_left, R.string.framekit_rotate_left, onRotateLeft)
+            ToolIconButton(R.drawable.framekit_ic_rotate_right, R.string.framekit_rotate_right, onRotateRight)
+            ToolIconButton(R.drawable.framekit_ic_flip_horizontal, R.string.framekit_flip_horizontal, onFlipHorizontal)
+            ToolIconButton(R.drawable.framekit_ic_flip_vertical, R.string.framekit_flip_vertical, onFlipVertical)
         }
         ValueSlider(
             label = stringResource(R.string.framekit_straighten),

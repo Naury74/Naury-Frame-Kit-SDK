@@ -1,5 +1,6 @@
-package com.naury.framekit.ui.image.tool
+package com.naury.framekit.ui.tool
 
+import com.naury.framekit.core.overlay.PrivacyEffect
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -12,14 +13,12 @@ import androidx.compose.ui.unit.dp
 import com.naury.framekit.ui.component.ChoiceChips
 import com.naury.framekit.ui.component.ValueSlider
 import com.naury.framekit.ui.design.FrameKitTheme
-import com.naury.framekit.ui.image.R
-import com.naury.framekit.ui.image.editor.PrivacySettings
-import com.naury.framekit.ui.image.editor.PrivacyShape
+import com.naury.framekit.ui.R
 import kotlin.math.roundToInt
 
 /** Mosaic or blur, mask shape and strength. Masks are drawn with one finger on the canvas. */
 @Composable
-internal fun PrivacyToolPanel(
+public fun PrivacyToolPanel(
     settings: PrivacySettings,
     onChange: ((PrivacySettings) -> PrivacySettings) -> Unit,
     modifier: Modifier = Modifier,
@@ -75,5 +74,34 @@ internal fun PrivacyToolPanel(
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
             )
         }
+    }
+}
+
+/** Mask kind for the privacy tool. */
+public enum class PrivacyShape { BRUSH, RECTANGLE, ELLIPSE }
+
+/**
+ * Privacy tool settings.
+ *
+ * @property strength `0..1`, mapped to the mosaic block or blur radius.
+ * @property brushWidthShortEdgeRatio brush diameter relative to the canvas short edge.
+ */
+public data class PrivacySettings(
+    val mosaic: Boolean = true,
+    val shape: PrivacyShape = PrivacyShape.BRUSH,
+    val strength: Double = 0.4,
+    val brushWidthShortEdgeRatio: Double = 0.06,
+) {
+    public fun effect(): PrivacyEffect = if (mosaic) {
+        PrivacyEffect.Mosaic(MIN_BLOCK + strength * (MAX_BLOCK - MIN_BLOCK))
+    } else {
+        PrivacyEffect.Blur(MIN_BLUR + strength * (MAX_BLUR - MIN_BLUR))
+    }
+
+    private companion object {
+        const val MIN_BLOCK = 0.01
+        const val MAX_BLOCK = 0.08
+        const val MIN_BLUR = 0.005
+        const val MAX_BLUR = 0.05
     }
 }

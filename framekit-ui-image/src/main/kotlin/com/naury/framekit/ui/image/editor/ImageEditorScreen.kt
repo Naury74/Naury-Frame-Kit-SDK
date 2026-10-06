@@ -65,15 +65,15 @@ import com.naury.framekit.ui.component.ToolRailItem
 import com.naury.framekit.ui.design.FrameKitTheme
 import com.naury.framekit.ui.image.R
 import com.naury.framekit.ui.image.contract.ImageTool
-import com.naury.framekit.ui.image.tool.AdjustToolPanel
-import com.naury.framekit.ui.image.tool.CropToolPanel
+import com.naury.framekit.ui.tool.AdjustToolPanel
+import com.naury.framekit.ui.tool.CropToolPanel
 import com.naury.framekit.ui.image.tool.CutoutToolPanel
 import com.naury.framekit.ui.image.tool.DrawToolPanel
-import com.naury.framekit.ui.image.tool.FilterToolPanel
-import com.naury.framekit.ui.image.tool.PrivacyToolPanel
-import com.naury.framekit.ui.image.tool.StickerToolPanel
-import com.naury.framekit.ui.image.tool.TextToolPanel
-import com.naury.framekit.ui.image.tool.RotateToolPanel
+import com.naury.framekit.ui.tool.FilterToolPanel
+import com.naury.framekit.ui.tool.PrivacyToolPanel
+import com.naury.framekit.ui.tool.StickerToolPanel
+import com.naury.framekit.ui.tool.TextToolPanel
+import com.naury.framekit.ui.tool.RotateToolPanel
 import com.naury.framekit.ui.R as UiR
 
 @Composable
@@ -257,10 +257,10 @@ private fun ToolArea(state: ImageEditorUiState.Ready, viewModel: ImageEditorView
     ) { tool ->
         Column(if (maxWidthDp != null) Modifier.widthIn(max = maxWidthDp.dp).fillMaxWidth() else Modifier.fillMaxWidth()) {
             when (tool) {
-                ImageTool.CROP -> ToolPanelWithActions(R.string.framekit_tool_crop, viewModel, isDraft = true) {
+                ImageTool.CROP -> ToolPanelWithActions(UiR.string.framekit_tool_crop, viewModel, isDraft = true) {
                     CropToolPanel(aspect = state.cropAspect, onSelectAspect = viewModel::selectAspect)
                 }
-                ImageTool.ROTATE -> ToolPanelWithActions(R.string.framekit_tool_rotate, viewModel, isDraft = true) {
+                ImageTool.ROTATE -> ToolPanelWithActions(UiR.string.framekit_tool_rotate, viewModel, isDraft = true) {
                     RotateToolPanel(
                         straightenDegrees = state.displayed.geometry.straightenDegrees,
                         onRotateLeft = viewModel::rotateLeft,
@@ -271,7 +271,7 @@ private fun ToolArea(state: ImageEditorUiState.Ready, viewModel: ImageEditorView
                         onStraightenFinished = viewModel::finishStraighten,
                     )
                 }
-                ImageTool.ADJUST -> ToolPanelWithActions(R.string.framekit_tool_adjust, viewModel, isDraft = false) {
+                ImageTool.ADJUST -> ToolPanelWithActions(UiR.string.framekit_tool_adjust, viewModel, isDraft = false) {
                     AdjustToolPanel(
                         adjustments = state.displayed.adjustments,
                         selected = state.adjustKind,
@@ -280,13 +280,13 @@ private fun ToolArea(state: ImageEditorUiState.Ready, viewModel: ImageEditorView
                         onChangeFinished = viewModel::finishGesture,
                     )
                 }
-                ImageTool.TEXT -> ToolPanelWithActions(R.string.framekit_tool_text, viewModel, isDraft = true) {
+                ImageTool.TEXT -> ToolPanelWithActions(UiR.string.framekit_tool_text, viewModel, isDraft = true) {
                     val editing = state.displayed.overlays.firstOrNull { it.id == state.editingTextId } as? ImageOverlay.Text
                     if (editing != null) {
                         TextToolPanel(text = editing, onText = viewModel::updateText, onStyle = viewModel::updateTextStyle)
                     }
                 }
-                ImageTool.STICKER -> ToolPanelWithActions(R.string.framekit_tool_sticker, viewModel, isDraft = false) {
+                ImageTool.STICKER -> ToolPanelWithActions(UiR.string.framekit_tool_sticker, viewModel, isDraft = false) {
                     StickerToolPanel(category = state.stickerCategory, onCategory = viewModel::selectStickerCategory, onAdd = viewModel::addSticker)
                 }
                 ImageTool.DRAW -> ToolPanelWithActions(R.string.framekit_tool_draw, viewModel, isDraft = false) {
@@ -300,10 +300,10 @@ private fun ToolArea(state: ImageEditorUiState.Ready, viewModel: ImageEditorView
                         onRestore = viewModel::restoreBackground,
                     )
                 }
-                ImageTool.PRIVACY -> ToolPanelWithActions(R.string.framekit_tool_privacy, viewModel, isDraft = false) {
+                ImageTool.PRIVACY -> ToolPanelWithActions(UiR.string.framekit_tool_privacy, viewModel, isDraft = false) {
                     PrivacyToolPanel(settings = state.privacy, onChange = viewModel::updatePrivacy)
                 }
-                ImageTool.FILTER -> ToolPanelWithActions(R.string.framekit_tool_filter, viewModel, isDraft = false) {
+                ImageTool.FILTER -> ToolPanelWithActions(UiR.string.framekit_tool_filter, viewModel, isDraft = false) {
                     val thumbnails by viewModel.filterThumbnails.collectAsStateWithLifecycle()
                     FilterToolPanel(
                         selection = state.displayed.filter,
@@ -338,15 +338,15 @@ private fun ColumnScope.ToolPanelWithActions(title: Int, viewModel: ImageEditorV
 
 @Composable
 private fun ImageTool.railItem(): ToolRailItem<ImageTool> = when (this) {
-    ImageTool.CROP -> ToolRailItem(this, stringResource(R.string.framekit_tool_crop), painterResource(UiR.drawable.framekit_ic_crop))
-    ImageTool.ROTATE -> ToolRailItem(this, stringResource(R.string.framekit_tool_rotate), painterResource(UiR.drawable.framekit_ic_rotate_right))
-    ImageTool.ADJUST -> ToolRailItem(this, stringResource(R.string.framekit_tool_adjust), painterResource(UiR.drawable.framekit_ic_adjust))
-    ImageTool.FILTER -> ToolRailItem(this, stringResource(R.string.framekit_tool_filter), painterResource(UiR.drawable.framekit_ic_filter))
-    ImageTool.TEXT -> ToolRailItem(this, stringResource(R.string.framekit_tool_text), painterResource(UiR.drawable.framekit_ic_text))
-    ImageTool.STICKER -> ToolRailItem(this, stringResource(R.string.framekit_tool_sticker), painterResource(UiR.drawable.framekit_ic_sticker))
+    ImageTool.CROP -> ToolRailItem(this, stringResource(UiR.string.framekit_tool_crop), painterResource(UiR.drawable.framekit_ic_crop))
+    ImageTool.ROTATE -> ToolRailItem(this, stringResource(UiR.string.framekit_tool_rotate), painterResource(UiR.drawable.framekit_ic_rotate_right))
+    ImageTool.ADJUST -> ToolRailItem(this, stringResource(UiR.string.framekit_tool_adjust), painterResource(UiR.drawable.framekit_ic_adjust))
+    ImageTool.FILTER -> ToolRailItem(this, stringResource(UiR.string.framekit_tool_filter), painterResource(UiR.drawable.framekit_ic_filter))
+    ImageTool.TEXT -> ToolRailItem(this, stringResource(UiR.string.framekit_tool_text), painterResource(UiR.drawable.framekit_ic_text))
+    ImageTool.STICKER -> ToolRailItem(this, stringResource(UiR.string.framekit_tool_sticker), painterResource(UiR.drawable.framekit_ic_sticker))
     ImageTool.DRAW -> ToolRailItem(this, stringResource(R.string.framekit_tool_draw), painterResource(UiR.drawable.framekit_ic_draw))
     ImageTool.CUTOUT -> ToolRailItem(this, stringResource(R.string.framekit_tool_cutout), painterResource(UiR.drawable.framekit_ic_cutout))
-    ImageTool.PRIVACY -> ToolRailItem(this, stringResource(R.string.framekit_tool_privacy), painterResource(UiR.drawable.framekit_ic_privacy))
+    ImageTool.PRIVACY -> ToolRailItem(this, stringResource(UiR.string.framekit_tool_privacy), painterResource(UiR.drawable.framekit_ic_privacy))
 }
 
 private const val TOOL_TRANSITION_MS = 200

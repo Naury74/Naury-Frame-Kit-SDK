@@ -1,5 +1,7 @@
 package com.naury.framekit.ui.image.editor
 
+import com.naury.framekit.ui.tool.PrivacyShape
+import com.naury.framekit.ui.tool.PrivacySettings
 import android.content.ContentResolver
 import android.graphics.Bitmap
 import android.net.Uri

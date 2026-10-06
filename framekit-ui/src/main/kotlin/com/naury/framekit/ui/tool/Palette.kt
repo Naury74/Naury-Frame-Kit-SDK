@@ -1,4 +1,4 @@
-package com.naury.framekit.ui.image.tool
+package com.naury.framekit.ui.tool
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -22,17 +22,17 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.naury.framekit.ui.design.FrameKitTheme
-import com.naury.framekit.ui.image.R
+import com.naury.framekit.ui.R
 
 /** Colors offered for text and drawing. */
-internal val PaletteColors: List<Int> = listOf(
+public val PaletteColors: List<Int> = listOf(
     0xFFFFFFFF, 0xFF000000, 0xFF8E8E93, 0xFFFF3B30, 0xFFFF9500, 0xFFFFCC00,
     0xFF34C759, 0xFF00C7BE, 0xFF007AFF, 0xFF5856D6, 0xFFAF52DE, 0xFFFF2D55,
 ).map { it.toInt() }
 
 /** Row of color swatches. The selected one gets a ring so selection does not rely on color alone. */
 @Composable
-internal fun ColorPalette(selected: Int, onSelect: (Int) -> Unit, modifier: Modifier = Modifier) {
+public fun ColorPalette(selected: Int, onSelect: (Int) -> Unit, modifier: Modifier = Modifier) {
     val colors = FrameKitTheme.colors
     Row(
         modifier = modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp).selectableGroup(),

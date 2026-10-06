@@ -10,6 +10,7 @@ import androidx.compose.ui.unit.dp
 import com.naury.framekit.core.overlay.BrushKind
 import com.naury.framekit.ui.component.ChoiceChips
 import com.naury.framekit.ui.component.ValueSlider
+import com.naury.framekit.ui.tool.ColorPalette
 import com.naury.framekit.ui.image.R
 import com.naury.framekit.ui.image.editor.BrushSettings
 import kotlin.math.roundToInt
