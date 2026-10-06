@@ -57,8 +57,10 @@ public class AppFileOutputStore(
         return try {
             storageManager.getAllocatableBytes(storageManager.getUuidForPath(directory))
         } catch (_: IOException) {
-            @Suppress("UsableSpace") // StorageManager가 volume을 찾지 못한 경우에만 쓰는 대체값이다.
-            directory.usableSpace
+            fallbackUsableSpace()
+        } catch (_: RuntimeException) {
+            // 일부 기기·테스트 환경은 volume 조회에서 런타임 예외를 던진다. 저장을 막지 않도록 대체값을 쓴다.
+            fallbackUsableSpace()
         }
     }
 
@@ -105,6 +107,9 @@ public class AppFileOutputStore(
         if (file.parentFile != directory || name.startsWith(".")) return false
         return file.delete()
     }
+
+    @Suppress("UsableSpace") // StorageManager로 volume을 확인할 수 없을 때만 쓰는 대체값이다.
+    private fun fallbackUsableSpace(): Long = directory.usableSpace
 
     private fun uniqueFinalFile(extension: String): File {
         val stamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date(clock()))
