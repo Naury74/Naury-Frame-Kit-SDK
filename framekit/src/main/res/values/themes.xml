@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 편집기를 고르는 동안 빈 창이 깜빡이지 않도록 라우터 Activity는 투명하게 둔다. -->
+    <style name="framekit_Theme.Router" parent="android:Theme.Translucent.NoTitleBar">
+        <item name="android:windowAnimationStyle">@null</item>
+    </style>
+</resources>
