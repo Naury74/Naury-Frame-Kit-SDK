@@ -38,6 +38,7 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Before
+import com.naury.framekit.core.overlay.MaskShape
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -149,6 +150,38 @@ class VideoEditorViewModelTest {
 
         val clamped = ready(viewModel).displayed.timeline.privacyMasks.single()
         assertThat(clamped.range.endExclusiveUs).isEqualTo(ready(viewModel).durationUs)
+    }
+
+    @Test
+    fun `masks move and resize inside the frame as one undo step each`() {
+        val viewModel = viewModel(durationUs = 10_000_000)
+        viewModel.selectTool(VideoTool.PRIVACY)
+        viewModel.beginMask(0.2, 0.2)
+        viewModel.extendMask(0.4, 0.4)
+        viewModel.finishMask()
+        val id = ready(viewModel).selectedMaskId!!
+        fun rect() = (ready(viewModel).displayed.timeline.privacyMasks.single().mask.shape as MaskShape.Rectangle).rect
+
+        viewModel.beginMaskEdit(id, resize = false)
+        viewModel.dragMaskEdit(0.9, 0.1)
+        viewModel.finishMaskEdit()
+        assertThat(rect().right).isWithin(1e-9).of(1.0)
+        assertThat(rect().width).isWithin(1e-9).of(0.2)
+
+        viewModel.beginMaskEdit(id, resize = true)
+        viewModel.dragMaskEdit(-1.0, 0.3)
+        viewModel.finishMaskEdit()
+        assertThat(rect().width).isWithin(1e-9).of(0.01)
+        assertThat(rect().height).isWithin(1e-9).of(0.5)
+
+        val before = ready(viewModel).transaction.history
+        viewModel.beginMaskEdit(id, resize = false)
+        viewModel.dragMaskEdit(0.0, 0.0)
+        viewModel.finishMaskEdit()
+        assertThat(ready(viewModel).transaction.history).isEqualTo(before)
+
+        viewModel.undo()
+        assertThat(rect().width).isWithin(1e-9).of(0.2)
     }
 
     @Test

@@ -97,6 +97,7 @@ internal fun VideoCanvas(
             emptyList()
         }
         val currentMasks by rememberUpdatedState(visibleMasks)
+        val currentSelectedMask by rememberUpdatedState(state.selectedMaskId)
         // 텍스트·스티커 도구에서는 플레이어 대신 화면이 오버레이를 그려 손가락을 바로 따라가게 한다.
         val overlayMode = state.activeTool == VideoTool.TEXT || state.activeTool == VideoTool.STICKER
         val visibleOverlays = if (overlayMode) {
@@ -157,9 +158,23 @@ internal fun VideoCanvas(
                     val down = awaitFirstDown()
                     val start = currentViewport.toContent(down.position.x.toDouble(), down.position.y.toDouble()) ?: return@awaitEachGesture
                     down.consume()
-                    val hit = currentMasks.lastOrNull { it.bounds()?.let { r -> start.x in r.left..r.right && start.y in r.top..r.bottom } == true }
+                    val fitted = currentViewport.fittedSize
+                    // 선택된 마스크의 오른쪽 아래 모서리를 잡으면 크기를, 안쪽을 잡으면 위치를 바꾼다.
+                    val selected = currentMasks.firstOrNull { it.mask.id == currentSelectedMask }
+                    val corner = selected?.bounds()?.let { r -> currentViewport.toViewport(r) }
+                    val onCorner = corner != null &&
+                        abs(down.position.x - corner.right) <= touchRadius && abs(down.position.y - corner.bottom) <= touchRadius
+                    val hit = if (onCorner) selected else currentMasks.lastOrNull { it.bounds()?.let { r -> start.x in r.left..r.right && start.y in r.top..r.bottom } == true }
                     if (hit != null) {
-                        actions.selectMask(hit.mask.id)
+                        actions.beginMaskEdit(hit.mask.id, resize = onCorner)
+                        do {
+                            val event = awaitPointerEvent()
+                            val change = event.changes.firstOrNull { it.id == down.id } ?: break
+                            val delta = change.position - down.position
+                            actions.dragMaskEdit(delta.x / fitted.width, delta.y / fitted.height)
+                            change.consume()
+                        } while (change.pressed)
+                        actions.finishMaskEdit()
                         return@awaitEachGesture
                     }
                     actions.beginMask(start.x, start.y)
@@ -256,4 +271,10 @@ private fun DrawScope.drawMask(timed: TimedPrivacyMask, viewport: ViewportTransf
     val color = if (selected) accent else Color.White.copy(alpha = 0.8f)
     val stroke = Stroke((if (selected) 2.dp else 1.dp).toPx())
     if (timed.mask.shape is MaskShape.Ellipse) drawOval(color, topLeft, size, style = stroke) else drawRect(color, topLeft, size, style = stroke)
+    if (selected) {
+        // 크기 조절 손잡이. 모양과 상관없이 감싸는 사각형의 오른쪽 아래에 둔다.
+        val handle = Offset(rect.right.toFloat(), rect.bottom.toFloat())
+        drawCircle(Color.Black.copy(alpha = 0.4f), 9.dp.toPx(), handle)
+        drawCircle(accent, 7.dp.toPx(), handle)
+    }
 }

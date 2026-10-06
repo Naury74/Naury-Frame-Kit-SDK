@@ -168,6 +168,7 @@ internal class VideoEditorViewModel(
     private var straightenStart: GeometryEdit? = null
     private var trimEdge: TrimEdge? = null
     private var maskAnchor: PointN? = null
+    private var maskEditStart: Triple<String, RectN, Boolean>? = null
     private var overlayGestureStart: ImageOverlay? = null
     private var planRevision = 0L
     private var lastPreviewProject: VideoProject? = null
@@ -1063,6 +1064,54 @@ internal class VideoEditorViewModel(
 
     override fun selectMask(id: String?) = updateReady { it.copy(selectedMaskId = id) }
 
+    /** 기존 마스크를 옮기거나([resize]가 `false`) 오른쪽 아래 모서리로 크기를 바꾸기 시작한다. */
+    override fun beginMaskEdit(id: String, resize: Boolean) {
+        val ready = _state.value as? VideoEditorUiState.Ready ?: return
+        if (ready.activeTool != VideoTool.PRIVACY || ready.transaction.isActive) return
+        val rect = ready.displayed.timeline.privacyMasks.firstOrNull { it.mask.id == id }?.mask?.shape?.rectOrNull() ?: return
+        engine.pause()
+        maskEditStart = Triple(id, rect, resize)
+        updateReady { it.copy(selectedMaskId = id) }
+    }
+
+    /** @param dx 콘텐츠 너비 대비 이동량. @param dy 콘텐츠 높이 대비 이동량. 마스크는 화면 밖으로 나가지 않는다. */
+    override fun dragMaskEdit(dx: Double, dy: Double) {
+        val (id, start, resize) = maskEditStart ?: return
+        val rect = if (resize) {
+            RectN(start.left, start.top, (start.right + dx).coerceIn(start.left + MIN_MASK_SIZE, 1.0), (start.bottom + dy).coerceIn(start.top + MIN_MASK_SIZE, 1.0))
+        } else {
+            val x = dx.coerceIn(-start.left, 1.0 - start.right)
+            val y = dy.coerceIn(-start.top, 1.0 - start.bottom)
+            RectN(start.left + x, start.top + y, start.right + x, start.bottom + y)
+        }
+        updateGesture { _, project ->
+            Edit.updateMask(project, id) { timed ->
+                val shape = when (timed.mask.shape) {
+                    is MaskShape.Ellipse -> MaskShape.Ellipse(rect)
+                    else -> MaskShape.Rectangle(rect)
+                }
+                timed.copy(mask = timed.mask.copy(shape = shape))
+            }
+        }
+    }
+
+    override fun finishMaskEdit() {
+        maskEditStart ?: return
+        maskEditStart = null
+        // 탭으로 고르기만 했으면 실행 취소 기록을 남기지 않는다.
+        updateReady { ready ->
+            val draft = ready.transaction.draft
+            if (draft != null && draft.sameContentAs(ready.transaction.history.current)) ready.copy(transaction = ready.transaction.cancel()) else ready
+        }
+        finishGesture()
+    }
+
+    private fun MaskShape.rectOrNull(): RectN? = when (this) {
+        is MaskShape.Rectangle -> rect
+        is MaskShape.Ellipse -> rect
+        is MaskShape.Brush -> null
+    }
+
     fun deleteMask(id: String) {
         commitImmediate { project -> project.copy(timeline = project.timeline.copy(privacyMasks = project.timeline.privacyMasks.filterNot { it.mask.id == id })) }
         updateReady { if (it.selectedMaskId == id) it.copy(selectedMaskId = null) else it }
@@ -1290,6 +1339,9 @@ internal interface VideoCanvasActions {
     fun extendMask(x: Double, y: Double)
     fun finishMask()
     fun selectMask(id: String?)
+    fun beginMaskEdit(id: String, resize: Boolean)
+    fun dragMaskEdit(dx: Double, dy: Double)
+    fun finishMaskEdit()
     fun selectOverlay(id: String?)
     fun editText(id: String)
     fun beginOverlayGesture(id: String)
