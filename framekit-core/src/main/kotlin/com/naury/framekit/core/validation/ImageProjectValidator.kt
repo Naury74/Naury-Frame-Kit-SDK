@@ -1,6 +1,8 @@
 package com.naury.framekit.core.validation
 
+import com.naury.framekit.core.geometry.CropBoundsCalculator
 import com.naury.framekit.core.geometry.GeometryEdit
+import com.naury.framekit.core.geometry.GeometryFrame
 import com.naury.framekit.core.model.ImageProject
 import com.naury.framekit.core.model.MediaType
 import com.naury.framekit.core.model.SourceMetadata
@@ -18,7 +20,21 @@ public object ImageProjectValidator {
             issues += ValidationIssue(ValidationCode.SOURCE_MISMATCH, "metadata.mediaType", "Source is not an image")
         }
         validateGeometry(project.geometry, issues)
+        if (issues.isEmpty()) validateCropArea(project.geometry, metadata, issues)
         return ValidationResult.of(issues)
+    }
+
+    private fun validateCropArea(geometry: GeometryEdit, metadata: SourceMetadata, issues: MutableList<ValidationIssue>) {
+        val frame = GeometryFrame(metadata.uprightSize, geometry)
+        if (!frame.containsRect(geometry.crop)) {
+            issues += ValidationIssue(ValidationCode.INVALID_CROP, "geometry.crop", "Crop must stay inside the rotated image")
+        } else if (!CropBoundsCalculator.meetsMinimumSize(frame, geometry.crop)) {
+            issues += ValidationIssue(
+                ValidationCode.INVALID_CROP,
+                "geometry.crop",
+                "Crop must be at least ${CropBoundsCalculator.MIN_CROP_SIDE_PX} px on each side",
+            )
+        }
     }
 
     internal fun validateMetadata(metadata: SourceMetadata, issues: MutableList<ValidationIssue>) {

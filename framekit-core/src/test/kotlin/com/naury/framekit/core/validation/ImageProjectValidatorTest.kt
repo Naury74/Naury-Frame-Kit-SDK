@@ -66,6 +66,20 @@ class ImageProjectValidatorTest {
         assertThat(ImageProjectValidator.validate(project, video).codes()).containsExactly(ValidationCode.SOURCE_MISMATCH)
     }
 
+    @Test
+    fun `crop that includes straighten corners is rejected`() {
+        val result = validate(GeometryEdit(straightenDegrees = 10.0))
+
+        assertThat(result.codes()).containsExactly(ValidationCode.INVALID_CROP)
+    }
+
+    @Test
+    fun `crop smaller than 16 px is rejected`() {
+        val result = validate(GeometryEdit(crop = RectN(0.5, 0.5, 0.502, 0.502)))
+
+        assertThat(result.codes()).containsExactly(ValidationCode.INVALID_CROP)
+    }
+
     private fun validate(geometry: GeometryEdit): ValidationResult =
         ImageProjectValidator.validate(project.copy(geometry = geometry), metadata)
 
