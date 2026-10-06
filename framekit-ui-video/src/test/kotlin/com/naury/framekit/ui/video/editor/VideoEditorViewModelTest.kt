@@ -1,5 +1,7 @@
 package com.naury.framekit.ui.video.editor
 
+import com.naury.framekit.android.session.EditorSessionStore
+import java.util.concurrent.Executor
 import android.app.Application
 import android.net.Uri
 import android.view.SurfaceHolder
@@ -47,6 +49,7 @@ class VideoEditorViewModelTest {
     private val dispatcher = StandardTestDispatcher()
     private val engine = FakeEngine()
     private val exported = mutableListOf<VideoProject>()
+    private val sessions = EditorSessionStore(context, background = Executor { it.run() })
 
     @Before
     fun setUp() {
@@ -189,11 +192,47 @@ class VideoEditorViewModelTest {
         assertThat(exported.single().timeline.videoClips.single().sourceRange).isEqualTo(TimeRangeUs(0, 4_000_000))
     }
 
-    private fun viewModel(durationUs: Long, config: VideoEditorConfig = VideoEditorConfig()): VideoEditorViewModel {
+    @Test
+    fun `committed edits come back after process death`() {
+        val savedState = SavedStateHandle()
+        val first = viewModel(durationUs = 10_000_000, savedState = savedState, sessions = sessions)
+        first.selectTool(VideoTool.SPEED)
+        first.selectSpeed(2.0)
+        dispatcher.scheduler.advanceUntilIdle()
+
+        // 같은 SavedStateHandle로 새 ViewModel을 만들면 프로세스가 다시 시작된 것과 같다.
+        val second = viewModel(durationUs = 10_000_000, savedState = savedState, sessions = sessions)
+
+        assertThat(ready(second).clip.speed).isEqualTo(2.0)
+        assertThat(ready(second).notice).isEqualTo(VideoNotice.RESTORED)
+        assertThat(ready(second).isDirty).isTrue()
+        assertThat(ready(second).transaction.history.canUndo).isFalse()
+    }
+
+    @Test
+    fun `a different video behind the same reference is not restored`() {
+        val savedState = SavedStateHandle()
+        val first = viewModel(durationUs = 10_000_000, savedState = savedState, sessions = sessions)
+        first.selectTool(VideoTool.SPEED)
+        first.selectSpeed(2.0)
+        dispatcher.scheduler.advanceUntilIdle()
+
+        val second = viewModel(durationUs = 12_000_000, savedState = savedState, sessions = sessions)
+
+        assertThat(ready(second).clip.speed).isEqualTo(1.0)
+        assertThat(ready(second).notice).isNull()
+    }
+
+    private fun viewModel(
+        durationUs: Long,
+        config: VideoEditorConfig = VideoEditorConfig(),
+        savedState: SavedStateHandle = SavedStateHandle(),
+        sessions: EditorSessionStore? = null,
+    ): VideoEditorViewModel {
         val registry = SessionSourceRegistry(context)
         val viewModel = VideoEditorViewModel(
             request = VideoEditorRequest(EditorInput.FileSource(sourceFile.absolutePath), config = config),
-            savedState = SavedStateHandle(),
+            savedState = savedState,
             registry = registry,
             readSource = { id ->
                 VideoSourceInfo(
@@ -214,6 +253,8 @@ class VideoEditorViewModelTest {
             previewEngineFactory = { engine },
             frames = { _, _, _, _ -> null },
             ioDispatcher = dispatcher,
+            sessionStore = sessions,
+            snapshotDebounceMillis = 0,
         )
         dispatcher.scheduler.advanceUntilIdle()
         return viewModel

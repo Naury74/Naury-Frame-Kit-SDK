@@ -132,6 +132,8 @@ private fun ReadyContent(state: VideoEditorUiState.Ready, viewModel: VideoEditor
         VideoNotice.MASK_LIMIT -> pluralStringResource(R.plurals.framekit_mask_limit, Timeline.MAX_PRIVACY_MASKS, Timeline.MAX_PRIVACY_MASKS)
         VideoNotice.SPEED_TOO_LONG -> stringResource(R.string.framekit_speed_too_long)
         VideoNotice.SPEED_TOO_SHORT -> stringResource(R.string.framekit_speed_too_short)
+        VideoNotice.RESTORED -> stringResource(UiR.string.framekit_session_restored)
+        VideoNotice.EXPORT_INTERRUPTED -> stringResource(UiR.string.framekit_export_interrupted)
         null -> null
     }
     LaunchedEffect(state.notice) {

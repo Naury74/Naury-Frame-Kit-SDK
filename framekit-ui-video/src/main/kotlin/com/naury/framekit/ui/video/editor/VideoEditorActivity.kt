@@ -19,6 +19,7 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.naury.framekit.android.output.AppFileOutputStore
+import com.naury.framekit.android.session.EditorSessionStore
 import com.naury.framekit.android.result.EditorError
 import com.naury.framekit.android.result.EditorErrorCode
 import com.naury.framekit.android.result.FrameKitResult
@@ -109,6 +110,7 @@ internal class VideoEditorActivity : ComponentActivity() {
                 frames = VideoFrameSource(loader::load),
                 ioDispatcher = Dispatchers.IO,
                 closeables = listOf(loader),
+                sessionStore = EditorSessionStore(application),
             )
         }
     }

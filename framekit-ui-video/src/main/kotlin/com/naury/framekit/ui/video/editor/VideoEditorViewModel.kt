@@ -1,5 +1,9 @@
 package com.naury.framekit.ui.video.editor
 
+import com.naury.framekit.core.validation.VideoProjectValidator
+import com.naury.framekit.core.history.EditHistory
+import com.naury.framekit.android.session.SessionRecord
+import com.naury.framekit.android.session.EditorSessionStore
 import android.graphics.Bitmap
 import android.net.Uri
 import android.util.Log
@@ -107,6 +111,8 @@ internal class VideoEditorViewModel(
     private val colorRenderer: ColorEffectRenderer = CpuColorEffectRenderer,
     private val previewDebounceMillis: Long = PREVIEW_DEBOUNCE_MILLIS,
     private val closeables: List<java.io.Closeable> = emptyList(),
+    sessionStore: EditorSessionStore? = null,
+    snapshotDebounceMillis: Long = SNAPSHOT_DEBOUNCE_MILLIS,
 ) : ViewModel(), VideoCanvasActions {
 
     private val _state = MutableStateFlow<VideoEditorUiState>(VideoEditorUiState.Loading)
@@ -140,11 +146,15 @@ internal class VideoEditorViewModel(
     private var lastPreviewProject: VideoProject? = null
     private var pendingSeekUs: Long? = null
     private val previewRequests = MutableStateFlow<VideoProject?>(null)
+    private val session = sessionStore?.let { VideoSessionRecorder(it, savedState, viewModelScope, ioDispatcher, snapshotDebounceMillis) }
+
+    // 권한을 잃은 원본을 다시 고를 때까지 이전 세션을 들고 있다가, 같은 영상인지 확인한 뒤에만 복원한다.
+    private var pendingRestore: SessionRecord? = null
 
     val config get() = request.config
 
     init {
-        start()
+        if (savedState.contains(VideoSessionRecorder.KEY_SESSION_ID) && session != null) restore() else start()
         viewModelScope.launch {
             state.collect { current -> if (current is VideoEditorUiState.Ready) requestPreview(current) }
         }
@@ -162,6 +172,18 @@ internal class VideoEditorViewModel(
             request.input !is EditorInput.Pick -> load(request.input)
             pickedUri != null -> load(EditorInput.UriSource(pickedUri))
             else -> _state.value = VideoEditorUiState.AwaitingPick
+        }
+    }
+
+    private fun restore() {
+        viewModelScope.launch {
+            val previous = withContext(ioDispatcher) { session?.loadPrevious() }
+            if (previous == null) {
+                start()
+            } else {
+                pendingRestore = previous
+                load(with(VideoSessionRecorder) { previous.source.toInput() })
+            }
         }
     }
 
@@ -194,10 +216,9 @@ internal class VideoEditorViewModel(
                     if (duration < config.minClipDurationUs) {
                         throw FrameKitException(EditorErrorCode.INVALID_SOURCE, "Video is shorter than the minimum clip")
                     }
-                    // 허용 길이보다 긴 영상은 앞부분만 남긴 채로 열고, 사용자가 구간을 옮겨 고른다.
-                    val clip = VideoClip(newId(), sourceId, TimeRangeUs(0, min(duration, config.maxTimelineDurationUs)))
-                    val project = VideoProject(ProjectId(newId()), Timeline(listOf(clip)), grainSeed = Random.nextLong())
-                    VideoEditorUiState.Ready(info, location, HistoryTransaction.start(project))
+                    val previous = session?.attach(pendingRestore, input, sourceId, info)
+                    pendingRestore = null
+                    restoredState(previous, sourceId, info, location, duration)
                 }
             } catch (error: FrameKitException) {
                 logFailure("load", error)
@@ -209,6 +230,34 @@ internal class VideoEditorViewModel(
                 _state.value = VideoEditorUiState.LoadFailed(EditorErrorCode.UNKNOWN, canChooseAnother = request.input is EditorInput.Pick)
             }
         }
+    }
+
+    private fun restoredState(
+        previous: SessionRecord?,
+        sourceId: SourceId,
+        info: VideoSourceInfo,
+        location: SourceLocation,
+        durationUs: Long,
+    ): VideoEditorUiState.Ready {
+        val restored = session?.restoredProject(previous)?.takeIf {
+            VideoProjectValidator.validate(it, mapOf(sourceId to info.metadata), config.minClipDurationUs).isValid &&
+                TimelineTimeMapper.durationUs(it.timeline) <= config.maxTimelineDurationUs
+        }
+        // 허용 길이보다 긴 영상은 앞부분만 남긴 채로 열고, 사용자가 구간을 옮겨 고른다.
+        val clip = VideoClip(restored?.timeline?.videoClips?.first()?.id ?: newId(), sourceId, TimeRangeUs(0, min(durationUs, config.maxTimelineDurationUs)))
+        val baseline = VideoProject(
+            restored?.id ?: ProjectId(newId()),
+            Timeline(listOf(clip)),
+            grainSeed = restored?.grainSeed ?: Random.nextLong(),
+        )
+        val transaction = if (restored != null) HistoryTransaction(EditHistory.restore(baseline, restored)) else HistoryTransaction.start(baseline)
+        val notice = when {
+            previous?.exportWasInterrupted == true -> VideoNotice.EXPORT_INTERRUPTED
+            restored != null && !restored.sameContentAs(baseline) -> VideoNotice.RESTORED
+            else -> null
+        }
+        if (previous?.exportWasInterrupted == true) session?.saveCommitted(transaction.history.current)
+        return VideoEditorUiState.Ready(info, location, transaction, notice = notice)
     }
 
     // ---- 미리보기 ----
@@ -616,6 +665,7 @@ internal class VideoEditorViewModel(
         updateReady { it.copy(export = ExportUiState.Running(ExportStageUi.PREPARING)) }
         exportJob = viewModelScope.launch {
             try {
+                session?.markExport(snapshot, running = true)
                 val media = exporter.export(
                     snapshot,
                     mapOf(ready.clip.source to ready.source),
@@ -624,12 +674,15 @@ internal class VideoEditorViewModel(
                 finish(FrameKitResult.Success(media))
             } catch (cancelled: CancellationException) {
                 updateReady { it.copy(export = null) }
+                withContext(NonCancellable) { session?.markExport(snapshot, running = false) }
                 throw cancelled
             } catch (error: FrameKitException) {
                 logFailure("export", error)
+                session?.markExport(snapshot, running = false)
                 updateReady { it.copy(export = ExportUiState.Failed(error.code)) }
             } catch (error: Exception) {
                 logFailure("export", FrameKitException(EditorErrorCode.UNKNOWN, cause = error))
+                session?.markExport(snapshot, running = false)
                 updateReady { it.copy(export = ExportUiState.Failed(EditorErrorCode.UNKNOWN)) }
             }
         }
@@ -687,13 +740,22 @@ internal class VideoEditorViewModel(
     private fun finish(result: FrameKitResult) {
         if (_result.value != null) return
         engine.pause()
+        pendingRestore?.let { session?.discard(it) }
+        session?.end()
         _result.value = result
     }
 
     // ---- 내부 ----
 
     private fun updateReady(transform: (VideoEditorUiState.Ready) -> VideoEditorUiState.Ready) {
-        _state.update { current -> if (current is VideoEditorUiState.Ready) transform(current) else current }
+        var committedChange: VideoProject? = null
+        _state.update { current ->
+            if (current !is VideoEditorUiState.Ready) return@update current
+            val next = transform(current)
+            committedChange = next.transaction.history.current.takeIf { it !== current.transaction.history.current }
+            next
+        }
+        committedChange?.let { session?.saveCommitted(it) }
     }
 
     private fun updateGesture(transform: (VideoEditorUiState.Ready, VideoProject) -> VideoProject) = updateReady { ready ->
@@ -727,6 +789,7 @@ internal class VideoEditorViewModel(
     }
 
     override fun onCleared() {
+        if (_result.value == null) session?.detach()
         engine.release()
         colorRenderer.release()
         closeables.forEach { runCatching { it.close() } }
@@ -736,6 +799,7 @@ internal class VideoEditorViewModel(
         const val TAG = "FrameKit"
         const val KEY_PICKED_URI = "framekit_picked_video_uri"
         const val PREVIEW_DEBOUNCE_MILLIS = 120L
+        const val SNAPSHOT_DEBOUNCE_MILLIS = 300L
         const val PREVIEW_SHORT_SIDE = 720
         const val FILTER_THUMBNAIL_PX = 160
         const val FRAME_US = 33_333L

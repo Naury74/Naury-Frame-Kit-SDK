@@ -50,6 +50,12 @@ internal sealed interface VideoEditorUiState {
 /** One-time message shown as a snackbar. */
 internal enum class VideoNotice {
     MASK_LIMIT,
+
+    /** 프로세스 종료 뒤 확정된 편집이 돌아왔다. 실행 취소 기록은 비어 있다. */
+    RESTORED,
+
+    /** 저장 중에 프로세스가 종료됐다. 파일은 만들어지지 않았으니 다시 저장해야 한다. */
+    EXPORT_INTERRUPTED,
     SPEED_TOO_LONG,
     SPEED_TOO_SHORT,
 }
