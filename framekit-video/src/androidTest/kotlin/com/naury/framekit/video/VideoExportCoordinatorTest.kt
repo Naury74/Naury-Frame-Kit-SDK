@@ -14,10 +14,15 @@ import com.naury.framekit.android.source.SessionSourceRegistry
 import com.naury.framekit.core.effect.FilterSelection
 import com.naury.framekit.core.geometry.GeometryEdit
 import com.naury.framekit.core.geometry.GeometryOperations
+import com.naury.framekit.core.geometry.RectN
 import com.naury.framekit.core.model.ProjectId
 import com.naury.framekit.core.model.SourceId
+import com.naury.framekit.core.overlay.MaskShape
+import com.naury.framekit.core.overlay.PrivacyEffect
+import com.naury.framekit.core.overlay.PrivacyMask
 import com.naury.framekit.core.video.ClipEffects
 import com.naury.framekit.core.video.TimeRangeUs
+import com.naury.framekit.core.video.TimedPrivacyMask
 import com.naury.framekit.core.video.Timeline
 import com.naury.framekit.core.video.VideoClip
 import com.naury.framekit.core.video.VideoProject
@@ -111,6 +116,19 @@ class VideoExportCoordinatorTest {
     }
 
     @Test
+    fun mosaicCoversItsAreaOnlyDuringItsRange() = runBlocking {
+        val mask = PrivacyMask("m", MaskShape.Rectangle(RectN(0.25, 0.25, 0.75, 0.75)), PrivacyEffect.Mosaic(0.2))
+        export(clip(TimeRangeUs(0, 2_000_000)), listOf(TimedPrivacyMask(mask, TimeRangeUs(0, 1_000_000))))
+
+        // 중앙 블록은 네 사분면에 걸쳐 있어 평균색이 되고, 마스크 밖과 구간 밖 프레임은 그대로다.
+        val masked = sample(firstFrame(), 0.52, 0.52)
+        assertThat(maxOf(Color.red(masked), Color.green(masked), Color.blue(masked)) -
+            minOf(Color.red(masked), Color.green(masked), Color.blue(masked))).isAtMost(110)
+        assertColor("outside mask", firstFrame(), 0.1, 0.1, Color.RED)
+        assertColor("after range", frameAt(1_500_000), 0.52, 0.52, Color.WHITE)
+    }
+
+    @Test
     fun cancelLeavesNoFile() = runBlocking {
         val job = async { export(clip(TimeRangeUs(0, 5_000_000))) }
         delay(300)
@@ -122,17 +140,19 @@ class VideoExportCoordinatorTest {
 
     private fun clip(range: TimeRangeUs) = VideoClip("c", sourceId, range)
 
-    private suspend fun export(clip: VideoClip) = coordinator.export(
-        project = VideoProject(ProjectId("p"), Timeline(listOf(clip))),
+    private suspend fun export(clip: VideoClip, masks: List<TimedPrivacyMask> = emptyList()) = coordinator.export(
+        project = VideoProject(ProjectId("p"), Timeline(listOf(clip), privacyMasks = masks)),
         sources = mapOf(sourceId to info),
         locations = mapOf(sourceId to checkNotNull(registry.location(sourceId))),
     )
 
     private fun published(): File = store.directory.listFiles()!!.single { !it.name.startsWith(".") }
 
-    private fun firstFrame(): Bitmap = MediaMetadataRetriever().run {
+    private fun firstFrame(): Bitmap = frameAt(200_000)
+
+    private fun frameAt(timeUs: Long): Bitmap = MediaMetadataRetriever().run {
         setDataSource(published().absolutePath)
-        checkNotNull(getFrameAtTime(200_000, MediaMetadataRetriever.OPTION_CLOSEST)).also { release() }
+        checkNotNull(getFrameAtTime(timeUs, MediaMetadataRetriever.OPTION_CLOSEST)).also { release() }
     }
 
     private fun sample(frame: Bitmap, u: Double, v: Double) = frame.getPixel((u * frame.width).toInt(), (v * frame.height).toInt())

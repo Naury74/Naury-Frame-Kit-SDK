@@ -108,12 +108,20 @@ public data class CanvasSpec(
     val fit: CanvasFit = CanvasFit.FIT,
 )
 
+/**
+ * @property privacyMasks at most [MAX_PRIVACY_MASKS] rectangle or ellipse masks; brush masks are
+ *   image-only.
+ */
 public data class Timeline(
     val videoClips: List<VideoClip>,
     val audioClips: List<AudioClip> = emptyList(),
     val overlays: List<TimedOverlay> = emptyList(),
     val privacyMasks: List<TimedPrivacyMask> = emptyList(),
-)
+) {
+    public companion object {
+        public const val MAX_PRIVACY_MASKS: Int = 8
+    }
+}
 
 /** Final edit state of a video. Undo stores these snapshots, never decoded frames. */
 public data class VideoProject(

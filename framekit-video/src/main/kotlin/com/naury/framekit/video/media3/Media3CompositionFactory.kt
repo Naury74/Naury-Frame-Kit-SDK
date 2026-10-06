@@ -29,14 +29,16 @@ import com.naury.framekit.video.VideoRenderPlan
  * they apply the same trim, speed, geometry and color. Media3 types never leave this package.
  *
  * Per clip: trim (clipping), speed, mute/volume, geometry, canvas fit and color. Composition-wide:
- * HDR is tone-mapped to SDR.
+ * timed privacy masks on the output canvas, and HDR is tone-mapped to SDR.
  */
 internal object Media3CompositionFactory {
 
     fun create(plan: VideoRenderPlan, maxFrameRate: Int?): Composition {
         val items = plan.clips.map { item(it, plan, maxFrameRate) }
+        val masks = plan.project.timeline.privacyMasks
         return Composition.Builder(EditedMediaItemSequence.Builder(items).build())
             .setHdrMode(Composition.HDR_MODE_TONE_MAP_HDR_TO_SDR_USING_OPEN_GL)
+            .apply { if (masks.isNotEmpty()) setEffects(Effects(emptyList(), listOf(PrivacyGlEffect(masks)))) }
             .build()
     }
 

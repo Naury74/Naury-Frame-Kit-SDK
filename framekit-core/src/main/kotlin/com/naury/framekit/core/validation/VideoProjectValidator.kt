@@ -3,7 +3,9 @@ package com.naury.framekit.core.validation
 import com.naury.framekit.core.model.MediaType
 import com.naury.framekit.core.model.SourceId
 import com.naury.framekit.core.model.SourceMetadata
+import com.naury.framekit.core.overlay.MaskShape
 import com.naury.framekit.core.video.TimeRangeUs
+import com.naury.framekit.core.video.Timeline
 import com.naury.framekit.core.video.TimelineTimeMapper
 import com.naury.framekit.core.video.VideoClip
 import com.naury.framekit.core.video.VideoProject
@@ -48,6 +50,14 @@ public object VideoProjectValidator {
         }
         OverlayValidator.validate(timeline.overlays.map { it.overlay }, emptyList(), issues)
         OverlayValidator.validatePrivacy(timeline.privacyMasks.map { it.mask }, issues)
+        if (timeline.privacyMasks.size > Timeline.MAX_PRIVACY_MASKS) {
+            issues += ValidationIssue(ValidationCode.OUT_OF_RANGE, "timeline.privacyMasks", "At most ${Timeline.MAX_PRIVACY_MASKS} masks")
+        }
+        timeline.privacyMasks.forEachIndexed { index, timed ->
+            if (timed.mask.shape is MaskShape.Brush) {
+                issues += ValidationIssue(ValidationCode.OUT_OF_RANGE, "timeline.privacyMasks[$index].shape", "Brush masks are image-only")
+            }
+        }
         return ValidationResult.of(issues)
     }
 
