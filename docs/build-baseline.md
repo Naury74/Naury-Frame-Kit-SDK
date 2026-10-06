@@ -26,6 +26,7 @@ FrameKit을 빌드하고 검증하는 기준 toolchain이다. 아래 값을 바�
 | androidx.core | 1.19.1 |
 | androidx.lifecycle | 2.11.0 |
 | androidx.exifinterface | 1.4.2 |
+| androidx.window | 1.5.1 (폴드 자세 감지, `framekit-ui`) |
 | kotlinx.coroutines | 1.11.0 |
 | kotlinx.serialization | 1.11.0 (세션 descriptor/snapshot JSON, `framekit-android` 내부) |
 

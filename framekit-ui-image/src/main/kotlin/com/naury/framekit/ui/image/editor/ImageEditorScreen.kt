@@ -5,6 +5,16 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.wrapContentWidth
+import androidx.compose.ui.platform.LocalDensity
+import com.naury.framekit.ui.layout.EditorLayout
+import com.naury.framekit.ui.layout.EditorLayoutPolicy
+import com.naury.framekit.ui.layout.FoldPosture
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -59,7 +69,7 @@ import com.naury.framekit.ui.image.tool.RotateToolPanel
 import com.naury.framekit.ui.R as UiR
 
 @Composable
-internal fun ImageEditorScreen(viewModel: ImageEditorViewModel) {
+internal fun ImageEditorScreen(viewModel: ImageEditorViewModel, posture: FoldPosture = FoldPosture.Flat) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     var pickerLaunched by rememberSaveable { mutableStateOf(false) }
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
@@ -84,13 +94,13 @@ internal fun ImageEditorScreen(viewModel: ImageEditorViewModel) {
                 onChooseAnother = if (current.canChooseAnother) viewModel::chooseAnother else null,
                 modifier = Modifier.windowInsetsPadding(WindowInsets.safeDrawing),
             )
-            is ImageEditorUiState.Ready -> ReadyContent(current, viewModel)
+            is ImageEditorUiState.Ready -> ReadyContent(current, viewModel, posture)
         }
     }
 }
 
 @Composable
-private fun ReadyContent(state: ImageEditorUiState.Ready, viewModel: ImageEditorViewModel) {
+private fun ReadyContent(state: ImageEditorUiState.Ready, viewModel: ImageEditorViewModel, posture: FoldPosture) {
     val snackbar = remember { SnackbarHostState() }
     val applyHint = stringResource(UiR.string.framekit_apply_first)
     LaunchedEffect(state.showApplyHint) {
@@ -120,25 +130,73 @@ private fun ReadyContent(state: ImageEditorUiState.Ready, viewModel: ImageEditor
         onDispose { view.keepScreenOn = false }
     }
 
-    BoxWithConstraints(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)) {
-        val wide = maxWidth > maxHeight && maxWidth >= 600.dp
-        if (wide) {
-            Row(Modifier.fillMaxSize()) {
+    val density = LocalDensity.current
+    // 힌지 좌표는 창 기준이므로 루트는 창 전체를 덮고, system bar 인셋은 각 영역 안에서 처리한다.
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+        val topBar = @Composable {
+            EditorTopBar(onClose = viewModel::requestClose, onSave = viewModel::save, saveEnabled = state.export == null)
+        }
+        when (val layout = EditorLayoutPolicy.decide(maxWidth.value, maxHeight.value, posture)) {
+            is EditorLayout.Stacked -> Column(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)) {
+                topBar()
+                CanvasArea(state, viewModel, Modifier.weight(1f).fillMaxWidth())
+                ToolArea(state, viewModel, Modifier.fillMaxWidth(), layout.maxControlsWidthDp)
+            }
+            is EditorLayout.SidePanel -> Row(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)) {
                 CanvasArea(state, viewModel, Modifier.weight(1f).fillMaxHeight())
-                Column(Modifier.width(360.dp).fillMaxHeight()) {
-                    EditorTopBar(onClose = viewModel::requestClose, onSave = viewModel::save, saveEnabled = state.export == null)
+                Column(Modifier.width(layout.panelWidthDp.dp).fillMaxHeight()) {
+                    topBar()
                     Spacer(Modifier.weight(1f))
-                    ToolArea(state, viewModel)
+                    ToolArea(state, viewModel, Modifier.fillMaxWidth(), maxWidthDp = null)
                 }
             }
-        } else {
-            Column(Modifier.fillMaxSize()) {
-                EditorTopBar(onClose = viewModel::requestClose, onSave = viewModel::save, saveEnabled = state.export == null)
-                CanvasArea(state, viewModel, Modifier.weight(1f).fillMaxWidth())
-                ToolArea(state, viewModel)
+            is EditorLayout.SplitAtHorizontalHinge -> Column(Modifier.fillMaxSize()) {
+                Column(
+                    Modifier
+                        .fillMaxWidth()
+                        .height(with(density) { layout.hingeTopPx.toDp() })
+                        .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)),
+                ) {
+                    topBar()
+                    CanvasArea(state, viewModel, Modifier.weight(1f).fillMaxWidth())
+                }
+                Spacer(Modifier.height(with(density) { (layout.hingeBottomPx - layout.hingeTopPx).toDp() }))
+                Column(
+                    Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                        .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal)),
+                    verticalArrangement = Arrangement.Center,
+                ) {
+                    ToolArea(state, viewModel, Modifier.fillMaxWidth(), EditorLayoutPolicy.MAX_CONTROLS_WIDTH_DP)
+                }
+            }
+            is EditorLayout.SplitAtVerticalHinge -> Row(Modifier.fillMaxSize()) {
+                CanvasArea(
+                    state,
+                    viewModel,
+                    Modifier
+                        .width(with(density) { layout.hingeLeftPx.toDp() })
+                        .fillMaxHeight()
+                        .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Vertical + WindowInsetsSides.Start)),
+                )
+                Spacer(Modifier.width(with(density) { (layout.hingeRightPx - layout.hingeLeftPx).toDp() }))
+                Column(
+                    Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Vertical + WindowInsetsSides.End)),
+                ) {
+                    topBar()
+                    Spacer(Modifier.weight(1f))
+                    ToolArea(state, viewModel, Modifier.fillMaxWidth(), maxWidthDp = null)
+                }
             }
         }
-        SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter).padding(bottom = 96.dp))
+        SnackbarHost(
+            snackbar,
+            Modifier.align(Alignment.BottomCenter).windowInsetsPadding(WindowInsets.safeDrawing).padding(bottom = 96.dp),
+        )
     }
 
     when (val export = state.export) {
@@ -180,14 +238,15 @@ private fun CanvasArea(state: ImageEditorUiState.Ready, viewModel: ImageEditorVi
 }
 
 @Composable
-private fun ToolArea(state: ImageEditorUiState.Ready, viewModel: ImageEditorViewModel) {
+private fun ToolArea(state: ImageEditorUiState.Ready, viewModel: ImageEditorViewModel, modifier: Modifier, maxWidthDp: Int?) {
     val tools = viewModel.config.enabledTools.toList()
     AnimatedContent(
         targetState = state.activeTool,
+        modifier = modifier.background(FrameKitTheme.colors.background).wrapContentWidth(Alignment.CenterHorizontally),
         transitionSpec = { fadeIn(tween(TOOL_TRANSITION_MS)) togetherWith fadeOut(tween(TOOL_TRANSITION_MS)) },
         label = "tool-area",
     ) { tool ->
-        Column(Modifier.fillMaxWidth().background(FrameKitTheme.colors.background)) {
+        Column(if (maxWidthDp != null) Modifier.widthIn(max = maxWidthDp.dp).fillMaxWidth() else Modifier.fillMaxWidth()) {
             when (tool) {
                 ImageTool.CROP -> ToolPanelWithActions(R.string.framekit_tool_crop, viewModel) {
                     CropToolPanel(aspect = state.cropAspect, onSelectAspect = viewModel::selectAspect)

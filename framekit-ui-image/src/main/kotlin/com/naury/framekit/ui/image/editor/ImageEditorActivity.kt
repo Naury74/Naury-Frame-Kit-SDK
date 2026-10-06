@@ -8,10 +8,12 @@ import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
+import androidx.compose.runtime.getValue
 import androidx.core.content.IntentCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.Companion.APPLICATION_KEY
 import androidx.lifecycle.createSavedStateHandle
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewmodel.initializer
@@ -27,6 +29,8 @@ import com.naury.framekit.image.export.ImageExportCoordinator
 import com.naury.framekit.ui.config.ThemeMode
 import com.naury.framekit.ui.design.FrameKitTheme
 import com.naury.framekit.ui.design.ProvideEditorLocale
+import com.naury.framekit.ui.layout.FoldPosture
+import com.naury.framekit.ui.layout.foldPostureFlow
 import com.naury.framekit.ui.image.contract.ImageEditorContract
 import com.naury.framekit.ui.image.contract.ImageEditorRequest
 import kotlinx.coroutines.Dispatchers
@@ -59,10 +63,12 @@ internal class ImageEditorActivity : ComponentActivity() {
                 deliver(viewModel.result.filterNotNull().first())
             }
         }
+        val posture = foldPostureFlow(this)
         setContent {
+            val currentPosture by posture.collectAsStateWithLifecycle(FoldPosture.Flat)
             ProvideEditorLocale(request.ui.localeTag) {
                 FrameKitTheme(request.ui) {
-                    ImageEditorScreen(viewModel)
+                    ImageEditorScreen(viewModel, currentPosture)
                 }
             }
         }

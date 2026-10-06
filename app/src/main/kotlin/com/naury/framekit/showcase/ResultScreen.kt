@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -47,13 +48,29 @@ fun ResultScreen(media: EditedMedia, elapsedMs: Long, onBack: () -> Unit, onDele
     val preview by produceState<Bitmap?>(null, media.uri) {
         value = withContext(Dispatchers.IO) { runCatching { loadPreview(context, media) }.getOrNull() }
     }
-    Column(
+    Box(
         Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
             .windowInsetsPadding(WindowInsets.safeDrawing)
-            .verticalScroll(rememberScrollState())
-            .padding(20.dp),
+            .verticalScroll(rememberScrollState()),
+        contentAlignment = Alignment.TopCenter,
+    ) {
+        ResultContent(media, elapsedMs, preview, onBack, onDelete)
+    }
+}
+
+@Composable
+private fun ResultContent(
+    media: EditedMedia,
+    elapsedMs: Long,
+    preview: Bitmap?,
+    onBack: () -> Unit,
+    onDelete: () -> Unit,
+) {
+    val context = LocalContext.current
+    Column(
+        Modifier.widthIn(max = 720.dp).fillMaxWidth().padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         TextButton(onClick = onBack) { Text(stringResource(R.string.result_back)) }
