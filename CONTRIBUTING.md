@@ -44,7 +44,7 @@ docs: integration 문서에 공유 방법 추가
 - 미리보기와 저장은 같은 `ImageRenderPlan`을 사용합니다. 한쪽에만 적용되는 보정을 두지 않습니다.
 - undo 기록에 Bitmap을 넣지 않습니다.
 - 효과가 없는 버튼, 성공을 가장하는 stub, 티켓 없는 TODO를 남기지 않습니다.
-- public API에는 영어 KDoc으로 단위·범위·실패 조건을 적습니다. 일반 주석은 코드가 설명하지 못하는 이유만 한국어로 씁니다.
+- 주석과 KDoc은 한국어로 씁니다. public API에는 단위·범위·실패 조건을 적고, 일반 주석은 코드가 설명하지 못하는 이유만 씁니다.
 - `Utils`, `Manager`, `Helper`처럼 책임이 드러나지 않는 이름을 쓰지 않습니다.
 - 필요 없는 network·database·DI·analytics 의존성을 추가하지 않습니다. 버전은 `gradle/libs.versions.toml`에서만 관리합니다.
 - 로그에 Uri, 파일명, 사용자 콘텐츠를 남기지 않습니다.
