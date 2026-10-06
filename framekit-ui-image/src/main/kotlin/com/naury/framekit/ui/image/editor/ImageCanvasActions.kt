@@ -19,4 +19,7 @@ internal interface ImageCanvasActions {
     fun beginStroke(x: Double, y: Double, pressure: Double)
     fun extendStroke(x: Double, y: Double, pressure: Double, minDistanceX: Double, minDistanceY: Double)
     fun finishStroke()
+
+    /** 두 번째 손가락이 닿아 확대·이동으로 바뀌었다. 그리던 획은 남기지 않는다. */
+    fun cancelStroke()
 }

@@ -23,6 +23,15 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import kotlin.math.roundToInt
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.Stable
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -100,7 +109,19 @@ internal fun ImageCanvas(
         }
     }
 
-    BoxWithConstraints(modifier.fillMaxSize().background(colors.canvasBackground)) {
+    // 그리기·가리기에서만 쓰는 화면 확대. 편집 결과에는 영향이 없고 도구를 바꾸면 처음 크기로 돌아온다.
+    val zoomable = state.activeTool == ImageTool.DRAW || state.activeTool == ImageTool.PRIVACY
+    val zoomState = remember { CanvasZoomState() }
+    LaunchedEffect(zoomable) { if (!zoomable) zoomState.reset() }
+    Box(modifier.fillMaxSize().background(colors.canvasBackground).clipToBounds()) {
+    BoxWithConstraints(
+        Modifier.fillMaxSize().graphicsLayer {
+            scaleX = zoomState.zoom
+            scaleY = zoomState.zoom
+            translationX = zoomState.pan.x
+            translationY = zoomState.pan.y
+        },
+    ) {
         val padding = with(density) { (if (toolMode) 28.dp else 16.dp).toPx().toDouble() }
         val viewport = ViewportTransform(
             contentSize = Size2D(plan.outputSize.width.toDouble(), plan.outputSize.height.toDouble()),
@@ -164,24 +185,37 @@ internal fun ImageCanvas(
                 awaitEachGesture {
                     val down = awaitFirstDown()
                     // 사진 바깥(letterbox)에서 시작한 획은 만들지 않는다.
-                    val start = currentViewport.toContent(down.position.x.toDouble(), down.position.y.toDouble()) ?: return@awaitEachGesture
+                    val start = currentViewport.toContent(down.position.x.toDouble(), down.position.y.toDouble())
                     down.consume()
-                    actions.beginStroke(start.x, start.y, down.pressure.coerceIn(0f, 1f).toDouble())
+                    var stroking = start != null
+                    if (start != null) actions.beginStroke(start.x, start.y, down.pressure.coerceIn(0f, 1f).toDouble())
                     val fitted = currentViewport.fittedSize
                     do {
                         val event = awaitPointerEvent()
+                        // 두 손가락이면 그리기를 멈추고 캔버스를 확대·이동한다. 세밀한 부분을 가릴 때 쓴다.
+                        if (event.changes.count { it.pressed } >= 2) {
+                            if (stroking) {
+                                actions.cancelStroke()
+                                stroking = false
+                            }
+                            zoomState.apply(event.calculateZoom(), event.calculatePan(), size.width.toFloat(), size.height.toFloat())
+                            event.changes.forEach { it.consume() }
+                            continue
+                        }
                         val change = event.changes.firstOrNull { it.id == down.id } ?: break
-                        val point = currentViewport.toContentUnbounded(change.position.x.toDouble(), change.position.y.toDouble())
-                        actions.extendStroke(
-                            point.x.coerceIn(0.0, 1.0),
-                            point.y.coerceIn(0.0, 1.0),
-                            change.pressure.coerceIn(0f, 1f).toDouble(),
-                            minDistance / fitted.width,
-                            minDistance / fitted.height,
-                        )
+                        if (stroking) {
+                            val point = currentViewport.toContentUnbounded(change.position.x.toDouble(), change.position.y.toDouble())
+                            actions.extendStroke(
+                                point.x.coerceIn(0.0, 1.0),
+                                point.y.coerceIn(0.0, 1.0),
+                                change.pressure.coerceIn(0f, 1f).toDouble(),
+                                minDistance / fitted.width,
+                                minDistance / fitted.height,
+                            )
+                        }
                         change.consume()
-                    } while (change.pressed)
-                    actions.finishStroke()
+                    } while (event.changes.any { it.pressed })
+                    if (stroking) actions.finishStroke()
                 }
             }
             else -> Modifier
@@ -290,6 +324,17 @@ internal fun ImageCanvas(
             )
         }
     }
+        if (zoomState.zoom > 1.01f) {
+            // 확대한 상태에서는 원래 크기로 돌아가는 버튼을 보여 준다. 두 손가락 제스처를 모르는 사용자도 빠져나올 수 있다.
+            TextButton(
+                onClick = zoomState::reset,
+                modifier = Modifier.align(Alignment.BottomStart).padding(8.dp)
+                    .background(colors.surface.copy(alpha = 0.86f), MaterialTheme.shapes.small),
+            ) {
+                Text(stringResource(UiR.string.framekit_zoom_fit, (zoomState.zoom * 100).roundToInt()), color = colors.foreground)
+            }
+        }
+    }
 }
 
 private val PREVIEW_PAINT = Paint(Paint.FILTER_BITMAP_FLAG)
@@ -323,5 +368,36 @@ private fun DrawScope.drawSelection(corners: List<PointN>, accent: Color) {
             drawLine(Color.White, center - Offset(mark, 0f), center + Offset(mark, 0f), stroke)
             drawLine(Color.White, center - Offset(0f, mark), center + Offset(0f, mark), stroke)
         }
+    }
+}
+
+/**
+ * 캔버스 화면 확대 상태. 1배에서 최대 [MAX_ZOOM]배까지이며, 확대된 콘텐츠가 화면 밖으로 빠져 빈 곳이
+ * 보이지 않도록 이동량을 제한한다.
+ */
+@Stable
+internal class CanvasZoomState {
+    var zoom by mutableFloatStateOf(1f)
+        private set
+    var pan by mutableStateOf(Offset.Zero)
+        private set
+
+    /** @param localPan 확대 전 좌표계의 이동량. 화면에서는 [zoom]배로 보인다. */
+    fun apply(zoomChange: Float, localPan: Offset, width: Float, height: Float) {
+        val next = (zoom * zoomChange).coerceIn(1f, MAX_ZOOM)
+        val maxX = (next - 1f) * width / 2f
+        val maxY = (next - 1f) * height / 2f
+        val moved = pan * (next / zoom) + localPan * next
+        zoom = next
+        pan = Offset(moved.x.coerceIn(-maxX, maxX), moved.y.coerceIn(-maxY, maxY))
+    }
+
+    fun reset() {
+        zoom = 1f
+        pan = Offset.Zero
+    }
+
+    private companion object {
+        const val MAX_ZOOM = 5f
     }
 }

@@ -594,6 +594,11 @@ internal class ImageEditorViewModel(
         if (extended === last) project else project.copy(drawing = project.drawing.dropLast(1) + extended)
     }
 
+    override fun cancelStroke() {
+        maskAnchor = null
+        updateReady { ready -> if (ready.activeTool?.isDraft == true || !ready.transaction.isActive) ready else ready.copy(transaction = ready.transaction.cancel()) }
+    }
+
     override fun finishStroke() {
         val ready = _state.value as? ImageEditorUiState.Ready
         val mask = ready?.transaction?.draft?.privacyMasks?.lastOrNull()
