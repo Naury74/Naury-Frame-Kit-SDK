@@ -132,6 +132,7 @@ internal class VideoEditorViewModel(
     private val readAudio: (SourceId) -> AudioSourceInfo = { throw FrameKitException(EditorErrorCode.UNSUPPORTED_OPERATION, "No audio reader") },
     private val describe: (Uri) -> String? = { null },
     private val captureFile: (() -> Pair<File, Uri>)? = null,
+    cleanup: (() -> Unit)? = null,
 ) : ViewModel(), VideoCanvasActions {
 
     private val _state = MutableStateFlow<VideoEditorUiState>(VideoEditorUiState.Loading)
@@ -151,6 +152,11 @@ internal class VideoEditorViewModel(
 
     /** 미리보기가 보여 주는 프레임 크기. 출력 캔버스이며, 자르는 중에는 선택한 클립의 자르기 전 프레임이다. */
     val previewSize: StateFlow<Pair<Int, Int>?> = _previewSize.asStateFlow()
+
+    private val _previewFailed = MutableStateFlow(false)
+
+    /** 미리보기를 구성하지 못했으면 `true`. 재생 오류는 [playback]의 `error`로 온다. */
+    val previewFailed: StateFlow<Boolean> = _previewFailed.asStateFlow()
 
     private val _filterThumbnails = MutableStateFlow<Map<String, Bitmap>>(emptyMap())
     val filterThumbnails: StateFlow<Map<String, Bitmap>> = _filterThumbnails.asStateFlow()
@@ -178,6 +184,8 @@ internal class VideoEditorViewModel(
     val multiClip: Boolean get() = config.maxClipCount > 1
 
     init {
+        // 이전 저장이 중단되며 남긴 임시 MP4를 지운다(수 GB일 수 있다).
+        cleanup?.let { task -> viewModelScope.launch(ioDispatcher) { runCatching(task) } }
         if (savedState.contains(VideoSessionRecorder.KEY_SESSION_ID) && session != null) restore() else start()
         viewModelScope.launch {
             state.collect { current -> if (current is VideoEditorUiState.Ready) requestPreview(current) }
@@ -408,7 +416,14 @@ internal class VideoEditorViewModel(
         val position = (pendingSeekUs ?: engine.state.value.positionUs).coerceIn(0, max(0, duration - FRAME_US))
         pendingSeekUs = null
         _previewSize.value = plan.canvasSize.width to plan.canvasSize.height
-        engine.setPlan(plan, position)
+        try {
+            engine.setPlan(plan, position)
+            _previewFailed.value = false
+        } catch (error: RuntimeException) {
+            // 미리보기 구성에 실패해도 편집과 저장은 계속할 수 있게 한다. 화면에는 미리보기 오류를 표시한다.
+            logFailure("preview", FrameKitException(EditorErrorCode.DECODE_FAILED, cause = error))
+            _previewFailed.value = true
+        }
     }
 
     fun togglePlayback() {
@@ -772,13 +787,27 @@ internal class VideoEditorViewModel(
         thumbnailClipSource = ready.clip.source
         _filterThumbnails.value = emptyMap()
         thumbnailJob = viewModelScope.launch {
-            val frame = frames.frame(ready.location, ready.clip.source.value, ready.clip.sourceRange.startUs, FILTER_THUMBNAIL_PX) ?: return@launch
+            val frame = frames.frame(ready.location, ready.clip.source.value, ready.clip.sourceRange.startUs, FILTER_THUMBNAIL_PX)
+            if (frame == null) {
+                // 프레임을 못 읽었으면 다음에 필터 도구를 열 때 다시 시도한다.
+                thumbnailJob = null
+                return@launch
+            }
             FilterCatalog.all.forEach { preset ->
+                // 썸네일 하나를 못 만들어도(메모리·GL 오류) 나머지는 계속 만든다.
                 val thumbnail = withContext(Dispatchers.Default) {
-                    frame.copy(Bitmap.Config.ARGB_8888, true).also {
-                        colorRenderer.apply(it, ColorEffectSpec.of(Adjustments(), FilterSelection(preset.id, 1.0), 0L), includeCanvasEffects = false)
+                    try {
+                        frame.copy(Bitmap.Config.ARGB_8888, true)?.also {
+                            colorRenderer.apply(it, ColorEffectSpec.of(Adjustments(), FilterSelection(preset.id, 1.0), 0L), includeCanvasEffects = false)
+                        }
+                    } catch (cancelled: CancellationException) {
+                        throw cancelled
+                    } catch (_: Exception) {
+                        null
+                    } catch (_: OutOfMemoryError) {
+                        null
                     }
-                }
+                } ?: return@forEach
                 _filterThumbnails.update { it + (preset.id to thumbnail) }
             }
         }
@@ -831,8 +860,10 @@ internal class VideoEditorViewModel(
             val opened = withContext(ioDispatcher) {
                 try {
                     openAudio(EditorInput.UriSource(uri), describe(uri))
-                } catch (error: FrameKitException) {
-                    logFailure("music", error)
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
+                } catch (error: Exception) {
+                    logFailure("music", error as? FrameKitException ?: FrameKitException(EditorErrorCode.DECODE_FAILED, cause = error))
                     null
                 }
             }

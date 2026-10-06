@@ -4,6 +4,7 @@ import android.content.Context
 import android.media.MediaCodecList
 import android.media.MediaExtractor
 import android.media.MediaFormat
+import android.media.MediaMetadataRetriever
 import com.naury.framekit.android.result.EditorErrorCode
 import com.naury.framekit.android.result.FrameKitException
 import com.naury.framekit.android.source.SourceLocation
@@ -54,6 +55,7 @@ public class VideoMetadataReader(context: Context, private val resolver: SourceR
             }
             val width = videoFormat.getInteger(MediaFormat.KEY_WIDTH)
             val height = videoFormat.getInteger(MediaFormat.KEY_HEIGHT)
+            if (durationUs <= 0) durationUs = containerDurationUs(id)
             if (width <= 0 || height <= 0 || durationUs <= 0) throw FrameKitException(EditorErrorCode.DECODE_FAILED, "Invalid video header")
             val rotation = if (videoFormat.containsKey(MediaFormat.KEY_ROTATION)) Math.floorMod(videoFormat.getInteger(MediaFormat.KEY_ROTATION), 360) else 0
             val encoded = PixelSize(width, height)
@@ -73,7 +75,10 @@ public class VideoMetadataReader(context: Context, private val resolver: SourceR
             throw FrameKitException(EditorErrorCode.SOURCE_UNAVAILABLE, "Video not found", error)
         } catch (error: IOException) {
             throw FrameKitException(EditorErrorCode.DECODE_FAILED, "Video could not be read", error)
-        } catch (error: IllegalArgumentException) {
+        } catch (error: FrameKitException) {
+            throw error
+        } catch (error: RuntimeException) {
+            // 키가 없는 트랙(NPE)·잘못된 값 타입(ClassCast)·provider 내부 오류(IllegalState)도 손상된 원본으로 본다.
             throw FrameKitException(EditorErrorCode.DECODE_FAILED, "Video header is damaged", error)
         } finally {
             extractor.release()
@@ -98,10 +103,13 @@ public class VideoMetadataReader(context: Context, private val resolver: SourceR
                 .firstOrNull { it.getString(MediaFormat.KEY_MIME)?.startsWith("audio/") == true }
                 ?: throw FrameKitException(EditorErrorCode.INVALID_SOURCE, "No audio track")
             val mime = checkNotNull(audio.getString(MediaFormat.KEY_MIME))
-            if (MediaCodecList(MediaCodecList.REGULAR_CODECS).findDecoderForFormat(MediaFormat.createAudioFormat(mime, audio.getInteger(MediaFormat.KEY_SAMPLE_RATE), audio.getInteger(MediaFormat.KEY_CHANNEL_COUNT))) == null) {
+            val sampleRate = if (audio.containsKey(MediaFormat.KEY_SAMPLE_RATE)) audio.getInteger(MediaFormat.KEY_SAMPLE_RATE) else DEFAULT_SAMPLE_RATE
+            val channels = if (audio.containsKey(MediaFormat.KEY_CHANNEL_COUNT)) audio.getInteger(MediaFormat.KEY_CHANNEL_COUNT) else 2
+            if (MediaCodecList(MediaCodecList.REGULAR_CODECS).findDecoderForFormat(MediaFormat.createAudioFormat(mime, sampleRate, channels)) == null) {
                 throw FrameKitException(EditorErrorCode.UNSUPPORTED_FORMAT, "No decoder for the audio codec")
             }
-            val durationUs = if (audio.containsKey(MediaFormat.KEY_DURATION)) audio.getLong(MediaFormat.KEY_DURATION) else 0L
+            val durationUs = (if (audio.containsKey(MediaFormat.KEY_DURATION)) audio.getLong(MediaFormat.KEY_DURATION) else 0L)
+                .takeIf { it > 0 } ?: containerDurationUs(id)
             if (durationUs <= 0) throw FrameKitException(EditorErrorCode.DECODE_FAILED, "Invalid audio header")
             return AudioSourceInfo(SourceMetadata(id, MediaType.AUDIO, mime, PixelSize(0, 0), durationUs, hasAudio = true), mime)
         } catch (error: SecurityException) {
@@ -110,10 +118,29 @@ public class VideoMetadataReader(context: Context, private val resolver: SourceR
             throw FrameKitException(EditorErrorCode.SOURCE_UNAVAILABLE, "Audio not found", error)
         } catch (error: IOException) {
             throw FrameKitException(EditorErrorCode.DECODE_FAILED, "Audio could not be read", error)
-        } catch (error: IllegalArgumentException) {
+        } catch (error: FrameKitException) {
+            throw error
+        } catch (error: RuntimeException) {
             throw FrameKitException(EditorErrorCode.DECODE_FAILED, "Audio header is damaged", error)
         } finally {
             extractor.release()
+        }
+    }
+
+    // 트랙에 길이가 없는 파일(일부 WebM·MKV·조각난 MP4)은 컨테이너 길이를 쓴다.
+    private fun containerDurationUs(id: SourceId): Long {
+        val retriever = MediaMetadataRetriever()
+        return try {
+            when (val location = resolver.location(id)) {
+                is SourceLocation.Content -> retriever.setDataSource(appContext, location.uri)
+                is SourceLocation.LocalFile -> retriever.setDataSource(location.file.absolutePath)
+                null -> return 0L
+            }
+            (retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull() ?: 0L) * 1000
+        } catch (_: RuntimeException) {
+            0L
+        } finally {
+            runCatching { retriever.release() }
         }
     }
 
@@ -133,5 +160,9 @@ public class VideoMetadataReader(context: Context, private val resolver: SourceR
         setInteger(MediaFormat.KEY_WIDTH, format.getInteger(MediaFormat.KEY_WIDTH))
         setInteger(MediaFormat.KEY_HEIGHT, format.getInteger(MediaFormat.KEY_HEIGHT))
         if (format.containsKey(MediaFormat.KEY_PROFILE)) setInteger(MediaFormat.KEY_PROFILE, format.getInteger(MediaFormat.KEY_PROFILE))
+    }
+
+    private companion object {
+        const val DEFAULT_SAMPLE_RATE = 44_100
     }
 }

@@ -94,13 +94,27 @@ internal class ImagePreviewController(
         thumbnailJob?.cancel()
         _thumbnails.value = emptyMap()
         thumbnailJob = scope.launch {
-            val base = withContext(renderDispatcher) { scaledCopy(source.bitmap) }
+            val base = withContext(renderDispatcher) { runCatching { scaledCopy(source.bitmap) }.getOrNull() }
+            if (base == null) {
+                // 메모리가 부족하면 다음에 필터 도구를 열 때 다시 시도한다.
+                thumbnailSource = null
+                return@launch
+            }
             FilterCatalog.all.forEach { preset ->
+                // 썸네일 하나를 못 만들어도(메모리·GL 오류) 나머지는 계속 만든다.
                 val thumbnail = withContext(renderDispatcher) {
-                    base.copy(Bitmap.Config.ARGB_8888, true).also { bitmap ->
-                        colorRenderer.apply(bitmap, ColorEffectSpec.of(Adjustments(), FilterSelection(preset.id, 1.0), 0L), includeCanvasEffects = false)
+                    try {
+                        base.copy(Bitmap.Config.ARGB_8888, true)?.also { bitmap ->
+                            colorRenderer.apply(bitmap, ColorEffectSpec.of(Adjustments(), FilterSelection(preset.id, 1.0), 0L), includeCanvasEffects = false)
+                        }
+                    } catch (cancelled: CancellationException) {
+                        throw cancelled
+                    } catch (_: Exception) {
+                        null
+                    } catch (_: OutOfMemoryError) {
+                        null
                     }
-                }
+                } ?: return@forEach
                 _thumbnails.update { it + (preset.id to thumbnail) }
             }
         }

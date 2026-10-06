@@ -1,5 +1,6 @@
 package com.naury.framekit.ui.video.editor
 
+import com.naury.framekit.ui.text.messageRes
 import com.naury.framekit.ui.source.rememberSourceLaunchers
 import com.naury.framekit.android.input.MediaKind
 import androidx.compose.material.icons.Icons
@@ -280,6 +281,21 @@ private fun CanvasArea(state: VideoEditorUiState.Ready, viewModel: VideoEditorVi
             onDetachSurface = { viewModel.detachSurface(it.holder) },
             onTap = viewModel::togglePlayback,
         )
+        val previewFailed by viewModel.previewFailed.collectAsStateWithLifecycle()
+        val previewError = playback.error
+        if (previewFailed || previewError != null) {
+            // 재생할 수 없어도(원본 삭제·권한 상실·디코더 부족) 편집과 저장 시도는 계속할 수 있다.
+            Text(
+                stringResource(R.string.framekit_preview_unavailable) + (previewError?.let { "\n" + stringResource(it.messageRes()) } ?: ""),
+                color = FrameKitTheme.colors.foreground,
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .padding(24.dp)
+                    .background(FrameKitTheme.colors.surface.copy(alpha = 0.9f), MaterialTheme.shapes.medium)
+                    .padding(16.dp),
+            )
+        }
         if (state.activeTool?.isDraft != true) {
             val history = state.transaction.history
             HistoryControls(
