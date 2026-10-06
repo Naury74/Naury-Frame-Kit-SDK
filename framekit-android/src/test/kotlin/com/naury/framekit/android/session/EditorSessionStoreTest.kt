@@ -5,6 +5,8 @@ import android.content.Intent
 import android.net.Uri
 import androidx.test.core.app.ApplicationProvider
 import com.google.common.truth.Truth.assertThat
+import com.naury.framekit.core.effect.Adjustments
+import com.naury.framekit.core.effect.FilterSelection
 import com.naury.framekit.core.geometry.GeometryEdit
 import com.naury.framekit.core.geometry.RectN
 import com.naury.framekit.core.model.ImageProject
@@ -29,6 +31,9 @@ class EditorSessionStoreTest {
         id = ProjectId("p"),
         source = SourceId("old"),
         geometry = GeometryEdit(quarterTurns = 1, straightenDegrees = 7.5, flipX = true, crop = RectN(0.1, 0.2, 0.8, 0.9)),
+        adjustments = Adjustments(exposure = 0.5, vignette = 0.3),
+        filter = FilterSelection("film02", 0.7),
+        grainSeed = 42L,
         revision = 3,
     )
 
@@ -44,6 +49,19 @@ class EditorSessionStoreTest {
         assertThat(record.fingerprint).isEqualTo(fingerprint)
         assertThat(restored).isEqualTo(project.copy(source = SourceId("new")))
         assertThat(record.exportWasInterrupted).isFalse()
+    }
+
+    @Test
+    fun `snapshot written before effects existed still loads with neutral effects`() {
+        val id = checkNotNull(store.create(source, fingerprint))
+        val legacy = """{"schemaVersion":1,"updatedAt":1,"exportInProgress":false,"image":{"projectId":"p","revision":2,""" +
+            """"quarterTurns":0,"straightenDegrees":0.0,"flipX":false,"flipY":false,"cropLeft":0.0,"cropTop":0.0,"cropRight":1.0,"cropBottom":1.0}}"""
+        File(File(store.directory, id), "project.snapshot").writeText(legacy)
+
+        val restored = checkNotNull(store.load(id)?.snapshot).toProject(SourceId("s"))
+
+        assertThat(restored.adjustments.isIdentity).isTrue()
+        assertThat(restored.filter.isIdentity).isTrue()
     }
 
     @Test

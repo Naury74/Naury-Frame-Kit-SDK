@@ -1,5 +1,8 @@
 package com.naury.framekit.android.session
 
+import com.naury.framekit.core.effect.Adjustments
+import com.naury.framekit.core.effect.FilterCatalog
+import com.naury.framekit.core.effect.FilterSelection
 import com.naury.framekit.core.geometry.GeometryEdit
 import com.naury.framekit.core.geometry.RectN
 import com.naury.framekit.core.model.ImageProject
@@ -56,6 +59,10 @@ public data class ImageProjectSnapshot(
     val cropTop: Double,
     val cropRight: Double,
     val cropBottom: Double,
+    val adjustments: AdjustmentsSnapshot = AdjustmentsSnapshot(),
+    val filterPresetId: String = FilterCatalog.ORIGINAL_ID,
+    val filterIntensity: Double = 0.0,
+    val grainSeed: Long = 0L,
 ) {
     public fun toProject(source: SourceId): ImageProject = ImageProject(
         id = ProjectId(projectId),
@@ -67,6 +74,9 @@ public data class ImageProjectSnapshot(
             flipY = flipY,
             crop = RectN(cropLeft, cropTop, cropRight, cropBottom),
         ),
+        adjustments = adjustments.toModel(),
+        filter = FilterSelection(filterPresetId, filterIntensity),
+        grainSeed = grainSeed,
         revision = revision,
     )
 
@@ -83,8 +93,39 @@ public data class ImageProjectSnapshot(
                 cropTop = crop.top,
                 cropRight = crop.right,
                 cropBottom = crop.bottom,
+                adjustments = AdjustmentsSnapshot.of(project.adjustments),
+                filterPresetId = project.filter.presetId,
+                filterIntensity = project.filter.intensity,
+                grainSeed = project.grainSeed,
             )
         }
+    }
+}
+
+/** Stored form of [Adjustments]; every field defaults to 0 so older snapshots still load. */
+@Serializable
+public data class AdjustmentsSnapshot(
+    val brightness: Double = 0.0,
+    val exposure: Double = 0.0,
+    val contrast: Double = 0.0,
+    val highlights: Double = 0.0,
+    val shadows: Double = 0.0,
+    val saturation: Double = 0.0,
+    val temperature: Double = 0.0,
+    val tint: Double = 0.0,
+    val sharpness: Double = 0.0,
+    val fade: Double = 0.0,
+    val vignette: Double = 0.0,
+    val grain: Double = 0.0,
+) {
+    public fun toModel(): Adjustments =
+        Adjustments(brightness, exposure, contrast, highlights, shadows, saturation, temperature, tint, sharpness, fade, vignette, grain)
+
+    public companion object {
+        public fun of(a: Adjustments): AdjustmentsSnapshot = AdjustmentsSnapshot(
+            a.brightness, a.exposure, a.contrast, a.highlights, a.shadows, a.saturation, a.temperature, a.tint,
+            a.sharpness, a.fade, a.vignette, a.grain,
+        )
     }
 }
 
