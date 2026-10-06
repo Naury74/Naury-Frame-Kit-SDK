@@ -34,6 +34,17 @@ internal object TestVideoFactory {
         muxer.release()
     }
 
+    /** 440 Hz AAC 톤만 있는 m4a를 만든다. 배경 음악 테스트용이다. */
+    fun createAudio(file: File, durationUs: Long) {
+        val audio = encodeAudio(durationUs)
+        val muxer = MediaMuxer(file.absolutePath, MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4)
+        val track = muxer.addTrack(audio.format)
+        muxer.start()
+        audio.samples.forEach { muxer.writeSampleData(track, ByteBuffer.wrap(it.data), it.info) }
+        muxer.stop()
+        muxer.release()
+    }
+
     private class Sample(val data: ByteArray, val info: MediaCodec.BufferInfo)
     private class Track(val format: MediaFormat, val samples: List<Sample>)
 

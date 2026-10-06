@@ -80,6 +80,43 @@ public class VideoMetadataReader(context: Context, private val resolver: SourceR
         }
     }
 
+    /**
+     * 배경 음악으로 쓸 원본의 오디오 트랙을 읽는다. 영상 파일의 소리만 쓰는 것도 가능하다.
+     *
+     * @throws FrameKitException 오디오 트랙이 없으면 `INVALID_SOURCE`, 디코더가 없으면 `UNSUPPORTED_FORMAT`,
+     *   읽을 수 없는 파일이면 `PERMISSION_DENIED`, `SOURCE_UNAVAILABLE` 또는 `DECODE_FAILED`.
+     */
+    public fun readAudio(id: SourceId): AudioSourceInfo {
+        val extractor = MediaExtractor()
+        try {
+            when (val location = resolver.location(id)) {
+                is SourceLocation.Content -> extractor.setDataSource(appContext, location.uri, null)
+                is SourceLocation.LocalFile -> extractor.setDataSource(location.file.absolutePath)
+                null -> throw FrameKitException(EditorErrorCode.INVALID_SOURCE, "Audio sources need a file or Uri")
+            }
+            val audio = (0 until extractor.trackCount).map(extractor::getTrackFormat)
+                .firstOrNull { it.getString(MediaFormat.KEY_MIME)?.startsWith("audio/") == true }
+                ?: throw FrameKitException(EditorErrorCode.INVALID_SOURCE, "No audio track")
+            val mime = checkNotNull(audio.getString(MediaFormat.KEY_MIME))
+            if (MediaCodecList(MediaCodecList.REGULAR_CODECS).findDecoderForFormat(MediaFormat.createAudioFormat(mime, audio.getInteger(MediaFormat.KEY_SAMPLE_RATE), audio.getInteger(MediaFormat.KEY_CHANNEL_COUNT))) == null) {
+                throw FrameKitException(EditorErrorCode.UNSUPPORTED_FORMAT, "No decoder for the audio codec")
+            }
+            val durationUs = if (audio.containsKey(MediaFormat.KEY_DURATION)) audio.getLong(MediaFormat.KEY_DURATION) else 0L
+            if (durationUs <= 0) throw FrameKitException(EditorErrorCode.DECODE_FAILED, "Invalid audio header")
+            return AudioSourceInfo(SourceMetadata(id, MediaType.AUDIO, mime, PixelSize(0, 0), durationUs, hasAudio = true), mime)
+        } catch (error: SecurityException) {
+            throw FrameKitException(EditorErrorCode.PERMISSION_DENIED, "No read access", error)
+        } catch (error: FileNotFoundException) {
+            throw FrameKitException(EditorErrorCode.SOURCE_UNAVAILABLE, "Audio not found", error)
+        } catch (error: IOException) {
+            throw FrameKitException(EditorErrorCode.DECODE_FAILED, "Audio could not be read", error)
+        } catch (error: IllegalArgumentException) {
+            throw FrameKitException(EditorErrorCode.DECODE_FAILED, "Audio header is damaged", error)
+        } finally {
+            extractor.release()
+        }
+    }
+
     private fun frameRateOf(format: MediaFormat): Float? = when {
         !format.containsKey(MediaFormat.KEY_FRAME_RATE) -> null
         else -> runCatching { format.getInteger(MediaFormat.KEY_FRAME_RATE).toFloat() }

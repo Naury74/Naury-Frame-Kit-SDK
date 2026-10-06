@@ -31,6 +31,7 @@ import com.naury.framekit.core.video.TimelineTimeMapper
 import com.naury.framekit.core.video.VideoProject
 import com.naury.framekit.video.VideoPlanFactory
 import com.naury.framekit.video.media3.Media3CompositionFactory
+import com.naury.framekit.video.source.AudioSourceInfo
 import com.naury.framekit.video.source.VideoSourceInfo
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
@@ -72,6 +73,7 @@ public class VideoExportCoordinator(
 
     /**
      * @param minClipOutputDurationUs 허용하는 최소 클립 길이. 편집기 설정 값과 같다.
+     * @param audioSources 배경 음악 원본 정보. [locations]에 음악 원본의 위치도 넣는다.
      * @throws FrameKitException `INVALID_PROJECT`, `INVALID_CONFIGURATION`, `INSUFFICIENT_STORAGE`,
      *   `DECODE_FAILED`, `UNSUPPORTED_FORMAT`, `ENCODE_FAILED`, `SOURCE_UNAVAILABLE` 또는
      *   `OUTPUT_WRITE_FAILED`.
@@ -83,6 +85,7 @@ public class VideoExportCoordinator(
         config: VideoExportConfig = VideoExportConfig(),
         target: OutputTarget = OutputTarget.AppFile,
         minClipOutputDurationUs: Long = 0L,
+        audioSources: Map<SourceId, AudioSourceInfo> = emptyMap(),
         onProgress: (VideoExportProgress) -> Unit = {},
     ): EditedMedia {
         onProgress(VideoExportProgress.Preparing)
@@ -90,11 +93,15 @@ public class VideoExportCoordinator(
         if (configCheck is ValidationResult.Invalid) {
             throw FrameKitException(EditorErrorCode.INVALID_CONFIGURATION, configCheck.issues.joinToString { it.path })
         }
-        val projectCheck = VideoProjectValidator.validate(project, sources.mapValues { it.value.metadata }, minClipOutputDurationUs)
+        val projectCheck = VideoProjectValidator.validate(
+            project,
+            sources.mapValues { it.value.metadata } + audioSources.mapValues { it.value.metadata },
+            minClipOutputDurationUs,
+        )
         if (projectCheck is ValidationResult.Invalid) {
             throw FrameKitException(EditorErrorCode.INVALID_PROJECT, projectCheck.issues.joinToString { "${it.path}: ${it.code}" })
         }
-        val plan = VideoPlanFactory.create(project, sources, locations, config.maxShortSide)
+        val plan = VideoPlanFactory.create(project, sources, locations, config.maxShortSide, audioSources)
         val durationUs = TimelineTimeMapper.durationUs(project.timeline)
         checkStorage(plan.canvasSize.width, plan.canvasSize.height, durationUs, config.maxFrameRate)
         val composition = Media3CompositionFactory.create(plan, config.maxFrameRate)

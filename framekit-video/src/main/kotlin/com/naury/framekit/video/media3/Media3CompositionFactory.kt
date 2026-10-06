@@ -21,7 +21,13 @@ import androidx.media3.transformer.EditedMediaItemSequence
 import androidx.media3.transformer.Effects
 import com.naury.framekit.android.source.SourceLocation
 import com.naury.framekit.core.video.CanvasFit
+import com.naury.framekit.video.ResolvedAudio
 import com.naury.framekit.video.ResolvedClip
+import com.naury.framekit.core.video.AudioPlacement
+import com.naury.framekit.core.video.AudioSegment
+import com.naury.framekit.core.video.TimelineTimeMapper
+import androidx.media3.common.C
+import androidx.media3.effect.OverlayEffect
 import com.naury.framekit.video.VideoRenderPlan
 
 /**
@@ -29,17 +35,61 @@ import com.naury.framekit.video.VideoRenderPlan
  * trim, 속도, geometry, 색 보정이 똑같이 적용된다. Media3 타입은 이 패키지 밖으로 나가지 않는다.
  *
  * 클립 단위: trim(clipping), 속도, 음소거/볼륨, geometry, 캔버스 맞춤, 색 보정. Composition 전체:
- * 출력 캔버스의 구간별 가리기 마스크, HDR을 SDR로 tone-map.
+ * 출력 캔버스의 구간별 가리기 마스크와 그 위의 구간별 텍스트·스티커, HDR을 SDR로 tone-map.
+ * 배경 음악은 클립마다 별도 오디오 sequence로 만들어 영상 소리와 섞는다.
  */
 internal object Media3CompositionFactory {
 
     fun create(plan: VideoRenderPlan, maxFrameRate: Int?): Composition {
         val items = plan.clips.map { item(it, plan, maxFrameRate) }
-        val masks = plan.project.timeline.privacyMasks
-        return Composition.Builder(EditedMediaItemSequence.Builder(items).build())
-            .setHdrMode(Composition.HDR_MODE_TONE_MAP_HDR_TO_SDR_USING_OPEN_GL)
-            .apply { if (masks.isNotEmpty()) setEffects(Effects(emptyList(), listOf(PrivacyGlEffect(masks)))) }
+        val timeline = plan.project.timeline
+        val clipAudio = plan.clips.any { !it.clip.muted && it.source.metadata.hasAudio }
+        // 소리가 있는 클립과 없는 클립이 섞이거나 배경 음악만 있으면 무음 트랙을 만들어 트랙 구성을 맞춘다.
+        val video = EditedMediaItemSequence.Builder(items)
+            .experimentalSetForceAudioTrack(clipAudio || plan.audio.isNotEmpty())
             .build()
+        val durationUs = TimelineTimeMapper.durationUs(timeline)
+        val music = plan.audio.mapNotNull { audioSequence(it, durationUs) }
+        val effects = buildList<Effect> {
+            if (timeline.privacyMasks.isNotEmpty()) add(PrivacyGlEffect(timeline.privacyMasks))
+            if (timeline.overlays.isNotEmpty()) add(OverlayEffect(listOf(TimedBitmapOverlay(timeline.overlays))))
+        }
+        return Composition.Builder(listOf(video) + music)
+            .setHdrMode(Composition.HDR_MODE_TONE_MAP_HDR_TO_SDR_USING_OPEN_GL)
+            .apply { if (effects.isNotEmpty()) setEffects(Effects(emptyList(), effects)) }
+            .build()
+    }
+
+    private fun audioSequence(resolved: ResolvedAudio, videoDurationUs: Long): EditedMediaItemSequence? {
+        val segments = AudioPlacement.segments(resolved.clip, videoDurationUs)
+        if (segments.none { it is AudioSegment.Play }) return null
+        val builder = EditedMediaItemSequence.Builder(setOf(C.TRACK_TYPE_AUDIO))
+        val volume = resolved.clip.volume.toFloat()
+        segments.forEach { segment ->
+            when (segment) {
+                is AudioSegment.Silence -> builder.addGap(segment.durationUs)
+                is AudioSegment.Play -> {
+                    val mediaItem = MediaItem.Builder()
+                        .setUri(uriOf(resolved.location))
+                        .setClippingConfiguration(
+                            MediaItem.ClippingConfiguration.Builder()
+                                .setStartPositionUs(segment.sourceRange.startUs)
+                                .setEndPositionUs(segment.sourceRange.endExclusiveUs)
+                                .build(),
+                        )
+                        .build()
+                    val audio = if (volume != 1f) listOf<AudioProcessor>(AudioEffects.volume(volume)) else emptyList()
+                    builder.addItem(
+                        EditedMediaItem.Builder(mediaItem)
+                            .setRemoveVideo(true)
+                            .apply { resolved.source.metadata.durationUs?.let(::setDurationUs) }
+                            .setEffects(Effects(audio, emptyList()))
+                            .build(),
+                    )
+                }
+            }
+        }
+        return builder.build()
     }
 
     private fun item(resolved: ResolvedClip, plan: VideoRenderPlan, maxFrameRate: Int?): EditedMediaItem {
