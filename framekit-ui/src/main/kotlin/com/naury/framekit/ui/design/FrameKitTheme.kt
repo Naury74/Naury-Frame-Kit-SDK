@@ -1,0 +1,125 @@
+package com.naury.framekit.ui.design
+
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.ColorScheme
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Shapes
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
+import com.naury.framekit.ui.config.EditorUiConfig
+import com.naury.framekit.ui.config.ThemeMode
+
+/** Named editor colors. Status colors are exposed by name so hosts can check their contrast. */
+@Immutable
+public data class FrameKitColors(
+    val accent: Color,
+    val onAccent: Color,
+    val background: Color,
+    val surface: Color,
+    val raised: Color,
+    val foreground: Color,
+    val foregroundMuted: Color,
+    val canvasBackground: Color,
+    val error: Color,
+    val isDark: Boolean,
+) {
+    public companion object {
+        public val DefaultAccent: Color = Color(0xFF635BFF)
+
+        public fun dark(accent: Color = DefaultAccent): FrameKitColors = FrameKitColors(
+            accent = accent,
+            onAccent = Color.White,
+            background = Color(0xFF0D0D0E),
+            surface = Color(0xFF171719),
+            raised = Color(0xFF242428),
+            foreground = Color(0xFFFFFFFF),
+            foregroundMuted = Color(0xFFA1A1AA),
+            canvasBackground = Color(0xFF000000),
+            error = Color(0xFFFF6B6B),
+            isDark = true,
+        )
+
+        public fun light(accent: Color = DefaultAccent): FrameKitColors = FrameKitColors(
+            accent = accent,
+            onAccent = Color.White,
+            background = Color(0xFFF6F6F8),
+            surface = Color(0xFFFFFFFF),
+            raised = Color(0xFFEDEDF1),
+            foreground = Color(0xFF111114),
+            foregroundMuted = Color(0xFF5F5F6B),
+            canvasBackground = Color(0xFFE4E4E9),
+            error = Color(0xFFD92D20),
+            isDark = false,
+        )
+    }
+}
+
+/** Values derived from [EditorUiConfig] that editor components read. */
+@Immutable
+public data class FrameKitDesign(
+    val colors: FrameKitColors,
+    val config: EditorUiConfig,
+)
+
+private val LocalFrameKitDesign = staticCompositionLocalOf { FrameKitDesign(FrameKitColors.dark(), EditorUiConfig()) }
+
+/** Accessors for the current editor design inside [FrameKitTheme]. */
+public object FrameKitTheme {
+    public val colors: FrameKitColors
+        @Composable get() = LocalFrameKitDesign.current.colors
+
+    public val config: EditorUiConfig
+        @Composable get() = LocalFrameKitDesign.current.config
+}
+
+/** Applies the editor colors, shapes and Material theme described by [config]. */
+@Composable
+public fun FrameKitTheme(config: EditorUiConfig, content: @Composable () -> Unit) {
+    val dark = when (config.themeMode) {
+        ThemeMode.DARK -> true
+        ThemeMode.LIGHT -> false
+        ThemeMode.SYSTEM -> isSystemInDarkTheme()
+    }
+    val accent = config.accentArgb?.let(::Color) ?: FrameKitColors.DefaultAccent
+    val colors = if (dark) FrameKitColors.dark(accent) else FrameKitColors.light(accent)
+    val radius = config.cornerRadiusDp.dp
+    CompositionLocalProvider(LocalFrameKitDesign provides FrameKitDesign(colors, config)) {
+        MaterialTheme(
+            colorScheme = colors.toMaterial(),
+            shapes = Shapes(
+                small = RoundedCornerShape(radius / 2),
+                medium = RoundedCornerShape(radius),
+                large = RoundedCornerShape(radius),
+            ),
+            content = content,
+        )
+    }
+}
+
+private fun FrameKitColors.toMaterial(): ColorScheme {
+    val base = if (isDark) darkColorScheme() else lightColorScheme()
+    return base.copy(
+        primary = accent,
+        onPrimary = onAccent,
+        secondary = accent,
+        onSecondary = onAccent,
+        background = background,
+        onBackground = foreground,
+        surface = surface,
+        onSurface = foreground,
+        surfaceVariant = raised,
+        onSurfaceVariant = foregroundMuted,
+        surfaceContainer = surface,
+        surfaceContainerHigh = raised,
+        surfaceContainerHighest = raised,
+        error = error,
+        outline = foregroundMuted,
+    )
+}

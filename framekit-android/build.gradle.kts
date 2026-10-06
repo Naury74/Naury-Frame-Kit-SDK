@@ -5,6 +5,7 @@ plugins {
 
 android {
     namespace = "com.naury.framekit.android"
+    resourcePrefix = "framekit_"
     compileSdk = libs.versions.compileSdk.get().toInt()
 
     defaultConfig {

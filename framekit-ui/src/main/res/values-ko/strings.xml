@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="framekit_action_close">닫기</string>
+    <string name="framekit_action_save">저장</string>
+    <string name="framekit_action_undo">실행 취소</string>
+    <string name="framekit_action_redo">다시 실행</string>
+    <string name="framekit_action_apply">적용</string>
+    <string name="framekit_action_cancel">취소</string>
+    <string name="framekit_action_reset">초기화</string>
+    <string name="framekit_action_retry">다시 시도</string>
+    <string name="framekit_action_keep_editing">계속 편집</string>
+    <string name="framekit_action_discard">버리기</string>
+    <string name="framekit_action_choose_another">다른 파일 선택</string>
+
+    <string name="framekit_discard_title">변경 사항을 버릴까요?</string>
+    <string name="framekit_discard_message">편집한 내용이 사라집니다.</string>
+    <string name="framekit_apply_first">저장하려면 지금 도구를 먼저 적용하거나 취소하세요.</string>
+    <string name="framekit_loading">여는 중…</string>
+    <string name="framekit_original_badge">원본</string>
+    <string name="framekit_show_original">원본 보기</string>
+
+    <string name="framekit_export_preparing">준비 중…</string>
+    <string name="framekit_export_rendering">이미지 만드는 중…</string>
+    <string name="framekit_export_encoding">파일로 저장하는 중…</string>
+    <string name="framekit_export_finalizing">마무리하는 중…</string>
+    <string name="framekit_export_exporting">저장하는 중…</string>
+    <string name="framekit_export_cancelling">취소하는 중…</string>
+    <string name="framekit_export_failed_title">저장하지 못했습니다</string>
+
+    <string name="framekit_error_invalid_source">편집할 수 없는 파일입니다. 다른 파일을 선택해 주세요.</string>
+    <string name="framekit_error_permission_denied">이 파일을 열 권한이 없습니다. 다시 선택해 주세요.</string>
+    <string name="framekit_error_source_unavailable">파일이 이동되었거나 삭제되었습니다. 다시 선택해 주세요.</string>
+    <string name="framekit_error_unsupported_format">지원하지 않는 형식입니다. JPEG, PNG, WEBP 파일을 선택해 주세요.</string>
+    <string name="framekit_error_unsupported_operation">이 기기에서는 적용할 수 없는 편집입니다. 편집이나 저장 설정을 바꿔 주세요.</string>
+    <string name="framekit_error_invalid_configuration">편집기 설정이 올바르지 않습니다.</string>
+    <string name="framekit_error_invalid_project">편집 값이 올바르지 않습니다.</string>
+    <string name="framekit_error_decode_failed">손상된 파일이라 열 수 없습니다.</string>
+    <string name="framekit_error_encode_failed">저장하지 못했습니다. 해상도를 낮춰 다시 시도해 주세요.</string>
+    <string name="framekit_error_insufficient_memory">이 크기로 저장할 메모리가 부족합니다. 해상도를 낮춰 다시 시도해 주세요.</string>
+    <string name="framekit_error_insufficient_storage">저장 공간이 부족합니다. 공간을 확보한 뒤 다시 시도해 주세요.</string>
+    <string name="framekit_error_output_write_failed">파일을 쓰지 못했습니다. 다시 시도해 주세요.</string>
+    <string name="framekit_error_result_unavailable">결과를 찾을 수 없습니다. 편집기를 다시 열어 주세요.</string>
+    <string name="framekit_error_unknown">문제가 발생했습니다. 다시 시도해 주세요.</string>
+</resources>

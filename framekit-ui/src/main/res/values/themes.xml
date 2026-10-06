@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 첫 프레임이 그려지기 전 흰 화면이 보이지 않도록 editor Activity는 어두운 창 배경으로 시작한다. -->
+    <style name="framekit_Theme.Editor" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@android:color/black</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+    </style>
+</resources>

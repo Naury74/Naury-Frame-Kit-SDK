@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="framekit_action_close">Close</string>
+    <string name="framekit_action_save">Save</string>
+    <string name="framekit_action_undo">Undo</string>
+    <string name="framekit_action_redo">Redo</string>
+    <string name="framekit_action_apply">Apply</string>
+    <string name="framekit_action_cancel">Cancel</string>
+    <string name="framekit_action_reset">Reset</string>
+    <string name="framekit_action_retry">Try again</string>
+    <string name="framekit_action_keep_editing">Keep editing</string>
+    <string name="framekit_action_discard">Discard</string>
+    <string name="framekit_action_choose_another">Choose another</string>
+
+    <string name="framekit_discard_title">Discard changes?</string>
+    <string name="framekit_discard_message">Your edits will be lost.</string>
+    <string name="framekit_apply_first">Apply or cancel the current tool before saving.</string>
+    <string name="framekit_loading">Opening…</string>
+    <string name="framekit_original_badge">Original</string>
+    <string name="framekit_show_original">Show original</string>
+
+    <string name="framekit_export_preparing">Preparing…</string>
+    <string name="framekit_export_rendering">Rendering…</string>
+    <string name="framekit_export_encoding">Encoding…</string>
+    <string name="framekit_export_finalizing">Finishing…</string>
+    <string name="framekit_export_exporting">Saving…</string>
+    <string name="framekit_export_cancelling">Cancelling…</string>
+    <string name="framekit_export_failed_title">Couldn\'t save</string>
+
+    <string name="framekit_error_invalid_source">This file can\'t be edited. Choose another file.</string>
+    <string name="framekit_error_permission_denied">FrameKit isn\'t allowed to open this file. Choose it again.</string>
+    <string name="framekit_error_source_unavailable">The file was moved or deleted. Choose it again.</string>
+    <string name="framekit_error_unsupported_format">This format isn\'t supported. Choose a JPEG, PNG or WEBP file.</string>
+    <string name="framekit_error_unsupported_operation">This device can\'t apply this edit. Change the edit or output settings.</string>
+    <string name="framekit_error_invalid_configuration">The editor was opened with invalid settings.</string>
+    <string name="framekit_error_invalid_project">The edits contain invalid values.</string>
+    <string name="framekit_error_decode_failed">The file is damaged and can\'t be opened.</string>
+    <string name="framekit_error_encode_failed">Saving failed. Try a lower resolution.</string>
+    <string name="framekit_error_insufficient_memory">Not enough memory for this size. Try a lower resolution.</string>
+    <string name="framekit_error_insufficient_storage">Not enough storage. Free up space and try again.</string>
+    <string name="framekit_error_output_write_failed">The file couldn\'t be written. Try again.</string>
+    <string name="framekit_error_result_unavailable">The result was lost. Open the editor again.</string>
+    <string name="framekit_error_unknown">Something went wrong. Try again.</string>
+</resources>
