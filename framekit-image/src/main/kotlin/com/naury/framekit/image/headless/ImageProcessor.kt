@@ -11,6 +11,7 @@ import com.naury.framekit.android.export.CoroutineExportHandle
 import com.naury.framekit.android.export.ExportHandle
 import com.naury.framekit.android.export.ExportState
 import com.naury.framekit.android.input.EditorInput
+import com.naury.framekit.android.input.isSingleSource
 import com.naury.framekit.android.output.AppFileOutputStore
 import com.naury.framekit.android.output.OutputTarget
 import com.naury.framekit.android.result.EditorErrorCode
@@ -105,11 +106,11 @@ public class ImageProcessor(
     /**
      * Uri 또는 파일 원본을 열고 메타데이터를 읽는다.
      *
-     * @throws FrameKitException 원본·포맷 오류, 또는 UI가 필요한 [EditorInput.Pick]이면
+     * @throws FrameKitException 원본·포맷 오류, 또는 UI가 필요한 [EditorInput.Pick]·[EditorInput.Capture]나 여러 원본([EditorInput.Multiple])이면
      *   `INVALID_CONFIGURATION`.
      */
     public suspend fun open(input: EditorInput): ImageSource = withContext(ioDispatcher) {
-        if (input is EditorInput.Pick) throw FrameKitException(EditorErrorCode.INVALID_CONFIGURATION, "Picking needs the editor UI")
+        if (!input.isSingleSource) throw FrameKitException(EditorErrorCode.INVALID_CONFIGURATION, "Open one Uri or file at a time")
         val id = registry.register(input)
         val info = ImageMetadataReader(registry).read(id)
         ImageSource(info.metadata, info)
