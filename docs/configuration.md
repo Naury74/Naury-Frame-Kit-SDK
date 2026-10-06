@@ -1,6 +1,6 @@
 # Configuration
 
-`ImageEditorRequest`의 모든 옵션입니다. 잘못된 값은 기본값으로 바꾸지 않고 `INVALID_CONFIGURATION`으로 거부합니다. 실행 전에 `request.validate()`로 미리 확인할 수 있습니다.
+`ImageEditorRequest`, `VideoEditorRequest`, `FrameKitRequest`의 모든 옵션입니다. 잘못된 값은 기본값으로 바꾸지 않고 `INVALID_CONFIGURATION`으로 거부합니다. 실행 전에 `request.validate()`로 미리 확인할 수 있습니다.
 
 ```kotlin
 ImageEditorRequest(
@@ -77,6 +77,66 @@ ImageEditorRequest(
 | `localeTag` | `null` | `null`은 기기 언어. 빈 문자열은 오류 |
 
 기본 다크 팔레트: background `#0D0D0E`, surface `#171719`, raised `#242428`, foreground `#FFFFFF`, accent `#635BFF`. accent를 바꿀 때는 흰 글자와의 대비를 확인하세요. 저장 버튼 글자는 항상 흰색입니다.
+
+## VideoEditorRequest
+
+```kotlin
+VideoEditorRequest(
+    input = EditorInput.Pick(MediaKind.VIDEO),
+    config = VideoEditorConfig(),
+    export = VideoExportConfig(),
+    ui = EditorUiConfig(),
+    output = OutputTarget.AppFile,
+)
+```
+
+`input`이 `Pick`이면 `kind`는 `VIDEO`여야 합니다.
+
+### config: VideoEditorConfig
+
+| 옵션 | 기본값 | 단위·범위·규칙 |
+| --- | --- | --- |
+| `enabledTools` | 전체 8종 | 빠진 도구는 숨김. 빈 집합이면 미리보기와 저장만 가능 |
+| `allowUndo` / `allowRedo` | `true` | 이미지와 같은 규칙 |
+| `minClipDurationUs` | `1_000_000` (1초) | 출력 시간 기준 최소 길이(µs). 100_000 이상 |
+| `maxTimelineDurationUs` | `300_000_000` (5분) | 출력 시간 기준 최대 길이(µs). `minClipDurationUs` 이상, 1시간 이하. 더 긴 원본은 앞부분만 남긴 채로 열림 |
+
+| 도구 | 포함 기능 |
+| --- | --- |
+| `TRIM` | 시작·끝 손잡이로 남길 구간 선택 |
+| `CROP` / `ROTATE` | 사진과 같은 비율·핸들, 90° 회전·반전·수평 맞추기 |
+| `ADJUST` / `FILTER` | 사진과 같은 보정 값과 필터·템플릿. 선명도는 영상에 적용되지 않음 |
+| `SPEED` | 0.25·0.5·1·1.5·2·4배. 결과 길이가 제한을 벗어나는 배속은 선택되지 않음 |
+| `AUDIO` | 음소거, 볼륨 0~200%. 재생 줄의 음소거 버튼도 이 도구가 켜져 있을 때만 표시 |
+| `PRIVACY` | 사각형·원 모자이크·블러. 재생 위치부터 3초 동안 적용되고 시작·끝을 옮길 수 있음. 최대 8개 |
+
+구간·자르기·회전은 도구를 열고 적용할 때까지가 undo 한 단계이고, 나머지는 선택 1회·슬라이더 드래그 1회·마스크 1개가 각각 한 단계입니다.
+
+### export: VideoExportConfig
+
+| 옵션 | 기본값 | 단위·범위 |
+| --- | --- | --- |
+| `maxShortSide` | `1080` | 출력의 짧은 변 상한(px), 144..2160. 원본보다 키우지 않음 |
+| `maxFrameRate` | `30` | 초당 프레임 상한, 1..60. 넘는 프레임은 버리고 `FRAME_RATE_REDUCED` 경고 |
+| `allowFallback` | `true` | `false`이면 인코더가 다른 해상도·설정을 제안할 때 실패. `true`이면 `ENCODER_FALLBACK_APPLIED` 경고 |
+
+출력은 MP4(H.264 영상, AAC 음성)입니다. HDR 원본은 SDR로 변환하고 `HDR_CONVERTED_TO_SDR` 경고를 붙입니다.
+
+## FrameKitRequest
+
+```kotlin
+FrameKitRequest(
+    input = EditorInput.Pick(MediaKind.ANY),
+    image = ImageEditorConfig(),
+    imageExport = ImageExportConfig(),
+    video = VideoEditorConfig(),
+    videoExport = VideoExportConfig(),
+    ui = EditorUiConfig(),
+    output = OutputTarget.AppFile,
+)
+```
+
+열리는 편집기와 상관없이 다섯 설정을 모두 검증합니다. 사진이면 `image`·`imageExport`, 영상이면 `video`·`videoExport`가 쓰이고 `ui`·`output`은 공통입니다.
 
 ## output: OutputTarget
 

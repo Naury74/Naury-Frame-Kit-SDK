@@ -1,23 +1,33 @@
 # Integration
 
-호스트 앱에서 이미지 편집기를 열고 결과를 받는 방법입니다.
+호스트 앱에서 사진·영상 편집기를 열고 결과를 받는 방법입니다.
 
 ## 의존성
 
 ```kotlin
 dependencies {
-    implementation(project(":framekit-ui-image"))
+    implementation(project(":framekit"))          // 사진·영상 모두
+    // implementation(project(":framekit-ui-image")) // 사진만 (Media3 없음)
+    // implementation(project(":framekit-ui-video")) // 영상만
 }
 ```
 
-SDK manifest는 편집 Activity(`exported=false`)와 결과 전용 FileProvider만 merge합니다. 권한은 추가하지 않습니다.
+SDK manifest는 편집 Activity(`exported=false`), 통합 모듈의 투명 라우터 Activity, 결과 전용 FileProvider만 merge합니다. 권한은 추가하지 않습니다.
 
 ## 편집기 열기
+
+| 계약 | request | 여는 편집기 |
+| --- | --- | --- |
+| `FrameKitContract` | `FrameKitRequest` | 원본의 MIME 형식(없으면 확장자)으로 사진·영상 편집기를 고름 |
+| `ImageEditorContract` | `ImageEditorRequest` | 사진 편집기 |
+| `VideoEditorContract` | `VideoEditorRequest` | 영상 편집기 |
+
+세 계약 모두 결과는 `FrameKitResult`이고 `Success`의 `EditedMedia.mediaType`이 `IMAGE` 또는 `VIDEO`입니다. 사진도 영상도 아닌 원본은 `UNSUPPORTED_FORMAT`으로 실패합니다.
 
 ### Activity / Fragment
 
 ```kotlin
-private val editor = registerForActivityResult(ImageEditorContract()) { result ->
+private val editor = registerForActivityResult(FrameKitContract()) { result ->
     when (result) {
         is FrameKitResult.Success -> onEdited(result.output)
         FrameKitResult.Cancelled -> Unit
@@ -31,15 +41,15 @@ private val editor = registerForActivityResult(ImageEditorContract()) { result -
 ### Compose
 
 ```kotlin
-val editor = rememberLauncherForActivityResult(ImageEditorContract()) { result -> /* ... */ }
-Button(onClick = { editor.launch(ImageEditorRequest(EditorInput.Pick())) }) { Text("Edit") }
+val editor = rememberLauncherForActivityResult(FrameKitContract()) { result -> /* ... */ }
+Button(onClick = { editor.launch(FrameKitRequest(EditorInput.Pick(MediaKind.ANY))) }) { Text("Edit") }
 ```
 
 ## 입력
 
 | 입력 | 사용 | 권한 |
 | --- | --- | --- |
-| `EditorInput.Pick()` | 시스템 Photo Picker를 먼저 띄움. 닫으면 `Cancelled` | Picker가 선택한 항목만 읽기 권한 부여 |
+| `EditorInput.Pick(kind)` | 시스템 Photo Picker를 먼저 띄움. `IMAGE`·`VIDEO`·`ANY`(통합 계약만). 닫으면 `Cancelled` | Picker가 선택한 항목만 읽기 권한 부여 |
 | `EditorInput.UriSource(uri)` | 호스트가 이미 가진 Uri | 호스트가 읽기 권한을 가지고 있어야 함 |
 | `EditorInput.FileSource(path)` | 호스트 앱 내부 저장소의 파일 절대 경로 | 같은 프로세스이므로 별도 권한 없음 |
 

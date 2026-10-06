@@ -1,6 +1,28 @@
 # Release Notes
 
-## 0.2.0 (개발 중)
+## 0.3.0 (개발 중)
+
+### 추가
+
+- 영상 편집 화면 `framekit-ui-video`(`VideoEditorContract`): 미리보기·재생·썸네일 타임라인, 구간 자르기, 자르기·회전, 보정·필터(사진과 같은 색), 속도 0.25~4배, 음소거·볼륨, 구간 모자이크·블러
+- 영상 엔진 `framekit-video`(Media3 1.11.1): MP4(H.264/AAC) 저장, 진행률·취소, HDR→SDR, 프레임 상한, 인코더 대체 경고
+- 통합 모듈 `framekit`(`FrameKitContract`): 원본 종류에 맞는 편집기 자동 선택, 사진 또는 영상 고르기(`MediaKind.ANY`)
+- 영상 편집 세션 복원
+- 넓은 화면에서 도구를 격자로 보여 주고 패널 위쪽부터 채우는 배치
+
+### 변경
+
+- 자르기·회전·보정·필터·텍스트·스티커·가리기 패널과 문자열을 `framekit-ui`로 이동(동작 변화 없음)
+- `ExportWarning`에 `ENCODER_FALLBACK_APPLIED`, `FRAME_RATE_REDUCED`, `HDR_CONVERTED_TO_SDR` 추가(새 enum 값)
+- `SourceFingerprint`에 `durationUs`, `SessionRecord`에 `videoSnapshot` 추가(기본값 있음)
+
+### Known Issues
+
+- 영상 편집 화면은 폴더블 에뮬레이터에서만 수동 확인했고 실기기 확인 전
+- 영상 선명도 미적용, 영상 마스크는 사각형·원만 지원
+- 다중 클립·배경 음악·영상 텍스트/스티커는 v0.4
+
+## 0.2.0
 
 ### 추가
 

@@ -2,7 +2,7 @@
 
 Android 앱에 넣어 쓰는 **비파괴 이미지·영상 편집 SDK**입니다. 호스트 앱은 Uri를 넘기거나 내장 Photo Picker를 띄우고, FrameKit 편집 화면에서 편집한 뒤 결과 파일의 `content://` Uri와 메타데이터를 받습니다. 원본은 절대 덮어쓰지 않습니다.
 
-> 현재 버전은 **v0.2 (개발 중)** 입니다. 사진 편집(자르기·회전·보정·필터·텍스트·이모지 스티커·그리기·모자이크)과 UI 없는 headless 저장이 동작합니다. 영상 편집은 v0.3에서 추가합니다. Maven 배포 전이므로 지금은 소스 모듈로 의존합니다.
+> 현재 버전은 **v0.3 (개발 중)** 입니다. 사진 편집(자르기·회전·보정·필터·텍스트·이모지 스티커·그리기·모자이크·배경 제거)과 UI 없는 headless 저장, 단일 영상 편집(구간·자르기·회전·보정·필터·속도·소리·모자이크, MP4 저장)이 동작합니다. Maven 배포 전이므로 지금은 소스 모듈로 의존합니다.
 
 호스트 앱은 SDK 라이브러리만 추가하면 됩니다. 편집 화면(Activity)은 SDK 안에 있고 manifest merge로 자동 등록되며, 호스트는 Activity Result 한 번으로 편집 화면을 띄우고 결과 파일을 돌려받습니다. 저장소의 `app` 모듈은 SDK를 확인·시연하기 위한 Showcase입니다.
 
@@ -29,23 +29,46 @@ Android 앱에 넣어 쓰는 **비파괴 이미지·영상 편집 SDK**입니다
 | 세션 복원 | 프로세스가 종료돼도 확정한 편집 복원, 원본이 같은 이미지인지 확인 | v0.1 지원 |
 | 테마·언어 | 다크(기본)/라이트/시스템, accent 색, 모서리, ko/en, localeTag | v0.1 지원 |
 
-계획된 기능(아직 **미지원**): 단일 영상 편집과 영상 모자이크(v0.3) · 다중 클립 타임라인(v0.4) · 사용자 정의 필터·스티커·폰트, Maven 배포(v1.0). 자세한 순서는 [Roadmap](#roadmap)을 보세요.
+영상 편집(단일 클립, Media3 1.11.1)
+
+| 기능 | 내용 | 상태 |
+| --- | --- | --- |
+| 재생·탐색 | 미리보기 재생·일시정지, 썸네일 타임라인에서 끌어 탐색 | v0.3 지원 |
+| 구간 자르기 | 시작·끝 손잡이, 최소 길이·최대 길이 제한(기본 1초~5분), 출력 1프레임 이내 정확도 | v0.3 지원 |
+| 자르기·회전 | 사진과 같은 비율·핸들·90° 회전·반전·수평 맞추기 | v0.3 지원 |
+| 보정·필터 | 사진과 같은 보정 값과 필터·템플릿(같은 GLSL로 같은 색), 선명도는 사진 전용 | v0.3 지원 |
+| 속도 | 0.25·0.5·1·1.5·2·4배, 소리 높이 유지 | v0.3 지원 |
+| 소리 | 음소거(재생 줄 버튼), 볼륨 0~200% | v0.3 지원 |
+| 모자이크·블러 | 사각형·원 영역을 지정한 시간 구간에만 적용, 최대 8개 | v0.3 지원 |
+| 저장 | MP4(H.264/AAC), 짧은 변 최대 1080px·30fps 기본, HDR은 SDR로 변환, 진행률·취소 | v0.3 지원 |
+| 세션 복원 | 프로세스 종료 후 확정한 영상 편집 복원 | v0.3 지원 |
+| 통합 진입점 | `FrameKitContract` 하나로 사진·영상 중 알맞은 편집기 실행, 사진 또는 영상 고르기 | v0.3 지원 |
+
+계획된 기능(아직 **미지원**): 다중 클립 타임라인·분할·배경 음악·영상 텍스트/스티커(v0.4) · 사용자 정의 필터·스티커·폰트, Maven 배포(v1.0). 자세한 순서는 [Roadmap](#roadmap)을 보세요.
 
 ## 설치
 
 Maven 좌표는 배포 namespace를 등록한 뒤 확정합니다. 그 전까지는 저장소를 함께 빌드하고 모듈에 의존합니다.
 
+필요한 범위에 맞춰 모듈 하나를 고릅니다. 하위 모듈은 함께 들어옵니다.
+
+| 모듈 | 용도 |
+| --- | --- |
+| `framekit` | 사진·영상 편집 화면 모두, `FrameKitContract` |
+| `framekit-ui-image` | 사진 편집 화면만. Media3가 포함되지 않음 |
+| `framekit-ui-video` | 영상 편집 화면만 |
+| `framekit-image` / `framekit-video` | UI 없는 처리(headless)와 엔진 |
+
 ```kotlin
-// settings.gradle.kts
-include(":framekit-core", ":framekit-android", ":framekit-image", ":framekit-ui", ":framekit-ui-image")
+// settings.gradle.kts (Maven 배포 전: 저장소를 함께 빌드)
+include(":framekit-core", ":framekit-android", ":framekit-image", ":framekit-video")
+include(":framekit-ui", ":framekit-ui-image", ":framekit-ui-video", ":framekit")
 
 // app/build.gradle.kts
 dependencies {
-    implementation(project(":framekit-ui-image"))
+    implementation(project(":framekit"))
 }
 ```
-
-`framekit-ui-image` 하나만 추가하면 core·android·image·ui 모듈이 함께 들어옵니다. 이미지 전용 앱에는 Media3가 포함되지 않습니다.
 
 배경 제거가 필요하면 선택 모듈을 추가합니다. 추가하면 편집기에 "배경 제거" 도구가 자동으로 나타납니다.
 
@@ -62,30 +85,34 @@ implementation(project(":framekit-segmentation"))
 ```kotlin
 class MainActivity : ComponentActivity() {
 
-    private val editor = registerForActivityResult(ImageEditorContract()) { result ->
+    private val editor = registerForActivityResult(FrameKitContract()) { result ->
         when (result) {
-            is FrameKitResult.Success -> showImage(result.output.uri)
+            // mediaType으로 사진(IMAGE)인지 영상(VIDEO)인지 구분한다.
+            is FrameKitResult.Success -> showMedia(result.output.uri, result.output.mediaType)
             FrameKitResult.Cancelled -> Unit
             is FrameKitResult.Failure -> showError(result.error.code)
         }
     }
 
-    fun editPhoto() {
-        // 시스템 Photo Picker를 먼저 띄운다. 이미 Uri가 있으면 EditorInput.UriSource(uri)를 넘긴다.
-        editor.launch(ImageEditorRequest(input = EditorInput.Pick()))
+    fun edit() {
+        // 시스템 Photo Picker에서 사진이나 영상을 고르면 알맞은 편집기가 열린다.
+        // 이미 Uri가 있으면 EditorInput.UriSource(uri)를 넘긴다.
+        editor.launch(FrameKitRequest(input = EditorInput.Pick(MediaKind.ANY)))
     }
 }
 ```
 
-Compose에서는 `rememberLauncherForActivityResult(ImageEditorContract())`를 씁니다. `showImage`, `showError`는 호스트 앱이 구현합니다.
+Compose에서는 `rememberLauncherForActivityResult(FrameKitContract())`를 씁니다. `showMedia`, `showError`는 호스트 앱이 구현합니다. 사진만 쓰는 앱은 `ImageEditorContract`/`ImageEditorRequest`, 영상만 쓰는 앱은 `VideoEditorContract`/`VideoEditorRequest`를 직접 써도 됩니다.
 
 설정을 바꾸려면 request에 값을 넣습니다.
 
 ```kotlin
-ImageEditorRequest(
+FrameKitRequest(
     input = EditorInput.UriSource(uri),
-    config = ImageEditorConfig(enabledTools = setOf(ImageTool.CROP)),
-    export = ImageExportConfig(format = ImageFormat.PNG, maxWidth = 2048),
+    image = ImageEditorConfig(enabledTools = setOf(ImageTool.CROP)),
+    imageExport = ImageExportConfig(format = ImageFormat.PNG, maxWidth = 2048),
+    video = VideoEditorConfig(maxTimelineDurationUs = 15_000_000),   // 최대 15초
+    videoExport = VideoExportConfig(maxShortSide = 720),
     ui = EditorUiConfig(themeMode = ThemeMode.LIGHT, accentArgb = 0xFF1E6BFF.toInt()),
 )
 ```
@@ -113,7 +140,7 @@ ImageProcessor(context).use { processor ->
 
 ## 결과 파일과 권한
 
-- 결과는 `files/framekit/exports/`에 저장되고 SDK 전용 FileProvider(`<applicationId>.framekit.files`)의 `content://` Uri로 전달됩니다.
+- 결과(사진·MP4)는 `files/framekit/exports/`에 저장되고 SDK 전용 FileProvider(`<applicationId>.framekit.files`)의 `content://` Uri로 전달됩니다.
 - 결과 파일은 **호스트 앱 소유**입니다. SDK는 성공한 결과를 자동으로 지우지 않습니다. 필요 없으면 `FrameKitOutputs.deleteOutput(context, uri)`를 호출하세요.
 - 다른 앱에 공유할 때는 Intent에 `FLAG_GRANT_READ_URI_PERMISSION`과 `ClipData`를 함께 넣습니다.
 - SDK manifest는 `INTERNET`, `READ_MEDIA_*`, 저장소 권한을 추가하지 않습니다. 원본 Uri의 읽기 권한은 호스트가 제공합니다.
@@ -129,11 +156,14 @@ framekit-android    Uri/파일 source 등록, 결과 DTO, 오류 코드, AppFile
 framekit-image      디코딩, RenderPlan, OpenGL 색 보정(CPU 대체), 오버레이·가리기 렌더러, 저장, headless
 framekit-ui         Compose 공통 테마·컴포넌트·문구
 framekit-ui-image   이미지 편집 화면, ImageEditorContract
+framekit-video      Media3 어댑터: 미리보기 플레이어, Transformer 저장, 색·모자이크 GL 효과, 썸네일
+framekit-ui-video   영상 편집 화면(타임라인), VideoEditorContract
+framekit            통합 모듈: FrameKitContract가 원본 종류에 맞는 편집기를 연다
 framekit-segmentation  (선택) ML Kit 배경 제거
 app                 Showcase 앱
 ```
 
-미리보기와 저장은 같은 `ImageRenderPlan`과 같은 renderer를 사용하므로 화면에서 본 결과와 저장된 결과가 일치합니다. 모듈 의존 규칙과 데이터 흐름은 [docs/architecture.md](docs/architecture.md)에 있습니다.
+미리보기와 저장은 같은 `ImageRenderPlan`과 같은 renderer를 사용하므로 화면에서 본 결과와 저장된 결과가 일치합니다. 영상도 미리보기와 저장이 같은 `VideoRenderPlan`에서 Media3 Composition을 만들고, 색 보정은 사진과 같은 GLSL을 씁니다. Media3 타입은 `framekit-video` 밖으로 나오지 않습니다. 모듈 의존 규칙과 데이터 흐름은 [docs/architecture.md](docs/architecture.md)에 있습니다.
 
 ## Showcase
 
@@ -142,13 +172,17 @@ app                 Showcase 앱
 | 예제 | 설정 |
 | --- | --- |
 | 사진 편집 | 기본 설정 |
+| 영상 편집 | 영상 기본 설정, MP4 저장 |
+| 사진 또는 영상 | `Pick(MediaKind.ANY)`, 고른 종류의 편집기가 열림 |
+| 짧은 클립 | 최대 15초·720p, 구간·속도·소리·필터만 |
+| 영상 모자이크 | 가리기·구간 도구만 |
 | 회전만 | `enabledTools = {ROTATE}` |
 | PNG 저장 | `format = PNG` |
 | 제한 모드 | 자르기만, undo 끔, 최대 1080px·품질 85 |
 | 브랜드 테마 | 라이트 테마, 파란 accent, 모서리 22dp |
 | 영어 UI | `localeTag = "en"` |
 
-결과 화면에서 출력 크기·MIME·파일 크기·경고를 확인하고 공유하거나 삭제할 수 있습니다.
+결과 화면에서 출력 크기·길이·MIME·파일 크기·경고를 확인하고 공유하거나 삭제할 수 있습니다.
 
 ```bash
 ./gradlew :app:installDebug
@@ -165,9 +199,11 @@ app                 Showcase 앱
 | JVM 단위 테스트 | undo/redo(D01~D07), 검증(V01), EXIF·crop·좌표 변환(G01~G04) |
 | Robolectric | EXIF 1..8 디코딩(API 27/36), 영역·띠 디코딩, 렌더 픽셀, preview/export 일치, 오버레이 위치(G05)·지우개·형광펜, 모자이크 격자(Q06), 저장 실패·취소 정리(Q07~Q09), 편집 흐름(Q01·Q10), 세션 복원(Q13·Q14), headless |
 | 실기기 계측 | Galaxy Z Fold7(Android 16): GL 색 보정이 CPU 기준과 일치(보정 12종·프리셋 전부, 평균 오차 ≤ 1/255) |
+| 실기기 계측(영상) | 실제 Media3 저장: 구간 정확도(1프레임 이내), 2배속 길이, 회전·반전 방향, 필터 색, 구간 모자이크, 취소 시 파일 없음, 미리보기 준비 |
 | 실기기 수동 | Galaxy Z Fold7 릴리스 빌드: 편집·저장, 프로세스 종료 후 복원, 108MP 사진 저장, 펼친 화면·태블릿 크기 전환, 필터·비네트 |
+| 에뮬레이터 수동 | 폴더블 에뮬레이터(Android 16): 영상 선택→구간 자르기→MP4 저장, 미리보기 모자이크, 넓은 화면 배치 |
 
-**아직 검증하지 않은 것**: API 26/27 저사양 기기, Galaxy S23 성능 기준, 텍스트·스티커·그리기·가리기의 실기기 수동 확인, 성능 수치. 검증 전에는 지원한다고 표시하지 않습니다.
+**아직 검증하지 않은 것**: API 26/27 저사양 기기, Galaxy S23 성능 기준, 텍스트·스티커·그리기·가리기와 영상 편집 화면의 실기기 수동 확인, 4K·HDR 영상, 성능 수치. 검증 전에는 지원한다고 표시하지 않습니다.
 
 ## Known Issues
 
@@ -175,6 +211,8 @@ app                 Showcase 앱
 - `localeTag`를 쓰는 호스트가 App Bundle language split을 켜 두면 기기 언어가 아닌 문구 리소스가 빠질 수 있습니다. [integration 문서](docs/integration.md#언어)를 참고하세요.
 - 캔버스 확대·이동(pan/zoom) 제스처는 아직 없습니다.
 - 그리기의 필압은 저장하지만 굵기 변화에는 아직 반영하지 않습니다.
+- 영상 모자이크는 사각형·원만 지원합니다(브러시는 사진 전용). 영상 블러는 원형 샘플 평균이라 사진 블러와 모양이 조금 다릅니다.
+- 영상 선명도(sharpness)는 미리보기·저장 모두 적용하지 않습니다.
 - 출력 대상은 `OutputTarget.AppFile`만 지원합니다. MediaStore·SAF 문서 저장은 계획 중입니다.
 
 전체 변경 이력은 [docs/release-notes.md](docs/release-notes.md)에 있습니다.
@@ -184,8 +222,8 @@ app                 Showcase 앱
 | 버전 | 범위 |
 | --- | --- |
 | v0.1 | 이미지 자르기·회전·반전, JPEG/PNG, undo/redo, 기본 UI와 Activity Result 계약 |
-| v0.2 | 보정 13종·필터 12종, 텍스트·스티커·그리기, 블러·모자이크, WEBP, 이미지 headless |
-| v0.3 | 단일 영상 재생·trim·crop·회전·보정·속도·음량, MP4 저장 (Media3) |
+| v0.2 | 보정 12종·필터와 템플릿, 텍스트·스티커·그리기, 블러·모자이크, 배경 제거, WEBP, 이미지 headless |
+| v0.3 | 단일 영상 재생·구간·자르기·회전·보정·필터·속도·소리·구간 모자이크, MP4 저장 (Media3), 통합 FrameKitContract |
 | v0.4 | 여러 클립, 분할·순서 변경, 배경 음악, 시간 지정 텍스트·스티커 |
 | v1.0 | 사용자 정의 필터·스티커·폰트, 이미지·영상 headless, Maven 배포, 문서 |
 

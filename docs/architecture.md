@@ -3,15 +3,19 @@
 ## 모듈
 
 ```
-                 app (Showcase)
-                       │
-               framekit-ui-image
-                ┌──────┴──────┐
-          framekit-ui    framekit-image
-                └──────┬──────┘
-                framekit-android
-                       │
-                 framekit-core  (Kotlin JVM)
+                      app (Showcase)
+                            │
+                        framekit  (FrameKitContract)
+                  ┌─────────┴─────────┐
+          framekit-ui-image     framekit-ui-video
+             │       └─────┬─────┘        │
+             │         framekit-ui        │
+             │             │        framekit-video (Media3)
+             └──── framekit-image ◄───────┘
+                           │
+                    framekit-android
+                           │
+                     framekit-core  (Kotlin JVM)
 ```
 
 | 모듈 | 종류 | 책임 |
@@ -21,12 +25,16 @@
 | `framekit-image` | Android library | EXIF·디코딩, `ImageRenderPlan`, `CanvasGeometryRenderer`, `ImageExportCoordinator` |
 | `framekit-ui` | Compose library | `FrameKitTheme`, 공통 컴포넌트, 오류 문구 |
 | `framekit-ui-image` | Compose library | `ImageEditorContract`, 편집 Activity·ViewModel·도구 |
+| `framekit-video` | Android library | Media3 어댑터: `VideoRenderPlan`, Composition 생성, 미리보기(`VideoPreviewEngine`), `VideoExportCoordinator`, 색·모자이크 GL 효과, 썸네일 |
+| `framekit-ui-video` | Compose library | `VideoEditorContract`, 영상 편집 Activity·ViewModel·타임라인 |
+| `framekit` | Android library | `FrameKitContract`, 원본 종류에 따라 편집기를 고르는 라우터 Activity |
 
 의존 규칙:
 
 - core는 Android, Compose, Media3 타입을 참조하지 않습니다. `Uri`, `Bitmap` 대신 `SourceId`를 씁니다.
 - 엔진(image)은 UI를 참조하지 않습니다.
-- 영상 모듈(v0.3)은 별도 `framekit-video`/`framekit-ui-video`로 추가해 이미지 전용 앱이 Media3를 받지 않게 합니다.
+- 영상은 별도 `framekit-video`/`framekit-ui-video`로 두어 이미지 전용 앱이 Media3를 받지 않습니다. Media3 타입과 `@UnstableApi`는 `framekit-video` 안의 어댑터에만 있고 UI는 `VideoPreviewEngine` 같은 FrameKit 인터페이스만 씁니다.
+- 자르기·회전·보정·필터·가리기 패널과 자르기 프레임은 `framekit-ui`에 있어 사진·영상 편집기가 함께 씁니다.
 - SDK 모듈은 explicit API mode로 공개 범위를 명시하고, 리소스 이름에 `framekit_` prefix를 붙입니다.
 - DI 프레임워크 없이 생성자 주입을 사용합니다.
 
@@ -100,11 +108,24 @@ SourceMetadata┴─► ImageRenderPlanFactory ─► ImageRenderPlan ─► Can
 
 실패하거나 취소되면 `.partial`을 지웁니다. publish가 끝난 뒤 도착한 취소는 결과를 되돌리지 않습니다.
 
-## 편집 화면
+## 영상
+
+`VideoProject`는 클립 목록(원본 구간·속도·효과·소리)과 출력 시간 기준의 구간 마스크를 가진 최종 상태입니다. 시간은 `Long` µs이고 구간은 `[start, end)`입니다.
+
+```
+VideoProject ─► VideoPlanFactory ─► VideoRenderPlan ─► Media3CompositionFactory ─► Composition
+                                                          ├─ 미리보기: CompositionPlayer (짧은 변 720px)
+                                                          └─ 저장: Transformer → .partial → 검증 → publish
+```
+
+- 클립마다 clipping(구간) → 회전·반전(ScaleAndRotate) → Crop → Presentation(캔버스 크기) → 색 GL 효과 순서이고, 구간 마스크는 Composition 전체 효과로 출력 캔버스에 적용합니다.
+- 색 GL 효과는 사진 렌더러와 같은 GLSL(`ColorEffectShaders.VIDEO`)을 써서 같은 값이면 같은 색이 됩니다.
+- 편집 화면은 슬라이더를 움직이는 동안 미리보기를 매번 다시 준비하지 않고 120ms 모았다가 반영합니다. 자르기·회전 중에는 자르기 전 전체 프레임을 보여 주고 그 위에 자르기 프레임을 그립니다.
+- 저장은 Transformer를 main looper에서 실행하고, 취소하면 Transformer를 멈춘 뒤 `.partial`을 지웁니다. 결과 파일의 영상 트랙 길이와 회전을 반영한 크기를 확인한 뒤 publish합니다.
 
 ## 세션 복원
 
-`EditorSessionStore`(framekit-android)가 세션 파일을 관리하고, 편집 화면의 `ImageSessionRecorder`가 화면과 세션을 연결합니다.
+`EditorSessionStore`(framekit-android)가 세션 파일을 관리하고, 편집 화면의 `ImageSessionRecorder`·`VideoSessionRecorder`가 화면과 세션을 연결합니다. 영상 snapshot은 클립의 원본을 세션 원본 목록의 위치로 저장하고, 지문에 영상 길이를 포함합니다.
 
 ```
 도구 적용·undo·redo ─► history.current 변경 ─► 300ms 묶음 ─► project.snapshot (임시 파일 → rename)
