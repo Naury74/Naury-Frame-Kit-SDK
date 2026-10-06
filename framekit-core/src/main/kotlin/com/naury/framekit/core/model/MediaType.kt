@@ -4,4 +4,7 @@ package com.naury.framekit.core.model
 public enum class MediaType {
     IMAGE,
     VIDEO,
+
+    /** 영상의 배경 음악 원본. 편집 결과로는 나오지 않는다. */
+    AUDIO,
 }
