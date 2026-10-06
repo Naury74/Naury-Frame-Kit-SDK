@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="framekit_tool_trim">구간</string>
+    <string name="framekit_tool_speed">속도</string>
+    <string name="framekit_tool_audio">소리</string>
+    <string name="framekit_play">재생</string>
+    <string name="framekit_pause">일시정지</string>
+    <string name="framekit_time_position">%1$s / %2$s</string>
+    <string name="framekit_trim_start">시작 지점</string>
+    <string name="framekit_trim_end">끝 지점</string>
+    <string name="framekit_trim_help">손잡이를 끌어 남길 구간을 고르세요.</string>
+    <string name="framekit_timeline">타임라인</string>
+    <string name="framekit_speed_value">%1$s배</string>
+    <string name="framekit_speed_too_long">이 속도로는 허용된 길이보다 길어져요.</string>
+    <string name="framekit_speed_too_short">이 속도로는 허용된 길이보다 짧아져요.</string>
+    <string name="framekit_audio_mute">음소거</string>
+    <string name="framekit_audio_volume">볼륨</string>
+    <string name="framekit_audio_none">이 영상에는 소리가 없어요.</string>
+    <string name="framekit_mask_help">영상 위를 끌어 가릴 영역을 지정하세요. 재생 위치부터 3초 동안 가려져요.</string>
+    <string name="framekit_mask_range">%1$s – %2$s 동안 표시</string>
+    <string name="framekit_mask_start_here">여기서 시작</string>
+    <string name="framekit_mask_end_here">여기서 끝</string>
+    <string name="framekit_mask_delete">마스크 삭제</string>
+    <plurals name="framekit_mask_limit">
+        <item quantity="other">마스크는 최대 %1$d개까지 추가할 수 있어요.</item>
+    </plurals>
+</resources>

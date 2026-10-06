@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="framekit_tool_trim">Trim</string>
+    <string name="framekit_tool_speed">Speed</string>
+    <string name="framekit_tool_audio">Audio</string>
+    <string name="framekit_play">Play</string>
+    <string name="framekit_pause">Pause</string>
+    <string name="framekit_time_position">%1$s / %2$s</string>
+    <string name="framekit_trim_start">Trim start</string>
+    <string name="framekit_trim_end">Trim end</string>
+    <string name="framekit_trim_help">Drag the handles to choose the part to keep.</string>
+    <string name="framekit_timeline">Timeline</string>
+    <string name="framekit_speed_value">%1$s×</string>
+    <string name="framekit_speed_too_long">This speed makes the video longer than allowed.</string>
+    <string name="framekit_speed_too_short">This speed makes the video shorter than allowed.</string>
+    <string name="framekit_audio_mute">Mute</string>
+    <string name="framekit_audio_volume">Volume</string>
+    <string name="framekit_audio_none">This video has no sound.</string>
+    <string name="framekit_mask_help">Drag on the video to cover an area. It hides that area for 3 seconds from the playhead.</string>
+    <string name="framekit_mask_range">Shown %1$s – %2$s</string>
+    <string name="framekit_mask_start_here">Start here</string>
+    <string name="framekit_mask_end_here">End here</string>
+    <string name="framekit_mask_delete">Delete mask</string>
+    <plurals name="framekit_mask_limit">
+        <item quantity="one">Up to %1$d mask can be added.</item>
+        <item quantity="other">Up to %1$d masks can be added.</item>
+    </plurals>
+</resources>
