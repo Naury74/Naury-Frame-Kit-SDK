@@ -118,7 +118,8 @@ VideoProject ─► VideoPlanFactory ─► VideoRenderPlan ─► Media3Composi
                                                           └─ 저장: Transformer → .partial → 검증 → publish
 ```
 
-- 클립마다 clipping(구간) → 회전·반전(ScaleAndRotate) → Crop → Presentation(캔버스 크기) → 색 GL 효과 순서이고, 구간 마스크는 Composition 전체 효과로 출력 캔버스에 적용합니다.
+- 클립마다 clipping(구간) → 회전·반전(ScaleAndRotate) → Crop → Presentation(캔버스 크기, 맞추기·채우기) → 색 GL 효과 순서입니다. Composition 전체 효과로 구간 마스크를 먼저, 그 위에 구간 텍스트·스티커(`BitmapOverlay`, 사진과 같은 `OverlayRenderer`)를 얹습니다.
+- 소리 있는 클립과 없는 클립을 이어 붙이거나 배경 음악이 있으면 영상 sequence에 무음 트랙을 만들어 트랙 구성을 맞춥니다. 배경 음악은 `AudioPlacement`가 계산한 무음·재생 조각으로 별도 오디오 sequence를 만들어 섞고, 영상 끝에서 자릅니다.
 - 색 GL 효과는 사진 렌더러와 같은 GLSL(`ColorEffectShaders.VIDEO`)을 써서 같은 값이면 같은 색이 됩니다.
 - 편집 화면은 슬라이더를 움직이는 동안 미리보기를 매번 다시 준비하지 않고 120ms 모았다가 반영합니다. 자르기·회전 중에는 자르기 전 전체 프레임을 보여 주고 그 위에 자르기 프레임을 그립니다.
 - 저장은 Transformer를 main looper에서 실행하고, 취소하면 Transformer를 멈춘 뒤 `.partial`을 지웁니다. 결과 파일의 영상 트랙 길이와 회전을 반영한 크기를 확인한 뒤 publish합니다.

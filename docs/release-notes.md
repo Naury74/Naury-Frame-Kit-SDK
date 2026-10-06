@@ -1,5 +1,23 @@
 # Release Notes
 
+## 0.4.0 (개발 중)
+
+### 추가
+
+- 여러 클립: 클립 추가(`VideoEditorConfig.maxClipCount`), 재생 위치에서 나누기, 순서 변경, 삭제
+- 가운데 재생 헤드 타임라인: 끌어 탐색, 두 손가락 확대, 텍스트·스티커·마스크·음악 구간 표시
+- 화면 비율(`VideoTool.CANVAS`)과 맞추기·채우기
+- 배경 음악: 추가·볼륨·반복·시작 위치·곡 시작 위치, 영상보다 길어지지 않음
+- 구간 텍스트·스티커(`VideoTool.TEXT`, `VideoTool.STICKER`)
+- 여러 원본·음악·텍스트를 포함한 세션 복원
+
+### 변경
+
+- `MediaType.AUDIO` 추가(새 enum 값)
+- `VideoTool`에 `CANVAS`, `TEXT`, `STICKER` 추가, 속도 도구는 적용·취소 방식
+- `VideoExportCoordinator.export`에 `audioSources` 인자 추가(기본값 있음)
+- 텍스트·스티커 제스처 계산을 `framekit-ui`의 `OverlayGestures`로 이동
+
 ## 0.3.0 (개발 중)
 
 ### 추가
