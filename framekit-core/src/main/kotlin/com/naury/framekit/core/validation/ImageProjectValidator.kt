@@ -5,6 +5,7 @@ import com.naury.framekit.core.effect.FilterCatalog
 import com.naury.framekit.core.geometry.CropBoundsCalculator
 import com.naury.framekit.core.geometry.GeometryEdit
 import com.naury.framekit.core.geometry.GeometryFrame
+import com.naury.framekit.core.overlay.SubjectCutout
 import com.naury.framekit.core.model.ImageProject
 import com.naury.framekit.core.model.MediaType
 import com.naury.framekit.core.model.SourceMetadata
@@ -25,6 +26,11 @@ public object ImageProjectValidator {
         validateEffects(project, issues)
         OverlayValidator.validate(project.overlays, project.drawing, issues)
         OverlayValidator.validatePrivacy(project.privacyMasks, issues)
+        project.cutout?.let { cutout ->
+            if (!SubjectCutout.isValidAssetId(cutout.maskAssetId)) {
+                issues += ValidationIssue(ValidationCode.UNKNOWN_REFERENCE, "cutout.maskAssetId", "Invalid asset id")
+            }
+        }
         if (issues.isEmpty()) validateCropArea(project.geometry, metadata, issues)
         return ValidationResult.of(issues)
     }

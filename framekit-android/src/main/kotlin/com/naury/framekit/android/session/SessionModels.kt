@@ -15,6 +15,7 @@ import com.naury.framekit.core.overlay.OverlayTransform
 import com.naury.framekit.core.overlay.PrivacyEffect
 import com.naury.framekit.core.overlay.PrivacyMask
 import com.naury.framekit.core.overlay.ShadowSpec
+import com.naury.framekit.core.overlay.SubjectCutout
 import com.naury.framekit.core.overlay.StrokePoint
 import com.naury.framekit.core.overlay.StrokeSpec
 import com.naury.framekit.core.overlay.TextAlignment
@@ -80,6 +81,7 @@ public data class ImageProjectSnapshot(
     val overlays: List<OverlaySnapshot> = emptyList(),
     val drawing: List<StrokeSnapshot> = emptyList(),
     val privacyMasks: List<PrivacyMaskSnapshot> = emptyList(),
+    val cutoutMaskAssetId: String? = null,
 ) {
     public fun toProject(source: SourceId): ImageProject = ImageProject(
         id = ProjectId(projectId),
@@ -97,6 +99,7 @@ public data class ImageProjectSnapshot(
         overlays = overlays.map(OverlaySnapshot::toModel),
         drawing = drawing.map(StrokeSnapshot::toModel),
         privacyMasks = privacyMasks.map(PrivacyMaskSnapshot::toModel),
+        cutout = cutoutMaskAssetId?.let(::SubjectCutout),
         revision = revision,
     )
 
@@ -120,6 +123,7 @@ public data class ImageProjectSnapshot(
                 overlays = project.overlays.map(OverlaySnapshot::of),
                 drawing = project.drawing.map(StrokeSnapshot::of),
                 privacyMasks = project.privacyMasks.map(PrivacyMaskSnapshot::of),
+                cutoutMaskAssetId = project.cutout?.maskAssetId,
             )
         }
     }

@@ -7,6 +7,7 @@ import com.naury.framekit.core.geometry.GeometryEdit
 import com.naury.framekit.core.overlay.DrawingStroke
 import com.naury.framekit.core.overlay.ImageOverlay
 import com.naury.framekit.core.overlay.PrivacyMask
+import com.naury.framekit.core.overlay.SubjectCutout
 
 /**
  * Final edit state of one image.
@@ -17,6 +18,7 @@ import com.naury.framekit.core.overlay.PrivacyMask
  *
  * @property source key of the original image. The original is never overwritten.
  * @property geometry rotation, flip, straighten and crop applied to the upright source.
+ * @property cutout background removal applied to the source before everything else, or `null`.
  * @property adjustments color and tone adjustments, applied after geometry.
  * @property filter preset and intensity, applied after the adjustments.
  * @property privacyMasks blur and mosaic areas, applied after color and before the drawing layer.
@@ -30,6 +32,7 @@ public data class ImageProject(
     val id: ProjectId,
     val source: SourceId,
     val geometry: GeometryEdit = GeometryEdit(),
+    val cutout: SubjectCutout? = null,
     val adjustments: Adjustments = Adjustments(),
     val filter: FilterSelection = FilterSelection(),
     val privacyMasks: List<PrivacyMask> = emptyList(),
@@ -45,7 +48,7 @@ public data class ImageProject(
     override fun withRevision(revision: Long): ImageProject = copy(revision = revision)
 
     override fun sameContentAs(other: ImageProject): Boolean =
-        id == other.id && source == other.source && geometry == other.geometry &&
+        id == other.id && source == other.source && geometry == other.geometry && cutout == other.cutout &&
             adjustments == other.adjustments && filter == other.filter && privacyMasks == other.privacyMasks && overlays == other.overlays &&
             drawing == other.drawing && grainSeed == other.grainSeed
 }

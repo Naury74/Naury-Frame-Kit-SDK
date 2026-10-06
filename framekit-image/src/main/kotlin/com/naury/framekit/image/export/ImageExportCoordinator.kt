@@ -12,6 +12,7 @@ import com.naury.framekit.android.result.EditedMedia
 import com.naury.framekit.android.result.EditorErrorCode
 import com.naury.framekit.android.result.ExportWarning
 import com.naury.framekit.android.result.FrameKitException
+import com.naury.framekit.android.session.ProjectAssetStore
 import com.naury.framekit.android.source.SourceResolver
 import com.naury.framekit.core.geometry.ExifOrientation
 import com.naury.framekit.core.geometry.GeometryFrame
@@ -22,6 +23,7 @@ import com.naury.framekit.core.model.PixelSize
 import com.naury.framekit.core.validation.ValidationResult
 import com.naury.framekit.image.decode.BitmapDecoder
 import com.naury.framekit.image.decode.ImageSourceInfo
+import com.naury.framekit.image.cutout.CutoutMasks
 import com.naury.framekit.image.decode.SampleSize
 import com.naury.framekit.image.effect.ColorEffectRenderer
 import com.naury.framekit.image.effect.CpuColorEffectRenderer
@@ -69,6 +71,8 @@ public class ImageExportCoordinator(
     /**
      * Runs the export on the coordinator's dispatcher.
      *
+     * @param assets store that holds project assets such as the background-removal mask; required
+     *   when the project has a cutout.
      * @param onStage called on the export thread when a new stage starts.
      * @throws FrameKitException with `INVALID_CONFIGURATION`, `INVALID_PROJECT`, `INSUFFICIENT_MEMORY`,
      *   `INSUFFICIENT_STORAGE`, `DECODE_FAILED`, `ENCODE_FAILED` or `OUTPUT_WRITE_FAILED`.
@@ -80,6 +84,7 @@ public class ImageExportCoordinator(
         source: ImageSourceInfo,
         config: ImageExportConfig,
         target: OutputTarget = OutputTarget.AppFile,
+        assets: ProjectAssetStore? = null,
         onStage: (ImageExportStage) -> Unit = {},
     ): EditedMedia = withContext(dispatcher) {
         onStage(ImageExportStage.PREPARING)
@@ -94,6 +99,10 @@ public class ImageExportCoordinator(
         val outputSize = ImageRenderPlanFactory.outputSize(project, metadata, config.maxOutputPixels, config.maxWidth, config.maxHeight)
         val plan = ImageRenderPlanFactory.create(project, metadata, outputSize)
         val decodePlan = decodePlan(source, project, outputSize)
+        val cutoutMask = project.cutout?.let { cutout ->
+            assets?.let { CutoutMasks.load(it, cutout.maskAssetId) }
+                ?: throw FrameKitException(EditorErrorCode.INVALID_PROJECT, "Background removal mask is missing")
+        }
         val colorSpec = project.colorSpec
         val colorBytes = maxOf(
             colorRenderer.workingBytes(outputSize.width, outputSize.height, colorSpec),
@@ -115,7 +124,7 @@ public class ImageExportCoordinator(
                         val decoded = decoder.decodeRegion(source, decodePlan.region, decodePlan.sampleSize)
                             ?: decoder.decode(source, decodePlan.fullSampleSize)
                         try {
-                            CanvasGeometryRenderer.render(decoded, plan, background)
+                            CanvasGeometryRenderer.render(decoded, plan, background, cutoutMask)
                         } finally {
                             decoded.recycle()
                         }
@@ -126,6 +135,7 @@ public class ImageExportCoordinator(
                         bands = strategy.bands,
                         padding = strategy.padding,
                         uprightSize = source.metadata.uprightSize,
+                        cutoutMask = cutoutMask,
                     ) { band ->
                         coroutineContext.ensureActive()
                         decoder.decodeRegion(source, band, decodePlan.sampleSize)
@@ -134,6 +144,8 @@ public class ImageExportCoordinator(
                 }
             } catch (error: OutOfMemoryError) {
                 throw FrameKitException(EditorErrorCode.INSUFFICIENT_MEMORY, "Output bitmap allocation failed", error)
+            } finally {
+                cutoutMask?.recycle()
             }
             try {
                 colorRenderer.apply(rendered, colorSpec, includeCanvasEffects = true)

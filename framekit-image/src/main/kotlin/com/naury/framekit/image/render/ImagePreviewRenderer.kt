@@ -37,6 +37,7 @@ public class ImagePreviewRenderer(private val colorRenderer: ColorEffectRenderer
         mode: PreviewMode,
         maxWidth: Int,
         maxHeight: Int,
+        cutoutMask: Bitmap? = null,
     ): Bitmap {
         val plan = when (mode) {
             PreviewMode.RESULT -> {
@@ -51,7 +52,7 @@ public class ImagePreviewRenderer(private val colorRenderer: ColorEffectRenderer
             }
             PreviewMode.UNCROPPED -> ImageRenderPlanFactory.uncropped(project, metadata, maxOf(maxWidth, maxHeight))
         }
-        val bitmap = CanvasGeometryRenderer.render(source, plan, backgroundArgb = null)
+        val bitmap = CanvasGeometryRenderer.render(source, plan, backgroundArgb = null, cutoutMask = cutoutMask)
         colorRenderer.apply(bitmap, project.colorSpec, includeCanvasEffects = mode == PreviewMode.RESULT)
         // 가리기는 출력 캔버스 기준이라 crop 전체 보기에서는 적용하지 않는다.
         if (mode == PreviewMode.RESULT) PrivacyRenderer.apply(bitmap, project.privacyMasks)

@@ -121,6 +121,9 @@ public class EditorSessionStore(
         }
     }
 
+    /** Asset store inside a session folder; it is deleted together with the session. */
+    public fun assets(sessionId: String): ProjectAssetStore = ProjectAssetStore(File(sessionDir(sessionId), ASSETS_DIRECTORY))
+
     /** Deletes a session and releases the read grant the store took for it. Failures are ignored. */
     public fun delete(sessionId: String) {
         val dir = sessionDir(sessionId)
@@ -198,6 +201,7 @@ public class EditorSessionStore(
         internal const val SESSIONS_DIRECTORY = "framekit/sessions"
         internal const val DESCRIPTOR_FILE = "descriptor.json"
         internal const val SNAPSHOT_FILE = "project.snapshot"
+        internal const val ASSETS_DIRECTORY = "assets"
         internal const val SCHEMA_VERSION = 1
 
         /** Interrupted sessions older than this are deleted: 7 days. */
