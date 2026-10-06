@@ -185,6 +185,23 @@ class VideoEditorViewModelTest {
     }
 
     @Test
+    fun `scrubbing pauses playback and resumes it only if it was playing`() {
+        val viewModel = viewModel(durationUs = 10_000_000)
+        engine.play()
+
+        viewModel.seekTo(3_000_000, scrubbing = true)
+        assertThat(engine.state.value.isPlaying).isFalse()
+        viewModel.finishScrub()
+        assertThat(engine.state.value.isPlaying).isTrue()
+        assertThat(engine.state.value.positionUs).isEqualTo(3_000_000)
+
+        engine.pause()
+        viewModel.seekTo(5_000_000, scrubbing = true)
+        viewModel.finishScrub()
+        assertThat(engine.state.value.isPlaying).isFalse()
+    }
+
+    @Test
     fun `a tap does not create a mask and the limit is enforced`() {
         val viewModel = viewModel(durationUs = 10_000_000)
         viewModel.selectTool(VideoTool.PRIVACY)

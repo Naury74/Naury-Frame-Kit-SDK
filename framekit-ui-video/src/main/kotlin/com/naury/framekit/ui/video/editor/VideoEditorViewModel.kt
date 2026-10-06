@@ -169,6 +169,7 @@ internal class VideoEditorViewModel(
     private var trimEdge: TrimEdge? = null
     private var maskAnchor: PointN? = null
     private var maskEditStart: Triple<String, RectN, Boolean>? = null
+    private var resumeAfterScrub = false
     private var overlayGestureStart: ImageOverlay? = null
     private var planRevision = 0L
     private var lastPreviewProject: VideoProject? = null
@@ -434,12 +435,22 @@ internal class VideoEditorViewModel(
     /** 출력 시간으로 탐색한다. 사용자가 드래그하는 동안 [scrubbing]이면 정확도보다 속도를 우선한다. */
     fun seekTo(positionUs: Long, scrubbing: Boolean = false) {
         val ready = _state.value as? VideoEditorUiState.Ready ?: return
-        if (scrubbing && engine.state.value.isPlaying) engine.pause()
+        if (scrubbing && engine.state.value.isPlaying) {
+            // 재생 중에 끌었으면 손을 뗀 뒤 그 위치부터 다시 재생한다.
+            resumeAfterScrub = true
+            engine.pause()
+        }
         engine.setScrubbing(scrubbing)
         engine.seekTo(positionUs.coerceIn(0, max(0, ready.durationUs - FRAME_US)))
     }
 
-    fun finishScrub() = engine.setScrubbing(false)
+    fun finishScrub() {
+        engine.setScrubbing(false)
+        if (resumeAfterScrub) {
+            resumeAfterScrub = false
+            engine.play()
+        }
+    }
 
     fun attachSurface(holder: SurfaceHolder) = engine.attachSurface(holder)
 

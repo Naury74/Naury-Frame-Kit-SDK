@@ -31,6 +31,12 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.semantics.setProgress
+import androidx.compose.ui.semantics.progressBarRangeInfo
+import androidx.compose.ui.semantics.ProgressBarRangeInfo
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
@@ -84,12 +90,26 @@ internal fun MultiClipTimeline(
     val density = LocalDensity.current
     val rows = TimelineItemKind.entries.filter { kind -> items.any { it.kind == kind } }
     val height = STRIP_HEIGHT + (ROW_HEIGHT + ROW_GAP) * rows.size
+    val haptics = LocalHapticFeedback.current
+    val hapticsEnabled = FrameKitTheme.config.enableHaptics
+    val currentScrubForA11y by rememberUpdatedState(onScrub)
+    val currentScrubEndForA11y by rememberUpdatedState(onScrubEnd)
     BoxWithConstraints(
         modifier
             .fillMaxWidth()
             .padding(vertical = 8.dp)
             .height(height)
-            .semantics { contentDescription = description },
+            // 화면 읽기 프로그램에서는 재생 위치 조절 막대로 보이고, 볼륨 키 등으로 위치를 옮길 수 있다.
+            .semantics {
+                contentDescription = description
+                stateDescription = "${formatTime(positionUs)} / ${formatTime(durationUs)}"
+                progressBarRangeInfo = ProgressBarRangeInfo(positionUs.toFloat(), 0f..durationUs.coerceAtLeast(1).toFloat(), steps = 0)
+                setProgress { target ->
+                    currentScrubForA11y(target.toLong().coerceIn(0, durationUs))
+                    currentScrubEndForA11y()
+                    true
+                }
+            },
     ) {
         val widthPx = constraints.maxWidth.toFloat()
         val stripPx = with(density) { STRIP_HEIGHT.toPx() }
@@ -126,6 +146,7 @@ internal fun MultiClipTimeline(
         val currentSelectItem by rememberUpdatedState(onSelectItem)
         val rowPx = with(density) { ROW_HEIGHT.toPx() }
         val rowGapPx = with(density) { ROW_GAP.toPx() }
+        val tapSlopPx = with(density) { 12.dp.toPx() }
 
         Canvas(
             Modifier
@@ -135,6 +156,7 @@ internal fun MultiClipTimeline(
                     awaitEachGesture {
                         val down = awaitFirstDown()
                         val startPosition = currentPosition
+                        var lastTarget = startPosition
                         var moved = false
                         var scrubbing = false
                         var totalDx = 0f
@@ -156,6 +178,11 @@ internal fun MultiClipTimeline(
                                 if (moved && pressed.size == 1) {
                                     scrubbing = true
                                     val target = (startPosition - totalDx / currentPxPerUs).toLong().coerceIn(0, currentDuration)
+                                    // 클립 경계나 처음·끝을 지날 때 한 번 진동해 손을 보지 않고도 위치를 알 수 있게 한다.
+                                    val boundaries = currentClips.map { it.outputStartUs } + currentDuration
+                                    val crossed = boundaries.any { b -> (lastTarget < b && target >= b) || (lastTarget > b && target <= b) }
+                                    if (crossed && hapticsEnabled) haptics.performHapticFeedback(HapticFeedbackType.SegmentTick)
+                                    lastTarget = target
                                     currentScrub(target)
                                     change.consume()
                                 }
@@ -171,7 +198,10 @@ internal fun MultiClipTimeline(
                             } else {
                                 val row = ((y - stripPx) / (rowPx + rowGapPx)).toInt()
                                 val kind = currentRows.getOrNull(row)
-                                currentItems.lastOrNull { it.kind == kind && timeUs in it.range }?.let { currentSelectItem(it.kind, it.id) }
+                                // 짧은 항목도 누를 수 있도록 좌우로 손가락 반 폭만큼 여유를 둔다.
+                                val slopUs = (tapSlopPx / currentPxPerUs).toLong()
+                                currentItems.lastOrNull { it.kind == kind && timeUs >= it.range.startUs - slopUs && timeUs < it.range.endExclusiveUs + slopUs }
+                                    ?.let { currentSelectItem(it.kind, it.id) }
                             }
                         }
                     }
@@ -251,8 +281,8 @@ private fun visibleTiles(clips: List<TimelineClip>, positionUs: Long, pxPerUs: F
     }
 
 private val STRIP_HEIGHT = 56.dp
-private val ROW_HEIGHT = 10.dp
-private val ROW_GAP = 6.dp
+private val ROW_HEIGHT = 14.dp
+private val ROW_GAP = 8.dp
 private const val MAX_FRAME_PX = 160
 private const val BUCKET_US = 250_000L
 private const val MAX_KEPT_FRAMES = 120
