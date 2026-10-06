@@ -6,11 +6,17 @@
 
 ```kotlin
 dependencies {
-    implementation(project(":framekit"))          // 사진·영상 모두
-    // implementation(project(":framekit-ui-image")) // 사진만 (Media3 없음)
-    // implementation(project(":framekit-ui-video")) // 영상만
+    implementation("io.github.naury74:framekit:1.0.0-alpha01")             // 사진·영상 모두
+    // implementation("io.github.naury74:framekit-ui-image:1.0.0-alpha01") // 사진만 (Media3 없음)
+    // implementation("io.github.naury74:framekit-ui-video:1.0.0-alpha01") // 영상만
 }
 ```
+
+Maven Central 공개 전에는 이 저장소에서 `./gradlew publishToMavenLocal`을 실행하고 호스트의 저장소 목록에 `mavenLocal()`을 넣습니다.
+
+- 호스트는 Kotlin 2.2 이상이면 됩니다. SDK는 Kotlin 2.4로 빌드하지만 언어·API 버전과 `kotlin-stdlib` 의존을 2.2로 맞춰 배포합니다.
+- 호스트가 Compose를 쓰지 않아도 됩니다. 편집 화면의 Compose 의존은 SDK가 가져옵니다.
+- 이미지 전용 앱은 `framekit-ui-image`만 쓰면 Media3가 들어오지 않습니다.
 
 SDK manifest는 편집 Activity(`exported=false`), 통합 모듈의 투명 라우터 Activity, 결과 전용 FileProvider만 merge합니다. 권한은 추가하지 않습니다.
 
@@ -174,4 +180,4 @@ implementation(project(":framekit-segmentation"))
 
 ## R8
 
-SDK 모듈은 reflection을 쓰지 않으므로 별도 keep 규칙이 필요 없습니다. Parcelable request/result는 AGP 기본 규칙으로 유지됩니다.
+SDK 모듈은 reflection을 쓰지 않으므로 별도 keep 규칙이 필요 없습니다. Parcelable request/result는 AGP 기본 규칙으로 유지됩니다. 별도 소비자 앱의 R8 release 빌드에서 영상 편집기(Media3)·필터·저장·결과 수신을 확인했습니다.

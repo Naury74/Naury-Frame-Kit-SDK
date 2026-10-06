@@ -75,8 +75,42 @@ ImageEditorRequest(
 | `showExportProgress` | `true` | `false`이면 단계 대신 "저장하는 중"만 표시 |
 | `enableHaptics` | `true` | 시스템 햅틱 설정은 항상 존중 |
 | `localeTag` | `null` | `null`은 기기 언어. 빈 문자열은 오류 |
+| `palette` | `null` | `EditorPalette`. 배경·패널·강조 패널·글자·보조 글자·캔버스 여백·강조색 위 글자 색(ARGB)을 바꿈. `null`인 항목은 테마 기본값 |
+| `uiFontId` | `null` | 편집기 문구 폰트. `catalog.fonts`에 있는 id여야 함 |
 
-기본 다크 팔레트: background `#0D0D0E`, surface `#171719`, raised `#242428`, foreground `#FFFFFF`, accent `#635BFF`. accent를 바꿀 때는 흰 글자와의 대비를 확인하세요. 저장 버튼 글자는 항상 흰색입니다.
+기본 다크 팔레트: background `#0D0D0E`, surface `#171719`, raised `#242428`, foreground `#FFFFFF`, foregroundMuted `#A1A1AA`, accent `#635BFF`, onAccent `#FFFFFF`.
+
+`EditorPalette.contrastWarnings(base, accentArgb)`는 글자·배경 명암비가 WCAG 기준(본문 4.5:1, 보조 글자·강조색 위 글자 3:1)보다 낮은 조합을 알려 줍니다. 편집기는 경고가 있어도 그대로 쓰므로 호스트가 확인하세요. Showcase Playground가 강조색에 대해 이 경고를 보여 줍니다.
+
+## catalog: EditorCatalog
+
+세 request(`ImageEditorRequest`, `VideoEditorRequest`, `FrameKitRequest`)와 headless 처리기(`ImageProcessor`, `VideoProcessor`)가 같은 카탈로그를 받습니다.
+
+```kotlin
+EditorCatalog(
+    filters = listOf(CustomFilter("brand-warm", "Warm", temperature = 0.4, saturation = 0.1, fade = 0.05)),
+    stickers = listOf(CustomSticker("logo", "Logo", CatalogFile.Asset("stickers/logo.png"))),
+    fonts = listOf(CustomFont("brand", "Brand", CatalogFile.Asset("fonts/brand.ttf"))),
+    showDefaultFilters = true,
+    showDefaultStickers = true,
+    showDefaultFonts = true,
+)
+```
+
+| 항목 | 규칙 |
+| --- | --- |
+| id | `a-z 0-9 . _ -` 1..64자, 종류 안에서 중복 불가, 내장 필터·폰트 id와 겹치면 안 됨. 프로젝트·세션에는 id만 저장되므로 앱 버전이 바뀌어도 같은 항목을 가리켜야 함 |
+| label | 화면에 그대로 표시. 빈 문자열 불가. 언어별 문구는 호스트가 고른 값으로 넘김 |
+| 개수 | 필터·스티커 각 200개, 폰트 20개까지 |
+| `CustomFilter` | 색온도·색조·밝기·대비·채도 `-1..1`, 어두운/밝은 영역 색 이동 RGB 각 `-0.2..0.2`, 페이드 `0..1`. 내장 필터와 같은 수식으로 사진·영상에 같은 색을 냄. 값을 바꾸면 `version`을 올림 |
+| `CustomSticker` | PNG·WEBP 등 투명 이미지. 긴 변 512px로 줄여 읽고 이미지 비율대로 표시. 에셋 id는 `StickerCatalog.assetId(id)` (`sticker:<id>`) |
+| `CustomFont` | TTF·OTF. 텍스트 도구 폰트 목록 끝에 붙음 |
+| `CatalogFile` | `Asset(path)`(앱 assets), `LocalFile(absolutePath)`(앱 내부 파일), `UriFile(uri)`(호스트가 읽을 수 있는 `content://`·`android.resource://`) |
+| `showDefault*` | `false`이면 내장 필터(원본은 유지)·이모지 스티커·내장 폰트(기본 산세리프만 유지)를 숨김 |
+
+- 편집기는 시작할 때와 Activity가 다시 만들어질 때마다 카탈로그를 다시 등록합니다. 파일은 편집이 끝날 때까지 같은 위치에 있어야 합니다.
+- 읽지 못한 스티커 이미지는 그리지 않고, 폰트는 기본 폰트로 대신합니다. 앱을 멈추지 않습니다.
+- 카탈로그는 프로세스 전체에 하나만 등록됩니다. 서로 다른 카탈로그로 편집기 두 개를 동시에 띄우지 마세요.
 
 ## VideoEditorRequest
 

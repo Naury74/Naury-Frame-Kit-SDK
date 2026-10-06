@@ -2,7 +2,7 @@
 
 Android 앱에 넣어 쓰는 **비파괴 이미지·영상 편집 SDK**입니다. 호스트 앱은 Uri를 넘기거나 내장 Photo Picker를 띄우고, FrameKit 편집 화면에서 편집한 뒤 결과 파일의 `content://` Uri와 메타데이터를 받습니다. 원본은 절대 덮어쓰지 않습니다.
 
-> 현재 버전은 **v0.4 (개발 중)** 입니다. 사진 편집(자르기·회전·보정·필터·텍스트·이모지 스티커·그리기·모자이크·배경 제거)과 UI 없는 headless 저장, 여러 클립 영상 편집(나누기·순서 변경, 구간·자르기·회전·보정·필터·속도·소리·배경 음악·텍스트·스티커·모자이크, MP4 저장)이 동작합니다. Maven 배포 전이므로 지금은 소스 모듈로 의존합니다.
+> 현재 버전은 **1.0.0-alpha01** 입니다. 사진 편집(자르기·회전·보정·필터·텍스트·이모지 스티커·그리기·모자이크·배경 제거)과 UI 없는 headless 저장, 여러 클립 영상 편집(나누기·순서 변경, 구간·자르기·회전·보정·필터·속도·소리·배경 음악·텍스트·스티커·모자이크, MP4 저장), 호스트 필터·스티커·폰트 카탈로그, 색 팔레트, 사진·영상 headless 처리가 동작합니다. Maven Central 배포 전이므로 지금은 `publishToMavenLocal` 또는 소스 모듈로 의존합니다.
 
 호스트 앱은 SDK 라이브러리만 추가하면 됩니다. 편집 화면(Activity)은 SDK 안에 있고 manifest merge로 자동 등록되며, 호스트는 Activity Result 한 번으로 편집 화면을 띄우고 결과 파일을 돌려받습니다. 저장소의 `app` 모듈은 SDK를 확인·시연하기 위한 Showcase입니다.
 
@@ -48,13 +48,20 @@ Android 앱에 넣어 쓰는 **비파괴 이미지·영상 편집 SDK**입니다
 | 세션 복원 | 프로세스 종료 후 확정한 영상 편집 복원 | v0.3 지원 |
 | 통합 진입점 | `FrameKitContract` 하나로 사진·영상 중 알맞은 편집기 실행, 사진 또는 영상 고르기 | v0.3 지원 |
 
-계획된 기능(아직 **미지원**): 장면 전환(crossfade)·PiP·HDR 유지(후속 범위) · 사용자 정의 필터·스티커·폰트, Maven 배포(v1.0). 자세한 순서는 [Roadmap](#roadmap)을 보세요.
+SDK 확장(v1.0)
+
+| 기능 | 내용 | 상태 |
+| --- | --- | --- |
+| 호스트 카탈로그 | 앱의 필터 값·스티커 이미지·폰트 파일을 `EditorCatalog`로 넘겨 편집기·저장·headless에 추가, 내장 항목 숨기기 | v1.0 지원 |
+| 색·폰트 | `EditorPalette`로 배경·패널·글자 색 변경, 명암비 경고, 카탈로그 폰트를 편집기 문구에 사용 | v1.0 지원 |
+| 영상 headless | `VideoProcessor`로 UI 없이 클립·음악·효과를 MP4로 저장 | v1.0 지원 |
+| 배포 | Maven 좌표 `io.github.naury74:<모듈>`, sources jar, Kotlin 2.2 이상 호스트 지원 | v1.0 지원(로컬 배포 확인) |
+
+계획된 기능(아직 **미지원**): 장면 전환(crossfade)·PiP·HDR 유지·Maven Central 공개 배포(후속 범위) · 사용자 정의 필터·스티커·폰트, Maven 배포(v1.0). 자세한 순서는 [Roadmap](#roadmap)을 보세요.
 
 ## 설치
 
-Maven 좌표는 배포 namespace를 등록한 뒤 확정합니다. 그 전까지는 저장소를 함께 빌드하고 모듈에 의존합니다.
-
-필요한 범위에 맞춰 모듈 하나를 고릅니다. 하위 모듈은 함께 들어옵니다.
+필요한 범위에 맞춰 모듈 하나를 고릅니다. 하위 모듈은 Gradle 메타데이터로 함께 들어옵니다.
 
 | 모듈 | 용도 |
 | --- | --- |
@@ -63,21 +70,34 @@ Maven 좌표는 배포 namespace를 등록한 뒤 확정합니다. 그 전까지
 | `framekit-ui-video` | 영상 편집 화면만 |
 | `framekit-image` / `framekit-video` | UI 없는 처리(headless)와 엔진 |
 
+Maven Central 공개 전에는 이 저장소에서 로컬 Maven에 올린 뒤 씁니다.
+
+```bash
+./gradlew publishToMavenLocal   # io.github.naury74:*:1.0.0-alpha01
+```
+
 ```kotlin
-// settings.gradle.kts (Maven 배포 전: 저장소를 함께 빌드)
-include(":framekit-core", ":framekit-android", ":framekit-image", ":framekit-video")
-include(":framekit-ui", ":framekit-ui-image", ":framekit-ui-video", ":framekit")
+// settings.gradle.kts
+dependencyResolutionManagement {
+    repositories {
+        mavenLocal()
+        google()
+        mavenCentral()
+    }
+}
 
 // app/build.gradle.kts
 dependencies {
-    implementation(project(":framekit"))
+    implementation("io.github.naury74:framekit:1.0.0-alpha01")
 }
 ```
+
+저장소를 함께 빌드하려면 `include(":framekit-core", …)`로 모듈을 포함하고 `implementation(project(":framekit"))`를 씁니다. 호스트 앱은 Compose를 쓰지 않아도 되고 Kotlin 2.2 이상이면 됩니다. 별도 소비자 앱(Compose 없음, Kotlin 2.2, R8 release)에서 `mavenLocal` 산출물로 영상 편집·저장·결과 수신까지 확인했습니다.
 
 배경 제거가 필요하면 선택 모듈을 추가합니다. 추가하면 편집기에 "배경 제거" 도구가 자동으로 나타납니다.
 
 ```kotlin
-implementation(project(":framekit-segmentation"))
+implementation("io.github.naury74:framekit-segmentation:1.0.0-alpha01")
 ```
 
 이 모듈은 Google Play 서비스의 ML Kit을 쓰므로 Play 서비스가 없는 기기에서는 동작하지 않고, ML Kit 의존성이 `INTERNET`·`ACCESS_NETWORK_STATE` 권한을 추가합니다. 자세한 내용은 [integration](docs/integration.md#배경-제거-선택-모듈)을 보세요.
@@ -140,7 +160,38 @@ ImageProcessor(context).use { processor ->
 }
 ```
 
+영상은 `VideoProcessor`로 같은 방식입니다.
+
+```kotlin
+val processor = VideoProcessor(context)
+val source = processor.open(EditorInput.UriSource(videoUri))
+val project = processor.newProject(source)   // 원본 전체를 한 클립으로
+val handle = processor.startExport(project, listOf(source), scope = lifecycleScope)
+```
+
 자세한 내용은 [docs/headless.md](docs/headless.md)를 보세요.
+
+## 호스트 카탈로그와 테마
+
+앱의 필터·스티커·폰트를 편집기에 더하고, 색과 폰트를 브랜드에 맞출 수 있습니다.
+
+```kotlin
+FrameKitRequest(
+    input = EditorInput.Pick(MediaKind.ANY),
+    catalog = EditorCatalog(
+        filters = listOf(CustomFilter("brand-warm", "Warm", temperature = 0.4, saturation = 0.1)),
+        stickers = listOf(CustomSticker("logo", "Logo", CatalogFile.Asset("stickers/logo.png"))),
+        fonts = listOf(CustomFont("brand", "Brand", CatalogFile.Asset("fonts/brand.ttf"))),
+    ),
+    ui = EditorUiConfig(
+        accentArgb = 0xFF1E6BFF.toInt(),
+        palette = EditorPalette(backgroundArgb = 0xFF101820.toInt()),
+        uiFontId = "brand",
+    ),
+)
+```
+
+프로젝트에는 id만 저장되므로 id는 앱 버전이 바뀌어도 같은 항목을 가리켜야 합니다. 자세한 규칙은 [docs/configuration.md](docs/configuration.md#catalog-editorcatalog)를 보세요.
 
 ## 결과 파일과 권한
 
@@ -175,6 +226,7 @@ app                 Showcase 앱
 
 | 예제 | 설정 |
 | --- | --- |
+| Playground | 도구·실행 취소·테마·강조색·모서리·언어·저장 설정을 골라 실제 요청으로 실행. SDK가 거부하는 조합을 실행 전에 표시 |
 | 사진 편집 | 기본 설정 |
 | 영상 편집 | 최대 10개 클립, 모든 영상 도구, MP4 저장 |
 | 사진 또는 영상 | `Pick(MediaKind.ANY)`, 고른 종류의 편집기가 열림 |
@@ -183,6 +235,7 @@ app                 Showcase 앱
 | 회전만 | `enabledTools = {ROTATE}` |
 | PNG 저장 | `format = PNG` |
 | 제한 모드 | 자르기만, undo 끔, 최대 1080px·품질 85 |
+| 호스트 카탈로그 | 앱 assets의 스티커 이미지 2개와 필터 2개(Sunset, Ocean) 추가 |
 | 브랜드 테마 | 라이트 테마, 파란 accent, 모서리 22dp |
 | 영어 UI | `localeTag = "en"` |
 
@@ -195,7 +248,7 @@ app                 Showcase 앱
 ## 검증
 
 ```bash
-./gradlew test lint :app:assembleDebug :app:assembleRelease
+./gradlew test lint :app:assembleDebug :app:assembleRelease publishToMavenLocal
 ```
 
 | 범위 | 내용 |
@@ -205,7 +258,8 @@ app                 Showcase 앱
 | 실기기 계측 | Galaxy Z Fold7(Android 16): GL 색 보정이 CPU 기준과 일치(보정 12종·프리셋 전부, 평균 오차 ≤ 1/255) |
 | 실기기 계측(영상) | 실제 Media3 저장: 구간 정확도(1프레임 이내), 2배속 길이, 회전·반전 방향, 필터 색, 구간 모자이크, 취소 시 파일 없음, 미리보기 준비, 소리 있는·없는 클립 이어 붙이기, 나누기·순서 변경 길이, 반복 음악이 영상보다 길어지지 않음, 구간 텍스트, 정사각형 맞추기·채우기 |
 | 실기기 수동 | Galaxy Z Fold7 릴리스 빌드: 편집·저장, 프로세스 종료 후 복원, 108MP 사진 저장, 펼친 화면·태블릿 크기 전환, 필터·비네트 |
-| 에뮬레이터 수동 | 폴더블 에뮬레이터(Android 16): 영상 선택→구간 자르기→MP4 저장, 미리보기 모자이크, 넓은 화면 배치, 클립 추가·스티커·두 클립 저장 |
+| 에뮬레이터 수동 | 폴더블 에뮬레이터(Android 16): 영상 선택→구간 자르기→MP4 저장, 미리보기 모자이크, 넓은 화면 배치, 클립 추가·스티커·두 클립 저장, 호스트 스티커·필터, Playground 검증 표시 |
+| 소비자 앱 | 별도 프로젝트(Compose 없음, Kotlin 2.2, R8 release)가 `mavenLocal`의 `framekit`으로 영상 편집·필터·저장 결과 수신 |
 
 **아직 검증하지 않은 것**: API 26/27 저사양 기기, Galaxy S23 성능 기준, 텍스트·스티커·그리기·가리기와 영상 편집 화면의 실기기 수동 확인, 4K·HDR 영상, 성능 수치. 검증 전에는 지원한다고 표시하지 않습니다.
 
@@ -231,7 +285,7 @@ app                 Showcase 앱
 | v0.2 | 보정 12종·필터와 템플릿, 텍스트·스티커·그리기, 블러·모자이크, 배경 제거, WEBP, 이미지 headless |
 | v0.3 | 단일 영상 재생·구간·자르기·회전·보정·필터·속도·소리·구간 모자이크, MP4 저장 (Media3), 통합 FrameKitContract |
 | v0.4 | 여러 클립, 나누기·순서 변경, 화면 비율, 배경 음악, 구간 텍스트·스티커 |
-| v1.0 | 사용자 정의 필터·스티커·폰트, 이미지·영상 headless, Maven 배포, 문서 |
+| v1.0 | 사용자 정의 필터·스티커·폰트, 색 팔레트·문구 폰트, 이미지·영상 headless, Playground, Maven 배포 설정, 문서 (1.0.0-alpha01) |
 
 ## 기여
 

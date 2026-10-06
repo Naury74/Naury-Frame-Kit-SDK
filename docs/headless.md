@@ -1,6 +1,6 @@
 # Headless
 
-`ImageProcessor`는 편집 화면 없이 사진을 편집하고 저장합니다. 편집 화면과 같은 디코더·렌더러·저장 경로를 쓰므로, 같은 프로젝트는 같은 결과를 냅니다.
+`ImageProcessor`(사진)와 `VideoProcessor`(영상)는 편집 화면 없이 편집하고 저장합니다. 편집 화면과 같은 디코더·렌더러·저장 경로를 쓰므로, 같은 프로젝트는 같은 결과를 냅니다.
 
 ## 흐름
 
@@ -18,6 +18,32 @@ handle.state.collect { state -> render(state) }   // 선택
 val result = handle.awaitResult()
 processor.close()
 ```
+
+## 영상
+
+```kotlin
+val processor = VideoProcessor(context)
+val video = processor.open(EditorInput.UriSource(videoUri))
+val music = processor.openAudio(EditorInput.UriSource(songUri))      // 선택
+val base = processor.newProject(video)                                // 원본 전체가 한 클립
+val project = base.copy(
+    timeline = base.timeline.copy(
+        videoClips = base.timeline.videoClips.map { it.copy(sourceRange = TimeRangeUs(0, 5_000_000), speed = 2.0) },
+        audioClips = listOf(AudioClip("m", music.metadata.id, TimeRangeUs(0, 3_000_000), timelineStartUs = 0, loop = true)),
+    ),
+)
+val handle = processor.startExport(project, listOf(video), VideoExportConfig(maxShortSide = 720), scope = lifecycleScope, music = listOf(music))
+val result = handle.awaitResult()
+```
+
+- 여러 클립은 `open`으로 연 원본을 모두 `sources`에 넘기고 `VideoClip`을 이어 붙입니다.
+- Media3 Transformer가 main looper에서 실행되므로 앱 프로세스 안에서 호출합니다(WorkManager 등도 같은 프로세스).
+- `ExportState.Running.progress`는 Media3가 추정할 수 있을 때 `0..1`입니다.
+- 앱 시작 때 `deleteStalePartials()`로 이전에 중단된 임시 파일을 지울 수 있습니다.
+
+## 카탈로그
+
+호스트 필터·스티커·폰트를 쓰는 프로젝트는 처리기에도 같은 카탈로그를 넘깁니다: `ImageProcessor(context, catalog = catalog)`, `VideoProcessor(context, catalog = catalog)`.
 
 ## 입력
 
