@@ -41,6 +41,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -83,6 +85,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.naury.framekit.core.video.Timeline
 import com.naury.framekit.ui.R as UiR
 import com.naury.framekit.ui.component.ApplyCancelBar
+import com.naury.framekit.ui.component.ApplyDraftDialog
 import com.naury.framekit.ui.component.DiscardChangesDialog
 import com.naury.framekit.ui.component.EditorErrorView
 import com.naury.framekit.ui.component.EditorLoadingView
@@ -197,10 +200,15 @@ private fun ReadyContent(state: VideoEditorUiState.Ready, viewModel: VideoEditor
             EditorTopBar(onClose = viewModel::requestClose, onSave = viewModel::save, saveEnabled = state.export == null)
         }
         when (val layout = EditorLayoutPolicy.decide(maxWidth.value, maxHeight.value, posture)) {
-            is EditorLayout.Stacked -> Column(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)) {
-                topBar()
-                CanvasArea(state, viewModel, Modifier.weight(1f).fillMaxWidth())
-                ControlArea(state, viewModel, Modifier.fillMaxWidth(), layout.maxControlsWidthDp)
+            // 키보드 인셋을 뺀 실제 높이를 기준으로 비율을 잡아야 입력 중에도 캔버스가 남는다.
+            is EditorLayout.Stacked -> BoxWithConstraints(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)) {
+                val available = maxHeight
+                Column(Modifier.fillMaxSize()) {
+                    topBar()
+                    CanvasArea(state, viewModel, Modifier.weight(1f).fillMaxWidth())
+                    // 패널이 길거나 키보드가 올라와도 미리보기가 사라지지 않도록 아래 영역 높이를 제한한다.
+                    ControlArea(state, viewModel, Modifier.fillMaxWidth().heightIn(max = available * MAX_CONTROL_AREA_FRACTION), layout.maxControlsWidthDp)
+                }
             }
             is EditorLayout.SidePanel -> Row(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)) {
                 PreviewColumn(state, viewModel, Modifier.weight(1f).fillMaxHeight())
@@ -261,6 +269,9 @@ private fun ReadyContent(state: VideoEditorUiState.Ready, viewModel: VideoEditor
             viewModel.save()
         }, onDismiss = viewModel::dismissExportError)
         null -> Unit
+    }
+    if (state.showDraftDialog) {
+        ApplyDraftDialog(onApply = viewModel::applyDraftFromDialog, onDiscard = viewModel::discardDraftFromDialog, onKeepEditing = viewModel::dismissDraftDialog)
     }
     if (state.showDiscardDialog) {
         DiscardChangesDialog(onDiscard = viewModel::confirmDiscard, onKeepEditing = viewModel::dismissDiscard)
@@ -344,13 +355,15 @@ private fun ControlArea(state: VideoEditorUiState.Ready, viewModel: VideoEditorV
     Column(
         modifier.background(FrameKitTheme.colors.background).wrapContentWidth(Alignment.CenterHorizontally),
     ) {
+        // 텍스트를 입력하는 동안에는 키보드 자리를 확보하려고 재생 줄과 타임라인을 잠시 숨긴다.
+        val imeVisible = WindowInsets.ime.getBottom(LocalDensity.current) > 0
         Column(if (maxWidthDp != null) Modifier.widthIn(max = maxWidthDp.dp).fillMaxWidth() else Modifier.fillMaxWidth()) {
-            if (state.activeTool?.isGeometry != true) {
+            if (state.activeTool?.isGeometry != true && !imeVisible) {
                 PlaybackRow(state, viewModel)
                 TimelineRow(state, viewModel)
                 if (state.activeTool == null) ClipActionBar(state, viewModel)
             }
-            ToolArea(state, viewModel, wide = false)
+            ToolArea(state, viewModel, wide = false, modifier = Modifier.weight(1f, fill = false), scrollPanel = true)
         }
     }
 }
@@ -499,22 +512,28 @@ private fun ClipAction(icon: Painter, label: Int, enabled: Boolean, onClick: () 
 }
 
 @Composable
-private fun ToolArea(state: VideoEditorUiState.Ready, viewModel: VideoEditorViewModel, wide: Boolean) {
+private fun ToolArea(
+    state: VideoEditorUiState.Ready,
+    viewModel: VideoEditorViewModel,
+    wide: Boolean,
+    modifier: Modifier = Modifier,
+    scrollPanel: Boolean = false,
+) {
     val tools = viewModel.config.enabledTools.toList().sortedBy { it.ordinal }
     AnimatedContent(
         targetState = state.activeTool,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         transitionSpec = { fadeIn(tween(TOOL_TRANSITION_MS)) togetherWith fadeOut(tween(TOOL_TRANSITION_MS)) },
         label = "video-tool-area",
     ) { tool ->
         Column(Modifier.fillMaxWidth()) {
             val geometry = state.clip.effects.geometry
             when (tool) {
-                VideoTool.TRIM -> ToolPanelWithActions(R.string.framekit_tool_trim, viewModel, isDraft = true) {}
-                VideoTool.CROP -> ToolPanelWithActions(UiR.string.framekit_tool_crop, viewModel, isDraft = true) {
+                VideoTool.TRIM -> ToolPanelWithActions(R.string.framekit_tool_trim, viewModel, isDraft = true, scrollPanel) {}
+                VideoTool.CROP -> ToolPanelWithActions(UiR.string.framekit_tool_crop, viewModel, isDraft = true, scrollPanel) {
                     CropToolPanel(aspect = state.cropAspect, onSelectAspect = viewModel::selectAspect)
                 }
-                VideoTool.ROTATE -> ToolPanelWithActions(UiR.string.framekit_tool_rotate, viewModel, isDraft = true) {
+                VideoTool.ROTATE -> ToolPanelWithActions(UiR.string.framekit_tool_rotate, viewModel, isDraft = true, scrollPanel) {
                     RotateToolPanel(
                         straightenDegrees = geometry.straightenDegrees,
                         onRotateLeft = viewModel::rotateLeft,
@@ -525,10 +544,10 @@ private fun ToolArea(state: VideoEditorUiState.Ready, viewModel: VideoEditorView
                         onStraightenFinished = viewModel::finishStraighten,
                     )
                 }
-                VideoTool.CANVAS -> ToolPanelWithActions(R.string.framekit_tool_canvas, viewModel, isDraft = false) {
+                VideoTool.CANVAS -> ToolPanelWithActions(R.string.framekit_tool_canvas, viewModel, isDraft = false, scrollPanel) {
                     CanvasToolPanel(canvas = state.displayed.canvas, onChange = viewModel::setCanvas)
                 }
-                VideoTool.ADJUST -> ToolPanelWithActions(UiR.string.framekit_tool_adjust, viewModel, isDraft = false) {
+                VideoTool.ADJUST -> ToolPanelWithActions(UiR.string.framekit_tool_adjust, viewModel, isDraft = false, scrollPanel) {
                     AdjustToolPanel(
                         adjustments = state.clip.effects.adjustments,
                         selected = state.adjustKind,
@@ -537,7 +556,7 @@ private fun ToolArea(state: VideoEditorUiState.Ready, viewModel: VideoEditorView
                         onChangeFinished = viewModel::finishGesture,
                     )
                 }
-                VideoTool.FILTER -> ToolPanelWithActions(UiR.string.framekit_tool_filter, viewModel, isDraft = false) {
+                VideoTool.FILTER -> ToolPanelWithActions(UiR.string.framekit_tool_filter, viewModel, isDraft = false, scrollPanel) {
                     val thumbnails by viewModel.filterThumbnails.collectAsStateWithLifecycle()
                     FilterToolPanel(
                         selection = state.clip.effects.filter,
@@ -547,10 +566,10 @@ private fun ToolArea(state: VideoEditorUiState.Ready, viewModel: VideoEditorView
                         onIntensityFinished = viewModel::finishGesture,
                     )
                 }
-                VideoTool.SPEED -> ToolPanelWithActions(R.string.framekit_tool_speed, viewModel, isDraft = true) {
+                VideoTool.SPEED -> ToolPanelWithActions(R.string.framekit_tool_speed, viewModel, isDraft = true, scrollPanel) {
                     SpeedToolPanel(speed = state.clip.speed, onSelect = viewModel::selectSpeed)
                 }
-                VideoTool.AUDIO -> ToolPanelWithActions(R.string.framekit_tool_audio, viewModel, isDraft = false) {
+                VideoTool.AUDIO -> ToolPanelWithActions(R.string.framekit_tool_audio, viewModel, isDraft = false, scrollPanel) {
                     val music = state.displayed.timeline.audioClips.firstOrNull()
                     val loaded = music?.let { state.music[it.source] }
                     val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri -> viewModel.addMusic(uri) }
@@ -581,14 +600,14 @@ private fun ToolArea(state: VideoEditorUiState.Ready, viewModel: VideoEditorView
                         onGestureFinished = viewModel::finishGesture,
                     )
                 }
-                VideoTool.TEXT -> ToolPanelWithActions(UiR.string.framekit_tool_text, viewModel, isDraft = true) {
+                VideoTool.TEXT -> ToolPanelWithActions(UiR.string.framekit_tool_text, viewModel, isDraft = true, scrollPanel) {
                     val editing = state.displayed.timeline.overlays.firstOrNull { it.overlay.id == state.editingTextId }
                     val text = editing?.overlay as? ImageOverlay.Text
                     if (text != null) {
                         TextToolPanel(text = text, onText = viewModel::updateText, onStyle = viewModel::updateTextStyle)
                     }
                 }
-                VideoTool.STICKER -> ToolPanelWithActions(UiR.string.framekit_tool_sticker, viewModel, isDraft = false) {
+                VideoTool.STICKER -> ToolPanelWithActions(UiR.string.framekit_tool_sticker, viewModel, isDraft = false, scrollPanel) {
                     val selected = state.displayed.timeline.overlays.firstOrNull { it.overlay.id == state.selectedOverlayId }
                     TimedRangeRow(
                         range = selected?.range,
@@ -599,7 +618,7 @@ private fun ToolArea(state: VideoEditorUiState.Ready, viewModel: VideoEditorView
                     )
                     StickerToolPanel(category = state.stickerCategory, onCategory = viewModel::selectStickerCategory, onAdd = viewModel::addSticker)
                 }
-                VideoTool.PRIVACY -> ToolPanelWithActions(UiR.string.framekit_tool_privacy, viewModel, isDraft = false) {
+                VideoTool.PRIVACY -> ToolPanelWithActions(UiR.string.framekit_tool_privacy, viewModel, isDraft = false, scrollPanel) {
                     val selected = state.displayed.timeline.privacyMasks.firstOrNull { it.mask.id == state.selectedMaskId }
                     TimedRangeRow(
                         range = selected?.range,
@@ -625,8 +644,13 @@ private fun ToolArea(state: VideoEditorUiState.Ready, viewModel: VideoEditorView
 }
 
 @Composable
-private fun ColumnScope.ToolPanelWithActions(title: Int, viewModel: VideoEditorViewModel, isDraft: Boolean, panel: @Composable () -> Unit) {
-    panel()
+private fun ColumnScope.ToolPanelWithActions(title: Int, viewModel: VideoEditorViewModel, isDraft: Boolean, scroll: Boolean, panel: @Composable () -> Unit) {
+    if (scroll) {
+        // 높이가 모자라면 패널만 스크롤하고 적용·취소 줄은 항상 보이게 둔다.
+        Column(Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState())) { panel() }
+    } else {
+        panel()
+    }
     ApplyCancelBar(
         title = stringResource(title),
         onCancel = if (isDraft) viewModel::cancelTool else null,
@@ -649,5 +673,8 @@ private fun VideoTool.railItem(): ToolRailItem<VideoTool> = when (this) {
     VideoTool.STICKER -> ToolRailItem(this, stringResource(UiR.string.framekit_tool_sticker), painterResource(UiR.drawable.framekit_ic_sticker))
     VideoTool.PRIVACY -> ToolRailItem(this, stringResource(UiR.string.framekit_tool_privacy), painterResource(UiR.drawable.framekit_ic_privacy))
 }
+
+// 좁은 화면에서 재생 줄·타임라인·도구가 차지할 수 있는 최대 비율. 나머지는 미리보기 몫이다.
+private const val MAX_CONTROL_AREA_FRACTION = 0.6f
 
 private const val TOOL_TRANSITION_MS = 200

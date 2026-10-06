@@ -213,6 +213,22 @@ class ImageEditorViewModelTest {
     }
 
     @Test
+    fun `back with draft changes asks before discarding them`() {
+        val viewModel = viewModel(EditorInput.FileSource(sourceFile.absolutePath))
+        viewModel.selectTool(ImageTool.ROTATE)
+        viewModel.rotateLeft()
+
+        viewModel.onBack()
+        assertThat(ready(viewModel).showDraftDialog).isTrue()
+        assertThat(ready(viewModel).activeTool).isEqualTo(ImageTool.ROTATE)
+
+        viewModel.applyDraftFromDialog()
+        assertThat(ready(viewModel).showDraftDialog).isFalse()
+        assertThat(ready(viewModel).activeTool).isNull()
+        assertThat(ready(viewModel).displayed.geometry.quarterTurns).isNotEqualTo(0)
+    }
+
+    @Test
     fun `missing source shows an error and close returns the failure`() {
         val viewModel = viewModel(EditorInput.FileSource(File(context.cacheDir, "missing.png").absolutePath))
         val failed = viewModel.state.value as ImageEditorUiState.LoadFailed

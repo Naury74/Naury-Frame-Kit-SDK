@@ -6,7 +6,11 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -40,11 +44,18 @@ public fun <T> ChoiceChips(
                     onSelect(option)
                 },
                 label = { Text(label(option)) },
+                // 선택 상태를 색만으로 구분하지 않도록 선택된 칩에 체크 표시를 둔다.
+                leadingIcon = if (option == selected) {
+                    { Icon(Icons.Filled.Check, contentDescription = null, modifier = Modifier.size(FilterChipDefaults.IconSize)) }
+                } else {
+                    null
+                },
                 colors = FilterChipDefaults.filterChipColors(
                     containerColor = colors.surface,
                     labelColor = colors.foregroundMuted,
                     selectedContainerColor = colors.accent,
                     selectedLabelColor = colors.onAccent,
+                    selectedLeadingIconColor = colors.onAccent,
                 ),
                 border = null,
             )

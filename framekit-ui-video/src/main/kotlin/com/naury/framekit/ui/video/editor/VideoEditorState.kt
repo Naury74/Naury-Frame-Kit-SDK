@@ -52,6 +52,7 @@ internal sealed interface VideoEditorUiState {
         val stickerCategory: EmojiCatalog.Category? = EmojiCatalog.Category.SMILEYS,
         val export: ExportUiState? = null,
         val showDiscardDialog: Boolean = false,
+        val showDraftDialog: Boolean = false,
         val showApplyHint: Boolean = false,
         val notice: VideoNotice? = null,
         val busy: Boolean = false,

@@ -30,6 +30,7 @@ internal sealed interface ImageEditorUiState {
         val cropAspect: CropAspectRatio = CropAspectRatio.Free,
         val export: ExportUiState? = null,
         val showDiscardDialog: Boolean = false,
+        val showDraftDialog: Boolean = false,
         val showApplyHint: Boolean = false,
         val showingOriginal: Boolean = false,
         val draggingCrop: Boolean = false,

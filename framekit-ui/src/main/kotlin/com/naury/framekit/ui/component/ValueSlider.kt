@@ -20,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
@@ -76,7 +77,11 @@ public fun ValueSlider(
             modifier = Modifier
                 // 화면 가장자리에서 시작한 드래그가 시스템 뒤로 가기로 처리되지 않게 슬라이더 영역을 제외한다.
                 .systemGestureExclusion()
-                .semantics { stateDescription = formatValue(value) }
+                .semantics {
+                    // 화면 읽기 프로그램이 어느 값을 조절하는지 알 수 있도록 라벨을 이름으로 붙인다.
+                    contentDescription = label
+                    stateDescription = formatValue(value)
+                }
                 .pointerInput(resetValue) {
                     detectTapGestures(onDoubleTap = {
                         onValueChange(resetValue)

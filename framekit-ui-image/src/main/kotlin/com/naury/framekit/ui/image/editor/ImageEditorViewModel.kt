@@ -928,10 +928,24 @@ internal class ImageEditorViewModel(
         val ready = _state.value as? ImageEditorUiState.Ready
         when {
             ready == null || ready.activeTool == null || ready.export != null -> requestClose()
+            // 바꾼 내용이 있으면 바로 버리지 않고 적용할지 묻는다.
+            ready.activeTool.isDraft && ready.hasDraftChanges -> updateReady { it.copy(showDraftDialog = true) }
             ready.activeTool.isDraft -> cancelTool()
             else -> closeTool()
         }
     }
+
+    fun applyDraftFromDialog() {
+        updateReady { it.copy(showDraftDialog = false) }
+        applyTool()
+    }
+
+    fun discardDraftFromDialog() {
+        updateReady { it.copy(showDraftDialog = false) }
+        cancelTool()
+    }
+
+    fun dismissDraftDialog() = updateReady { it.copy(showDraftDialog = false) }
 
     fun confirmDiscard() = finish(FrameKitResult.Cancelled)
 

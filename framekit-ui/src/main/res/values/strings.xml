@@ -128,4 +128,18 @@
     <string name="framekit_error_camera_unavailable">No camera app is available. Choose a photo or video instead.</string>
     <string name="framekit_filter_document">Document</string>
     <string name="framekit_filter_document_bw">Document B&amp;W</string>
+    <string name="framekit_color_white">White</string>
+    <string name="framekit_color_black">Black</string>
+    <string name="framekit_color_gray">Gray</string>
+    <string name="framekit_color_red">Red</string>
+    <string name="framekit_color_orange">Orange</string>
+    <string name="framekit_color_yellow">Yellow</string>
+    <string name="framekit_color_green">Green</string>
+    <string name="framekit_color_teal">Teal</string>
+    <string name="framekit_color_blue">Blue</string>
+    <string name="framekit_color_indigo">Indigo</string>
+    <string name="framekit_color_purple">Purple</string>
+    <string name="framekit_color_pink">Pink</string>
+    <string name="framekit_draft_title">Apply changes?</string>
+    <string name="framekit_draft_message">Apply what you changed in this tool, or discard it.</string>
 </resources>

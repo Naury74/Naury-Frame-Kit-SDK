@@ -11,6 +11,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.ui.semantics.Role
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -148,11 +151,19 @@ private fun SectionTitle(text: String) {
 @Composable
 private fun SwitchRow(label: String, checked: Boolean, onChange: (Boolean) -> Unit) {
     val colors = FrameKitTheme.colors
-    Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+    // 줄 전체를 하나의 스위치로 묶어 라벨을 눌러도 바뀌고 화면 읽기 프로그램도 라벨과 상태를 함께 읽는다.
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .toggleable(value = checked, role = Role.Switch, onValueChange = onChange)
+            .heightIn(min = 48.dp)
+            .padding(horizontal = 16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
         Text(label, color = colors.foreground, style = MaterialTheme.typography.labelLarge, modifier = Modifier.weight(1f))
         Switch(
             checked = checked,
-            onCheckedChange = onChange,
+            onCheckedChange = null,
             colors = SwitchDefaults.colors(checkedTrackColor = colors.accent, checkedThumbColor = colors.onAccent),
         )
     }

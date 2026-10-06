@@ -10,6 +10,7 @@ import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.wrapContentWidth
@@ -57,6 +58,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.naury.framekit.core.overlay.ImageOverlay
 import com.naury.framekit.ui.component.ApplyCancelBar
+import com.naury.framekit.ui.component.ApplyDraftDialog
 import com.naury.framekit.ui.component.DiscardChangesDialog
 import com.naury.framekit.ui.component.EditorErrorView
 import com.naury.framekit.ui.component.EditorLoadingView
@@ -162,10 +164,15 @@ private fun ReadyContent(state: ImageEditorUiState.Ready, viewModel: ImageEditor
             EditorTopBar(onClose = viewModel::requestClose, onSave = viewModel::save, saveEnabled = state.export == null)
         }
         when (val layout = EditorLayoutPolicy.decide(maxWidth.value, maxHeight.value, posture)) {
-            is EditorLayout.Stacked -> Column(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)) {
-                topBar()
-                CanvasArea(state, viewModel, Modifier.weight(1f).fillMaxWidth())
-                ToolArea(state, viewModel, Modifier.fillMaxWidth(), layout.maxControlsWidthDp)
+            // 키보드 인셋을 뺀 실제 높이를 기준으로 비율을 잡아야 입력 중에도 캔버스가 남는다.
+            is EditorLayout.Stacked -> BoxWithConstraints(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)) {
+                val available = maxHeight
+                Column(Modifier.fillMaxSize()) {
+                    topBar()
+                    CanvasArea(state, viewModel, Modifier.weight(1f).fillMaxWidth())
+                    // 패널이 길거나 키보드가 올라와도 캔버스가 사라지지 않도록 도구 영역 높이를 제한하고 안쪽을 스크롤한다.
+                    ToolArea(state, viewModel, Modifier.fillMaxWidth().heightIn(max = available * MAX_TOOL_AREA_FRACTION), layout.maxControlsWidthDp, scrollPanel = true)
+                }
             }
             is EditorLayout.SidePanel -> Row(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)) {
                 CanvasArea(state, viewModel, Modifier.weight(1f).fillMaxHeight())
@@ -195,7 +202,7 @@ private fun ReadyContent(state: ImageEditorUiState.Ready, viewModel: ImageEditor
                         .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal)),
                     verticalArrangement = Arrangement.Center,
                 ) {
-                    ToolArea(state, viewModel, Modifier.fillMaxWidth(), EditorLayoutPolicy.MAX_CONTROLS_WIDTH_DP)
+                    ToolArea(state, viewModel, Modifier.fillMaxWidth(), EditorLayoutPolicy.MAX_CONTROLS_WIDTH_DP, scrollPanel = true)
                 }
             }
             is EditorLayout.SplitAtVerticalHinge -> Row(Modifier.fillMaxSize()) {
@@ -236,6 +243,9 @@ private fun ReadyContent(state: ImageEditorUiState.Ready, viewModel: ImageEditor
         }, onDismiss = viewModel::dismissExportError)
         null -> Unit
     }
+    if (state.showDraftDialog) {
+        ApplyDraftDialog(onApply = viewModel::applyDraftFromDialog, onDiscard = viewModel::discardDraftFromDialog, onKeepEditing = viewModel::dismissDraftDialog)
+    }
     if (state.showDiscardDialog) {
         DiscardChangesDialog(onDiscard = viewModel::confirmDiscard, onKeepEditing = viewModel::dismissDiscard)
     }
@@ -268,7 +278,14 @@ private fun CanvasArea(state: ImageEditorUiState.Ready, viewModel: ImageEditorVi
 }
 
 @Composable
-private fun ToolArea(state: ImageEditorUiState.Ready, viewModel: ImageEditorViewModel, modifier: Modifier, maxWidthDp: Int?, wide: Boolean = false) {
+private fun ToolArea(
+    state: ImageEditorUiState.Ready,
+    viewModel: ImageEditorViewModel,
+    modifier: Modifier,
+    maxWidthDp: Int?,
+    wide: Boolean = false,
+    scrollPanel: Boolean = false,
+) {
     val tools = viewModel.config.enabledTools.filter { it != ImageTool.CUTOUT || viewModel.cutoutAvailable }
     AnimatedContent(
         targetState = state.activeTool,
@@ -278,10 +295,10 @@ private fun ToolArea(state: ImageEditorUiState.Ready, viewModel: ImageEditorView
     ) { tool ->
         Column(if (maxWidthDp != null) Modifier.widthIn(max = maxWidthDp.dp).fillMaxWidth() else Modifier.fillMaxWidth()) {
             when (tool) {
-                ImageTool.CROP -> ToolPanelWithActions(UiR.string.framekit_tool_crop, viewModel, isDraft = true) {
+                ImageTool.CROP -> ToolPanelWithActions(UiR.string.framekit_tool_crop, viewModel, isDraft = true, scrollPanel) {
                     CropToolPanel(aspect = state.cropAspect, onSelectAspect = viewModel::selectAspect)
                 }
-                ImageTool.ROTATE -> ToolPanelWithActions(UiR.string.framekit_tool_rotate, viewModel, isDraft = true) {
+                ImageTool.ROTATE -> ToolPanelWithActions(UiR.string.framekit_tool_rotate, viewModel, isDraft = true, scrollPanel) {
                     RotateToolPanel(
                         straightenDegrees = state.displayed.geometry.straightenDegrees,
                         onRotateLeft = viewModel::rotateLeft,
@@ -292,7 +309,7 @@ private fun ToolArea(state: ImageEditorUiState.Ready, viewModel: ImageEditorView
                         onStraightenFinished = viewModel::finishStraighten,
                     )
                 }
-                ImageTool.ADJUST -> ToolPanelWithActions(UiR.string.framekit_tool_adjust, viewModel, isDraft = false) {
+                ImageTool.ADJUST -> ToolPanelWithActions(UiR.string.framekit_tool_adjust, viewModel, isDraft = false, scrollPanel) {
                     AdjustToolPanel(
                         adjustments = state.displayed.adjustments,
                         selected = state.adjustKind,
@@ -301,19 +318,19 @@ private fun ToolArea(state: ImageEditorUiState.Ready, viewModel: ImageEditorView
                         onChangeFinished = viewModel::finishGesture,
                     )
                 }
-                ImageTool.TEXT -> ToolPanelWithActions(UiR.string.framekit_tool_text, viewModel, isDraft = true) {
+                ImageTool.TEXT -> ToolPanelWithActions(UiR.string.framekit_tool_text, viewModel, isDraft = true, scrollPanel) {
                     val editing = state.displayed.overlays.firstOrNull { it.id == state.editingTextId } as? ImageOverlay.Text
                     if (editing != null) {
                         TextToolPanel(text = editing, onText = viewModel::updateText, onStyle = viewModel::updateTextStyle)
                     }
                 }
-                ImageTool.STICKER -> ToolPanelWithActions(UiR.string.framekit_tool_sticker, viewModel, isDraft = false) {
+                ImageTool.STICKER -> ToolPanelWithActions(UiR.string.framekit_tool_sticker, viewModel, isDraft = false, scrollPanel) {
                     StickerToolPanel(category = state.stickerCategory, onCategory = viewModel::selectStickerCategory, onAdd = viewModel::addSticker)
                 }
-                ImageTool.DRAW -> ToolPanelWithActions(R.string.framekit_tool_draw, viewModel, isDraft = false) {
+                ImageTool.DRAW -> ToolPanelWithActions(R.string.framekit_tool_draw, viewModel, isDraft = false, scrollPanel) {
                     DrawToolPanel(brush = state.brush, onBrush = viewModel::updateBrush)
                 }
-                ImageTool.CUTOUT -> ToolPanelWithActions(R.string.framekit_tool_cutout, viewModel, isDraft = false) {
+                ImageTool.CUTOUT -> ToolPanelWithActions(R.string.framekit_tool_cutout, viewModel, isDraft = false, scrollPanel) {
                     CutoutToolPanel(
                         applied = state.displayed.cutout != null,
                         status = state.cutoutStatus,
@@ -321,10 +338,10 @@ private fun ToolArea(state: ImageEditorUiState.Ready, viewModel: ImageEditorView
                         onRestore = viewModel::restoreBackground,
                     )
                 }
-                ImageTool.PRIVACY -> ToolPanelWithActions(UiR.string.framekit_tool_privacy, viewModel, isDraft = false) {
+                ImageTool.PRIVACY -> ToolPanelWithActions(UiR.string.framekit_tool_privacy, viewModel, isDraft = false, scrollPanel) {
                     PrivacyToolPanel(settings = state.privacy, onChange = viewModel::updatePrivacy)
                 }
-                ImageTool.FILTER -> ToolPanelWithActions(UiR.string.framekit_tool_filter, viewModel, isDraft = false) {
+                ImageTool.FILTER -> ToolPanelWithActions(UiR.string.framekit_tool_filter, viewModel, isDraft = false, scrollPanel) {
                     val thumbnails by viewModel.filterThumbnails.collectAsStateWithLifecycle()
                     FilterToolPanel(
                         selection = state.displayed.filter,
@@ -371,8 +388,13 @@ private fun PagesRow(state: ImageEditorUiState.Ready, viewModel: ImageEditorView
 }
 
 @Composable
-private fun ColumnScope.ToolPanelWithActions(title: Int, viewModel: ImageEditorViewModel, isDraft: Boolean, panel: @Composable () -> Unit) {
-    panel()
+private fun ColumnScope.ToolPanelWithActions(title: Int, viewModel: ImageEditorViewModel, isDraft: Boolean, scroll: Boolean, panel: @Composable () -> Unit) {
+    if (scroll) {
+        // 높이가 모자라면 패널만 스크롤하고 적용·취소 줄은 항상 보이게 둔다.
+        Column(Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState())) { panel() }
+    } else {
+        panel()
+    }
     ApplyCancelBar(
         title = stringResource(title),
         onCancel = if (isDraft) viewModel::cancelTool else null,
@@ -395,3 +417,6 @@ private fun ImageTool.railItem(): ToolRailItem<ImageTool> = when (this) {
 }
 
 private const val TOOL_TRANSITION_MS = 200
+
+// 좁은 화면에서 도구 영역이 차지할 수 있는 최대 비율. 나머지는 캔버스 몫이다.
+private const val MAX_TOOL_AREA_FRACTION = 0.55f
