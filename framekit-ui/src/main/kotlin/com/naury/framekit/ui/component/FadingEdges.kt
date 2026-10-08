@@ -3,6 +3,8 @@ package com.naury.framekit.ui.component
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ScrollState
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
@@ -44,8 +46,26 @@ public fun Modifier.horizontalFadingEdges(state: LazyListState, width: Dp = Defa
     return fadingEdges(start, end, width)
 }
 
+/**
+ * 세로로 스크롤되는 영역의 위·아래 끝을 흐리게 해, 가려진 내용이 더 있다는 것을 알려 준다.
+ * [horizontalFadingEdges]처럼 `verticalScroll`보다 앞(바깥)에 붙인다.
+ */
 @Composable
-private fun Modifier.fadingEdges(start: Boolean, end: Boolean, width: Dp): Modifier {
+public fun Modifier.verticalFadingEdges(state: ScrollState, height: Dp = DefaultFadeWidth): Modifier {
+    val top by remember(state) { derivedStateOf { state.value > 0 } }
+    val bottom by remember(state) { derivedStateOf { state.value < state.maxValue } }
+    return fadingEdges(top, bottom, height, vertical = true)
+}
+
+/** 세로 스크롤과 위·아래 흐림을 함께 붙인다. 스크롤 상태가 따로 필요 없을 때 쓴다. */
+@Composable
+public fun Modifier.verticalFadingScroll(): Modifier {
+    val state = rememberScrollState()
+    return verticalFadingEdges(state).verticalScroll(state)
+}
+
+@Composable
+private fun Modifier.fadingEdges(start: Boolean, end: Boolean, width: Dp, vertical: Boolean = false): Modifier {
     val startAmount by animateFloatAsState(if (start) 1f else 0f, tween(FADE_MS), label = "fade-start")
     val endAmount by animateFloatAsState(if (end) 1f else 0f, tween(FADE_MS), label = "fade-end")
     return this
@@ -53,19 +73,26 @@ private fun Modifier.fadingEdges(start: Boolean, end: Boolean, width: Dp): Modif
         .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
         .drawWithContent {
             drawContent()
-            val fade = width.toPx().coerceAtMost(size.width / 3f)
+            val length = if (vertical) size.height else size.width
+            val fade = width.toPx().coerceAtMost(length / 3f)
             if (startAmount > 0f) {
-                drawRect(
-                    Brush.horizontalGradient(0f to Color.Black.copy(alpha = 1f - startAmount), 1f to Color.Black, startX = 0f, endX = fade),
-                    size = Size(fade, size.height),
-                    blendMode = BlendMode.DstIn,
-                )
+                val brush = if (vertical) {
+                    Brush.verticalGradient(0f to Color.Black.copy(alpha = 1f - startAmount), 1f to Color.Black, startY = 0f, endY = fade)
+                } else {
+                    Brush.horizontalGradient(0f to Color.Black.copy(alpha = 1f - startAmount), 1f to Color.Black, startX = 0f, endX = fade)
+                }
+                drawRect(brush, size = if (vertical) Size(size.width, fade) else Size(fade, size.height), blendMode = BlendMode.DstIn)
             }
             if (endAmount > 0f) {
+                val brush = if (vertical) {
+                    Brush.verticalGradient(0f to Color.Black, 1f to Color.Black.copy(alpha = 1f - endAmount), startY = length - fade, endY = length)
+                } else {
+                    Brush.horizontalGradient(0f to Color.Black, 1f to Color.Black.copy(alpha = 1f - endAmount), startX = length - fade, endX = length)
+                }
                 drawRect(
-                    Brush.horizontalGradient(0f to Color.Black, 1f to Color.Black.copy(alpha = 1f - endAmount), startX = size.width - fade, endX = size.width),
-                    topLeft = Offset(size.width - fade, 0f),
-                    size = Size(fade, size.height),
+                    brush,
+                    topLeft = if (vertical) Offset(0f, length - fade) else Offset(length - fade, 0f),
+                    size = if (vertical) Size(size.width, fade) else Size(fade, size.height),
                     blendMode = BlendMode.DstIn,
                 )
             }

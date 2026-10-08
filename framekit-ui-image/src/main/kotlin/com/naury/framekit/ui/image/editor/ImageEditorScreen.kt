@@ -42,6 +42,8 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
 import com.naury.framekit.ui.component.DialogActionStyle
 import com.naury.framekit.ui.component.DialogAction
 import com.naury.framekit.ui.component.FrameKitDialog
@@ -82,6 +84,7 @@ import com.naury.framekit.core.overlay.ImageOverlay
 import com.naury.framekit.ui.component.ApplyCancelBar
 import com.naury.framekit.ui.component.ApplyDraftDialog
 import com.naury.framekit.ui.component.FrameKitSnackbarHost
+import com.naury.framekit.ui.component.verticalFadingScroll
 import com.naury.framekit.ui.component.DiscardChangesDialog
 import com.naury.framekit.ui.component.EditorErrorView
 import com.naury.framekit.ui.component.EditorLoadingView
@@ -206,7 +209,7 @@ private fun ReadyContent(state: ImageEditorUiState.Ready, viewModel: ImageEditor
                     Column(Modifier.width(layout.panelWidthDp.dp).fillMaxHeight()) {
                         topBar()
                         // 넓은 화면에서는 도구를 패널 위쪽부터 채워 빈 영역을 줄이고, 길어지면 스크롤한다.
-                        Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
+                        Column(Modifier.weight(1f).verticalFadingScroll()) {
                             ToolArea(state, viewModel, Modifier.fillMaxWidth(), maxWidthDp = null, wide = true)
                         }
                     }
@@ -250,7 +253,7 @@ private fun ReadyContent(state: ImageEditorUiState.Ready, viewModel: ImageEditor
                     ) {
                         topBar()
                         // 넓은 화면에서는 도구를 패널 위쪽부터 채워 빈 영역을 줄이고, 길어지면 스크롤한다.
-                        Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
+                        Column(Modifier.weight(1f).verticalFadingScroll()) {
                             ToolArea(state, viewModel, Modifier.fillMaxWidth(), maxWidthDp = null, wide = true)
                         }
                     }
@@ -394,7 +397,7 @@ private fun ToolArea(
                 }
                 ImageTool.DOCUMENT -> {
                     if (scrollPanel) {
-                        Column(Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState())) {
+                        Column(Modifier.weight(1f, fill = false).verticalFadingScroll()) {
                             DocumentToolPanel(
                                 busy = state.documentBusy,
                                 rectified = state.documentRectified,
@@ -484,7 +487,7 @@ private fun PagesRow(state: ImageEditorUiState.Ready, viewModel: ImageEditorView
 private fun ColumnScope.ToolPanelWithActions(title: Int, viewModel: ImageEditorViewModel, isDraft: Boolean, scroll: Boolean, panel: @Composable () -> Unit) {
     if (scroll) {
         // 높이가 모자라면 패널만 스크롤하고 적용·취소 줄은 항상 보이게 둔다.
-        Column(Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState())) { panel() }
+        Column(Modifier.weight(1f, fill = false).verticalFadingScroll()) { panel() }
     } else {
         panel()
     }
@@ -571,18 +574,20 @@ private fun DocumentTextDialog(text: String, onDismiss: () -> Unit) {
             DialogAction(stringResource(R.string.framekit_action_close_dialog), DialogActionStyle.SECONDARY, onClick = onDismiss),
         ),
     ) {
-        SelectionContainer {
-            Text(
-                text,
-                color = colors.foreground,
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(max = 280.dp)
-                    .background(colors.background, MaterialTheme.shapes.medium)
-                    .verticalScroll(rememberScrollState())
-                    .padding(12.dp),
-            )
+        // 배경 상자는 그대로 두고 안쪽 글자만 스크롤·흐림 처리한다.
+        Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(colors.background)) {
+            SelectionContainer {
+                Text(
+                    text,
+                    color = colors.foreground,
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 300.dp)
+                        .verticalFadingScroll()
+                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                )
+            }
         }
     }
 }

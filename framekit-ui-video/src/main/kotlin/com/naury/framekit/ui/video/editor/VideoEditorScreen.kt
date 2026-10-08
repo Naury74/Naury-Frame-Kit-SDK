@@ -91,6 +91,7 @@ import com.naury.framekit.ui.R as UiR
 import com.naury.framekit.ui.component.ApplyCancelBar
 import com.naury.framekit.ui.component.ApplyDraftDialog
 import com.naury.framekit.ui.component.FrameKitSnackbarHost
+import com.naury.framekit.ui.component.verticalFadingScroll
 import com.naury.framekit.ui.component.DiscardChangesDialog
 import com.naury.framekit.ui.component.EditorErrorView
 import com.naury.framekit.ui.component.EditorLoadingView
@@ -352,7 +353,7 @@ private fun PreviewColumn(state: VideoEditorUiState.Ready, viewModel: VideoEdito
 private fun SidePanel(state: VideoEditorUiState.Ready, viewModel: VideoEditorViewModel, topBar: @Composable () -> Unit, modifier: Modifier) {
     Column(modifier.background(FrameKitTheme.colors.background)) {
         topBar()
-        Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
+        Column(Modifier.weight(1f).verticalFadingScroll()) {
             ToolArea(state, viewModel, wide = true)
         }
     }
@@ -662,7 +663,7 @@ private fun ToolArea(
 private fun ColumnScope.ToolPanelWithActions(title: Int, viewModel: VideoEditorViewModel, isDraft: Boolean, scroll: Boolean, panel: @Composable () -> Unit) {
     if (scroll) {
         // 높이가 모자라면 패널만 스크롤하고 적용·취소 줄은 항상 보이게 둔다.
-        Column(Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState())) { panel() }
+        Column(Modifier.weight(1f, fill = false).verticalFadingScroll()) { panel() }
     } else {
         panel()
     }
