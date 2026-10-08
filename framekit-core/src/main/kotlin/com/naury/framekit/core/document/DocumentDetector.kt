@@ -258,5 +258,5 @@ public object DocumentDetector {
     private const val MIN_INK_NEAR_EDGES = 0.01
     private const val INK_DIFFERENCE = 40
     private const val PAPER_BAND = 20
-    private const val MIN_PAPER_SHARE = 0.5
+    private const val MIN_PAPER_SHARE = 0.45
 }
