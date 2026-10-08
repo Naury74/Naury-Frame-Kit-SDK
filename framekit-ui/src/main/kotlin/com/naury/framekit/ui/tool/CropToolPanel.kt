@@ -1,18 +1,26 @@
 package com.naury.framekit.ui.tool
 
 import androidx.compose.foundation.layout.Arrangement
+import com.naury.framekit.ui.component.FrameKitDialog
+import com.naury.framekit.ui.component.DialogActionStyle
+import com.naury.framekit.ui.component.DialogAction
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.vectorResource
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -104,28 +112,44 @@ private fun CustomRatioDialog(initial: CropAspectRatio.Fixed?, onConfirm: (Int, 
     var height by rememberSaveable { mutableStateOf(initial?.height?.toString() ?: "") }
     val w = width.toIntOrNull()?.takeIf { it in 1..MAX_RATIO_SIDE }
     val h = height.toIntOrNull()?.takeIf { it in 1..MAX_RATIO_SIDE }
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.framekit_ratio_custom)) },
-        text = {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                RatioField(width, { width = it.filter(Char::isDigit).take(4) }, stringResource(R.string.framekit_ratio_width), w == null && width.isNotEmpty())
-                Text(" : ", color = colors.foreground)
-                RatioField(height, { height = it.filter(Char::isDigit).take(4) }, stringResource(R.string.framekit_ratio_height), h == null && height.isNotEmpty())
+    FrameKitDialog(
+        title = stringResource(R.string.framekit_ratio_custom),
+        icon = ImageVector.vectorResource(R.drawable.framekit_ic_crop),
+        onDismiss = onDismiss,
+        actions = listOf(
+            DialogAction(stringResource(R.string.framekit_action_apply), DialogActionStyle.PRIMARY, enabled = w != null && h != null) {
+                if (w != null && h != null) onConfirm(w, h)
+            },
+            DialogAction(stringResource(R.string.framekit_action_cancel), DialogActionStyle.SECONDARY, onClick = onDismiss),
+        ),
+    ) {
+        // 입력한 비율의 모양을 바로 보여 줘 숫자를 바꿔 넣는 실수를 줄인다.
+        val ratio = if (w != null && h != null) w.toFloat() / h else null
+        Box(Modifier.height(72.dp).fillMaxWidth(), contentAlignment = Alignment.Center) {
+            if (ratio == null) {
+                // 값을 넣기 전에는 흐린 정사각형으로 자리를 보여 준다.
+                Box(Modifier.size(48.dp).border(2.dp, colors.raised, MaterialTheme.shapes.small))
+            } else {
+                val boxWidth = if (ratio >= 1f) 96.dp else 96.dp * ratio.coerceAtLeast(0.2f)
+                val boxHeight = if (ratio >= 1f) 96.dp / ratio.coerceAtMost(5f) else 96.dp
+                Box(
+                    Modifier
+                        .size(boxWidth.coerceAtMost(96.dp) * 0.7f, boxHeight.coerceAtMost(96.dp) * 0.7f)
+                        .border(2.dp, colors.accent, MaterialTheme.shapes.small),
+                )
             }
-        },
-        confirmButton = {
-            TextButton(onClick = { if (w != null && h != null) onConfirm(w, h) }, enabled = w != null && h != null) {
-                Text(stringResource(R.string.framekit_action_apply))
-            }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.framekit_action_cancel)) } },
-        containerColor = colors.surface,
-    )
+        }
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            RatioField(width, { width = it.filter(Char::isDigit).take(4) }, stringResource(R.string.framekit_ratio_width), w == null && width.isNotEmpty(), Modifier.weight(1f))
+            Text(":", color = colors.foreground, style = MaterialTheme.typography.titleLarge)
+            RatioField(height, { height = it.filter(Char::isDigit).take(4) }, stringResource(R.string.framekit_ratio_height), h == null && height.isNotEmpty(), Modifier.weight(1f))
+        }
+    }
 }
 
 @Composable
-private fun RatioField(value: String, onChange: (String) -> Unit, label: String, isError: Boolean) {
+private fun RatioField(value: String, onChange: (String) -> Unit, label: String, isError: Boolean, modifier: Modifier) {
+    val colors = FrameKitTheme.colors
     OutlinedTextField(
         value = value,
         onValueChange = onChange,
@@ -133,7 +157,17 @@ private fun RatioField(value: String, onChange: (String) -> Unit, label: String,
         isError = isError,
         singleLine = true,
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-        modifier = Modifier.width(96.dp),
+        shape = MaterialTheme.shapes.medium,
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedTextColor = colors.foreground,
+            unfocusedTextColor = colors.foreground,
+            focusedBorderColor = colors.accent,
+            unfocusedBorderColor = colors.raised,
+            focusedLabelColor = colors.accent,
+            unfocusedLabelColor = colors.foregroundMuted,
+            cursorColor = colors.accent,
+        ),
+        modifier = modifier,
     )
 }
 

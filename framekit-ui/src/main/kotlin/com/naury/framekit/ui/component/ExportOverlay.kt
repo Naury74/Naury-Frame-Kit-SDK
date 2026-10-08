@@ -12,12 +12,21 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.runtime.getValue
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
@@ -65,21 +74,47 @@ public fun ExportOverlay(stage: ExportStageUi, onCancel: () -> Unit, modifier: M
             .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, onClick = {}),
         contentAlignment = Alignment.Center,
     ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            if (progress != null && showStage && stage != ExportStageUi.CANCELLING) {
-                CircularProgressIndicator(progress = { progress.coerceIn(0f, 1f) }, color = colors.accent)
-            } else {
-                CircularProgressIndicator(color = colors.accent)
+        val determinate = progress != null && showStage && stage != ExportStageUi.CANCELLING
+        Column(
+            Modifier
+                .padding(horizontal = 40.dp)
+                .widthIn(min = 240.dp, max = 320.dp)
+                .background(colors.surface, MaterialTheme.shapes.large)
+                .padding(horizontal = 24.dp, vertical = 28.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            // 진행률을 알 수 있으면 링 안에 퍼센트를 크게 보여 준다.
+            Box(Modifier.size(84.dp), contentAlignment = Alignment.Center) {
+                if (determinate) {
+                    val animated by animateFloatAsState(progress!!.coerceIn(0f, 1f), label = "export-progress")
+                    CircularProgressIndicator(
+                        progress = { animated },
+                        color = colors.accent,
+                        trackColor = colors.raised,
+                        strokeWidth = 6.dp,
+                        modifier = Modifier.size(84.dp),
+                    )
+                    Text("${(animated * 100).roundToInt()}%", color = colors.foreground, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                } else {
+                    CircularProgressIndicator(color = colors.accent, trackColor = colors.raised, strokeWidth = 6.dp, modifier = Modifier.size(84.dp))
+                }
             }
             Text(
-                if (progress != null && showStage && stage == ExportStageUi.ENCODING) "$label ${(progress * 100).roundToInt()}%" else label,
+                label,
                 color = colors.foreground,
                 style = MaterialTheme.typography.titleMedium,
+                textAlign = TextAlign.Center,
                 modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
             )
             if (stage != ExportStageUi.CANCELLING) {
-                TextButton(onClick = onCancel, modifier = Modifier.padding(top = 8.dp)) {
-                    Text(stringResource(R.string.framekit_action_cancel), color = colors.foregroundMuted)
+                OutlinedButton(
+                    onClick = onCancel,
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                    shape = MaterialTheme.shapes.medium,
+                    border = BorderStroke(1.dp, colors.raised),
+                ) {
+                    Text(stringResource(R.string.framekit_action_cancel), color = colors.foreground)
                 }
             }
         }

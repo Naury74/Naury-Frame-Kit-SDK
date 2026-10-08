@@ -61,6 +61,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.naury.framekit.core.overlay.ImageOverlay
 import com.naury.framekit.ui.component.ApplyCancelBar
 import com.naury.framekit.ui.component.ApplyDraftDialog
+import com.naury.framekit.ui.component.FrameKitSnackbarHost
 import com.naury.framekit.ui.component.DiscardChangesDialog
 import com.naury.framekit.ui.component.EditorErrorView
 import com.naury.framekit.ui.component.EditorLoadingView
@@ -276,7 +277,7 @@ private fun CanvasArea(state: ImageEditorUiState.Ready, viewModel: ImageEditorVi
             )
         }
         // 안내 메시지는 캔버스 아래쪽에 띄워 레이아웃과 상관없이 도구 패널을 가리지 않게 한다.
-        SnackbarHost(LocalEditorSnackbar.current, Modifier.align(Alignment.BottomCenter).padding(8.dp))
+        FrameKitSnackbarHost(LocalEditorSnackbar.current, Modifier.align(Alignment.BottomCenter).padding(8.dp))
     }
 }
 
