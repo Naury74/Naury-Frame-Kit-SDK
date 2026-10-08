@@ -41,10 +41,12 @@ public fun <T> ToolRail(
 ) {
     // 다섯 개까지는 폭을 고르게 나누고, 더 많으면 가로로 스크롤한다.
     val scrolling = items.size > EVEN_ITEMS
+    val scroll = rememberScrollState()
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .then(if (scrolling) Modifier.horizontalScroll(rememberScrollState()) else Modifier)
+            // 화면 밖에 도구가 더 있으면 끝을 흐리게 해 스크롤할 수 있다는 것을 알린다.
+            .then(if (scrolling) Modifier.horizontalFadingEdges(scroll).horizontalScroll(scroll) else Modifier)
             .padding(vertical = 8.dp, horizontal = if (scrolling) 8.dp else 0.dp)
             .selectableGroup(),
         horizontalArrangement = if (scrolling) Arrangement.spacedBy(4.dp) else Arrangement.SpaceEvenly,

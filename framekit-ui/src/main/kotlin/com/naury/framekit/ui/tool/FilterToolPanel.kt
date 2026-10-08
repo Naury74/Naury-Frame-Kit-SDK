@@ -1,5 +1,7 @@
 package com.naury.framekit.ui.tool
 
+import androidx.compose.foundation.lazy.rememberLazyListState
+import com.naury.framekit.ui.component.horizontalFadingEdges
 import com.naury.framekit.ui.catalog.LocalCatalogUi
 import android.graphics.Bitmap
 import androidx.compose.foundation.Image
@@ -50,10 +52,12 @@ public fun FilterToolPanel(
     val selectedId = if (selection.isIdentity) FilterCatalog.ORIGINAL_ID else selection.presetId
     val catalog = LocalCatalogUi.current
     Column(modifier.fillMaxWidth().padding(vertical = 8.dp)) {
+        val listState = rememberLazyListState()
         LazyRow(
+            state = listState,
             contentPadding = PaddingValues(horizontal = 12.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier.selectableGroup(),
+            modifier = Modifier.horizontalFadingEdges(listState).selectableGroup(),
         ) {
             items(catalog.filterIds, key = { it }) { id ->
                 val isSelected = id == selectedId

@@ -1,5 +1,6 @@
 package com.naury.framekit.ui.tool
 
+import com.naury.framekit.ui.component.horizontalFadingEdges
 import com.naury.framekit.ui.catalog.LocalCatalogUi
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -90,8 +91,9 @@ public fun TextToolPanel(
             onSelect = { alignment -> onStyle { it.copy(alignment = alignment) } },
             modifier = Modifier.padding(top = 8.dp),
         )
+        val decorationScroll = rememberScrollState()
         Row(
-            Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 4.dp),
+            Modifier.horizontalFadingEdges(decorationScroll).horizontalScroll(decorationScroll).padding(horizontal = 16.dp, vertical = 4.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Decoration.entries.forEach { decoration ->

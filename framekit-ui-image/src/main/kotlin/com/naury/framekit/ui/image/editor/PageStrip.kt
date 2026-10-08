@@ -1,5 +1,6 @@
 package com.naury.framekit.ui.image.editor
 
+import com.naury.framekit.ui.component.horizontalFadingEdges
 import android.graphics.Bitmap
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -77,6 +78,7 @@ internal fun PageStrip(
         }
         LazyRow(
             state = listState,
+            modifier = Modifier.horizontalFadingEdges(listState),
             contentPadding = PaddingValues(horizontal = 12.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {

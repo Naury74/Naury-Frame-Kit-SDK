@@ -32,8 +32,9 @@ public fun <T> ChoiceChips(
     val colors = FrameKitTheme.colors
     val haptics = LocalHapticFeedback.current
     val hapticsEnabled = FrameKitTheme.config.enableHaptics
+    val scroll = rememberScrollState()
     Row(
-        modifier = modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp).selectableGroup(),
+        modifier = modifier.horizontalFadingEdges(scroll).horizontalScroll(scroll).padding(horizontal = 16.dp).selectableGroup(),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         options.forEach { option ->

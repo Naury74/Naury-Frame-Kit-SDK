@@ -32,8 +32,11 @@ public fun Modifier.excludeCropHandleGestures(frame: RectN, radius: Float): Modi
 /**
  * 사진·영상 에디터가 함께 쓰는 자르기 프레임. 바깥은 어둡게, 선택적 3분할 격자와 핸들을 그린다.
  * [frame]은 viewport 픽셀 단위다.
+ *
+ * @param zoom 캔버스 화면 확대 배율. 확대된 레이어 안에 그릴 때 선·핸들이 굵어지지 않도록 그만큼 줄여 그린다.
  */
-public fun DrawScope.drawCropFrame(frame: RectN, accent: Color, showGrid: Boolean, showHandles: Boolean) {
+public fun DrawScope.drawCropFrame(frame: RectN, accent: Color, showGrid: Boolean, showHandles: Boolean, zoom: Float = 1f) {
+    val unit = 1f / zoom.coerceAtLeast(1f)
     val left = frame.left.toFloat()
     val top = frame.top.toFloat()
     val right = frame.right.toFloat()
@@ -44,7 +47,7 @@ public fun DrawScope.drawCropFrame(frame: RectN, accent: Color, showGrid: Boolea
     drawRect(scrim, Offset(0f, top), Size(left, bottom - top))
     drawRect(scrim, Offset(right, top), Size(size.width - right, bottom - top))
 
-    val line = 1.dp.toPx()
+    val line = 1.dp.toPx() * unit
     if (showGrid) {
         val gridColor = Color.White.copy(alpha = 0.45f)
         for (index in 1..2) {
@@ -57,8 +60,8 @@ public fun DrawScope.drawCropFrame(frame: RectN, accent: Color, showGrid: Boolea
     drawRect(Color.White, Offset(left, top), Size(right - left, bottom - top), style = Stroke(line))
 
     if (showHandles) {
-        val length = 18.dp.toPx()
-        val thickness = 3.dp.toPx()
+        val length = 18.dp.toPx() * unit
+        val thickness = 3.dp.toPx() * unit
         val handleColor = Color.White
         listOf(
             Triple(left, top, 1f to 1f),
@@ -69,7 +72,7 @@ public fun DrawScope.drawCropFrame(frame: RectN, accent: Color, showGrid: Boolea
             drawLine(handleColor, Offset(x, y), Offset(x + length * direction.first, y), thickness)
             drawLine(handleColor, Offset(x, y), Offset(x, y + length * direction.second), thickness)
         }
-        val midLength = 14.dp.toPx()
+        val midLength = 14.dp.toPx() * unit
         val centerX = (left + right) / 2
         val centerY = (top + bottom) / 2
         drawLine(accent, Offset(centerX - midLength / 2, top), Offset(centerX + midLength / 2, top), thickness)

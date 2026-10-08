@@ -1,5 +1,6 @@
 package com.naury.framekit.ui.tool
 
+import com.naury.framekit.ui.component.horizontalFadingEdges
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
@@ -48,8 +49,9 @@ private val PaletteNames = listOf(
 @Composable
 public fun ColorPalette(selected: Int, onSelect: (Int) -> Unit, modifier: Modifier = Modifier) {
     val colors = FrameKitTheme.colors
+    val scroll = rememberScrollState()
     Row(
-        modifier = modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp).selectableGroup(),
+        modifier = modifier.horizontalFadingEdges(scroll).horizontalScroll(scroll).padding(horizontal = 16.dp).selectableGroup(),
         horizontalArrangement = Arrangement.spacedBy(2.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {

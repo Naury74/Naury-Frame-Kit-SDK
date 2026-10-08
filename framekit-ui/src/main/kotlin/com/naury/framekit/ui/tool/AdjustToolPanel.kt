@@ -1,5 +1,7 @@
 package com.naury.framekit.ui.tool
 
+import androidx.compose.foundation.lazy.rememberLazyListState
+import com.naury.framekit.ui.component.horizontalFadingEdges
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -42,10 +44,12 @@ public fun AdjustToolPanel(
 ) {
     val colors = FrameKitTheme.colors
     Column(modifier.fillMaxWidth().padding(vertical = 8.dp)) {
+        val listState = rememberLazyListState()
         LazyRow(
+            state = listState,
             contentPadding = PaddingValues(horizontal = 12.dp),
             horizontalArrangement = Arrangement.spacedBy(4.dp),
-            modifier = Modifier.selectableGroup(),
+            modifier = Modifier.horizontalFadingEdges(listState).selectableGroup(),
         ) {
             items(AdjustmentKind.entries) { kind ->
                 val isSelected = kind == selected
