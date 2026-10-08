@@ -77,8 +77,8 @@ class MlKitTextRecognizerTest {
             val pdf = String(bytes, Charsets.ISO_8859_1)
             assertThat(pdf).contains("/ToUnicode")
             assertThat(pdf).contains("3 Tr")
-            // "ESTIMATE"의 앞 두 글자 E(0045)·S(0053) 코드가 글자 레이어에 들어 있다.
-            assertThat(pdf).contains("<00450053")
+            // "ESTIMATE"의 E(0045)·S(0053)·T(0054) 코드가 글자 레이어에 들어 있다(줄 앞에 다른 글자가 올 수 있다).
+            assertThat(pdf).contains("004500530054")
             processor.deleteOutput(success.output.uri)
         } finally {
             scope.cancel()
