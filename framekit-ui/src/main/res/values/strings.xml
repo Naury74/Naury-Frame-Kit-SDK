@@ -141,7 +141,7 @@
     <string name="framekit_color_purple">Purple</string>
     <string name="framekit_color_pink">Pink</string>
     <string name="framekit_draft_title">Apply %1$s changes?</string>
-    <string name="framekit_draft_message">If you don\'t apply them, your %1$s changes will be lost.</string>
+    <string name="framekit_draft_message">If you don\'t apply them, only what you just changed in %1$s will be lost. Earlier edits stay.</string>
     <string name="framekit_action_compare">Compare with original</string>
     <string name="framekit_text_opacity">Opacity</string>
     <string name="framekit_text_letter_spacing">Letter spacing</string>

@@ -141,7 +141,7 @@
     <string name="framekit_color_purple">보라</string>
     <string name="framekit_color_pink">분홍</string>
     <string name="framekit_draft_title">%1$s 편집 내용을 적용할까요?</string>
-    <string name="framekit_draft_message">적용하지 않으면 %1$s에서 바꾼 내용은 사라져요.</string>
+    <string name="framekit_draft_message">적용하지 않으면 방금 %1$s에서 바꾼 내용만 사라져요. 그 전에 한 편집은 그대로예요.</string>
     <string name="framekit_action_compare">원본과 비교</string>
     <string name="framekit_text_opacity">불투명도</string>
     <string name="framekit_text_letter_spacing">자간</string>
