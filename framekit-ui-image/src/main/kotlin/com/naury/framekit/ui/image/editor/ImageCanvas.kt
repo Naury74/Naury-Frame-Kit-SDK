@@ -159,11 +159,13 @@ internal fun ImageCanvas(
             val currentSelection by rememberUpdatedState(selected?.id)
             // 스티커를 가장자리로 옮겨도 삭제·복제 손잡이를 누를 수 있도록 손잡이만 화면 안쪽으로 당긴다.
             val handleMargin = with(density) { 20.dp.toPx().toDouble() }
+        // 캔버스 위쪽 가운데에는 실행 취소·다시 실행 버튼이 떠 있어, 손잡이가 그 아래로 숨지 않게 위쪽 한계를 더 둔다.
+        val handleTop = with(density) { 84.dp.toPx().toDouble() }
             // 0: 삭제, 1: 복제, 2: 한 손가락 크기·회전 손잡이.
             val selectionHandles = selectionCorners?.take(3)?.map { corner ->
                 PointN(
                     corner.x.coerceIn(handleMargin, (constraints.maxWidth - handleMargin).coerceAtLeast(handleMargin)),
-                    corner.y.coerceIn(handleMargin, (constraints.maxHeight - handleMargin).coerceAtLeast(handleMargin)),
+                    corner.y.coerceIn(handleTop, (constraints.maxHeight - handleMargin).coerceAtLeast(handleTop)),
                 )
             }
             val currentCorners by rememberUpdatedState(selectionHandles)
