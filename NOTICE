@@ -12,6 +12,7 @@ Apache License, Version 2.0:
   framekit-ui/src/main/res/drawable/framekit_ic_compare.xml
   framekit-ui/src/main/res/drawable/framekit_ic_crop.xml
   framekit-ui/src/main/res/drawable/framekit_ic_cutout.xml
+  framekit-ui/src/main/res/drawable/framekit_ic_document.xml
   framekit-ui/src/main/res/drawable/framekit_ic_draw.xml
   framekit-ui/src/main/res/drawable/framekit_ic_duplicate.xml
   framekit-ui/src/main/res/drawable/framekit_ic_filter.xml

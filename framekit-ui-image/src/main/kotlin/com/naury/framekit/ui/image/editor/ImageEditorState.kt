@@ -6,6 +6,7 @@ import com.naury.framekit.core.effect.AdjustmentKind
 import com.naury.framekit.core.overlay.BrushKind
 import com.naury.framekit.core.overlay.EmojiCatalog
 import com.naury.framekit.core.overlay.PrivacyEffect
+import com.naury.framekit.core.document.DocumentQuad
 import com.naury.framekit.core.geometry.CropAspectRatio
 import com.naury.framekit.core.history.HistoryTransaction
 import com.naury.framekit.core.model.ImageProject
@@ -31,6 +32,12 @@ internal sealed interface ImageEditorUiState {
         val export: ExportUiState? = null,
         val showDiscardDialog: Boolean = false,
         val showDraftDialog: Boolean = false,
+        /** 문서 보정 도구에서 맞추는 네 모서리. 도구가 열려 있지 않으면 `null`. */
+        val documentQuad: DocumentQuad? = null,
+        /** 문서를 펴는 중이면 `true`. */
+        val documentBusy: Boolean = false,
+        /** 지금 쪽이 문서 보정으로 만든 이미지라 원본으로 되돌릴 수 있으면 `true`. */
+        val documentRectified: Boolean = false,
         val showApplyHint: Boolean = false,
         val showingOriginal: Boolean = false,
         val draggingCrop: Boolean = false,
@@ -85,6 +92,12 @@ internal enum class SessionNotice {
 
     /** 더 넣으면 최대 사진 수를 넘어 일부만 더했다. */
     PAGE_LIMIT,
+
+    /** 문서를 반듯하게 폈다. 위치가 바뀌는 편집(자르기·텍스트·스티커·그리기·가리기·배경 제거)은 초기화했다. */
+    DOCUMENT_APPLIED,
+
+    /** 문서를 펴지 못했다(메모리·저장 공간 부족 등). 편집은 그대로다. */
+    DOCUMENT_FAILED,
 }
 
 internal sealed interface ExportUiState {

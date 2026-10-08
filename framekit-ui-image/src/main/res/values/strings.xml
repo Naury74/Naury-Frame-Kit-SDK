@@ -21,4 +21,12 @@
     <string name="framekit_page_move_earlier">Move earlier</string>
     <string name="framekit_page_move_later">Move later</string>
     <string name="framekit_page_remove">Remove this photo</string>
+    <string name="framekit_tool_document">Document</string>
+    <string name="framekit_document_hint">Drag the corners to the edges of the page, then apply to flatten it.</string>
+    <string name="framekit_document_detect">Detect</string>
+    <string name="framekit_document_whole">Whole photo</string>
+    <string name="framekit_document_restore">Original</string>
+    <string name="framekit_document_working">Flattening…</string>
+    <string name="framekit_document_applied">Document flattened. Crop, text, stickers, drawing and masks were reset.</string>
+    <string name="framekit_document_failed">Couldn\'t flatten the document. Your edits are unchanged.</string>
 </resources>

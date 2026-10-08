@@ -22,4 +22,7 @@ internal interface ImageCanvasActions {
 
     /** 두 번째 손가락이 닿아 확대·이동으로 바뀌었다. 그리던 획은 남기지 않는다. */
     fun cancelStroke()
+
+    /** 문서 보정에서 모서리 [corner](0: 왼쪽 위부터 시계 방향)를 정규화 좌표로 옮긴다. */
+    fun moveDocumentCorner(corner: Int, x: Double, y: Double)
 }

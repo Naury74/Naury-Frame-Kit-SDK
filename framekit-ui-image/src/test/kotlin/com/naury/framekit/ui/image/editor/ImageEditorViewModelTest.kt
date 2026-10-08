@@ -249,6 +249,50 @@ class ImageEditorViewModelTest {
     }
 
     @Test
+    fun `document tool flattens the page keeps colour edits and can restore the original`() {
+        // 어두운 바탕에 비스듬한 흰 종이가 있는 사진.
+        val photo = Bitmap.createBitmap(400, 500, Bitmap.Config.ARGB_8888).apply {
+            val canvas = android.graphics.Canvas(this)
+            canvas.drawColor(android.graphics.Color.rgb(30, 30, 30))
+            val paper = android.graphics.Path().apply { moveTo(100f, 60f); lineTo(330f, 90f); lineTo(350f, 440f); lineTo(70f, 420f); close() }
+            canvas.drawPath(paper, android.graphics.Paint().apply { color = android.graphics.Color.WHITE })
+        }
+        val docSource = File(context.cacheDir, "document.png").apply { outputStream().use { photo.compress(Bitmap.CompressFormat.PNG, 100, it) } }
+        val viewModel = viewModel(EditorInput.FileSource(docSource.absolutePath))
+        viewModel.selectTool(ImageTool.ADJUST)
+        viewModel.changeAdjustment(25f)
+        viewModel.finishGesture()
+        viewModel.closeTool()
+
+        viewModel.selectTool(ImageTool.DOCUMENT)
+        val quad = ready(viewModel).documentQuad!!
+        // 자동으로 종이 모서리를 찾는다(왼쪽 위 약 (0.25, 0.12)).
+        assertThat(quad.topLeft.x).isWithin(0.04).of(0.25)
+        assertThat(quad.topLeft.y).isWithin(0.04).of(0.12)
+
+        viewModel.moveDocumentCorner(0, -1.0, 0.1)
+        assertThat(ready(viewModel).documentQuad!!.topLeft.x).isEqualTo(0.0)
+        viewModel.detectDocument()
+
+        viewModel.applyDocument()
+        val flattened = ready(viewModel)
+        assertThat(flattened.activeTool).isNull()
+        assertThat(flattened.documentRectified).isTrue()
+        // 펴진 문서의 크기와 이어받은 보정 값.
+        assertThat(flattened.source.metadata.uprightSize.width).isWithin(15).of(280)
+        assertThat(flattened.displayed.adjustments.brightness).isWithin(1e-9).of(0.25)
+        assertThat(File(context.filesDir, "documents-test").listFiles().orEmpty()).hasLength(1)
+
+        viewModel.restoreOriginalDocument()
+        val restored = ready(viewModel)
+        assertThat(restored.documentRectified).isFalse()
+        assertThat(restored.source.metadata.uprightSize.width).isEqualTo(400)
+        assertThat(restored.displayed.adjustments.brightness).isWithin(1e-9).of(0.25)
+        // 다시 쓰지 않는 중간 파일은 지운다.
+        assertThat(File(context.filesDir, "documents-test").listFiles().orEmpty()).isEmpty()
+    }
+
+    @Test
     fun `missing source shows an error and close returns the failure`() {
         val viewModel = viewModel(EditorInput.FileSource(File(context.cacheDir, "missing.png").absolutePath))
         val failed = viewModel.state.value as ImageEditorUiState.LoadFailed
@@ -699,6 +743,7 @@ class ImageEditorViewModelTest {
         export: ImageExportConfig = ImageExportConfig(),
         remover: BackgroundRemover? = null,
         captureFile: (() -> Pair<File, Uri>)? = null,
+        documentDirectory: File? = File(context.filesDir, "documents-test"),
     ): ImageEditorViewModel {
         val registry = SessionSourceRegistry(context)
         return ImageEditorViewModel(
@@ -714,6 +759,7 @@ class ImageEditorViewModelTest {
             backgroundRemover = remover,
             assetFallback = ProjectAssetStore(File(context.cacheDir, "assets-test")),
             captureFile = captureFile,
+            documentDirectory = documentDirectory,
         )
     }
 

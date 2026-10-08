@@ -21,4 +21,12 @@
     <string name="framekit_page_move_earlier">앞으로</string>
     <string name="framekit_page_move_later">뒤로</string>
     <string name="framekit_page_remove">이 사진 빼기</string>
+    <string name="framekit_tool_document">문서 보정</string>
+    <string name="framekit_document_hint">모서리를 종이 끝에 맞추고 적용하면 반듯하게 펴져요.</string>
+    <string name="framekit_document_detect">자동 찾기</string>
+    <string name="framekit_document_whole">사진 전체</string>
+    <string name="framekit_document_restore">원본으로</string>
+    <string name="framekit_document_working">문서를 펴는 중…</string>
+    <string name="framekit_document_applied">문서를 반듯하게 폈어요. 자르기·텍스트·스티커·그리기·가리기는 초기화했어요.</string>
+    <string name="framekit_document_failed">문서를 펴지 못했어요. 편집은 그대로예요.</string>
 </resources>

@@ -1,5 +1,7 @@
 package com.naury.framekit.ui.image.editor
 
+import com.naury.framekit.image.document.DocumentRectifier
+import com.naury.framekit.core.document.DocumentQuad
 import java.io.File
 import com.naury.framekit.ui.image.editor.ImageSessionRecorder.Companion.toInput
 import com.naury.framekit.image.export.PdfPage
@@ -103,6 +105,8 @@ internal class ImageEditorViewModel(
     private val backgroundRemover: BackgroundRemover? = null,
     private val assetFallback: ProjectAssetStore? = null,
     private val captureFile: (() -> Pair<File, Uri>)? = null,
+    private val documentDirectory: File? = null,
+    private val memoryBudgetBytes: Long = DEFAULT_MEMORY_BUDGET,
 ) : ViewModel(), ImageCanvasActions {
 
     private val _state = MutableStateFlow<ImageEditorUiState>(ImageEditorUiState.Loading)
@@ -163,7 +167,12 @@ internal class ImageEditorViewModel(
     val config get() = request.config
 
     init {
-        viewModelScope.launch(ioDispatcher) { exportCoordinator.deleteStalePartials() }
+        viewModelScope.launch(ioDispatcher) {
+            exportCoordinator.deleteStalePartials()
+            // 프로세스가 끝나 지우지 못한 오래된 문서 보정 파일을 정리한다.
+            val now = System.currentTimeMillis()
+            documentDirectory?.listFiles()?.forEach { if (now - it.lastModified() > DOCUMENT_STALE_MILLIS) it.delete() }
+        }
         when {
             savedState.contains(KEY_PAGES) -> restorePages()
             savedState.contains(ImageSessionRecorder.KEY_SESSION_ID) -> restore()
@@ -239,7 +248,10 @@ internal class ImageEditorViewModel(
         val ids = savedState.get<ArrayList<String>>(KEY_PAGE_IDS).orEmpty()
         if (inputs.isEmpty() || inputs.size != ids.size) return start()
         pages.clear()
-        inputs.forEachIndexed { index, input -> pages += Page(ids[index], input) }
+        val originalIds = savedState.get<ArrayList<String>>(KEY_PAGE_ORIGINAL_IDS).orEmpty()
+        val originals = savedState.get<ArrayList<EditorInput>>(KEY_PAGE_ORIGINALS).orEmpty()
+        val originalById = if (originalIds.size == originals.size) originalIds.zip(originals).toMap() else emptyMap()
+        inputs.forEachIndexed { index, input -> pages += Page(ids[index], input, originalById[ids[index]]) }
         pagesChanged = savedState.get<Boolean>(KEY_PAGES_CHANGED) == true
         loadPage(savedState.get<Int>(KEY_PAGE_INDEX)?.coerceIn(pages.indices) ?: 0, stash = false)
         loadPageThumbnails()
@@ -256,6 +268,9 @@ internal class ImageEditorViewModel(
     private fun persistPages() {
         savedState[KEY_PAGES] = ArrayList(pages.map { it.input })
         savedState[KEY_PAGE_IDS] = ArrayList(pages.map { it.id })
+        // 문서 보정한 쪽의 원래 원본. 프로세스가 끝나도 "원본으로"를 쓸 수 있게 둔다.
+        savedState[KEY_PAGE_ORIGINAL_IDS] = ArrayList(pages.filter { it.original != null }.map { it.id })
+        savedState[KEY_PAGE_ORIGINALS] = ArrayList(pages.mapNotNull { it.original })
         savedState[KEY_PAGE_INDEX] = pageIndex
         savedState[KEY_PAGES_CHANGED] = pagesChanged
     }
@@ -359,10 +374,13 @@ internal class ImageEditorViewModel(
                     } else {
                         val restored = session.attach(pendingRestore, page.input, info)
                         pendingRestore = null
-                        restoredState(restored, sourceId, info, preview)
+                        val base = restoredState(restored, sourceId, info, preview)
+                        val carry = page.carry
+                        page.carry = null
+                        if (carry == null) base else base.copy(transaction = HistoryTransaction.start(carry(base.transaction.history.current)))
                     }
                 }
-                _state.value = ready.copy(pageIndex = pageIndex, pageCount = pages.size)
+                _state.value = ready.copy(pageIndex = pageIndex, pageCount = pages.size, documentRectified = page.original != null)
             } catch (error: FrameKitException) {
                 logFailure("load", error)
                 _state.value = ImageEditorUiState.LoadFailed(error.code, canChooseAnother = request.input is EditorInput.Pick)
@@ -483,16 +501,22 @@ internal class ImageEditorViewModel(
 
     fun dismissNotice() = updateReady { it.copy(notice = null) }
 
-    fun selectTool(tool: ImageTool) = updateReady { ready ->
-        if (ready.activeTool != null || ready.export != null || ready.transaction.isActive || tool !in config.enabledTools) {
-            return@updateReady ready
+    fun selectTool(tool: ImageTool) {
+        updateReady { ready ->
+            if (ready.activeTool != null || ready.export != null || ready.transaction.isActive || tool !in config.enabledTools) {
+                return@updateReady ready
+            }
+            when {
+                tool == ImageTool.TEXT -> openText(ready, existingId = null)
+                tool == ImageTool.DOCUMENT -> ready.copy(activeTool = tool, documentQuad = DocumentQuad.inset(), selectedOverlayId = null)
+                tool.isDraft -> ready.copy(activeTool = tool, cropAspect = CropAspectRatio.Free, transaction = ready.transaction.begin(), selectedOverlayId = null)
+                else -> ready.copy(activeTool = tool)
+            }
         }
-        when {
-            tool == ImageTool.TEXT -> openText(ready, existingId = null)
-            tool.isDraft -> ready.copy(activeTool = tool, cropAspect = CropAspectRatio.Free, transaction = ready.transaction.begin(), selectedOverlayId = null)
-            else -> ready.copy(activeTool = tool)
-        }
+        // 상태가 바뀐 뒤에 감지를 시작해야 결과가 열린 도구에 반영된다.
+        (_state.value as? ImageEditorUiState.Ready)?.takeIf { it.activeTool == ImageTool.DOCUMENT && tool == ImageTool.DOCUMENT }?.let(::detectDocumentLater)
     }
+
 
     /** 기존 텍스트 오버레이에 대해 텍스트 도구를 연다. */
     override fun editText(id: String) = updateReady { ready ->
@@ -657,7 +681,124 @@ internal class ImageEditorViewModel(
 
     /** 변경이 이미 커밋된 도구(보정, 필터)를 닫는다. */
     fun closeTool() = updateReady { ready ->
-        if (ready.activeTool?.isDraft != false || ready.transaction.isActive) ready else ready.copy(activeTool = null)
+        when {
+            ready.documentBusy -> ready
+            ready.activeTool?.isDraft != false || ready.transaction.isActive -> ready
+            else -> ready.copy(activeTool = null, documentQuad = null)
+        }
+    }
+
+    // ---- 문서 보정 ----
+
+    private fun detectDocumentLater(ready: ImageEditorUiState.Ready) {
+        val preview = ready.preview.bitmap
+        viewModelScope.launch {
+            val found = withContext(ioDispatcher) { runCatching { DocumentRectifier.detect(preview) }.getOrNull() }
+            // 그새 사용자가 모서리를 옮겼으면 덮어쓰지 않는다.
+            updateReady { current ->
+                if (current.activeTool == ImageTool.DOCUMENT && current.documentQuad == DocumentQuad.inset() && found != null) current.copy(documentQuad = found) else current
+            }
+        }
+    }
+
+    /** 자동으로 다시 찾는다. 찾지 못하면 가장자리에서 조금 들어온 사각형으로 둔다. */
+    fun detectDocument() {
+        val ready = _state.value as? ImageEditorUiState.Ready ?: return
+        if (ready.activeTool != ImageTool.DOCUMENT || ready.documentBusy) return
+        val preview = ready.preview.bitmap
+        viewModelScope.launch {
+            val found = withContext(ioDispatcher) { runCatching { DocumentRectifier.detect(preview) }.getOrNull() }
+            updateReady { if (it.activeTool == ImageTool.DOCUMENT) it.copy(documentQuad = found ?: DocumentQuad.inset()) else it }
+        }
+    }
+
+    /** 사진 전체를 문서로 둔다. 이미 반듯한 문서의 원근만 살짝 고칠 때 시작점으로 쓴다. */
+    fun useWholeImage() = updateReady { if (it.activeTool == ImageTool.DOCUMENT && !it.documentBusy) it.copy(documentQuad = DocumentQuad.inset(0.0)) else it }
+
+    /** [corner](0: 왼쪽 위부터 시계 방향)를 정규화 좌표 ([x], [y])로 옮긴다. 이미지 밖으로 나가지 않는다. */
+    override fun moveDocumentCorner(corner: Int, x: Double, y: Double) = updateReady { ready ->
+        val quad = ready.documentQuad ?: return@updateReady ready
+        if (ready.documentBusy || corner !in 0..3) return@updateReady ready
+        val point = PointN(x.coerceIn(0.0, 1.0), y.coerceIn(0.0, 1.0))
+        val moved = when (corner) {
+            0 -> quad.copy(topLeft = point)
+            1 -> quad.copy(topRight = point)
+            2 -> quad.copy(bottomRight = point)
+            else -> quad.copy(bottomLeft = point)
+        }
+        ready.copy(documentQuad = moved)
+    }
+
+    /**
+     * 맞춘 모서리로 문서를 펴서 지금 쪽의 새 원본으로 쓴다. 보정·필터는 이어지고, 위치가 바뀌는 편집은 초기화한다.
+     * 실패하면 편집은 그대로 두고 안내만 띄운다.
+     */
+    fun applyDocument() {
+        val ready = _state.value as? ImageEditorUiState.Ready ?: return
+        val quad = ready.documentQuad ?: return
+        val directory = documentDirectory ?: return
+        if (ready.activeTool != ImageTool.DOCUMENT || ready.documentBusy || ready.export != null) return
+        if (!quad.isUsable) return
+        val page = pages.getOrNull(pageIndex) ?: return
+        val current = ready.transaction.history.current
+        updateReady { it.copy(documentBusy = true) }
+        viewModelScope.launch {
+            val output = File(directory, "${UUID.randomUUID()}.jpg")
+            val written = withContext(ioDispatcher) {
+                try {
+                    DocumentRectifier(registry, contentResolver, memoryBudgetBytes).rectify(ready.source, quad, output)
+                    true
+                } catch (error: FrameKitException) {
+                    logFailure("document", error)
+                    output.delete()
+                    false
+                } catch (error: OutOfMemoryError) {
+                    logFailure("document", FrameKitException(EditorErrorCode.INSUFFICIENT_MEMORY, cause = error))
+                    output.delete()
+                    false
+                }
+            }
+            if (!written) {
+                updateReady { it.copy(documentBusy = false, notice = SessionNotice.DOCUMENT_FAILED) }
+                return@launch
+            }
+            val replacement = Page(newId(), EditorInput.FileSource(output.absolutePath), original = page.original ?: page.input)
+            val dropped = current.geometry != GeometryEdit() || current.overlays.isNotEmpty() || current.drawing.isNotEmpty() ||
+                current.privacyMasks.isNotEmpty() || current.cutout != null
+            replacement.carry = { fresh -> fresh.copy(adjustments = current.adjustments, filter = current.filter) }
+            replacePage(page, replacement)
+            if (dropped) updateReady { it.copy(notice = SessionNotice.DOCUMENT_APPLIED) }
+        }
+    }
+
+    /** 문서 보정으로 바꾼 쪽을 처음 원본으로 되돌린다. 보정·필터는 이어진다. */
+    fun restoreOriginalDocument() {
+        val ready = _state.value as? ImageEditorUiState.Ready ?: return
+        if (ready.documentBusy || ready.export != null || ready.transaction.isActive) return
+        val page = pages.getOrNull(pageIndex) ?: return
+        val original = page.original ?: return
+        val current = ready.transaction.history.current
+        val replacement = Page(newId(), original)
+        replacement.carry = { fresh -> fresh.copy(adjustments = current.adjustments, filter = current.filter) }
+        replacePage(page, replacement)
+    }
+
+    private fun replacePage(old: Page, replacement: Page) {
+        val index = pages.indexOf(old).takeIf { it >= 0 } ?: return
+        pages[index] = replacement
+        recorders.remove(old.id)?.end()
+        // 문서 보정으로 만든 중간 파일은 다른 쪽이 쓰지 않으면 지운다.
+        (old.input as? EditorInput.FileSource)?.let { input ->
+            val file = File(input.absolutePath)
+            if (documentDirectory != null && file.parentFile == documentDirectory && pages.none { (it.input as? EditorInput.FileSource)?.absolutePath == input.absolutePath }) {
+                viewModelScope.launch(ioDispatcher) { file.delete() }
+            }
+        }
+        _pageThumbnails.value = _pageThumbnails.value - old.id
+        pagesChanged = true
+        persistPages()
+        loadPage(index, stash = false)
+        loadPageThumbnails()
     }
 
     fun resetTool() {
@@ -975,6 +1116,9 @@ internal class ImageEditorViewModel(
         recorders.values.forEach(ImageSessionRecorder::end)
         // 카메라로 찍은 임시 원본은 결과를 만든 뒤에는 필요 없다.
         CaptureFiles.delete(savedState.get<String>(KEY_CAPTURE_PATH))
+        // 문서 보정으로 만든 중간 파일도 결과를 만들었거나 버렸으면 필요 없다.
+        val documentFiles = pages.mapNotNull { (it.input as? EditorInput.FileSource)?.absolutePath }.map(::File).filter { it.parentFile == documentDirectory }
+        if (documentFiles.isNotEmpty()) viewModelScope.launch(NonCancellable + ioDispatcher) { documentFiles.forEach(File::delete) }
         _result.value = result
     }
 
@@ -1026,6 +1170,10 @@ internal class ImageEditorViewModel(
         const val KEY_PAGE_IDS = "framekit_page_ids"
         const val KEY_PAGE_INDEX = "framekit_page_index"
         const val KEY_PAGES_CHANGED = "framekit_pages_changed"
+        const val KEY_PAGE_ORIGINAL_IDS = "framekit_page_original_ids"
+        const val KEY_PAGE_ORIGINALS = "framekit_page_originals"
+        const val DEFAULT_MEMORY_BUDGET = 256L * 1024 * 1024
+        const val DOCUMENT_STALE_MILLIS = 7L * 24 * 60 * 60 * 1000
         const val MAIN_PAGE_ID = "main"
         const val PAGE_THUMBNAIL_PX = 200
         const val SNAPSHOT_DEBOUNCE_MILLIS = 300L
@@ -1034,8 +1182,11 @@ internal class ImageEditorViewModel(
 }
 
 /** 여러 장 편집의 한 쪽. 아직 열지 않은 쪽은 [transaction]이 `null`이다. */
-private class Page(val id: String, val input: EditorInput) {
+private class Page(val id: String, val input: EditorInput, val original: EditorInput? = null) {
     var sourceId: SourceId? = null
     var info: ImageSourceInfo? = null
     var transaction: HistoryTransaction<ImageProject>? = null
+
+    /** 문서 보정 뒤 처음 열 때, 이전 원본의 보정·필터를 새 프로젝트에 옮겨 담는다. */
+    var carry: ((ImageProject) -> ImageProject)? = null
 }

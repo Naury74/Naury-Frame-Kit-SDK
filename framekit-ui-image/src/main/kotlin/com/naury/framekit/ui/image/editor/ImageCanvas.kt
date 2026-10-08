@@ -23,6 +23,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import kotlin.math.hypot
+import androidx.compose.ui.graphics.PathFillType
+import com.naury.framekit.core.document.DocumentQuad
 import kotlin.math.atan2
 import kotlin.math.roundToInt
 import androidx.compose.material3.TextButton
@@ -99,7 +102,14 @@ internal fun ImageCanvas(
     val density = LocalDensity.current
     val metadata = state.source.metadata
     val toolMode = state.activeTool?.isGeometry == true
-    val project = if (state.showingOriginal) {
+    // 문서 보정은 편집 전 원본 전체를 보여 주고 그 위에 네 모서리를 맞춘다.
+    val documentMode = state.activeTool == ImageTool.DOCUMENT
+    val project = if (documentMode) {
+        state.displayed.copy(
+            geometry = GeometryEdit(), cutout = null, adjustments = Adjustments(), filter = FilterSelection(),
+            overlays = emptyList(), drawing = emptyList(), privacyMasks = emptyList(),
+        )
+    } else if (state.showingOriginal) {
         state.displayed.copy(geometry = GeometryEdit(), cutout = null, adjustments = Adjustments(), filter = FilterSelection(), privacyMasks = emptyList())
     } else {
         state.displayed
@@ -112,9 +122,9 @@ internal fun ImageCanvas(
     val previewLongEdge = maxOf(state.preview.bitmap.width, state.preview.bitmap.height)
     // 제스처 중의 초안이 검증을 통과하지 못해도 화면 구성에서 예외를 던져 앱이 멈추지 않게 직전 계획을 유지한다.
     val lastPlan = remember { arrayOfNulls<ImageRenderPlan>(1) }
-    val plan = remember(project, toolMode) {
+    val plan = remember(project, toolMode, documentMode) {
         try {
-            if (toolMode) {
+            if (toolMode || documentMode) {
                 ImageRenderPlanFactory.uncropped(project, metadata, previewLongEdge)
             } else {
                 ImageRenderPlanFactory.create(project, metadata, ImageRenderPlanFactory.outputSize(project, metadata, Long.MAX_VALUE))
@@ -132,7 +142,9 @@ internal fun ImageCanvas(
     // 스티커·텍스트를 잡고 있는 동안에는 두 손가락 제스처를 오버레이 변형에 양보한다.
     val overlayGesture = remember { BooleanArray(1) }
     // 그리기·가리기·자르기는 한 손가락이 편집 동작이라, 확대 중 한 손가락 이동은 그 밖의 화면에서만 쓴다.
-    val singleFingerPan = state.activeTool !in setOf(ImageTool.DRAW, ImageTool.PRIVACY, ImageTool.CROP, ImageTool.ROTATE)
+    val singleFingerPan = state.activeTool !in setOf(ImageTool.DRAW, ImageTool.PRIVACY, ImageTool.CROP, ImageTool.ROTATE, ImageTool.DOCUMENT)
+    // 문서 모서리를 끄는 동안의 모서리 번호(돋보기를 그리는 데 쓴다).
+    var draggingCorner by remember { mutableStateOf<Int?>(null) }
     Box(modifier.fillMaxSize()) {
         ZoomableCanvas(
             state = zoomState,
@@ -142,7 +154,7 @@ internal fun ImageCanvas(
             isChildGestureActive = { overlayGesture[0] },
         ) {
             BoxWithConstraints(Modifier.fillMaxSize()) {
-                val padding = with(density) { (if (toolMode) 28.dp else 16.dp).toPx().toDouble() }
+                val padding = with(density) { (if (toolMode || documentMode) 28.dp else 16.dp).toPx().toDouble() }
                 val viewport = ViewportTransform(
                     contentSize = Size2D(plan.outputSize.width.toDouble(), plan.outputSize.height.toDouble()),
                     viewportWidth = constraints.maxWidth.toDouble().coerceAtLeast(1.0),
@@ -192,6 +204,7 @@ internal fun ImageCanvas(
                 val contentRect = viewport.toViewport(RectN.Full)
                 val currentViewport by rememberUpdatedState(viewport)
                 val currentFrame by rememberUpdatedState(cropFrame)
+                val currentDocumentQuad by rememberUpdatedState(state.documentQuad.takeIf { documentMode })
                 val touchRadius = with(density) { 24.dp.toPx().toDouble() } / zoom
                 val currentTouchRadius by rememberUpdatedState(touchRadius)
                 // 자르기·회전 중에는 손을 뗄 때마다 남은 영역이 화면을 채우도록 부드럽게 확대해 맞춘다.
@@ -231,6 +244,34 @@ internal fun ImageCanvas(
                                 onDragCancel = { if (active) actions.endCropDrag() },
                             )
                         }
+                    ImageTool.DOCUMENT -> Modifier.pointerInput(Unit) {
+                        awaitEachGesture {
+                            val down = awaitFirstDown()
+                            val quad = currentDocumentQuad ?: return@awaitEachGesture
+                            // 모서리는 손가락보다 작아 보여서 넉넉한 반경 안에서 가장 가까운 모서리를 잡는다.
+                            val reach = currentTouchRadius * 1.8
+                            val corner = quad.corners
+                                .mapIndexed { index, point -> index to currentViewport.toViewport(point) }
+                                .map { (index, p) -> index to hypot(p.x - down.position.x, p.y - down.position.y) }
+                                .filter { it.second <= reach }
+                                .minByOrNull { it.second }?.first ?: return@awaitEachGesture
+                            down.consume()
+                            // 손가락이 모서리를 가리지 않도록, 처음 닿은 위치와 모서리의 차이를 유지하며 옮긴다.
+                            val anchor = currentViewport.toViewport(quad.corners[corner])
+                            val offset = Offset((anchor.x - down.position.x).toFloat(), (anchor.y - down.position.y).toFloat())
+                            draggingCorner = corner
+                            do {
+                                val event = awaitPointerEvent()
+                                if (event.changes.count { it.pressed } >= 2) break
+                                val change = event.changes.firstOrNull { it.id == down.id } ?: break
+                                val target = change.position + offset
+                                val point = currentViewport.toContentUnbounded(target.x.toDouble(), target.y.toDouble())
+                                actions.moveDocumentCorner(corner, point.x, point.y)
+                                change.consume()
+                            } while (change.pressed)
+                            draggingCorner = null
+                        }
+                    }
                     ImageTool.ROTATE, ImageTool.TEXT -> Modifier
                     ImageTool.DRAW, ImageTool.PRIVACY -> Modifier.pointerInput(Unit) {
                         val minDistance = 2.dp.toPx().toDouble()
@@ -383,6 +424,14 @@ internal fun ImageCanvas(
                         }
                     }
                         if (selectionCorners != null && selectionHandles != null) drawSelection(selectionCorners, selectionHandles, colors.accent, zoomState.zoom)
+                    val documentQuad = state.documentQuad
+                    if (documentMode && documentQuad != null) {
+                        drawDocumentQuad(documentQuad, viewport, colors.accent, zoomState.zoom, draggingCorner)
+                        val dragged = draggingCorner
+                        if (dragged != null) {
+                            drawLoupe(state.preview.bitmap, documentQuad.corners[dragged], viewport, contentRect, colors.accent)
+                        }
+                    }
                     if (toolMode) {
                         drawCropFrame(
                             frame = cropFrame,
@@ -453,3 +502,65 @@ private fun DrawScope.drawSelection(corners: List<PointN>, handles: List<PointN>
         }
     }
 }
+
+// 문서 바깥을 어둡게, 네 변과 모서리 손잡이를 그린다. 끌고 있는 모서리는 크게 보여 준다.
+private fun DrawScope.drawDocumentQuad(quad: DocumentQuad, viewport: ViewportTransform, accent: Color, zoom: Float, dragging: Int?) {
+    val unit = 1f / zoom.coerceAtLeast(1f)
+    val points = quad.corners.map { viewport.toViewport(it) }.map { Offset(it.x.toFloat(), it.y.toFloat()) }
+    val outline = Path().apply {
+        moveTo(points[0].x, points[0].y)
+        points.drop(1).forEach { lineTo(it.x, it.y) }
+        close()
+    }
+    val outside = Path().apply {
+        fillType = PathFillType.EvenOdd
+        addRect(androidx.compose.ui.geometry.Rect(Offset.Zero, size))
+        addPath(outline)
+    }
+    drawPath(outside, Color.Black.copy(alpha = 0.5f))
+    drawPath(outline, accent.copy(alpha = 0.12f))
+    drawPath(outline, accent, style = Stroke(2.dp.toPx() * unit))
+    points.forEachIndexed { index, point ->
+        val radius = (if (index == dragging) 13.dp else 10.dp).toPx() * unit
+        drawCircle(Color.Black.copy(alpha = 0.35f), radius + 2.dp.toPx() * unit, point)
+        drawCircle(Color.White, radius, point)
+        drawCircle(accent, radius, point, style = Stroke(3.dp.toPx() * unit))
+    }
+}
+
+/**
+ * 끌고 있는 모서리 주변을 확대해 보여 주는 돋보기. 손가락에 가려 보이지 않는 종이 끝을 정확히 맞추게 한다.
+ * 모서리가 화면 왼쪽 위에 있으면 오른쪽 위에, 아니면 왼쪽 위에 둔다.
+ */
+private fun DrawScope.drawLoupe(bitmap: Bitmap, corner: PointN, viewport: ViewportTransform, content: RectN, accent: Color) {
+    if (bitmap.isRecycled) return
+    val radius = 56.dp.toPx()
+    val margin = 16.dp.toPx()
+    val at = viewport.toViewport(corner)
+    val onLeftTop = at.x < size.width / 2 && at.y < radius * 2 + margin * 2
+    val center = Offset(if (onLeftTop) size.width - margin - radius else margin + radius, margin + radius)
+    val magnification = 3f
+    // 콘텐츠 정규화 좌표 → bitmap 픽셀 → 돋보기 화면 좌표.
+    val pxPerSource = (content.width / bitmap.width).toFloat() * magnification
+    val bx = (corner.x * bitmap.width).toFloat()
+    val by = (corner.y * bitmap.height).toFloat()
+    drawCircle(Color.Black, radius, center)
+    drawIntoCanvas { canvas ->
+        val native = canvas.nativeCanvas
+        val checkpoint = native.save()
+        native.clipPath(android.graphics.Path().apply { addCircle(center.x, center.y, radius, android.graphics.Path.Direction.CW) })
+        val matrix = android.graphics.Matrix().apply {
+            setTranslate(-bx, -by)
+            postScale(pxPerSource, pxPerSource)
+            postTranslate(center.x, center.y)
+        }
+        native.drawBitmap(bitmap, matrix, LOUPE_PAINT)
+        native.restoreToCount(checkpoint)
+    }
+    val cross = 10.dp.toPx()
+    drawLine(accent, center - Offset(cross, 0f), center + Offset(cross, 0f), 2.dp.toPx())
+    drawLine(accent, center - Offset(0f, cross), center + Offset(0f, cross), 2.dp.toPx())
+    drawCircle(Color.White, radius, center, style = Stroke(3.dp.toPx()))
+}
+
+private val LOUPE_PAINT = Paint(Paint.FILTER_BITMAP_FLAG)

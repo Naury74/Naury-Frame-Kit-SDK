@@ -78,6 +78,7 @@ import com.naury.framekit.ui.image.contract.ImageTool
 import com.naury.framekit.ui.tool.AdjustToolPanel
 import com.naury.framekit.ui.tool.CropToolPanel
 import com.naury.framekit.ui.image.tool.CutoutToolPanel
+import com.naury.framekit.ui.image.tool.DocumentToolPanel
 import com.naury.framekit.ui.image.tool.DrawToolPanel
 import com.naury.framekit.ui.tool.FilterToolPanel
 import com.naury.framekit.ui.tool.PrivacyToolPanel
@@ -144,6 +145,8 @@ private fun ReadyContent(state: ImageEditorUiState.Ready, viewModel: ImageEditor
                 SessionNotice.RESTORED -> UiR.string.framekit_session_restored
                 SessionNotice.EXPORT_INTERRUPTED -> UiR.string.framekit_export_interrupted
                 SessionNotice.PAGE_LIMIT -> R.string.framekit_page_limit
+                SessionNotice.DOCUMENT_APPLIED -> R.string.framekit_document_applied
+                SessionNotice.DOCUMENT_FAILED -> R.string.framekit_document_failed
             },
         )
     }
@@ -340,6 +343,33 @@ private fun ToolArea(
                 ImageTool.DRAW -> ToolPanelWithActions(R.string.framekit_tool_draw, viewModel, isDraft = false, scrollPanel) {
                     DrawToolPanel(brush = state.brush, onBrush = viewModel::updateBrush)
                 }
+                ImageTool.DOCUMENT -> {
+                    if (scrollPanel) {
+                        Column(Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState())) {
+                            DocumentToolPanel(
+                                busy = state.documentBusy,
+                                rectified = state.documentRectified,
+                                onDetect = viewModel::detectDocument,
+                                onWholeImage = viewModel::useWholeImage,
+                                onRestore = viewModel::restoreOriginalDocument,
+                            )
+                        }
+                    } else {
+                        DocumentToolPanel(
+                            busy = state.documentBusy,
+                            rectified = state.documentRectified,
+                            onDetect = viewModel::detectDocument,
+                            onWholeImage = viewModel::useWholeImage,
+                            onRestore = viewModel::restoreOriginalDocument,
+                        )
+                    }
+                    // 문서 펴기는 적용해야 원본이 바뀐다. 취소하면 아무것도 바뀌지 않는다.
+                    ApplyCancelBar(
+                        title = stringResource(R.string.framekit_tool_document),
+                        onCancel = viewModel::closeTool,
+                        onApply = viewModel::applyDocument,
+                    )
+                }
                 ImageTool.CUTOUT -> ToolPanelWithActions(R.string.framekit_tool_cutout, viewModel, isDraft = false, scrollPanel) {
                     CutoutToolPanel(
                         applied = state.displayed.cutout != null,
@@ -431,6 +461,7 @@ private fun ImageTool.railItem(): ToolRailItem<ImageTool> = when (this) {
     ImageTool.STICKER -> ToolRailItem(this, stringResource(UiR.string.framekit_tool_sticker), painterResource(UiR.drawable.framekit_ic_sticker))
     ImageTool.DRAW -> ToolRailItem(this, stringResource(R.string.framekit_tool_draw), painterResource(UiR.drawable.framekit_ic_draw))
     ImageTool.CUTOUT -> ToolRailItem(this, stringResource(R.string.framekit_tool_cutout), painterResource(UiR.drawable.framekit_ic_cutout))
+    ImageTool.DOCUMENT -> ToolRailItem(this, stringResource(R.string.framekit_tool_document), painterResource(UiR.drawable.framekit_ic_document))
     ImageTool.PRIVACY -> ToolRailItem(this, stringResource(UiR.string.framekit_tool_privacy), painterResource(UiR.drawable.framekit_ic_privacy))
 }
 
