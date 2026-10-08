@@ -168,6 +168,8 @@ internal class VideoEditorViewModel(
     private var straightenStart: GeometryEdit? = null
     private var trimEdge: TrimEdge? = null
     private var maskAnchor: PointN? = null
+    // 바로 기록되는 도구(보정·필터 등)를 열 때의 프로젝트. 뒤로 가기·취소 때 이 상태로 되돌린다.
+    private var toolEntry: VideoProject? = null
     private var maskEditStart: Triple<String, RectN, Boolean>? = null
     private var resumeAfterScrub = false
     private var overlayGestureStart: ImageOverlay? = null
@@ -486,6 +488,8 @@ internal class VideoEditorViewModel(
                 else -> it.copy(activeTool = tool, selectedMaskId = null, selectedOverlayId = null)
             }
         }
+        // 바로 기록되는 도구는 열 때의 상태를 기억해 두었다가, 취소하면 그 상태로 되돌린다.
+        if (!tool.isDraft) toolEntry = (_state.value as? VideoEditorUiState.Ready)?.transaction?.history?.current
     }
 
     fun applyTool() {
@@ -522,8 +526,11 @@ internal class VideoEditorViewModel(
     }
 
     /** 변경이 이미 확정된 도구를 닫는다. */
-    fun closeTool() = updateReady { ready ->
-        if (ready.activeTool?.isDraft != false || ready.transaction.isActive) ready else ready.copy(activeTool = null, selectedMaskId = null, selectedOverlayId = null)
+    fun closeTool() {
+        updateReady { ready ->
+            if (ready.activeTool?.isDraft != false || ready.transaction.isActive) ready else ready.copy(activeTool = null, selectedMaskId = null, selectedOverlayId = null)
+        }
+        if ((_state.value as? VideoEditorUiState.Ready)?.activeTool == null) toolEntry = null
     }
 
     fun resetTool() {
@@ -1251,18 +1258,42 @@ internal class VideoEditorViewModel(
             // 바꾼 내용이 있으면 바로 버리지 않고 적용할지 묻는다.
             ready.activeTool.isDraft && ready.hasDraftChanges -> updateReady { it.copy(showDraftDialog = true) }
             ready.activeTool.isDraft -> cancelTool()
+            // 바로 기록되는 도구도 연 뒤에 바뀐 게 있으면 자르기처럼 적용할지 묻는다.
+            toolSessionChanged(ready) -> updateReady { it.copy(showDraftDialog = true) }
             else -> closeTool()
         }
     }
 
     fun applyDraftFromDialog() {
         updateReady { it.copy(showDraftDialog = false) }
-        applyTool()
+        if ((_state.value as? VideoEditorUiState.Ready)?.activeTool?.isDraft == true) applyTool() else closeTool()
     }
 
     fun discardDraftFromDialog() {
         updateReady { it.copy(showDraftDialog = false) }
-        cancelTool()
+        if ((_state.value as? VideoEditorUiState.Ready)?.activeTool?.isDraft == true) cancelTool() else revertTool()
+    }
+
+    private fun toolSessionChanged(ready: VideoEditorUiState.Ready): Boolean {
+        val entry = toolEntry ?: return false
+        return ready.activeTool?.isDraft == false && !ready.transaction.history.current.sameContentAs(entry)
+    }
+
+    /**
+     * 바로 기록되는 도구를 닫으며, 도구를 열기 전 상태로 되돌린다(취소). 그사이 기록된 단계는 실행 취소로 되돌리므로
+     * 다시 실행으로 되살릴 수 있다.
+     */
+    fun revertTool() = updateReady { ready ->
+        val entry = toolEntry
+        if (ready.activeTool?.isDraft != false || ready.transaction.isActive) return@updateReady ready
+        var transaction = ready.transaction
+        if (entry != null) {
+            while (transaction.history.canUndo && !transaction.history.current.sameContentAs(entry)) transaction = transaction.undo()
+            // 기록이 이어지지 않아(복원 등) 되돌아가지 못했으면 열 때의 상태를 새 단계로 넣는다.
+            if (!transaction.history.current.sameContentAs(entry)) transaction = transaction.update(entry).commit()
+        }
+        toolEntry = null
+        ready.copy(activeTool = null, transaction = transaction)
     }
 
     fun dismissDraftDialog() = updateReady { it.copy(showDraftDialog = false) }

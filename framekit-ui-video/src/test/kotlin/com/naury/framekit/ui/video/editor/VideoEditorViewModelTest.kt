@@ -202,6 +202,27 @@ class VideoEditorViewModelTest {
     }
 
     @Test
+    fun `immediate tools ask on back and cancel restores the state before opening`() {
+        val viewModel = viewModel(durationUs = 10_000_000)
+        viewModel.selectTool(VideoTool.FILTER)
+        viewModel.selectFilter("bright")
+        assertThat(ready(viewModel).clip.effects.filter.presetId).isEqualTo("bright")
+
+        viewModel.onBack()
+        assertThat(ready(viewModel).showDraftDialog).isTrue()
+        viewModel.discardDraftFromDialog()
+
+        assertThat(ready(viewModel).activeTool).isNull()
+        assertThat(ready(viewModel).clip.effects.filter.isIdentity).isTrue()
+
+        viewModel.selectTool(VideoTool.FILTER)
+        viewModel.selectFilter("bright")
+        viewModel.onBack()
+        viewModel.applyDraftFromDialog()
+        assertThat(ready(viewModel).clip.effects.filter.presetId).isEqualTo("bright")
+    }
+
+    @Test
     fun `a tap does not create a mask and the limit is enforced`() {
         val viewModel = viewModel(durationUs = 10_000_000)
         viewModel.selectTool(VideoTool.PRIVACY)

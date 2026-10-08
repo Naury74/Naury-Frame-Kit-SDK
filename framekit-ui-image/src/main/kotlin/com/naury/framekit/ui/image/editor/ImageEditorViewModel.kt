@@ -125,6 +125,8 @@ internal class ImageEditorViewModel(
     private var straightenStart: GeometryEdit? = null
     private var overlayGestureStart: ImageOverlay? = null
     private var maskAnchor: PointN? = null
+    // 바로 기록되는 도구(보정·필터 등)를 열 때의 프로젝트. 뒤로 가기·취소 때 이 상태로 되돌린다.
+    private var toolEntry: ImageProject? = null
     // 여러 장을 편집할 때 사진마다 따로 세션을 둔다. 첫 사진은 이전 버전과 같은 키를 쓴다.
     private val recorders = mutableMapOf<String, ImageSessionRecorder>()
     private var session: ImageSessionRecorder = recorderFor(MAIN_PAGE_ID)
@@ -533,6 +535,8 @@ internal class ImageEditorViewModel(
                 else -> ready.copy(activeTool = tool)
             }
         }
+        // 바로 기록되는 도구는 열 때의 상태를 기억해 두었다가, 취소하면 그 상태로 되돌린다.
+        (_state.value as? ImageEditorUiState.Ready)?.takeIf { it.activeTool == tool && !tool.isDraft }?.let { toolEntry = it.transaction.history.current }
         // 상태가 바뀐 뒤에 감지를 시작해야 결과가 열린 도구에 반영된다.
         (_state.value as? ImageEditorUiState.Ready)
             ?.takeIf { it.activeTool == ImageTool.DOCUMENT && tool == ImageTool.DOCUMENT && it.documentSuggestion == null }
@@ -702,7 +706,12 @@ internal class ImageEditorViewModel(
     }
 
     /** 변경이 이미 커밋된 도구(보정, 필터)를 닫는다. */
-    fun closeTool() = updateReady { ready ->
+    fun closeTool() {
+        closeToolState()
+        if ((_state.value as? ImageEditorUiState.Ready)?.activeTool == null) toolEntry = null
+    }
+
+    private fun closeToolState() = updateReady { ready ->
         when {
             ready.documentBusy -> ready
             ready.activeTool?.isDraft != false || ready.transaction.isActive -> ready
@@ -1179,18 +1188,42 @@ internal class ImageEditorViewModel(
             // 바꾼 내용이 있으면 바로 버리지 않고 적용할지 묻는다.
             ready.activeTool.isDraft && ready.hasDraftChanges -> updateReady { it.copy(showDraftDialog = true) }
             ready.activeTool.isDraft -> cancelTool()
+            // 바로 기록되는 도구도 연 뒤에 바뀐 게 있으면 자르기처럼 적용할지 묻는다.
+            toolSessionChanged(ready) -> updateReady { it.copy(showDraftDialog = true) }
             else -> closeTool()
         }
     }
 
     fun applyDraftFromDialog() {
         updateReady { it.copy(showDraftDialog = false) }
-        applyTool()
+        if ((_state.value as? ImageEditorUiState.Ready)?.activeTool?.isDraft == true) applyTool() else closeTool()
     }
 
     fun discardDraftFromDialog() {
         updateReady { it.copy(showDraftDialog = false) }
-        cancelTool()
+        if ((_state.value as? ImageEditorUiState.Ready)?.activeTool?.isDraft == true) cancelTool() else revertTool()
+    }
+
+    private fun toolSessionChanged(ready: ImageEditorUiState.Ready): Boolean {
+        val entry = toolEntry ?: return false
+        return ready.activeTool?.isDraft == false && !ready.transaction.history.current.sameContentAs(entry)
+    }
+
+    /**
+     * 바로 기록되는 도구를 닫으며, 도구를 열기 전 상태로 되돌린다(취소). 그사이 기록된 단계는 실행 취소로 되돌리므로
+     * 다시 실행으로 되살릴 수 있다.
+     */
+    fun revertTool() = updateReady { ready ->
+        val entry = toolEntry
+        if (ready.activeTool?.isDraft != false || ready.transaction.isActive) return@updateReady ready
+        var transaction = ready.transaction
+        if (entry != null) {
+            while (transaction.history.canUndo && !transaction.history.current.sameContentAs(entry)) transaction = transaction.undo()
+            // 기록이 이어지지 않아(복원 등) 되돌아가지 못했으면 열 때의 상태를 새 단계로 넣는다.
+            if (!transaction.history.current.sameContentAs(entry)) transaction = transaction.update(entry).commit()
+        }
+        toolEntry = null
+        ready.copy(activeTool = null, transaction = transaction)
     }
 
     fun dismissDraftDialog() = updateReady { it.copy(showDraftDialog = false) }

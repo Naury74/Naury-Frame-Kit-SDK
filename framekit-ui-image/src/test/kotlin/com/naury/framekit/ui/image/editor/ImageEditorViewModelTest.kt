@@ -507,16 +507,49 @@ class ImageEditorViewModelTest {
     }
 
     @Test
-    fun `back closes an immediate tool without changing the project`() {
+    fun `back in an immediate tool asks first and applying keeps the edits`() {
         val viewModel = viewModel(EditorInput.FileSource(sourceFile.absolutePath))
         viewModel.selectTool(ImageTool.ADJUST)
         viewModel.changeAdjustment(30f)
         viewModel.finishGesture()
 
         viewModel.onBack()
+        assertThat(ready(viewModel).showDraftDialog).isTrue()
+        viewModel.applyDraftFromDialog()
 
         assertThat(ready(viewModel).activeTool).isNull()
         assertThat(ready(viewModel).displayed.adjustments.brightness).isWithin(1e-9).of(0.3)
+    }
+
+    @Test
+    fun `cancelling an immediate tool restores the state before it was opened`() {
+        val viewModel = viewModel(EditorInput.FileSource(sourceFile.absolutePath))
+        viewModel.selectTool(ImageTool.ADJUST)
+        viewModel.changeAdjustment(10f)
+        viewModel.finishGesture()
+        viewModel.closeTool()
+
+        viewModel.selectTool(ImageTool.ADJUST)
+        viewModel.changeAdjustment(40f)
+        viewModel.finishGesture()
+        viewModel.selectAdjustment(com.naury.framekit.core.effect.AdjustmentKind.CONTRAST)
+        viewModel.changeAdjustment(20f)
+        viewModel.finishGesture()
+
+        viewModel.onBack()
+        viewModel.discardDraftFromDialog()
+
+        val state = ready(viewModel)
+        assertThat(state.activeTool).isNull()
+        // 이번에 연 도구에서 바꾼 두 값은 되돌아가고, 그 전에 적용한 밝기는 남는다.
+        assertThat(state.displayed.adjustments.brightness).isWithin(1e-9).of(0.1)
+        assertThat(state.displayed.adjustments.contrast).isWithin(1e-9).of(0.0)
+
+        // 바꾼 게 없으면 묻지 않고 닫는다.
+        viewModel.selectTool(ImageTool.FILTER)
+        viewModel.onBack()
+        assertThat(ready(viewModel).showDraftDialog).isFalse()
+        assertThat(ready(viewModel).activeTool).isNull()
     }
 
     @Test

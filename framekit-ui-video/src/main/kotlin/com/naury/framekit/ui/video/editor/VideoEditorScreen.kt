@@ -670,7 +670,8 @@ private fun ColumnScope.ToolPanelWithActions(title: Int, viewModel: VideoEditorV
     }
     ApplyCancelBar(
         title = stringResource(title),
-        onCancel = if (isDraft) viewModel::cancelTool else null,
+        // 바로 기록되는 도구도 취소하면 도구를 열기 전 상태로 되돌린다.
+        onCancel = if (isDraft) viewModel::cancelTool else viewModel::revertTool,
         onApply = if (isDraft) viewModel::applyTool else viewModel::closeTool,
         onReset = viewModel::resetTool,
     )
