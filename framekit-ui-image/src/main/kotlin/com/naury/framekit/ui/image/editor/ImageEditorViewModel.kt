@@ -576,8 +576,8 @@ internal class ImageEditorViewModel(
             val settings = ready.privacy
             val shape = when (settings.shape) {
                 PrivacyShape.BRUSH -> MaskShape.Brush(listOf(PointN(x, y)), settings.brushWidthShortEdgeRatio)
-                PrivacyShape.RECTANGLE -> MaskShape.Rectangle(RectN(x, y, x, y))
-                PrivacyShape.ELLIPSE -> MaskShape.Ellipse(RectN(x, y, x, y))
+                PrivacyShape.RECTANGLE -> MaskShape.Rectangle(RectN.spanning(PointN(x, y), PointN(x, y)))
+                PrivacyShape.ELLIPSE -> MaskShape.Ellipse(RectN.spanning(PointN(x, y), PointN(x, y)))
             }
             return@updateGesture project.copy(privacyMasks = project.privacyMasks + PrivacyMask(newId(), shape, settings.effect()))
         }
@@ -615,7 +615,8 @@ internal class ImageEditorViewModel(
     private fun extendMask(project: ImageProject, x: Double, y: Double, minDistanceX: Double, minDistanceY: Double): ImageProject {
         val last = project.privacyMasks.lastOrNull() ?: return project
         val anchor = maskAnchor ?: return project
-        val rect = RectN(minOf(anchor.x, x), minOf(anchor.y, y), maxOf(anchor.x, x), maxOf(anchor.y, y))
+        // 한 축으로만 끌어도 비어 있는 사각형이 되지 않게 최소 크기를 보장한다(빈 사각형은 검증에서 거부된다).
+        val rect = RectN.spanning(anchor, PointN(x, y))
         val shape = when (val current = last.shape) {
             is MaskShape.Brush -> {
                 val previous = current.points.last()

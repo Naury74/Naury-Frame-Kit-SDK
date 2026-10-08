@@ -1033,7 +1033,8 @@ internal class VideoEditorViewModel(
         engine.pause()
         maskAnchor = PointN(x, y)
         val id = newId()
-        val shape = if (ready.privacy.shape == PrivacyShape.ELLIPSE) MaskShape.Ellipse(RectN(x, y, x, y)) else MaskShape.Rectangle(RectN(x, y, x, y))
+        val start = RectN.spanning(PointN(x, y), PointN(x, y))
+        val shape = if (ready.privacy.shape == PrivacyShape.ELLIPSE) MaskShape.Ellipse(start) else MaskShape.Rectangle(start)
         val mask = TimedPrivacyMask(PrivacyMask(id, shape, ready.privacy.effect()), Edit.defaultRange(engine.state.value.positionUs, ready.durationUs, DEFAULT_ITEM_US))
         updateGesture { _, project -> project.copy(timeline = project.timeline.copy(privacyMasks = project.timeline.privacyMasks + mask)) }
         updateReady { it.copy(selectedMaskId = id) }
@@ -1042,7 +1043,8 @@ internal class VideoEditorViewModel(
     override fun extendMask(x: Double, y: Double) {
         val anchor = maskAnchor ?: return
         val id = (_state.value as? VideoEditorUiState.Ready)?.selectedMaskId ?: return
-        val rect = RectN(min(anchor.x, x), min(anchor.y, y), max(anchor.x, x), max(anchor.y, y))
+        // 한 축으로만 끌어도 비어 있는 사각형이 되지 않게 최소 크기를 보장한다.
+        val rect = RectN.spanning(anchor, PointN(x, y))
         updateGesture { _, project ->
             Edit.updateMask(project, id) { timed ->
                 val shape = when (timed.mask.shape) {

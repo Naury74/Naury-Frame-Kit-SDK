@@ -42,5 +42,30 @@ public data class RectN(val left: Double, val top: Double, val right: Double, va
 
         public fun fromCenter(centerX: Double, centerY: Double, width: Double, height: Double): RectN =
             RectN(centerX - width / 2.0, centerY - height / 2.0, centerX + width / 2.0, centerY + height / 2.0)
+
+        /**
+         * 두 점을 대각선 꼭짓점으로 하는 단위 정사각형 안의 사각형. 두 점이 같거나 한 축으로만 떨어져 있어도
+         * 가로·세로가 최소 [minSize]가 되도록 넓혀, 끌기 도중의 사각형이 "비어 있음"으로 검증에 걸리지 않게 한다.
+         *
+         * @param minSize 정규화 단위 최소 변 길이, `0 < minSize <= 1`.
+         */
+        public fun spanning(a: PointN, b: PointN, minSize: Double = MIN_SPAN): RectN {
+            require(minSize > 0.0 && minSize <= 1.0) { "minSize must be in (0, 1]" }
+            fun axis(p: Double, q: Double): Pair<Double, Double> {
+                var low = minOf(p, q).coerceIn(0.0, 1.0)
+                var high = maxOf(p, q).coerceIn(0.0, 1.0)
+                if (high - low < minSize) {
+                    high = (low + minSize).coerceAtMost(1.0)
+                    low = high - minSize
+                }
+                return low to high
+            }
+            val (left, right) = axis(a.x, b.x)
+            val (top, bottom) = axis(a.y, b.y)
+            return RectN(left, top, right, bottom)
+        }
+
+        /** [spanning]의 기본 최소 변 길이. 화면에서는 보이지 않을 만큼 작다. */
+        public const val MIN_SPAN: Double = 1e-4
     }
 }

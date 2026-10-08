@@ -68,6 +68,9 @@ import com.naury.framekit.ui.canvas.drawCropFrame
 import com.naury.framekit.ui.canvas.excludeCropHandleGestures
 import com.naury.framekit.image.render.CanvasGeometryRenderer
 import com.naury.framekit.image.render.ImageRenderPlanFactory
+import com.naury.framekit.image.render.ImageRenderPlan
+import com.naury.framekit.android.result.FrameKitException
+import android.util.Log
 import com.naury.framekit.image.render.PreviewMode
 import com.naury.framekit.ui.canvas.CanvasZoomState
 import com.naury.framekit.ui.canvas.ZoomResetButton
@@ -104,13 +107,20 @@ internal fun ImageCanvas(
         ?.takeIf { project.needsRenderedPreview && it.mode == mode && it.project.geometry == project.geometry }
         ?.bitmap
     val previewLongEdge = maxOf(state.preview.bitmap.width, state.preview.bitmap.height)
+    // 제스처 중의 초안이 검증을 통과하지 못해도 화면 구성에서 예외를 던져 앱이 멈추지 않게 직전 계획을 유지한다.
+    val lastPlan = remember { arrayOfNulls<ImageRenderPlan>(1) }
     val plan = remember(project, toolMode) {
-        if (toolMode) {
-            ImageRenderPlanFactory.uncropped(project, metadata, previewLongEdge)
-        } else {
-            ImageRenderPlanFactory.create(project, metadata, ImageRenderPlanFactory.outputSize(project, metadata, Long.MAX_VALUE))
+        try {
+            if (toolMode) {
+                ImageRenderPlanFactory.uncropped(project, metadata, previewLongEdge)
+            } else {
+                ImageRenderPlanFactory.create(project, metadata, ImageRenderPlanFactory.outputSize(project, metadata, Long.MAX_VALUE))
+            }
+        } catch (error: FrameKitException) {
+            Log.w("FrameKit", "preview plan skipped: ${error.code}")
+            null
         }
-    }
+    }?.also { lastPlan[0] = it } ?: lastPlan[0] ?: return
 
     // 그리기·가리기에서만 쓰는 화면 확대. 편집 결과에는 영향이 없고 도구를 바꾸면 처음 크기로 돌아온다.
     val zoomable = state.activeTool == ImageTool.DRAW || state.activeTool == ImageTool.PRIVACY

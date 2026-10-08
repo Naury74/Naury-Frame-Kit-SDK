@@ -230,6 +230,25 @@ class ImageEditorViewModelTest {
     }
 
     @Test
+    fun `rectangle mask is never empty while dragging so the preview stays valid`() {
+        val viewModel = viewModel(EditorInput.FileSource(sourceFile.absolutePath))
+        viewModel.selectTool(ImageTool.PRIVACY)
+        viewModel.updatePrivacy { it.copy(shape = PrivacyShape.RECTANGLE) }
+
+        viewModel.beginStroke(0.4, 0.4, 1.0)
+        fun rect() = (ready(viewModel).displayed.privacyMasks.last().shape as MaskShape.Rectangle).rect
+        assertThat(rect().width).isGreaterThan(0.0)
+        assertThat(rect().height).isGreaterThan(0.0)
+
+        // 세로로만 끌어도 폭이 0이 되면 안 된다.
+        viewModel.extendStroke(0.4, 0.7, 1.0, 0.0, 0.0)
+        assertThat(rect().width).isGreaterThan(0.0)
+        assertThat(rect().height).isWithin(1e-9).of(0.3)
+        viewModel.cancelStroke()
+        assertThat(ready(viewModel).displayed.privacyMasks).isEmpty()
+    }
+
+    @Test
     fun `missing source shows an error and close returns the failure`() {
         val viewModel = viewModel(EditorInput.FileSource(File(context.cacheDir, "missing.png").absolutePath))
         val failed = viewModel.state.value as ImageEditorUiState.LoadFailed
