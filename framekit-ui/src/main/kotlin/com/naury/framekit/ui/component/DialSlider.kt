@@ -12,6 +12,17 @@ import androidx.compose.foundation.systemGestureExclusion
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.Job
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.input.pointer.util.VelocityTracker
+import androidx.compose.ui.input.pointer.util.addPointerInputChange
+import androidx.compose.animation.core.exponentialDecay
+import androidx.compose.animation.core.animateDecay
+import androidx.compose.animation.core.AnimationState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
@@ -42,7 +53,8 @@ import kotlin.math.roundToInt
  * 눈금자를 좌우로 끌어 값을 고르는 슬라이더(사진 앱의 보정 다이얼 방식).
  *
  * 가운데 기준선은 고정되고 눈금이 손가락을 따라 움직인다. [resetValue]부터 현재 값까지의 눈금은 프라이머리 색으로
- * 칠하고, 값은 위에 크게 보여 준다. 눈금을 지날 때마다 다이얼 톱니처럼 짧게 진동하고(큰 눈금은 조금 더 또렷하게),
+ * 칠하고, 값은 위에 크게 보여 준다. 세게 밀고 놓으면 그 속도로 이어서 미끄러지다 서서히 멈추며(다시 잡으면 멈춤),
+ * [onValueChangeFinished]는 미끄러짐이 끝난 뒤 한 번 호출된다. 눈금을 지날 때마다 다이얼 톱니처럼 짧게 진동하고(큰 눈금은 조금 더 또렷하게),
  * [resetValue]와 양 끝에서는 분명하게 진동한다. 두 번 탭하면 [resetValue]로
  * 돌아간다. [onValueChange]는 움직일 때마다, [onValueChangeFinished]는 손을 뗄 때 한 번 호출된다.
  *
@@ -73,6 +85,13 @@ public fun DialSlider(
     val currentOnChange by rememberUpdatedState(onValueChange)
     val currentOnFinished by rememberUpdatedState(onValueChangeFinished)
     val changed = abs(value - resetValue) >= 0.5f
+    // 진행 중인 관성 애니메이션. 다시 잡으면 취소한다.
+    var fling by remember { mutableStateOf<Job?>(null) }
+    val ticker = remember(valueRange, tickEvery, majorEvery, resetValue, hapticsEnabled) {
+        DialTicker(valueRange, tickEvery, majorEvery, resetValue) { strong ->
+            if (hapticsEnabled) haptics.performHapticFeedback(if (strong) HapticFeedbackType.SegmentTick else HapticFeedbackType.SegmentFrequentTick)
+        }
+    }
 
     Column(modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
         Text(
@@ -106,58 +125,66 @@ public fun DialSlider(
                 }
                 .pointerInput(valueRange, resetValue, spacing) {
                     val pxPerUnit = spacing.toPx()
-                    awaitEachGesture {
-                        val down = awaitFirstDown(requireUnconsumed = false)
-                        var raw = currentValue
-                        var last = currentValue
-                        var dragging = false
-                        var travelled = 0f
-                        // 마지막으로 지난 눈금 번호와 진동 시각. 빠르게 돌려도 진동이 뭉개지지 않게 최소 간격을 둔다.
-                        var lastTick = floor((currentValue - valueRange.start) / tickEvery).toInt()
-                        var lastHapticAt = 0L
-                        do {
-                            val event = awaitPointerEvent()
-                            val change = event.changes.firstOrNull { it.id == down.id } ?: break
-                            val dx = change.positionChange().x
-                            travelled += abs(dx)
-                            if (!dragging && travelled > viewConfiguration.touchSlop) dragging = true
-                            if (dragging && dx != 0f) {
-                                // 눈금을 손가락 방향으로 끌면 값은 반대로 움직인다(눈금자를 미는 느낌).
-                                raw = (raw - dx / pxPerUnit).coerceIn(valueRange.start, valueRange.endInclusive)
-                                val next = if (abs(raw - resetValue) <= snapThreshold) resetValue else raw
-                                val crossedReset = (last - resetValue) * (next - resetValue) < 0f || (next == resetValue && last != resetValue)
-                                val hitEdge = (next == valueRange.start || next == valueRange.endInclusive) && next != last
-                                val tick = floor((next - valueRange.start) / tickEvery).toInt()
-                                if (hapticsEnabled) {
-                                    val now = change.uptimeMillis
-                                    when {
-                                        // 기준값·끝은 또렷하게, 다른 소리와 겹치지 않도록 간격과 상관없이 낸다.
-                                        crossedReset || hitEdge -> {
-                                            haptics.performHapticFeedback(HapticFeedbackType.SegmentTick)
-                                            lastHapticAt = now
-                                        }
-                                        // 눈금을 지날 때마다 다이얼 톱니처럼 짧게. 큰 눈금을 지나면 조금 더 또렷하게.
-                                        tick != lastTick && now - lastHapticAt >= MIN_TICK_INTERVAL_MS -> {
-                                            val low = minOf(tick, lastTick) + 1
-                                            val high = maxOf(tick, lastTick)
-                                            val crossedMajor = (low..high).any { index ->
-                                                val v = valueRange.start + index * tickEvery
-                                                abs(v / majorEvery - (v / majorEvery).roundToInt()) < 0.001f
-                                            }
-                                            haptics.performHapticFeedback(if (crossedMajor) HapticFeedbackType.SegmentTick else HapticFeedbackType.SegmentFrequentTick)
-                                            lastHapticAt = now
-                                        }
-                                    }
+                    coroutineScope {
+                        awaitEachGesture {
+                            val down = awaitFirstDown(requireUnconsumed = false)
+                            // 미끄러지는 중에 다시 잡으면 그 자리에서 멈추고, 손을 뗐을 때의 완료 처리를 한 번만 한다.
+                            val interrupted = fling?.isActive == true
+                            fling?.cancel()
+                            fling = null
+                            if (interrupted) currentOnFinished()
+                            var raw = currentValue
+                            var dragging = false
+                            var travelled = 0f
+                            val velocity = VelocityTracker()
+                            velocity.addPointerInputChange(down)
+                            ticker.reset(currentValue)
+                            do {
+                                val event = awaitPointerEvent()
+                                val change = event.changes.firstOrNull { it.id == down.id } ?: break
+                                // 손 뗌 이벤트는 마지막 움직임보다 늦게 와 "멈춘 뒤 뗐다"로 읽힐 수 있어 속도 계산에서 뺀다.
+                                if (change.pressed) velocity.addPointerInputChange(change)
+                                val dx = change.positionChange().x
+                                travelled += abs(dx)
+                                if (!dragging && travelled > viewConfiguration.touchSlop) dragging = true
+                                if (dragging && dx != 0f) {
+                                    // 눈금을 손가락 방향으로 끌면 값은 반대로 움직인다(눈금자를 미는 느낌).
+                                    raw = (raw - dx / pxPerUnit).coerceIn(valueRange.start, valueRange.endInclusive)
+                                    val next = if (abs(raw - resetValue) <= snapThreshold) resetValue else raw
+                                    ticker.step(next, change.uptimeMillis)
+                                    if (next != currentValue) currentOnChange(next)
+                                    change.consume()
                                 }
-                                lastTick = tick
-                                if (next != last) {
-                                    last = next
-                                    currentOnChange(next)
-                                }
-                                change.consume()
+                            } while (change.pressed)
+                            if (!dragging) return@awaitEachGesture
+                            // 손을 뗄 때의 속도만큼 이어서 미끄러지다 서서히 멈춘다(관성).
+                            val unitsPerSecond = -velocity.calculateVelocity().x / pxPerUnit
+                            if (abs(unitsPerSecond) < MIN_FLING_UNITS_PER_SECOND) {
+                                currentOnFinished()
+                                return@awaitEachGesture
                             }
-                        } while (change.pressed)
-                        if (dragging) currentOnFinished()
+                            fling = launch {
+                                var position = raw
+                                try {
+                                    AnimationState(initialValue = raw, initialVelocity = unitsPerSecond).animateDecay(exponentialDecay(frictionMultiplier = FLING_FRICTION)) {
+                                        // 다이얼의 매개변수 value와 이름이 겹쳐 애니메이션 값은 this로 분명히 가리킨다.
+                                        position = this.value.coerceIn(valueRange.start, valueRange.endInclusive)
+                                        ticker.step(position, System.currentTimeMillis())
+                                        if (position != currentValue) currentOnChange(position)
+                                        // 끝에 닿으면 더 갈 곳이 없으니 멈춘다.
+                                        if (position == valueRange.start || position == valueRange.endInclusive) cancelAnimation()
+                                    }
+                                    // 기준값 근처에서 멈추면 기준값으로 붙인다.
+                                    if (snapThreshold > 0f && abs(position - resetValue) <= snapThreshold && position != resetValue) {
+                                        ticker.step(resetValue, System.currentTimeMillis())
+                                        currentOnChange(resetValue)
+                                    }
+                                    currentOnFinished()
+                                } finally {
+                                    fling = null
+                                }
+                            }
+                        }
                     }
                 },
         ) {
@@ -203,7 +230,61 @@ public fun DialSlider(
     }
 }
 
+/**
+ * 값이 움직일 때 지난 눈금을 세어 톱니 햅틱을 낸다. 끌 때와 관성으로 미끄러질 때 함께 쓴다.
+ * 작은 눈금은 약하게, 큰 눈금·기준값·끝은 강하게 울리며, 너무 촘촘하면 [MIN_TICK_INTERVAL_MS]만큼 거른다.
+ */
+private class DialTicker(
+    private val range: ClosedFloatingPointRange<Float>,
+    private val tickEvery: Float,
+    private val majorEvery: Float,
+    private val resetValue: Float,
+    private val emit: (strong: Boolean) -> Unit,
+) {
+    private var last = 0f
+    private var lastTick = 0
+    private var lastAt = 0L
+
+    fun reset(value: Float) {
+        last = value
+        lastTick = tickOf(value)
+    }
+
+    fun step(next: Float, now: Long) {
+        if (next == last) return
+        val crossedReset = (last - resetValue) * (next - resetValue) < 0f || (next == resetValue && last != resetValue)
+        val hitEdge = next == range.start || next == range.endInclusive
+        val tick = tickOf(next)
+        when {
+            crossedReset || hitEdge -> {
+                emit(true)
+                lastAt = now
+            }
+            tick != lastTick && now - lastAt >= MIN_TICK_INTERVAL_MS -> {
+                val low = minOf(tick, lastTick) + 1
+                val high = maxOf(tick, lastTick)
+                val crossedMajor = (low..high).any { index ->
+                    val v = range.start + index * tickEvery
+                    abs(v / majorEvery - (v / majorEvery).roundToInt()) < 0.001f
+                }
+                emit(crossedMajor)
+                lastAt = now
+            }
+        }
+        last = next
+        lastTick = tick
+    }
+
+    private fun tickOf(value: Float) = floor((value - range.start) / tickEvery).toInt()
+}
+
 private val DIAL_HEIGHT = 40.dp
+
+// 이보다 느리게 놓으면 미끄러지지 않는다(값 단위/초).
+private const val MIN_FLING_UNITS_PER_SECOND = 15f
+
+// 클수록 빨리 멈춘다. 다이얼이 너무 멀리 가지 않도록 기본값(1)보다 크게 둔다.
+private const val FLING_FRICTION = 2.2f
 
 // 눈금 진동 사이 최소 간격(ms). 이보다 빠르면 진동이 이어져 한 덩어리로 느껴진다.
 private const val MIN_TICK_INTERVAL_MS = 18L
