@@ -82,6 +82,24 @@ class DocumentDetectorTest {
     }
 
     @Test
+    fun `close ups that touch three edges count only when the page has text`() {
+        val width = 192
+        val height = 256
+        // 위·좌·우가 사진 끝까지 차고 아래쪽에만 바탕이 보이는 근접 촬영.
+        val quad = listOf(0.0 to 0.0, 1.0 to 0.0, 1.0 to 0.82, 0.0 to 0.84)
+        val blank = scene(width, height, quad, paper = 225, desk = 25)
+        assertThat(DocumentDetector.analyze(blank, width, height).quad).isNull()
+        val text = IntArray(blank.size) { i ->
+            val x = i % width
+            val y = i / width
+            if (blank[i] > 128 && y % 12 in 4..6 && x % 20 in 3..16) 40 else blank[i]
+        }
+        val analysis = DocumentDetector.analyze(text, width, height)
+        assertThat(analysis.reason).isEqualTo("ok")
+        assertNear(analysis.quad!!.bottomRight, 1.0, 0.82)
+    }
+
+    @Test
     fun `irregular bright shapes and low contrast scenes are not documents`() {
         // 사각형이 아닌 큰 밝은 영역(구름·자동차 차체 같은 모양): 네 모서리 사각형을 채우지 못한다.
         val blob = IntArray(200 * 200) { i ->

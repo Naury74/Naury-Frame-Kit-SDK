@@ -52,8 +52,22 @@ public object DocumentDetector {
         val count = region.count { it }
         val fraction = count.toDouble() / region.size
         if (fraction < MIN_FRACTION || fraction > MAX_FRACTION) return Analysis(null, "region fraction $fraction")
-        // 종이는 바탕 위에 놓여 있다. 가까이 찍어 좌우가 거의 닿을 수는 있지만, 세 변 이상에 넓게 닿으면 하늘·벽 같은 배경으로 본다.
-        if (edgesTouched(region, width, height) >= 3) return Analysis(null, "touches edges")
+        // 가까이 찍은 문서는 사진 가장자리에 닿을 수 있다. 하늘·벽 같은 배경과 구별하려고, 두 변 이상에 닿으면 영역 안에
+        // 글자(잉크)가 어느 정도 있을 때만 문서로 본다. 네 변에 모두 닿으면 종이 모서리를 알 수 없어 문서로 보지 않는다.
+        val edges = edgesTouched(region, width, height)
+        if (edges >= 4) return Analysis(null, "touches all edges")
+        if (edges >= 2) {
+            // 종이 테두리의 흐려진 경계를 잉크로 세지 않도록, 테두리에서 충분히 안쪽만 본다.
+            val interior = morph(region, width, height, closeRadius * 2, grow = false)
+            var ink = 0
+            var inside = 0
+            for (i in region.indices) if (interior[i]) {
+                inside++
+                if (raw[i] != documentIsBright) ink++
+            }
+            val inkRatio = if (inside == 0) 0.0 else ink.toDouble() / inside
+            if (inkRatio < MIN_INK_NEAR_EDGES) return Analysis(null, "touches edges without text $inkRatio")
+        }
 
         var tl = 0; var tr = 0; var br = 0; var bl = 0
         var minSum = Int.MAX_VALUE; var maxSum = Int.MIN_VALUE; var minDiff = Int.MAX_VALUE; var maxDiff = Int.MIN_VALUE
@@ -221,4 +235,5 @@ public object DocumentDetector {
     private const val MAX_ASPECT = 6.0
     private const val EDGE_COVERAGE = 0.3
     private const val CLOSE_DIVISOR = 40
+    private const val MIN_INK_NEAR_EDGES = 0.01
 }
