@@ -115,6 +115,7 @@ Button(onClick = { editor.launch(FrameKitRequest(EditorInput.Pick(MediaKind.ANY)
 | `durationMs` | 영상 길이. 사진·PDF는 `null` |
 | `mimeType` | `image/jpeg`, `image/png`, `image/webp`, `application/pdf`, `video/mp4` |
 | `pageCount` | PDF의 쪽 수. 그 밖에는 `null` |
+| `recognizedText` | PDF 글자 레이어의 글자(`framekit-ocr`이 있을 때). 줄은 줄바꿈, 쪽은 빈 줄로 구분하며 10만 자에서 자름 |
 | `fileSize` | 바이트 |
 | `warnings` | `COLOR_SPACE_CONVERTED_TO_SRGB`, `HDR_GAIN_MAP_DROPPED` |
 

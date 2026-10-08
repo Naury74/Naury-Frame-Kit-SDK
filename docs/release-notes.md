@@ -13,7 +13,8 @@
 - 여러 장 사진 편집: 쪽 목록에서 고르기·추가·순서 변경·삭제, 사진마다 저장 또는 PDF 한 개로 저장(`ImageEditorConfig.maxImageCount`)
 - PDF 저장: `ImageFormat.PDF`와 `PdfOptions`(A4·A5·Letter·Legal·사진 크기, 방향, 여백, dpi, 한 문서/사진마다), headless `ImageProcessor.startPdfExport`
 - 문서용 필터 `문서`·`문서 흑백`
-- 문서 보정 도구(`ImageTool.DOCUMENT`): 종이 네 모서리 자동 감지, 모서리 끌기와 돋보기, 원근 보정, 원본으로 되돌리기(`DocumentDetector`, `DocumentQuad`, `DocumentRectifier`)
+- 문서 보정(스캔) 도구(`ImageTool.DOCUMENT`): 문서로 판별된 사진에서만 노출·감지 제안, 네 모서리 자동 감지, 모서리 끌기와 돋보기, 원근 보정, 스캔 보정(`ScanMode`: 컬러·흑백·선명한 흑백·원래 색, 그림자·조명 얼룩 제거), 인식한 글자 보기·복사, 원본으로 되돌리기(`DocumentDetector`, `DocumentQuad`, `DocumentRectifier`, `ScanEnhancer`)
+- PDF 결과의 `EditedMedia.recognizedText`로 인식한 글자를 호스트에 전달
 - PDF 글자 레이어(OCR): 선택 모듈 `framekit-ocr`(ML Kit 한국어·영어, 기기 안에서 처리), `TextRecognizer`, `PdfOptions.recognizeText`, 경고 `TEXT_RECOGNITION_SKIPPED`
 - 보정·필터·수평 맞추기 조절을 눈금 다이얼(`DialSlider`)로, 보정 항목은 값 호가 있는 원형 버튼으로
 - 결과 `FrameKitResult.Success.outputs`(여러 결과), `EditedMedia.pageCount`, `MediaType.DOCUMENT`, 오류 코드 `CAMERA_UNAVAILABLE`
