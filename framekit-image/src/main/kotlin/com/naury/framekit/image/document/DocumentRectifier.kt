@@ -110,7 +110,10 @@ public class DocumentRectifier(
          * [image]에서 문서 모서리를 찾는다. 이미지를 [DocumentDetector.WORKING_LONG_EDGE]로 줄여 밝기로 바꾼 뒤
          * 감지하므로 빠르다. 찾지 못하면 `null`.
          */
-        public fun detect(image: Bitmap): DocumentQuad? {
+        public fun detect(image: Bitmap): DocumentQuad? = analyze(image).quad
+
+        /** [detect]와 같지만 문서가 아니라고 본 이유를 함께 돌려준다(로그용). */
+        public fun analyze(image: Bitmap): DocumentDetector.Analysis {
             val long = max(image.width, image.height)
             val factor = min(1f, DocumentDetector.WORKING_LONG_EDGE.toFloat() / long)
             val w = max(8, (image.width * factor).roundToInt())
@@ -123,7 +126,7 @@ public class DocumentRectifier(
                     val c = pixels[i]
                     (Color.red(c) * 299 + Color.green(c) * 587 + Color.blue(c) * 114) / 1000
                 }
-                return DocumentDetector.detect(luma, w, h)
+                return DocumentDetector.analyze(luma, w, h)
             } finally {
                 if (small !== image) small.recycle()
             }

@@ -719,7 +719,10 @@ internal class ImageEditorViewModel(
         // 이미 문서 보정으로 만든 쪽은 다시 제안하지 않는다.
         if (page.original != null) return
         viewModelScope.launch {
-            val found = withContext(ioDispatcher) { runCatching { DocumentRectifier.detect(preview) }.getOrNull() }
+            val analysis = withContext(ioDispatcher) { runCatching { DocumentRectifier.analyze(preview) }.getOrNull() }
+            // 사진 내용 없이 판별 결과만 남겨, 문서가 안 잡힐 때 이유를 기기 로그로 확인할 수 있게 한다.
+            Log.d(TAG, "document check: ${analysis?.reason ?: "failed"}")
+            val found = analysis?.quad
             page.documentSuggestion = found
             if (found != null && pages.getOrNull(pageIndex) === page) updateReady { it.copy(documentSuggestion = found) }
         }

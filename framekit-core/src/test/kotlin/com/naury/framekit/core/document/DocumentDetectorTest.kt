@@ -60,6 +60,28 @@ class DocumentDetectorTest {
     }
 
     @Test
+    fun `dense forms with table lines that nearly fill the width are still documents`() {
+        // 가까이 찍어 좌우가 거의 사진 끝까지 차는 서식 문서. 표 선과 빽빽한 글자(어두운 잉크)가 종이를 칸으로 나눈다.
+        val width = 192
+        val height = 256
+        val quad = listOf(0.01 to 0.12, 0.99 to 0.11, 0.99 to 0.86, 0.02 to 0.87)
+        val base = scene(width, height, quad, paper = 225, desk = 25)
+        val inked = IntArray(base.size) { i ->
+            val x = i % width
+            val y = i / width
+            val onPaper = base[i] > 128
+            val tableLine = (y in 60..200 && (y % 14 == 0 || x % 24 == 0))
+            val text = (y in 40..56 || y in 90..190) && (x / 3 + y / 2) % 3 != 0 && x % 24 in 3..20
+            if (onPaper && (tableLine || text)) 50 else base[i]
+        }
+        val analysis = DocumentDetector.analyze(inked, width, height)
+        assertThat(analysis.reason).isEqualTo("ok")
+        val found = analysis.quad
+        assertNear(found!!.topLeft, 0.01, 0.12)
+        assertNear(found.bottomRight, 0.99, 0.86)
+    }
+
+    @Test
     fun `irregular bright shapes and low contrast scenes are not documents`() {
         // 사각형이 아닌 큰 밝은 영역(구름·자동차 차체 같은 모양): 네 모서리 사각형을 채우지 못한다.
         val blob = IntArray(200 * 200) { i ->

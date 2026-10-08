@@ -17,7 +17,13 @@ public object DocumentDetector {
      * @return 문서 모서리(정규화 좌표). 문서가 너무 작거나 화면 전체이거나 모양이 이상하면 `null`.
      * @throws IllegalArgumentException 크기가 맞지 않거나 너무 작을 때(가로·세로 8px 미만).
      */
-    public fun detect(luma: IntArray, width: Int, height: Int): DocumentQuad? {
+    public fun detect(luma: IntArray, width: Int, height: Int): DocumentQuad? = analyze(luma, width, height).quad
+
+    /** 판별 결과와, 문서가 아니라고 본 경우 그 이유(로그·테스트용). */
+    public data class Analysis(val quad: DocumentQuad?, val reason: String)
+
+    /** [detect]와 같지만 탈락한 단계를 함께 돌려준다. */
+    public fun analyze(luma: IntArray, width: Int, height: Int): Analysis {
         require(width >= MIN_SIDE && height >= MIN_SIDE) { "Image is too small" }
         require(luma.size == width * height) { "Size does not match" }
         val blurred = boxBlur(boxBlur(luma, width, height), width, height)
@@ -25,25 +31,29 @@ public object DocumentDetector {
         // 종이와 바탕의 밝기 차이가 작으면 문서라고 보기 어렵다(풍경·인물 사진 등).
         var brightSum = 0L; var brightCount = 0; var darkSum = 0L; var darkCount = 0
         blurred.forEach { if (it > threshold) { brightSum += it; brightCount++ } else { darkSum += it; darkCount++ } }
-        if (brightCount == 0 || darkCount == 0) return null
-        if (brightSum / brightCount - darkSum / darkCount < MIN_CONTRAST) return null
-        val bright = BooleanArray(blurred.size) { blurred[it] > threshold }
+        if (brightCount == 0 || darkCount == 0) return Analysis(null, "flat")
+        if (brightSum / brightCount - darkSum / darkCount < MIN_CONTRAST) return Analysis(null, "low contrast")
+        val raw = BooleanArray(blurred.size) { blurred[it] > threshold }
 
-        // 가운데 영역(가로·세로 20%)에서 더 많은 쪽을 문서 쪽으로 본다.
+        // 표 선·빽빽한 글자가 종이를 작은 칸으로 쪼개지 않도록, 종이 쪽 영역을 넓혔다 줄여(닫힘) 잉크 자리를 메운다.
+        // 대부분의 문서는 바탕보다 밝으므로 먼저 밝은 종이로 가정해 메운 뒤, 가운데(가로·세로 20%)가 그 쪽인지 본다.
+        val closeRadius = maxOf(2, minOf(width, height) / CLOSE_DIVISOR)
+        val closedBright = close(raw, true, width, height, closeRadius)
         var brightVotes = 0
         var total = 0
         for (y in height * 2 / 5 until height * 3 / 5) for (x in width * 2 / 5 until width * 3 / 5) {
             total++
-            if (bright[y * width + x]) brightVotes++
+            if (closedBright[y * width + x]) brightVotes++
         }
         val documentIsBright = brightVotes * 2 >= total
-        val seed = nearestToCenter(bright, documentIsBright, width, height) ?: return null
+        val bright = if (documentIsBright) closedBright else close(raw, false, width, height, closeRadius)
+        val seed = nearestToCenter(bright, documentIsBright, width, height) ?: return Analysis(null, "no seed")
         val region = flood(bright, documentIsBright, seed, width, height)
         val count = region.count { it }
         val fraction = count.toDouble() / region.size
-        if (fraction < MIN_FRACTION || fraction > MAX_FRACTION) return null
-        // 종이는 바탕 위에 놓여 있어 이미지 가장자리에 넓게 닿지 않는다. 두 변 이상에 넓게 닿으면 하늘·벽 같은 배경으로 본다.
-        if (edgesTouched(region, width, height) >= 2) return null
+        if (fraction < MIN_FRACTION || fraction > MAX_FRACTION) return Analysis(null, "region fraction $fraction")
+        // 종이는 바탕 위에 놓여 있다. 가까이 찍어 좌우가 거의 닿을 수는 있지만, 세 변 이상에 넓게 닿으면 하늘·벽 같은 배경으로 본다.
+        if (edgesTouched(region, width, height) >= 3) return Analysis(null, "touches edges")
 
         var tl = 0; var tr = 0; var br = 0; var bl = 0
         var minSum = Int.MAX_VALUE; var maxSum = Int.MIN_VALUE; var minDiff = Int.MAX_VALUE; var maxDiff = Int.MIN_VALUE
@@ -60,14 +70,50 @@ public object DocumentDetector {
         }
         fun point(index: Int) = PointN((index % width + 0.5) / width, (index / width + 0.5) / height)
         val quad = DocumentQuad(point(tl), point(tr), point(br), point(bl))
-        if (!quad.isUsable || quad.area < MIN_DOCUMENT_AREA) return null
+        if (!quad.isUsable || quad.area < MIN_DOCUMENT_AREA) return Analysis(null, "quad area ${quad.area}")
         // 종이는 네 모서리가 만드는 사각형을 거의 꽉 채운다. 모양이 들쭉날쭉한 영역(하늘·벽·자동차 등)은 걸러 낸다.
         val fill = fraction / quad.area
-        if (fill < MIN_FILL || fill > MAX_FILL) return null
+        if (fill < MIN_FILL || fill > MAX_FILL) return Analysis(null, "fill $fill")
         // 변 길이 비가 지나치게 길쭉하면 영수증 띠보다도 극단적인 것이라 문서가 아니라고 본다.
         val (w, h) = quad.rectifiedSize(width, height)
-        if (maxOf(w, h).toDouble() / minOf(w, h) > MAX_ASPECT) return null
-        return quad
+        if (maxOf(w, h).toDouble() / minOf(w, h) > MAX_ASPECT) return Analysis(null, "aspect")
+        return Analysis(quad, "ok")
+    }
+
+    // [value] 쪽 영역을 반경 [radius]만큼 넓혔다가 다시 줄인다. 반경보다 가는 반대쪽 무늬(글자·선)가 메워진다.
+    private fun close(mask: BooleanArray, value: Boolean, width: Int, height: Int, radius: Int): BooleanArray {
+        val target = BooleanArray(mask.size) { mask[it] == value }
+        val grown = morph(target, width, height, radius, grow = true)
+        val closed = morph(grown, width, height, radius, grow = false)
+        return BooleanArray(mask.size) { if (closed[it]) value else !value }
+    }
+
+    // 가로·세로를 나눠 처리하는 사각형 팽창·침식. 이미지 밖은 보지 않아, 가장자리에 닿은 종이가 깎이지 않는다.
+    private fun morph(source: BooleanArray, width: Int, height: Int, radius: Int, grow: Boolean): BooleanArray {
+        val horizontal = BooleanArray(source.size)
+        for (y in 0 until height) {
+            val row = y * width
+            var count = 0
+            for (x in 0..minOf(radius, width - 1)) if (source[row + x]) count++
+            for (x in 0 until width) {
+                val span = minOf(x + radius, width - 1) - maxOf(x - radius, 0) + 1
+                horizontal[row + x] = if (grow) count > 0 else count == span
+                if (x - radius >= 0 && source[row + x - radius]) count--
+                if (x + radius + 1 < width && source[row + x + radius + 1]) count++
+            }
+        }
+        val out = BooleanArray(source.size)
+        for (x in 0 until width) {
+            var count = 0
+            for (y in 0..minOf(radius, height - 1)) if (horizontal[y * width + x]) count++
+            for (y in 0 until height) {
+                val span = minOf(y + radius, height - 1) - maxOf(y - radius, 0) + 1
+                out[y * width + x] = if (grow) count > 0 else count == span
+                if (y - radius >= 0 && horizontal[(y - radius) * width + x]) count--
+                if (y + radius + 1 < height && horizontal[(y + radius + 1) * width + x]) count++
+            }
+        }
+        return out
     }
 
     private fun edgesTouched(region: BooleanArray, width: Int, height: Int): Int {
@@ -174,4 +220,5 @@ public object DocumentDetector {
     private const val MAX_FILL = 1.06
     private const val MAX_ASPECT = 6.0
     private const val EDGE_COVERAGE = 0.3
+    private const val CLOSE_DIVISOR = 40
 }
