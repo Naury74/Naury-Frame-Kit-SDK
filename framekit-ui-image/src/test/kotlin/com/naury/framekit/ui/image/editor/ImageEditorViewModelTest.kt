@@ -256,6 +256,13 @@ class ImageEditorViewModelTest {
             canvas.drawColor(android.graphics.Color.rgb(30, 30, 30))
             val paper = android.graphics.Path().apply { moveTo(100f, 60f); lineTo(330f, 90f); lineTo(350f, 440f); lineTo(70f, 420f); close() }
             canvas.drawPath(paper, android.graphics.Paint().apply { color = android.graphics.Color.WHITE })
+            // 문서로 판별되도록 종이 위에 글자 줄을 그린다.
+            val ink = android.graphics.Paint().apply { color = android.graphics.Color.rgb(60, 60, 60) }
+            for (row in 0 until 12) for (col in 0 until 8) {
+                val x = 130f + col * 22f
+                val y = 140f + row * 20f
+                canvas.drawRect(x, y, x + 14f, y + 4f, ink)
+            }
         }
         val docSource = File(context.cacheDir, "document.png").apply { outputStream().use { photo.compress(Bitmap.CompressFormat.PNG, 100, it) } }
         val viewModel = viewModel(EditorInput.FileSource(docSource.absolutePath))
@@ -297,6 +304,26 @@ class ImageEditorViewModelTest {
         assertThat(restored.displayed.adjustments.brightness).isWithin(1e-9).of(0.25)
         // 다시 쓰지 않는 중간 파일은 지운다.
         assertThat(File(context.filesDir, "documents-test").listFiles().orEmpty()).isEmpty()
+    }
+
+    @Test
+    fun `text recognition confirms or rejects a document candidate`() {
+        val photo = Bitmap.createBitmap(400, 500, Bitmap.Config.ARGB_8888).apply {
+            val canvas = android.graphics.Canvas(this)
+            canvas.drawColor(android.graphics.Color.rgb(30, 30, 30))
+            canvas.drawRect(90f, 70f, 330f, 430f, android.graphics.Paint().apply { color = android.graphics.Color.WHITE })
+            val ink = android.graphics.Paint().apply { color = android.graphics.Color.rgb(60, 60, 60) }
+            for (row in 0 until 12) for (col in 0 until 8) canvas.drawRect(120f + col * 24f, 110f + row * 22f, 136f + col * 24f, 114f + row * 22f, ink)
+        }
+        val file = File(context.cacheDir, "candidate.png").apply { outputStream().use { photo.compress(Bitmap.CompressFormat.PNG, 100, it) } }
+        fun recognizer(text: String) = object : com.naury.framekit.image.ocr.TextRecognizer {
+            override suspend fun recognize(image: Bitmap) = listOf(com.naury.framekit.image.ocr.RecognizedLine(text, 120f, 120f, 300f, 140f))
+        }
+        // 글자가 거의 없으면(장식·무늬) 문서로 제안하지 않는다.
+        assertThat(ready(viewModel(EditorInput.FileSource(file.absolutePath), textRecognizer = recognizer("ab"))).documentSuggestion).isNull()
+        // 글자가 충분하면 제안한다.
+        val text = recognizer("자동차등록증 차량번호 191조6982 최초등록일 2022")
+        assertThat(ready(viewModel(EditorInput.FileSource(file.absolutePath), textRecognizer = text)).documentSuggestion).isNotNull()
     }
 
     @Test
@@ -757,6 +784,7 @@ class ImageEditorViewModelTest {
         remover: BackgroundRemover? = null,
         captureFile: (() -> Pair<File, Uri>)? = null,
         documentDirectory: File? = File(context.filesDir, "documents-test"),
+        textRecognizer: com.naury.framekit.image.ocr.TextRecognizer? = null,
     ): ImageEditorViewModel {
         val registry = SessionSourceRegistry(context)
         return ImageEditorViewModel(
@@ -773,6 +801,7 @@ class ImageEditorViewModelTest {
             assetFallback = ProjectAssetStore(File(context.cacheDir, "assets-test")),
             captureFile = captureFile,
             documentDirectory = documentDirectory,
+            textRecognizer = textRecognizer,
         )
     }
 

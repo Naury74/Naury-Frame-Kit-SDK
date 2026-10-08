@@ -78,15 +78,20 @@ public object DocumentDetector {
         val edges = edgesTouched(region, width, height)
         note("edges", edges.toDouble())
         if (edges >= 4) return reject("touches all edges")
-        if (edges >= 2) {
-            // 작은 글자는 흐림을 거치면 종이 색에 섞이므로, 흐리기 전 밝기에서 종이색과 확실히 다른 점을 잉크로 센다.
-            var ink = 0
-            for (i in region.indices) if (interior[i] && abs(luma[i] - paperLevel) > INK_DIFFERENCE) ink++
-            val inkRatio = ink.toDouble() / inside
-            note("ink", inkRatio)
-            if (inkRatio < MIN_INK_NEAR_EDGES) return reject("touches edges without text $inkRatio")
+        // 문서에는 글자가 있다. 글자 획은 이웃 픽셀과 밝기가 급하게 달라지는 점이 촘촘하고, 벽·하늘처럼 매끄럽게
+        // 변하는 면에는 이런 점이 거의 없다. 테두리에서 충분히 안쪽에서 흐리기 전 밝기로 센다.
+        var strokes = 0
+        for (i in region.indices) {
+            if (!interior[i]) continue
+            val x = i % width
+            val y = i / width
+            val right = if (x + 1 < width) abs(luma[i] - luma[i + 1]) else 0
+            val down = if (y + 1 < height) abs(luma[i] - luma[i + width]) else 0
+            if (maxOf(right, down) > STROKE_STEP) strokes++
         }
-
+        val strokeRatio = strokes.toDouble() / inside
+        note("strokes", strokeRatio)
+        if (strokeRatio < MIN_STROKES) return reject("no text strokes")
         var tl = 0; var tr = 0; var br = 0; var bl = 0
         var minSum = Int.MAX_VALUE; var maxSum = Int.MIN_VALUE; var minDiff = Int.MAX_VALUE; var maxDiff = Int.MIN_VALUE
         for (i in region.indices) {
@@ -255,8 +260,8 @@ public object DocumentDetector {
     private const val MAX_ASPECT = 6.0
     private const val EDGE_COVERAGE = 0.3
     private const val CLOSE_DIVISOR = 40
-    private const val MIN_INK_NEAR_EDGES = 0.01
-    private const val INK_DIFFERENCE = 40
+    private const val STROKE_STEP = 30
+    private const val MIN_STROKES = 0.03
     private const val PAPER_BAND = 20
     private const val MIN_PAPER_SHARE = 0.45
 }

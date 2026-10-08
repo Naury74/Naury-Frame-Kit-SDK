@@ -722,10 +722,34 @@ internal class ImageEditorViewModel(
             val analysis = withContext(ioDispatcher) { runCatching { DocumentRectifier.analyze(preview) }.getOrNull() }
             // 사진 내용 없이 판별 결과만 남겨, 문서가 안 잡힐 때 이유를 기기 로그로 확인할 수 있게 한다.
             Log.d(TAG, "document check: ${analysis?.reason ?: "failed"}")
-            val found = analysis?.quad
+            val found = analysis?.quad?.let { quad -> if (confirmText(preview, quad)) quad else null }
             page.documentSuggestion = found
             if (found != null && pages.getOrNull(pageIndex) === page) updateReady { it.copy(documentSuggestion = found) }
         }
+    }
+
+    /**
+     * 밝기로 찾은 문서 후보 안에 실제 글자가 있는지 글자 인식으로 확인한다. 벽·선반처럼 종이와 비슷하지만 글자가 없는
+     * 영역을 걸러 낸다. 인식 모듈이 없거나 인식하지 못하면(모델 다운로드 중 등) 밝기 판별을 그대로 믿는다.
+     */
+    private suspend fun confirmText(preview: Bitmap, quad: DocumentQuad): Boolean {
+        val recognizer = textRecognizer ?: return true
+        val lines = try {
+            recognizer.recognize(preview)
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (_: Exception) {
+            return true
+        }
+        val left = quad.corners.minOf { it.x } * preview.width
+        val right = quad.corners.maxOf { it.x } * preview.width
+        val top = quad.corners.minOf { it.y } * preview.height
+        val bottom = quad.corners.maxOf { it.y } * preview.height
+        val characters = lines
+            .filter { line -> (line.left + line.right) / 2 in left..right && (line.top + line.bottom) / 2 in top..bottom }
+            .sumOf { line -> line.text.count { it.isLetterOrDigit() } }
+        Log.d(TAG, "document text check: $characters characters")
+        return characters >= MIN_DOCUMENT_CHARACTERS
     }
 
     /** 문서 감지 제안을 닫는다. 도구는 툴바에 그대로 남는다. */
@@ -1238,6 +1262,7 @@ internal class ImageEditorViewModel(
         const val KEY_PAGE_ORIGINAL_IDS = "framekit_page_original_ids"
         const val KEY_PAGE_ORIGINALS = "framekit_page_originals"
         const val DEFAULT_MEMORY_BUDGET = 256L * 1024 * 1024
+        const val MIN_DOCUMENT_CHARACTERS = 20
         const val DOCUMENT_STALE_MILLIS = 7L * 24 * 60 * 60 * 1000
         const val MAIN_PAGE_ID = "main"
         const val PAGE_THUMBNAIL_PX = 200

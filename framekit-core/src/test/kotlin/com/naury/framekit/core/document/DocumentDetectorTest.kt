@@ -7,13 +7,20 @@ import kotlin.math.abs
 
 class DocumentDetectorTest {
 
-    // 어두운 책상(40) 위에 밝은 종이(220)를 사각형 [quad]로 그린 이미지.
-    private fun scene(width: Int, height: Int, quad: List<Pair<Double, Double>>, paper: Int = 220, desk: Int = 40): IntArray {
+    // 어두운 책상(40) 위에 밝은 종이(220)를 사각형 [quad]로 그린 이미지. [text]면 종이 위에 글자 줄을 그린다.
+    private fun scene(width: Int, height: Int, quad: List<Pair<Double, Double>>, paper: Int = 220, desk: Int = 40, text: Boolean = true): IntArray {
         val pts = quad.map { (x, y) -> x * width to y * height }
+        val ink = if (paper > desk) paper - 150 else paper + 150
         return IntArray(width * height) { i ->
-            val x = i % width + 0.5
-            val y = i / width + 0.5
-            if (inside(pts, x, y)) paper else desk
+            val x = i % width
+            val y = i / width
+            if (!inside(pts, x + 0.5, y + 0.5)) {
+                desk
+            } else if (text && y % 9 in 3..4 && x % 7 in 1..4) {
+                ink.coerceIn(0, 255)
+            } else {
+                paper
+            }
         }
     }
 
@@ -65,7 +72,7 @@ class DocumentDetectorTest {
         val width = 192
         val height = 256
         val quad = listOf(0.01 to 0.12, 0.99 to 0.11, 0.99 to 0.86, 0.02 to 0.87)
-        val base = scene(width, height, quad, paper = 225, desk = 25)
+        val base = scene(width, height, quad, paper = 225, desk = 25, text = false)
         val inked = IntArray(base.size) { i ->
             val x = i % width
             val y = i / width
@@ -87,7 +94,7 @@ class DocumentDetectorTest {
         val height = 256
         // 위·좌·우가 사진 끝까지 차고 아래쪽에만 바탕이 보이는 근접 촬영.
         val quad = listOf(0.0 to 0.0, 1.0 to 0.0, 1.0 to 0.82, 0.0 to 0.84)
-        val blank = scene(width, height, quad, paper = 225, desk = 25)
+        val blank = scene(width, height, quad, paper = 225, desk = 25, text = false)
         assertThat(DocumentDetector.analyze(blank, width, height).quad).isNull()
         val text = IntArray(blank.size) { i ->
             val x = i % width
@@ -117,6 +124,19 @@ class DocumentDetectorTest {
             if (y < 140) 130 + random.nextInt(121) else 30
         }
         assertThat(DocumentDetector.analyze(scene, width, height).quad).isNull()
+    }
+
+    @Test
+    fun `smooth bright panels such as a shelf wall are not documents`() {
+        // 어두운 바탕 안에 밝기가 부드럽게 변하는(그늘진) 크림색 판. 사각형이지만 글자가 없다.
+        val width = 200
+        val height = 200
+        val wall = IntArray(width * height) { i ->
+            val x = i % width
+            val y = i / width
+            if (x in 40..160 && y in 30..170) 170 + (x - 40) / 3 else 45
+        }
+        assertThat(DocumentDetector.analyze(wall, width, height).reason).startsWith("no text strokes")
     }
 
     @Test

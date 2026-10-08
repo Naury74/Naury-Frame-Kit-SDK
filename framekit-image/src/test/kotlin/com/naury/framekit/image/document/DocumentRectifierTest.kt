@@ -41,6 +41,13 @@ class DocumentRectifierTest {
             close()
         }
         canvas.drawPath(paper, Paint().apply { color = Color.WHITE; isAntiAlias = true })
+        // 문서로 판별되도록 종이 가운데에 글자 줄(짧은 회색 막대)을 그린다.
+        val ink = Paint().apply { color = Color.rgb(60, 60, 60) }
+        for (row in 0 until 14) for (col in 0 until 10) {
+            val x = width * (0.32f + col * 0.045f)
+            val y = height * (0.32f + row * 0.03f)
+            canvas.drawRect(x, y, x + width * 0.03f, y + height * 0.008f, ink)
+        }
         // 종이 왼쪽 위 근처(모서리에서 안쪽)에 빨간 점.
         val mark = PointN(corners[0].x + 0.06, corners[0].y + 0.08)
         canvas.drawCircle((mark.x * width).toFloat(), (mark.y * height).toFloat(), width * 0.03f, Paint().apply { color = Color.RED })
