@@ -41,6 +41,7 @@ dependencies {
     implementation(project(":framekit"))
     // 배경 제거를 시연하기 위한 선택 모듈. 이 줄이 없으면 편집기에서 배경 제거 도구가 숨겨진다.
     implementation(project(":framekit-segmentation"))
+    implementation(project(":framekit-ocr"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)

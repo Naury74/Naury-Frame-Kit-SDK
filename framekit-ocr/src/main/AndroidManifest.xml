@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application>
+        <!-- FrameKit 편집기·처리기가 이 값으로 글자 인식 구현을 찾는다. -->
+        <meta-data
+            android:name="com.naury.framekit.TEXT_RECOGNIZER"
+            android:value="com.naury.framekit.ocr.MlKitTextRecognizer" />
+    </application>
+
+</manifest>

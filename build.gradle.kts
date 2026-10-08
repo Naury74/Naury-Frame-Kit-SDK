@@ -18,6 +18,7 @@ val sdkModules = mapOf(
     "framekit-ui-video" to "영상 편집 화면과 VideoEditorContract",
     "framekit" to "사진·영상 편집기를 고르는 FrameKitContract (통합)",
     "framekit-segmentation" to "ML Kit 배경 제거 (선택)",
+    "framekit-ocr" to "ML Kit 글자 인식, PDF 글자 레이어 (선택)",
 )
 
 // 호스트 앱이 더 낮은 Kotlin(2.2 이상)으로 빌드해도 SDK를 읽을 수 있게 언어·API 버전과 표준 라이브러리 버전을
