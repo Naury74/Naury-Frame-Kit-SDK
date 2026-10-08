@@ -1,5 +1,6 @@
 package com.naury.framekit.ui.image.editor
 
+import com.naury.framekit.image.ocr.TextRecognizers
 import com.naury.framekit.android.capture.CaptureFiles
 import com.naury.framekit.android.input.MediaKind
 import androidx.compose.runtime.CompositionLocalProvider
@@ -106,6 +107,7 @@ internal class ImageEditorActivity : ComponentActivity() {
                 memoryBudgetBytes = ImageMemoryBudget.bytes(application),
                 contentResolver = application.contentResolver,
                 colorRenderer = colorRenderer,
+                textRecognizer = TextRecognizers.find(application),
             )
             ImageEditorViewModel(
                 request = request,

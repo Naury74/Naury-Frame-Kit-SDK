@@ -28,6 +28,9 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertThrows
 import org.junit.Before
+import com.naury.framekit.image.ocr.TextRecognizer
+import com.naury.framekit.image.ocr.RecognizedLine
+import com.naury.framekit.android.result.ExportWarning
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -93,6 +96,39 @@ class ImageProcessorTest {
         assertThat(each.outputs.map { it.pageCount }).containsExactly(1, 1)
         assertThat(published()).hasSize(2)
         processor.close()
+    }
+
+    @Test
+    fun `recognized text is added to the pdf and recognition failures only warn`() = runTest {
+        val dispatcher = UnconfinedTestDispatcher(testScheduler)
+        var seen: Pair<Int, Int>? = null
+        val recognizer = object : TextRecognizer {
+            override suspend fun recognize(image: Bitmap): List<RecognizedLine> {
+                seen = image.width to image.height
+                return listOf(RecognizedLine("검색되는 글자", 10f, 10f, 300f, 40f))
+            }
+        }
+        val processor = ImageProcessor(context, CpuColorEffectRenderer, dispatcher, dispatcher, textRecognizer = recognizer)
+        val source = processor.open(TestImages.quadrants(400, 300))
+        val result = processor.startPdfExport(listOf(processor.newProject(source) to source), scope = this).awaitResult() as FrameKitResult.Success
+        // 인식기는 쪽에 넣는 이미지 그대로를 받는다.
+        assertThat(seen).isEqualTo(400 to 300)
+        assertThat(result.output.warnings).isEmpty()
+        val pdf = String(published().single().readBytes(), Charsets.ISO_8859_1)
+        assertThat(pdf).contains("/ToUnicode")
+        assertThat(pdf).contains("3 Tr")
+        published().forEach(File::delete)
+        processor.close()
+
+        val failing = object : TextRecognizer {
+            override suspend fun recognize(image: Bitmap): List<RecognizedLine> = throw FrameKitException(EditorErrorCode.UNSUPPORTED_OPERATION, "model downloading")
+        }
+        val second = ImageProcessor(context, CpuColorEffectRenderer, dispatcher, dispatcher, textRecognizer = failing)
+        val page = second.open(TestImages.quadrants(200, 100))
+        val skipped = second.startPdfExport(listOf(second.newProject(page) to page), scope = this).awaitResult() as FrameKitResult.Success
+        assertThat(skipped.output.warnings).containsExactly(ExportWarning.TEXT_RECOGNITION_SKIPPED)
+        assertThat(String(published().single().readBytes(), Charsets.ISO_8859_1)).doesNotContain("/ToUnicode")
+        second.close()
     }
 
     @Test

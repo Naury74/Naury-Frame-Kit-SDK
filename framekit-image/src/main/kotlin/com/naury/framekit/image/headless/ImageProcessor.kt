@@ -26,6 +26,8 @@ import com.naury.framekit.android.session.ProjectAssetStore
 import com.naury.framekit.core.overlay.SubjectCutout
 import com.naury.framekit.image.cutout.BackgroundRemover
 import com.naury.framekit.image.cutout.BackgroundRemovers
+import com.naury.framekit.image.ocr.TextRecognizer
+import com.naury.framekit.image.ocr.TextRecognizers
 import com.naury.framekit.image.cutout.CutoutMasks
 import com.naury.framekit.image.decode.BitmapDecoder
 import com.naury.framekit.image.decode.ImageMetadataReader
@@ -74,6 +76,7 @@ public class ImageSource internal constructor(
  *
  * @param catalog 호스트 필터·스티커·폰트. 프로젝트가 호스트 항목 id를 쓰면 같은 카탈로그를 넘긴다.
  *   `null`이면 이미 등록된 카탈로그(편집기가 등록한 것 포함)를 그대로 쓴다.
+ * @param textRecognizer PDF 글자 레이어에 쓸 글자 인식기. `null`이면 `framekit-ocr` 모듈이 등록한 구현을 찾는다.
  */
 public class ImageProcessor(
     context: Context,
@@ -82,6 +85,7 @@ public class ImageProcessor(
     exportDispatcher: CoroutineDispatcher = Dispatchers.Default,
     backgroundRemover: BackgroundRemover? = null,
     catalog: EditorCatalog? = null,
+    textRecognizer: TextRecognizer? = null,
 ) : AutoCloseable {
 
     private val appContext = context.applicationContext.also { if (catalog != null) CatalogAssets.install(it, catalog) else CatalogAssets.attach(it) }
@@ -94,6 +98,7 @@ public class ImageProcessor(
         dispatcher = exportDispatcher,
         contentResolver = appContext.contentResolver,
         colorRenderer = colorRenderer,
+        textRecognizer = textRecognizer ?: TextRecognizers.find(appContext),
     )
     private val importDirectory = File(appContext.cacheDir, IMPORT_DIRECTORY)
     private val assets = ProjectAssetStore(File(appContext.cacheDir, "$ASSET_DIRECTORY/${UUID.randomUUID()}"))

@@ -3,6 +3,8 @@ package com.naury.framekit.core.pdf
 import com.google.common.truth.Truth.assertThat
 import com.naury.framekit.core.model.PixelSize
 import org.junit.Assert.assertThrows
+import org.apache.pdfbox.Loader
+import org.apache.pdfbox.text.PDFTextStripper
 import org.junit.Test
 import java.awt.image.BufferedImage
 import java.io.ByteArrayOutputStream
@@ -66,6 +68,35 @@ class PdfWriterTest {
             }
         }
         assertThat(rows.count { it.contains(" n") }).isEqualTo(1 + 1 + 2 * 3 + 1)
+    }
+
+    @Test
+    fun `recognized text becomes a searchable invisible layer`() {
+        val bytes = ByteArrayOutputStream()
+        val layout = PdfLayout.layout(PixelSize(800, 600), PdfPageSize.A4, PdfOrientation.AUTO, 10.0, 150, 16_000_000)
+        PdfWriter(bytes).use { writer ->
+            writer.addPage(
+                jpeg(800, 600), 800, 600, layout,
+                text = listOf(
+                    PdfTextLine("영수증 합계 12,000원", 40f, 60f, 500f, 40f),
+                    PdfTextLine("Invoice No. 42", 40f, 140f, 360f, 36f),
+                    // 공백·제어 문자만 있는 줄과 크기가 없는 줄은 쓰지 않는다.
+                    PdfTextLine("  ", 40f, 220f, 100f, 20f),
+                    PdfTextLine("빈 상자", 40f, 260f, 0f, 20f),
+                ),
+            )
+            writer.addPage(jpeg(800, 600), 800, 600, layout)
+        }
+        Loader.loadPDF(bytes.toByteArray()).use { document ->
+            assertThat(document.numberOfPages).isEqualTo(2)
+            val stripper = PDFTextStripper().apply { startPage = 1; endPage = 1 }
+            val text = stripper.getText(document)
+            assertThat(text).contains("영수증 합계 12,000원")
+            assertThat(text).contains("Invoice No. 42")
+            assertThat(text).doesNotContain("빈 상자")
+            val second = PDFTextStripper().apply { startPage = 2; endPage = 2 }.getText(document)
+            assertThat(second.trim()).isEmpty()
+        }
     }
 
     @Test

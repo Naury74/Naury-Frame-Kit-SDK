@@ -21,6 +21,9 @@ public enum class ExportWarning {
 
     /** HDR 영상을 SDR로 변환했다. */
     HDR_CONVERTED_TO_SDR,
+
+    /** 글자 인식 모듈이 있지만(모델 다운로드 중 등) 인식하지 못해 PDF에 글자 레이어 없이 이미지만 넣었다. */
+    TEXT_RECOGNITION_SKIPPED,
 }
 
 /**

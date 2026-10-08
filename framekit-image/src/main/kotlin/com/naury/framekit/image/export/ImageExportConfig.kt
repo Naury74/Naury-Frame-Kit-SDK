@@ -101,6 +101,9 @@ public data class ImageExportConfig(
  * @property dpi 쪽에 넣는 해상도, `72..600`. 높을수록 선명하고 파일이 크다. 원본보다 키우지는 않는다.
  * @property backgroundArgb 여백과 투명 영역의 색.
  * @property combinePages 여러 장을 편집할 때 하나의 문서로 묶을지. `false`면 사진마다 PDF를 만든다.
+ * @property recognizeText 글자 인식 모듈(`framekit-ocr`)이 있으면 쪽마다 글자를 인식해 보이지 않는 글자 레이어를
+ *   넣는다. PDF 뷰어에서 검색·복사가 된다. 모듈이 없으면 이미지만 넣는다. 모듈이 있는데 인식하지 못한 쪽이
+ *   있으면(모델 다운로드 중 등) 경고 `TEXT_RECOGNITION_SKIPPED`를 붙인다.
  */
 @Parcelize
 public data class PdfOptions(
@@ -110,6 +113,7 @@ public data class PdfOptions(
     val dpi: Int = 200,
     val backgroundArgb: Int = 0xFFFFFFFF.toInt(),
     val combinePages: Boolean = true,
+    val recognizeText: Boolean = true,
 ) : Parcelable {
 
     internal fun validate(): List<ValidationIssue> = buildList {

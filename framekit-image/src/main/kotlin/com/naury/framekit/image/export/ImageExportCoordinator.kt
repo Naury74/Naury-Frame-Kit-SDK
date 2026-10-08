@@ -1,5 +1,9 @@
 package com.naury.framekit.image.export
 
+import kotlinx.coroutines.CancellationException
+import com.naury.framekit.core.pdf.PdfTextLine
+import com.naury.framekit.image.ocr.TextRecognizers
+import com.naury.framekit.image.ocr.TextRecognizer
 import kotlin.math.roundToInt
 import com.naury.framekit.core.pdf.PdfWriter
 import com.naury.framekit.core.pdf.PdfPageLayout
@@ -67,12 +71,14 @@ public class ImageExportCoordinator(
     private val dispatcher: CoroutineDispatcher = Dispatchers.Default,
     contentResolver: ContentResolver? = null,
     private val colorRenderer: ColorEffectRenderer = CpuColorEffectRenderer,
+    private val textRecognizer: TextRecognizer? = null,
 ) {
     public constructor(context: Context, resolver: SourceResolver) : this(
         resolver = resolver,
         outputStore = AppFileOutputStore(context),
         memoryBudgetBytes = ImageMemoryBudget.bytes(context),
         contentResolver = context.applicationContext.contentResolver,
+        textRecognizer = TextRecognizers.find(context),
     )
 
     private val decoder = BitmapDecoder(resolver, contentResolver)
@@ -195,6 +201,23 @@ public class ImageExportCoordinator(
         }
     }
 
+    // 쪽 이미지에서 글자를 찾아 PDF 글자 레이어로 바꾼다. 인식은 부가 기능이라 실패해도 저장을 멈추지 않는다.
+    private suspend fun recognize(page: Bitmap, warnings: MutableList<ExportWarning>): List<PdfTextLine> {
+        val recognizer = textRecognizer ?: return emptyList()
+        return try {
+            recognizer.recognize(page).mapNotNull { line ->
+                val width = line.right - line.left
+                val height = line.bottom - line.top
+                if (line.text.isBlank() || width <= 0f || height <= 0f) null else PdfTextLine(line.text, line.left, line.top, width, height)
+            }
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (_: Exception) {
+            warnings += ExportWarning.TEXT_RECOGNITION_SKIPPED
+            emptyList()
+        }
+    }
+
     private suspend fun writePdf(
         indices: List<Int>,
         pages: List<PdfPage>,
@@ -215,6 +238,7 @@ public class ImageExportCoordinator(
                             val page = pages[index]
                             val layout = layouts[index]
                             val rendered = render(page.project, page.source, layout.pixels, config.pdf.backgroundArgb, page.assets, warnings)
+                            val text = if (config.pdf.recognizeText) recognize(rendered, warnings) else emptyList()
                             onProgress(index, pages.size, ImageExportStage.ENCODING)
                             val jpeg = try {
                                 java.io.ByteArrayOutputStream().also { buffer ->
@@ -225,7 +249,7 @@ public class ImageExportCoordinator(
                             } finally {
                                 rendered.recycle()
                             }
-                            writer.addPage(jpeg, layout.pixels.width, layout.pixels.height, layout)
+                            writer.addPage(jpeg, layout.pixels.width, layout.pixels.height, layout, text = text)
                         }
                     }
                 }
