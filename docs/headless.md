@@ -37,6 +37,8 @@ val result = handle.awaitResult()   // Success.output.pageCount == pages.size
 ```
 
 - 쪽마다 하나씩 처리해 바로 파일에 쓰므로 쪽 수가 많아도 메모리 사용이 일정합니다.
+- `framekit-ocr` 모듈이 있으면 글자 레이어를 자동으로 넣습니다. 다른 인식기를 쓰려면 `ImageProcessor(context, textRecognizer = myRecognizer)`로 `TextRecognizer` 구현을 넘깁니다.
+- 비스듬한 문서는 `DocumentRectifier.detect(bitmap)`로 네 모서리를 찾고 `DocumentRectifier(...).rectify(info, quad, file)`로 펴서, 그 파일을 `open(EditorInput.FileSource(path))`로 열어 쪽으로 씁니다.
 - 중간에 실패하거나 취소하면 그 호출에서 만든 PDF를 모두 지웁니다.
 
 ## 영상

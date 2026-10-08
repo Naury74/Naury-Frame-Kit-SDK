@@ -13,6 +13,9 @@
 - 여러 장 사진 편집: 쪽 목록에서 고르기·추가·순서 변경·삭제, 사진마다 저장 또는 PDF 한 개로 저장(`ImageEditorConfig.maxImageCount`)
 - PDF 저장: `ImageFormat.PDF`와 `PdfOptions`(A4·A5·Letter·Legal·사진 크기, 방향, 여백, dpi, 한 문서/사진마다), headless `ImageProcessor.startPdfExport`
 - 문서용 필터 `문서`·`문서 흑백`
+- 문서 보정 도구(`ImageTool.DOCUMENT`): 종이 네 모서리 자동 감지, 모서리 끌기와 돋보기, 원근 보정, 원본으로 되돌리기(`DocumentDetector`, `DocumentQuad`, `DocumentRectifier`)
+- PDF 글자 레이어(OCR): 선택 모듈 `framekit-ocr`(ML Kit 한국어·영어, 기기 안에서 처리), `TextRecognizer`, `PdfOptions.recognizeText`, 경고 `TEXT_RECOGNITION_SKIPPED`
+- 보정·필터·수평 맞추기 조절을 눈금 다이얼(`DialSlider`)로, 보정 항목은 값 호가 있는 원형 버튼으로
 - 결과 `FrameKitResult.Success.outputs`(여러 결과), `EditedMedia.pageCount`, `MediaType.DOCUMENT`, 오류 코드 `CAMERA_UNAVAILABLE`
 - 편집 화면 사용성: 원본 비교 버튼, 그리기·가리기 중 두 손가락 확대·이동, 자르기 비율 직접 입력과 자르기 중 회전, 텍스트 불투명도·자간·행간, 속도 패널의 결과 길이, 영상 가리기 마스크 이동·크기 조절
 - 뒤로 가기로 열린 도구의 변경을 잃지 않도록 적용·버리기를 물음. 저장을 누르면 열린 도구의 변경을 먼저 적용
@@ -37,6 +40,9 @@
 
 ### 수정·안정성
 
+- 사각형·원 가리기를 그리기 시작할 때 앱이 종료되던 문제(크기 0인 사각형) 수정
+- 배경 제거 모듈의 ML Kit 모델 미리 받기 meta-data를 SDK에서 빼고 호스트가 넣도록 변경(글자 인식 모듈과 merge 충돌 방지)
+
 - 실행 중 GL 오류가 나면 CPU 색 보정으로 대체
 - 원본이 편집 중 삭제되거나 권한이 끊기면 `SOURCE_UNAVAILABLE`, 저장 공간 부족으로 쓰기 실패하면 `INSUFFICIENT_STORAGE`
 - 내보내기 중 메모리 부족을 `INSUFFICIENT_MEMORY` 실패로 반환
@@ -49,6 +55,7 @@
 ### Known Issues
 
 - Maven Central 공개 배포는 아직 하지 않음(로컬 배포만 확인)
+- Apple 실리콘 Mac의 arm64 에뮬레이터에서 ML Kit(배경 제거·글자 인식)이 SIGILL로 앱을 종료시킴. 실기기는 정상
 - 카탈로그는 프로세스 전체에 하나만 등록됨
 
 ## 0.4.0 (개발 중)
@@ -111,7 +118,7 @@
 
 ### Known Issues
 
-- 캔버스 확대·이동 제스처 없음
+- 캔버스 확대·이동 제스처 없음(1.0.0-alpha01에서 추가)
 - 그리기 필압은 굵기에 반영하지 않음
 - 텍스트·스티커·그리기·가리기의 실기기 수동 확인 전
 

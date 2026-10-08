@@ -80,7 +80,7 @@
     <string name="example_multi_photo_title">Several photos</string>
     <string name="example_multi_photo_description">Pick up to 10 photos, edit each, save one file per photo</string>
     <string name="example_document_title">Photos to PDF</string>
-    <string name="example_document_description">Pick up to 20 pages, crop and use the Document filter, save one A4 PDF</string>
+    <string name="example_document_description">Pick up to 20 pages, flatten tilted documents, and save one searchable A4 PDF</string>
     <string name="example_camera_photo_title">Take a photo</string>
     <string name="example_camera_photo_description">Open the camera app and edit the photo just taken</string>
     <string name="example_camera_video_title">Record a video</string>

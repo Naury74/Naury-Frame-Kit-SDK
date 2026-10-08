@@ -51,7 +51,7 @@ enum class ShowcaseExample(
         R.string.example_document_description,
         FrameKitRequest(
             EditorInput.Pick(MediaKind.IMAGE, maxItems = 20),
-            image = ImageEditorConfig(enabledTools = setOf(ImageTool.CROP, ImageTool.ROTATE, ImageTool.ADJUST, ImageTool.FILTER, ImageTool.PRIVACY)),
+            image = ImageEditorConfig(enabledTools = setOf(ImageTool.DOCUMENT, ImageTool.CROP, ImageTool.ROTATE, ImageTool.ADJUST, ImageTool.FILTER, ImageTool.PRIVACY)),
             imageExport = ImageExportConfig(format = ImageFormat.PDF, quality = 85, pdf = PdfOptions(pageSize = PdfPageSize.A4, marginMm = 8.0)),
         ),
     ),

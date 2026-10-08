@@ -79,7 +79,7 @@
     <string name="example_multi_photo_title">여러 장 사진</string>
     <string name="example_multi_photo_description">최대 10장을 골라 한 장씩 편집하고 사진마다 저장</string>
     <string name="example_document_title">사진을 PDF로</string>
-    <string name="example_document_description">최대 20쪽을 골라 자르고 문서 필터를 적용해 A4 PDF 하나로 저장</string>
+    <string name="example_document_description">최대 20쪽을 골라 비스듬한 문서를 반듯하게 펴고, 글자 검색이 되는 A4 PDF 하나로 저장</string>
     <string name="example_camera_photo_title">카메라로 찍기</string>
     <string name="example_camera_photo_description">카메라 앱으로 바로 찍은 사진을 편집</string>
     <string name="example_camera_video_title">카메라로 녹화</string>

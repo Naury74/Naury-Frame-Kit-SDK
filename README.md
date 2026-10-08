@@ -23,6 +23,8 @@ Android 앱에 넣어 쓰는 **비파괴 이미지·영상 편집 SDK**입니다
 | 저장 | JPEG(품질 0..100)·PNG·WEBP(손실/무손실), 최대 16MP, 확대 없음, EXIF SAFE/NONE/ALL | v0.2 지원 |
 | 여러 장 사진 | 최대 100장(기본 20)을 한 화면에서 한 장씩 편집, 쪽 추가·순서 변경·삭제, 사진마다 저장 | v1.0 지원 |
 | PDF 문서 | 편집한 사진(여러 장이면 쪽 순서대로)을 PDF로 저장. A4·A5·Letter·Legal·사진 크기, 방향, 여백, dpi, 한 문서/사진마다. 문서·문서 흑백 필터 | v1.0 지원 |
+| 문서 보정 | 종이 네 모서리 자동 감지, 모서리 끌기(돋보기), 비스듬한 문서를 반듯하게 펴기, 원본으로 되돌리기 | v1.0 지원 |
+| PDF 글자 검색(OCR) | 선택 모듈 `framekit-ocr`로 쪽마다 글자를 인식해 보이지 않는 글자 레이어 추가(검색·복사), 한국어·영어, 기기 안에서 처리 | v1.0 지원 |
 | Headless | `ImageProcessor`로 UI 없이 편집·저장, `ExportHandle` 상태·취소 | v0.2 지원 |
 | 큰 사진 | 250MP까지 열기, 자른 영역·띠 단위 디코딩으로 메모리 제한, 실패 시 앱 종료 없이 오류 반환 | v0.2 지원 |
 | 폴드·태블릿 | 화면 크기·폴드 자세(탁상·책)에 맞춘 배치, 접고 펴도 편집 유지 | v0.2 지원 |
@@ -97,13 +99,14 @@ dependencies {
 
 저장소를 함께 빌드하려면 `include(":framekit-core", …)`로 모듈을 포함하고 `implementation(project(":framekit"))`를 씁니다. 호스트 앱은 Compose를 쓰지 않아도 되고 Kotlin 2.2 이상이면 됩니다. 별도 소비자 앱(Compose 없음, Kotlin 2.2, R8 release)에서 `mavenLocal` 산출물로 영상 편집·저장·결과 수신까지 확인했습니다.
 
-배경 제거가 필요하면 선택 모듈을 추가합니다. 추가하면 편집기에 "배경 제거" 도구가 자동으로 나타납니다.
+배경 제거·PDF 글자 검색이 필요하면 선택 모듈을 추가합니다. 추가하면 편집기에 "배경 제거" 도구가 나타나고, PDF 저장에 글자 레이어가 들어갑니다.
 
 ```kotlin
-implementation("io.github.naury74:framekit-segmentation:1.0.0-alpha01")
+implementation("io.github.naury74:framekit-segmentation:1.0.0-alpha01") // 배경 제거
+implementation("io.github.naury74:framekit-ocr:1.0.0-alpha01")          // PDF 글자 검색(OCR)
 ```
 
-이 모듈은 Google Play 서비스의 ML Kit을 쓰므로 Play 서비스가 없는 기기에서는 동작하지 않고, ML Kit 의존성이 `INTERNET`·`ACCESS_NETWORK_STATE` 권한을 추가합니다. 자세한 내용은 [integration](docs/integration.md#배경-제거-선택-모듈)을 보세요.
+두 모듈은 Google Play 서비스의 ML Kit을 쓰므로 Play 서비스가 없는 기기에서는 동작하지 않고, ML Kit 의존성이 `INTERNET`·`ACCESS_NETWORK_STATE` 권한을 추가합니다. 자세한 내용은 [integration](docs/integration.md#배경-제거-선택-모듈)을 보세요.
 
 요구 사항: minSdk 26, compileSdk 37, Java 17 target. 빌드 기준은 [docs/build-baseline.md](docs/build-baseline.md)에 있습니다.
 
@@ -235,6 +238,7 @@ framekit-video      Media3 어댑터: 미리보기 플레이어, Transformer 저
 framekit-ui-video   영상 편집 화면(타임라인), VideoEditorContract
 framekit            통합 모듈: FrameKitContract가 원본 종류에 맞는 편집기를 연다
 framekit-segmentation  (선택) ML Kit 배경 제거
+framekit-ocr        (선택) ML Kit 글자 인식, PDF 글자 레이어
 app                 Showcase 앱
 ```
 
@@ -251,7 +255,7 @@ app                 Showcase 앱
 | 영상 편집 | 최대 10개 클립, 모든 영상 도구, MP4 저장 |
 | 사진 또는 영상 | `Pick(MediaKind.ANY)`, 고른 종류의 편집기가 열림 |
 | 여러 장 사진 | 최대 10장을 골라 한 장씩 편집하고 사진마다 저장 |
-| 사진을 PDF로 | 최대 20쪽, 문서 필터, A4 PDF 하나로 저장 |
+| 사진을 PDF로 | 최대 20쪽, 문서 보정·문서 필터, 글자 검색이 되는 A4 PDF 하나로 저장 |
 | 카메라로 찍기 / 녹화 | `Capture(IMAGE)` / `Capture(VIDEO)` |
 | 사진·영상 여러 개 | `Pick(ANY, maxItems)`, 모두 사진이면 사진 편집기, 모두 영상이면 영상 편집기 |
 | 짧은 클립 | 최대 15초·720p, 구간·속도·소리·필터만 |

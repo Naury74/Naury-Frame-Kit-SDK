@@ -210,6 +210,33 @@ implementation(project(":framekit-segmentation"))
 
 - JPEG로 저장하면 제거된 배경은 `jpegBackgroundArgb` 색으로 채워집니다. 투명하게 남기려면 PNG나 WEBP를 쓰세요.
 
+## 글자 인식(OCR) 선택 모듈
+
+```kotlin
+implementation("io.github.naury74:framekit-ocr:1.0.0-alpha01")
+```
+
+- 추가하면 PDF로 저장할 때 쪽마다 글자를 인식해 **보이지 않는 글자 레이어**를 겹칩니다. PDF 뷰어에서 검색·선택·복사가 되고, 이미지는 그대로 보입니다. `PdfOptions.recognizeText = false`로 끌 수 있습니다.
+- ML Kit 한국어 모델을 쓰며 영어·숫자도 함께 인식합니다. **기기 안에서** 처리하고 사진을 서버로 보내지 않습니다.
+- 모델은 첫 사용 때 Play 서비스가 내려받습니다. 받는 중에 저장하면 그 쪽은 이미지만 들어가고 결과에 `TEXT_RECOGNITION_SKIPPED` 경고가 붙습니다.
+- Play 서비스가 없는 기기에서는 사용할 수 없고, ML Kit 의존성이 `INTERNET`, `ACCESS_NETWORK_STATE` 권한을 merge합니다.
+
+### ML Kit 모델 미리 받기
+
+배경 제거·글자 인식 모델을 앱 설치 때 받아 두려면 호스트 manifest에 쓰는 모듈만 적습니다. 두 모듈 모두 쓰면 쉼표로 함께 적습니다. SDK는 이 값을 넣지 않습니다(두 모듈이 같은 키를 써서 merge가 충돌하기 때문).
+
+```xml
+<application>
+    <meta-data
+        android:name="com.google.mlkit.vision.DEPENDENCIES"
+        android:value="subject_segment,ocr_korean" />
+</application>
+```
+
+### 알려진 문제: Apple 실리콘 Mac의 arm64 에뮬레이터
+
+일부 arm64 에뮬레이터(Apple 실리콘 호스트)에서는 ML Kit 모델의 네이티브 코드가 `SIGILL`로 앱을 종료시킵니다. 배경 제거를 실행하거나 OCR이 켜진 PDF를 저장할 때 생기며, 실기기(Galaxy Z Fold7)에서는 정상 동작을 확인했습니다. 에뮬레이터에서 PDF를 확인할 때는 `PdfOptions(recognizeText = false)`를 쓰세요.
+
 ## R8
 
 SDK 모듈은 reflection을 쓰지 않으므로 별도 keep 규칙이 필요 없습니다. Parcelable request/result는 AGP 기본 규칙으로 유지됩니다. 별도 소비자 앱의 R8 release 빌드에서 영상 편집기(Media3)·필터·저장·결과 수신을 확인했습니다.
