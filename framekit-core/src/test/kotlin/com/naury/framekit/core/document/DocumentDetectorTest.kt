@@ -75,7 +75,7 @@ class DocumentDetectorTest {
             if (onPaper && (tableLine || text)) 50 else base[i]
         }
         val analysis = DocumentDetector.analyze(inked, width, height)
-        assertThat(analysis.reason).isEqualTo("ok")
+        assertThat(analysis.reason).startsWith("ok")
         val found = analysis.quad
         assertNear(found!!.topLeft, 0.01, 0.12)
         assertNear(found.bottomRight, 0.99, 0.86)
@@ -95,8 +95,15 @@ class DocumentDetectorTest {
             if (blank[i] > 128 && y % 12 in 4..6 && x % 20 in 3..16) 40 else blank[i]
         }
         val analysis = DocumentDetector.analyze(text, width, height)
-        assertThat(analysis.reason).isEqualTo("ok")
+        assertThat(analysis.reason).startsWith("ok")
         assertNear(analysis.quad!!.bottomRight, 1.0, 0.82)
+        // 줄인 사진의 작은 글자처럼 1px 굵기의 흐린 글자만 있어도 글자로 센다.
+        val fine = IntArray(blank.size) { i ->
+            val x = i % width
+            val y = i / width
+            if (blank[i] > 128 && y % 9 == 4 && x % 5 != 0) 150 else blank[i]
+        }
+        assertThat(DocumentDetector.analyze(fine, width, height).reason).startsWith("ok")
     }
 
     @Test

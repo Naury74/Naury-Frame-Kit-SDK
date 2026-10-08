@@ -1,6 +1,7 @@
 package com.naury.framekit.core.document
 
 import com.naury.framekit.core.geometry.PointN
+import kotlin.math.abs
 
 /**
  * 작은 흑백 이미지에서 문서의 네 모서리를 찾는다. 기기 의존성 없이 동작하며 빠르다(256px 기준 수 ms).
@@ -26,13 +27,18 @@ public object DocumentDetector {
     public fun analyze(luma: IntArray, width: Int, height: Int): Analysis {
         require(width >= MIN_SIDE && height >= MIN_SIDE) { "Image is too small" }
         require(luma.size == width * height) { "Size does not match" }
+        // 단계마다 수치를 모아, 문서가 아니라고 볼 때 이유와 함께 돌려준다.
+        val trace = StringBuilder()
+        fun note(key: String, value: Double) { trace.append(key).append('=').append(String.format(java.util.Locale.ROOT, "%.3f", value)).append(' ') }
+        fun reject(reason: String) = Analysis(null, "$reason | ${trace.toString().trim()}")
         val blurred = boxBlur(boxBlur(luma, width, height), width, height)
         val threshold = otsu(blurred)
         // 종이와 바탕의 밝기 차이가 작으면 문서라고 보기 어렵다(풍경·인물 사진 등).
         var brightSum = 0L; var brightCount = 0; var darkSum = 0L; var darkCount = 0
         blurred.forEach { if (it > threshold) { brightSum += it; brightCount++ } else { darkSum += it; darkCount++ } }
-        if (brightCount == 0 || darkCount == 0) return Analysis(null, "flat")
-        if (brightSum / brightCount - darkSum / darkCount < MIN_CONTRAST) return Analysis(null, "low contrast")
+        if (brightCount == 0 || darkCount == 0) return reject("flat")
+        note("contrast", (brightSum / brightCount - darkSum / darkCount).toDouble())
+        if (brightSum / brightCount - darkSum / darkCount < MIN_CONTRAST) return reject("low contrast")
         val raw = BooleanArray(blurred.size) { blurred[it] > threshold }
 
         // 표 선·빽빽한 글자가 종이를 작은 칸으로 쪼개지 않도록, 종이 쪽 영역을 넓혔다 줄여(닫힘) 잉크 자리를 메운다.
@@ -47,26 +53,33 @@ public object DocumentDetector {
         }
         val documentIsBright = brightVotes * 2 >= total
         val bright = if (documentIsBright) closedBright else close(raw, false, width, height, closeRadius)
-        val seed = nearestToCenter(bright, documentIsBright, width, height) ?: return Analysis(null, "no seed")
+        val seed = nearestToCenter(bright, documentIsBright, width, height) ?: return reject("no seed")
         val region = flood(bright, documentIsBright, seed, width, height)
         val count = region.count { it }
         val fraction = count.toDouble() / region.size
-        if (fraction < MIN_FRACTION || fraction > MAX_FRACTION) return Analysis(null, "region fraction $fraction")
+        note("fraction", fraction)
+        if (fraction < MIN_FRACTION || fraction > MAX_FRACTION) return reject("region fraction $fraction")
         // 가까이 찍은 문서는 사진 가장자리에 닿을 수 있다. 하늘·벽 같은 배경과 구별하려고, 두 변 이상에 닿으면 영역 안에
         // 글자(잉크)가 어느 정도 있을 때만 문서로 본다. 네 변에 모두 닿으면 종이 모서리를 알 수 없어 문서로 보지 않는다.
         val edges = edgesTouched(region, width, height)
-        if (edges >= 4) return Analysis(null, "touches all edges")
+        note("edges", edges.toDouble())
+        if (edges >= 4) return reject("touches all edges")
         if (edges >= 2) {
-            // 종이 테두리의 흐려진 경계를 잉크로 세지 않도록, 테두리에서 충분히 안쪽만 본다.
+            // 종이 테두리의 흐려진 경계를 잉크로 세지 않도록, 테두리에서 충분히 안쪽만 본다. 작은 글자는 흐림을 거치면
+            // 종이 색에 섞이므로, 흐리기 전 밝기에서 종이보다 확실히 다른 점을 잉크로 센다.
             val interior = morph(region, width, height, closeRadius * 2, grow = false)
-            var ink = 0
+            var paperSum = 0L
             var inside = 0
             for (i in region.indices) if (interior[i]) {
                 inside++
-                if (raw[i] != documentIsBright) ink++
+                paperSum += luma[i]
             }
+            val paper = if (inside == 0) 0.0 else paperSum.toDouble() / inside
+            var ink = 0
+            for (i in region.indices) if (interior[i] && abs(luma[i] - paper) > INK_DIFFERENCE) ink++
             val inkRatio = if (inside == 0) 0.0 else ink.toDouble() / inside
-            if (inkRatio < MIN_INK_NEAR_EDGES) return Analysis(null, "touches edges without text $inkRatio")
+            note("ink", inkRatio)
+            if (inkRatio < MIN_INK_NEAR_EDGES) return reject("touches edges without text $inkRatio")
         }
 
         var tl = 0; var tr = 0; var br = 0; var bl = 0
@@ -84,14 +97,16 @@ public object DocumentDetector {
         }
         fun point(index: Int) = PointN((index % width + 0.5) / width, (index / width + 0.5) / height)
         val quad = DocumentQuad(point(tl), point(tr), point(br), point(bl))
-        if (!quad.isUsable || quad.area < MIN_DOCUMENT_AREA) return Analysis(null, "quad area ${quad.area}")
+        if (!quad.isUsable || quad.area < MIN_DOCUMENT_AREA) return reject("quad area ${quad.area}")
         // 종이는 네 모서리가 만드는 사각형을 거의 꽉 채운다. 모양이 들쭉날쭉한 영역(하늘·벽·자동차 등)은 걸러 낸다.
+        note("area", quad.area)
         val fill = fraction / quad.area
-        if (fill < MIN_FILL || fill > MAX_FILL) return Analysis(null, "fill $fill")
+        note("fill", fill)
+        if (fill < MIN_FILL || fill > MAX_FILL) return reject("fill $fill")
         // 변 길이 비가 지나치게 길쭉하면 영수증 띠보다도 극단적인 것이라 문서가 아니라고 본다.
         val (w, h) = quad.rectifiedSize(width, height)
-        if (maxOf(w, h).toDouble() / minOf(w, h) > MAX_ASPECT) return Analysis(null, "aspect")
-        return Analysis(quad, "ok")
+        if (maxOf(w, h).toDouble() / minOf(w, h) > MAX_ASPECT) return reject("aspect")
+        return Analysis(quad, "ok | ${trace.toString().trim()}")
     }
 
     // [value] 쪽 영역을 반경 [radius]만큼 넓혔다가 다시 줄인다. 반경보다 가는 반대쪽 무늬(글자·선)가 메워진다.
@@ -236,4 +251,5 @@ public object DocumentDetector {
     private const val EDGE_COVERAGE = 0.3
     private const val CLOSE_DIVISOR = 40
     private const val MIN_INK_NEAR_EDGES = 0.01
+    private const val INK_DIFFERENCE = 40
 }
