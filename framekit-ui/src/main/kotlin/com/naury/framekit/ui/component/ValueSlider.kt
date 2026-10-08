@@ -11,6 +11,15 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.shadow
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.background
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -35,6 +44,7 @@ import kotlin.math.abs
  *
  * @param snapThreshold 값이 [resetValue]로 스냅되는 [resetValue]로부터의 거리.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 public fun ValueSlider(
     label: String,
@@ -55,7 +65,16 @@ public fun ValueSlider(
     Column(modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Text(label, color = colors.foregroundMuted, style = MaterialTheme.typography.labelLarge, modifier = Modifier.weight(1f))
-            Text(formatValue(value), color = colors.foreground, style = MaterialTheme.typography.labelLarge)
+            // 값은 작은 배지로 보여 준다. 기준값에서 벗어나면 프라이머리 색으로 강조한다.
+            Text(
+                formatValue(value),
+                color = if (value != resetValue) colors.accent else colors.foreground,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier
+                    .background(colors.raised, CircleShape)
+                    .padding(horizontal = 10.dp, vertical = 3.dp),
+            )
         }
         Slider(
             value = value,
@@ -70,10 +89,28 @@ public fun ValueSlider(
             },
             onValueChangeFinished = onValueChangeFinished,
             colors = SliderDefaults.colors(
-                thumbColor = colors.foreground,
+                thumbColor = Color.White,
                 activeTrackColor = colors.accent,
                 inactiveTrackColor = colors.raised,
             ),
+            // 얇은 트랙과 그림자가 있는 흰 원형 손잡이(사진 앱의 슬라이더 모양).
+            thumb = {
+                Box(
+                    Modifier
+                        .size(22.dp)
+                        .shadow(3.dp, CircleShape)
+                        .background(Color.White, CircleShape),
+                )
+            },
+            track = { sliderState ->
+                SliderDefaults.Track(
+                    sliderState = sliderState,
+                    modifier = Modifier.height(4.dp),
+                    colors = SliderDefaults.colors(activeTrackColor = colors.accent, inactiveTrackColor = colors.raised),
+                    thumbTrackGapSize = 0.dp,
+                    drawStopIndicator = null,
+                )
+            },
             modifier = Modifier
                 // 화면 가장자리에서 시작한 드래그가 시스템 뒤로 가기로 처리되지 않게 슬라이더 영역을 제외한다.
                 .systemGestureExclusion()

@@ -151,4 +151,5 @@
     <string name="framekit_ratio_width">Width</string>
     <string name="framekit_ratio_height">Height</string>
     <string name="framekit_zoom_fit">%1$d%% · Fit</string>
+    <string name="framekit_filter_hint">Pick a filter to adjust its strength</string>
 </resources>

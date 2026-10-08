@@ -151,4 +151,5 @@
     <string name="framekit_ratio_width">가로</string>
     <string name="framekit_ratio_height">세로</string>
     <string name="framekit_zoom_fit">%1$d%% · 맞춤</string>
+    <string name="framekit_filter_hint">필터를 고르면 강도를 조절할 수 있어요</string>
 </resources>

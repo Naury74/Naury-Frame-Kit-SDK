@@ -16,7 +16,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.naury.framekit.core.geometry.GeometryEdit
-import com.naury.framekit.ui.component.ValueSlider
+import com.naury.framekit.ui.component.DialSlider
 import com.naury.framekit.ui.design.FrameKitTheme
 import com.naury.framekit.ui.R
 import java.util.Locale
@@ -41,15 +41,19 @@ public fun RotateToolPanel(
             ToolIconButton(R.drawable.framekit_ic_flip_horizontal, R.string.framekit_flip_horizontal, onFlipHorizontal)
             ToolIconButton(R.drawable.framekit_ic_flip_vertical, R.string.framekit_flip_vertical, onFlipVertical)
         }
-        ValueSlider(
+        // 1°마다 작은 눈금, 5°마다 큰 눈금. 각도는 세밀하게 맞춰야 해 보정보다 눈금 간격을 넓게 둔다.
+        DialSlider(
             label = stringResource(R.string.framekit_straighten),
             value = straightenDegrees.toFloat(),
             valueRange = GeometryEdit.MIN_STRAIGHTEN_DEGREES.toFloat()..GeometryEdit.MAX_STRAIGHTEN_DEGREES.toFloat(),
             onValueChange = { onStraighten(it.toDouble()) },
             onValueChangeFinished = onStraightenFinished,
             formatValue = { resources.getString(R.string.framekit_degrees, String.format(Locale.US, "%.1f", it)) },
-            snapThreshold = 0.6f,
-            modifier = Modifier.padding(top = 4.dp),
+            spacing = 10.dp,
+            tickEvery = 1f,
+            majorEvery = 5f,
+            snapThreshold = 0.4f,
+            modifier = Modifier.padding(top = 8.dp),
         )
     }
 }
