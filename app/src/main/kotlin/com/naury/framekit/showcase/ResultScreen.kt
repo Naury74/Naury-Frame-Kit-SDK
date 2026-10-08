@@ -39,6 +39,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -118,7 +119,7 @@ private fun ResultCard(media: EditedMedia) {
         media.durationMs?.let { MetadataRow(stringResource(R.string.result_duration), String.format(Locale.ROOT, "%.2f s", it / 1000.0)) }
         MetadataRow(stringResource(R.string.result_mime), media.mimeType)
         MetadataRow(stringResource(R.string.result_file_size), Formatter.formatShortFileSize(context, media.fileSize))
-        MetadataRow(stringResource(R.string.result_warnings), media.warnings.joinToString().ifEmpty { stringResource(R.string.result_none) })
+        MetadataRow(stringResource(R.string.result_warnings), media.warnings.joinToString("\n").ifEmpty { stringResource(R.string.result_none) })
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Button(onClick = { share(context, media) }) { Text(stringResource(R.string.result_share)) }
         }
@@ -127,9 +128,10 @@ private fun ResultCard(media: EditedMedia) {
 
 @Composable
 private fun MetadataRow(label: String, value: String) {
-    Row(Modifier.fillMaxWidth()) {
-        Text(label, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
-        Text(value, color = MaterialTheme.colorScheme.onSurface)
+    // 값이 길면(경고 여러 개) 라벨을 밀어내지 않고 오른쪽 칸 안에서 줄을 바꾼다.
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Text(label, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(value, color = MaterialTheme.colorScheme.onSurface, textAlign = TextAlign.End, modifier = Modifier.weight(1f))
     }
 }
 
