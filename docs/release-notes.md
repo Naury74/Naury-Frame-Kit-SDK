@@ -16,6 +16,10 @@
 - 결과 `FrameKitResult.Success.outputs`(여러 결과), `EditedMedia.pageCount`, `MediaType.DOCUMENT`, 오류 코드 `CAMERA_UNAVAILABLE`
 - 편집 화면 사용성: 원본 비교 버튼, 그리기·가리기 중 두 손가락 확대·이동, 자르기 비율 직접 입력과 자르기 중 회전, 텍스트 불투명도·자간·행간, 속도 패널의 결과 길이, 영상 가리기 마스크 이동·크기 조절
 - 뒤로 가기로 열린 도구의 변경을 잃지 않도록 적용·버리기를 물음. 저장을 누르면 열린 도구의 변경을 먼저 적용
+- 가로 스크롤 줄(툴바·칩·색상·필터·보정·쪽 목록) 끝 흐림으로 화면 밖 항목 표시
+- 사진·영상 캔버스 확대: 두 손가락(손가락 중심 기준), 확대 중 한 손가락 이동, 사진은 빈 곳 두 번 탭으로 확대·복귀
+- 자르기·회전에서 손을 떼면 남은 영역이 화면을 채우도록 자동으로 확대해 맞춤(사진·영상)
+- 대화상자·저장 진행·안내 메시지를 테마 색·모서리를 따르는 FrameKit 디자인으로 변경(`FrameKitDialog`, `FrameKitSnackbarHost`)
 - 접근성: 슬라이더 이름 읽기, 선택 표시(체크)를 색 외에도 표시, 색 이름, 48dp 누름 영역, 스위치 줄 전체 토글
 - Apache License 2.0 (`LICENSE`, `NOTICE`)
 
@@ -26,6 +30,7 @@
 - 스티커 검증은 이모지와 등록한 이미지 스티커를 모두 허용(`StickerCatalog`)
 - **이름 변경**: `EditorUiConfig.accentArgb` → `primaryArgb`, `EditorPalette.onAccentArgb` → `onPrimaryArgb`. 프라이머리 색 위 글자색은 지정하지 않으면 자동으로 흰색·검정 중 잘 보이는 쪽을 씀(`EditorPalette.readableOn`). `contrastWarnings`에 프라이머리 색·패널 색 비교 추가
 - 기본값: `VideoEditorConfig.maxClipCount` 10, `maxTimelineDurationUs` 10분
+- **API 변경**: `VideoPreviewEngine.attachSurface/detachSurface`가 `SurfaceHolder` 대신 `Surface`(와 크기)를 받음. 미리보기는 TextureView로 그림
 - headless 처리기의 `catalog` 기본값이 `null`(등록된 카탈로그 유지)로 바뀜
 - 좁은 화면에서 도구 패널 높이를 제한하고 패널만 스크롤, 텍스트 입력 중에는 영상 타임라인을 숨김
 - 초기화 버튼은 되돌릴 기준이 있는 도구에만 표시, 영상의 일괄 삭제는 실행 취소 안내
@@ -44,7 +49,6 @@
 ### Known Issues
 
 - Maven Central 공개 배포는 아직 하지 않음(로컬 배포만 확인)
-- 캔버스 확대·이동은 사진의 그리기·가리기 도구에서만 동작
 - 카탈로그는 프로세스 전체에 하나만 등록됨
 
 ## 0.4.0 (개발 중)
