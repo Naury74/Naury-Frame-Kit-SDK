@@ -8,7 +8,7 @@
 - `EditorUiConfig.palette`(`EditorPalette`, 명암비 경고)와 `uiFontId`, 프라이머리 색 `primaryArgb`
 - 영상 headless `VideoProcessor`
 - Showcase Playground, 호스트 카탈로그 예제
-- Maven 배포 설정(`io.github.naury74`, sources jar), 별도 소비자 앱에서 R8 release 확인
+- Maven 배포 설정(`com.naurylab`, sources jar), 별도 소비자 앱에서 R8 release 확인
 - 진입점: `EditorInput.Multiple`(사진 여러 장·영상 여러 개), `Pick(kind, maxItems)`(여러 개 고르기), `Capture(kind)`(카메라 앱으로 찍거나 녹화한 뒤 편집)
 - 여러 장 사진 편집: 쪽 목록에서 고르기·추가·순서 변경·삭제, 사진마다 저장 또는 PDF 한 개로 저장(`ImageEditorConfig.maxImageCount`)
 - PDF 저장: `ImageFormat.PDF`와 `PdfOptions`(A4·A5·Letter·Legal·사진 크기, 방향, 여백, dpi, 한 문서/사진마다), headless `ImageProcessor.startPdfExport`

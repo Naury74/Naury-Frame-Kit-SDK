@@ -60,7 +60,7 @@ SDK 확장(v1.0)
 | 호스트 카탈로그 | 앱의 필터 값·스티커 이미지·폰트 파일을 `EditorCatalog`로 넘겨 편집기·저장·headless에 추가, 내장 항목 숨기기 | v1.0 지원 |
 | 색·폰트 | `EditorPalette`로 배경·패널·글자 색 변경, 명암비 경고, 카탈로그 폰트를 편집기 문구에 사용 | v1.0 지원 |
 | 영상 headless | `VideoProcessor`로 UI 없이 클립·음악·효과를 MP4로 저장 | v1.0 지원 |
-| 배포 | Maven 좌표 `io.github.naury74:<모듈>`, sources jar, Kotlin 2.2 이상 호스트 지원 | v1.0 지원(로컬 배포 확인) |
+| 배포 | Maven 좌표 `com.naurylab:<모듈>`, sources jar, Kotlin 2.2 이상 호스트 지원 | v1.0 지원(로컬 배포 확인) |
 
 계획된 기능(아직 **미지원**): 장면 전환(crossfade)·PiP·HDR 유지·MediaStore/SAF 저장·Maven Central 공개 배포. 자세한 순서는 [Roadmap](#roadmap)을 보세요.
 
@@ -78,7 +78,7 @@ SDK 확장(v1.0)
 Maven Central 공개 전에는 이 저장소에서 로컬 Maven에 올린 뒤 씁니다.
 
 ```bash
-./gradlew publishToMavenLocal   # io.github.naury74:*:1.0.0-alpha01
+./gradlew publishToMavenLocal   # com.naurylab:*:1.0.0-alpha01
 ```
 
 ```kotlin
@@ -93,7 +93,7 @@ dependencyResolutionManagement {
 
 // app/build.gradle.kts
 dependencies {
-    implementation("io.github.naury74:framekit:1.0.0-alpha01")
+    implementation("com.naurylab:framekit:1.0.0-alpha01")
 }
 ```
 
@@ -102,8 +102,8 @@ dependencies {
 배경 제거·PDF 글자 검색이 필요하면 선택 모듈을 추가합니다. 추가하면 편집기에 "배경 제거" 도구가 나타나고, PDF 저장에 글자 레이어가 들어갑니다.
 
 ```kotlin
-implementation("io.github.naury74:framekit-segmentation:1.0.0-alpha01") // 배경 제거
-implementation("io.github.naury74:framekit-ocr:1.0.0-alpha01")          // PDF 글자 검색(OCR)
+implementation("com.naurylab:framekit-segmentation:1.0.0-alpha01") // 배경 제거
+implementation("com.naurylab:framekit-ocr:1.0.0-alpha01")          // PDF 글자 검색(OCR)
 ```
 
 두 모듈은 Google Play 서비스의 ML Kit을 쓰므로 Play 서비스가 없는 기기에서는 동작하지 않고, ML Kit 의존성이 `INTERNET`·`ACCESS_NETWORK_STATE` 권한을 추가합니다. 자세한 내용은 [integration](docs/integration.md#배경-제거-선택-모듈)을 보세요.

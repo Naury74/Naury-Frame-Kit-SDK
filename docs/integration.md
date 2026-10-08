@@ -6,9 +6,9 @@
 
 ```kotlin
 dependencies {
-    implementation("io.github.naury74:framekit:1.0.0-alpha01")             // 사진·영상 모두
-    // implementation("io.github.naury74:framekit-ui-image:1.0.0-alpha01") // 사진만 (Media3 없음)
-    // implementation("io.github.naury74:framekit-ui-video:1.0.0-alpha01") // 영상만
+    implementation("com.naurylab:framekit:1.0.0-alpha01")             // 사진·영상 모두
+    // implementation("com.naurylab:framekit-ui-image:1.0.0-alpha01") // 사진만 (Media3 없음)
+    // implementation("com.naurylab:framekit-ui-video:1.0.0-alpha01") // 영상만
 }
 ```
 
@@ -216,7 +216,7 @@ implementation(project(":framekit-segmentation"))
 ## 글자 인식(OCR) 선택 모듈
 
 ```kotlin
-implementation("io.github.naury74:framekit-ocr:1.0.0-alpha01")
+implementation("com.naurylab:framekit-ocr:1.0.0-alpha01")
 ```
 
 - 추가하면 PDF로 저장할 때 쪽마다 글자를 인식해 **보이지 않는 글자 레이어**를 겹칩니다. PDF 뷰어에서 검색·선택·복사가 되고, 이미지는 그대로 보입니다. `PdfOptions.recognizeText = false`로 끌 수 있습니다.
