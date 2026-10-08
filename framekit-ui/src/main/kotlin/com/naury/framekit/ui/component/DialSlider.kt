@@ -42,7 +42,8 @@ import kotlin.math.roundToInt
  * 눈금자를 좌우로 끌어 값을 고르는 슬라이더(사진 앱의 보정 다이얼 방식).
  *
  * 가운데 기준선은 고정되고 눈금이 손가락을 따라 움직인다. [resetValue]부터 현재 값까지의 눈금은 프라이머리 색으로
- * 칠하고, 값은 위에 크게 보여 준다. [resetValue]와 양 끝을 지날 때 한 번씩 진동하며, 두 번 탭하면 [resetValue]로
+ * 칠하고, 값은 위에 크게 보여 준다. 눈금을 지날 때마다 다이얼 톱니처럼 짧게 진동하고(큰 눈금은 조금 더 또렷하게),
+ * [resetValue]와 양 끝에서는 분명하게 진동한다. 두 번 탭하면 [resetValue]로
  * 돌아간다. [onValueChange]는 움직일 때마다, [onValueChangeFinished]는 손을 뗄 때 한 번 호출된다.
  *
  * @param spacing 값 1만큼의 눈금 간격. 클수록 세밀하게 조절된다.
@@ -111,6 +112,9 @@ public fun DialSlider(
                         var last = currentValue
                         var dragging = false
                         var travelled = 0f
+                        // 마지막으로 지난 눈금 번호와 진동 시각. 빠르게 돌려도 진동이 뭉개지지 않게 최소 간격을 둔다.
+                        var lastTick = floor((currentValue - valueRange.start) / tickEvery).toInt()
+                        var lastHapticAt = 0L
                         do {
                             val event = awaitPointerEvent()
                             val change = event.changes.firstOrNull { it.id == down.id } ?: break
@@ -123,7 +127,29 @@ public fun DialSlider(
                                 val next = if (abs(raw - resetValue) <= snapThreshold) resetValue else raw
                                 val crossedReset = (last - resetValue) * (next - resetValue) < 0f || (next == resetValue && last != resetValue)
                                 val hitEdge = (next == valueRange.start || next == valueRange.endInclusive) && next != last
-                                if (hapticsEnabled && (crossedReset || hitEdge)) haptics.performHapticFeedback(HapticFeedbackType.SegmentTick)
+                                val tick = floor((next - valueRange.start) / tickEvery).toInt()
+                                if (hapticsEnabled) {
+                                    val now = change.uptimeMillis
+                                    when {
+                                        // 기준값·끝은 또렷하게, 다른 소리와 겹치지 않도록 간격과 상관없이 낸다.
+                                        crossedReset || hitEdge -> {
+                                            haptics.performHapticFeedback(HapticFeedbackType.SegmentTick)
+                                            lastHapticAt = now
+                                        }
+                                        // 눈금을 지날 때마다 다이얼 톱니처럼 짧게. 큰 눈금을 지나면 조금 더 또렷하게.
+                                        tick != lastTick && now - lastHapticAt >= MIN_TICK_INTERVAL_MS -> {
+                                            val low = minOf(tick, lastTick) + 1
+                                            val high = maxOf(tick, lastTick)
+                                            val crossedMajor = (low..high).any { index ->
+                                                val v = valueRange.start + index * tickEvery
+                                                abs(v / majorEvery - (v / majorEvery).roundToInt()) < 0.001f
+                                            }
+                                            haptics.performHapticFeedback(if (crossedMajor) HapticFeedbackType.SegmentTick else HapticFeedbackType.SegmentFrequentTick)
+                                            lastHapticAt = now
+                                        }
+                                    }
+                                }
+                                lastTick = tick
                                 if (next != last) {
                                     last = next
                                     currentOnChange(next)
@@ -178,3 +204,6 @@ public fun DialSlider(
 }
 
 private val DIAL_HEIGHT = 40.dp
+
+// 눈금 진동 사이 최소 간격(ms). 이보다 빠르면 진동이 이어져 한 덩어리로 느껴진다.
+private const val MIN_TICK_INTERVAL_MS = 18L
