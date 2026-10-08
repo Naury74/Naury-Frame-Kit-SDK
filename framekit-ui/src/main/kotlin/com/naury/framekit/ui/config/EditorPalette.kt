@@ -17,7 +17,8 @@ import kotlin.math.pow
  * @property foregroundArgb 기본 글자·아이콘.
  * @property foregroundMutedArgb 보조 글자·비활성 아이콘.
  * @property canvasArgb 사진·영상 뒤 여백.
- * @property onAccentArgb 강조색 위의 글자(저장 버튼 등).
+ * @property onPrimaryArgb 프라이머리 색 위의 글자(저장 버튼 등). `null`이면 프라이머리 색에 맞춰 흰색·검정 중
+ *   명암비가 높은 쪽을 쓴다.
  */
 @Parcelize
 public data class EditorPalette(
@@ -27,7 +28,7 @@ public data class EditorPalette(
     val foregroundArgb: Int? = null,
     val foregroundMutedArgb: Int? = null,
     val canvasArgb: Int? = null,
-    val onAccentArgb: Int? = null,
+    val onPrimaryArgb: Int? = null,
 ) : Parcelable {
 
     /**
@@ -36,21 +37,36 @@ public data class EditorPalette(
      * @param base 바꾸지 않은 항목에 쓸 테마 기본값. 값 순서는 이 클래스의 프로퍼티와 같다.
      * @return 문제가 있는 조합 설명. 비어 있으면 문제 없음.
      */
-    public fun contrastWarnings(base: EditorPalette, accentArgb: Int): List<String> {
+    public fun contrastWarnings(base: EditorPalette, primaryArgb: Int): List<String> {
         val background = backgroundArgb ?: base.backgroundArgb ?: return emptyList()
         val surface = surfaceArgb ?: base.surfaceArgb ?: background
         val foreground = foregroundArgb ?: base.foregroundArgb ?: return emptyList()
         val muted = foregroundMutedArgb ?: base.foregroundMutedArgb ?: foreground
-        val onAccent = onAccentArgb ?: base.onAccentArgb ?: 0xFFFFFFFF.toInt()
+        val onPrimary = onPrimaryArgb ?: base.onPrimaryArgb ?: readableOn(primaryArgb)
         return buildList {
             if (contrast(foreground, background) < 4.5) add("foreground/background")
             if (contrast(foreground, surface) < 4.5) add("foreground/surface")
             if (contrast(muted, background) < 3.0) add("foregroundMuted/background")
-            if (contrast(onAccent, accentArgb) < 3.0) add("onAccent/accent")
+            if (contrast(onPrimary, primaryArgb) < 3.0) add("onPrimary/primary")
+            // 프라이머리 색은 패널 위 아이콘·체크 표시에도 쓰여, 배경과 너무 비슷하면 선택 표시가 보이지 않는다.
+            if (contrast(primaryArgb, surface) < 1.5) add("primary/surface")
         }
     }
 
     public companion object {
+        /**
+         * [argb] 위에 올릴 글자색(불투명 ARGB). 흰색의 명암비가 3:1(버튼 글자 기준) 이상이면 흰색, 아니면 흰색·검정 중
+         * 명암비가 높은 쪽이다. 파랑·보라처럼 둘 다 비슷한 색에서는 흔히 쓰는 흰 글자를 고른다.
+         */
+        public fun readableOn(argb: Int): Int {
+            val white = 0xFFFFFFFF.toInt()
+            val black = 0xFF000000.toInt()
+            val onWhite = contrast(white, argb)
+            return if (onWhite >= MIN_BUTTON_CONTRAST || onWhite >= contrast(black, argb)) white else black
+        }
+
+        private const val MIN_BUTTON_CONTRAST = 3.0
+
         /** WCAG 명암비. 1(같은 색)..21(검정·흰색). 알파는 무시한다. */
         public fun contrast(first: Int, second: Int): Double {
             val a = luminance(first)

@@ -69,7 +69,7 @@ data class PlaygroundSettings(
     val allowUndo: Boolean = true,
     val allowRedo: Boolean = true,
     val themeMode: ThemeMode = ThemeMode.DARK,
-    val accentArgb: Int = 0xFF635BFF.toInt(),
+    val primaryArgb: Int = 0xFF635BFF.toInt(),
     val cornerRadiusDp: Int = 14,
     val localeTag: String? = null,
     val showProgress: Boolean = true,
@@ -97,7 +97,7 @@ data class PlaygroundSettings(
         videoExport = VideoExportConfig(maxShortSide = videoShortSide, maxFrameRate = videoFps),
         ui = EditorUiConfig(
             themeMode = themeMode,
-            accentArgb = accentArgb,
+            primaryArgb = primaryArgb,
             cornerRadiusDp = cornerRadiusDp,
             showExportProgress = showProgress,
             enableHaptics = haptics,
@@ -106,7 +106,7 @@ data class PlaygroundSettings(
     )
 }
 
-private val ACCENTS = listOf(0xFF635BFF, 0xFF1E6BFF, 0xFF12A150, 0xFFFF5A36, 0xFFFFD43B).map { it.toInt() }
+private val PRIMARY_COLORS = listOf(0xFF635BFF, 0xFF1E6BFF, 0xFF12A150, 0xFFFF5A36, 0xFFFFD43B).map { it.toInt() }
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -114,9 +114,9 @@ fun PlaygroundScreen(onBack: () -> Unit, onLaunch: (FrameKitRequest) -> Unit) {
     var settings by rememberSaveable { mutableStateOf(PlaygroundSettings()) }
     val request = settings.toRequest()
     val issues = (request.validate() as? ValidationResult.Invalid)?.issues.orEmpty()
-    // 강조색 위의 흰 글자가 잘 보이는지 미리 알려 준다. 편집기는 경고가 있어도 그대로 쓴다.
-    val darkBase = EditorPalette(0xFF0D0D0E.toInt(), 0xFF171719.toInt(), null, 0xFFFFFFFF.toInt(), 0xFFA1A1AA.toInt(), null, 0xFFFFFFFF.toInt())
-    val contrast = EditorPalette().contrastWarnings(darkBase, settings.accentArgb)
+    // 프라이머리 색이 패널과 너무 비슷해 선택 표시가 안 보이는지 미리 알려 준다. 위 글자색은 편집기가 자동으로 고른다.
+    val darkBase = EditorPalette(0xFF0D0D0E.toInt(), 0xFF171719.toInt(), null, 0xFFFFFFFF.toInt(), 0xFFA1A1AA.toInt(), null, null)
+    val contrast = EditorPalette().contrastWarnings(darkBase, settings.primaryArgb)
 
     LazyColumn(
         modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).windowInsetsPadding(WindowInsets.safeDrawing),
@@ -163,14 +163,14 @@ fun PlaygroundScreen(onBack: () -> Unit, onLaunch: (FrameKitRequest) -> Unit) {
                 settings = settings.copy(themeMode = it)
             }
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.padding(top = 8.dp)) {
-                ACCENTS.forEach { argb ->
-                    val selected = argb == settings.accentArgb
+                PRIMARY_COLORS.forEach { argb ->
+                    val selected = argb == settings.primaryArgb
                     Column(
                         Modifier
                             .size(36.dp)
                             .background(Color(argb), CircleShape)
                             .border(if (selected) 3.dp else 0.dp, if (selected) Color.White else Color.Transparent, CircleShape)
-                            .clickable { settings = settings.copy(accentArgb = argb) },
+                            .clickable { settings = settings.copy(primaryArgb = argb) },
                     ) {}
                 }
             }

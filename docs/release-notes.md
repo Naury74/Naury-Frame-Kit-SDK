@@ -5,7 +5,7 @@
 ### 추가
 
 - 호스트 카탈로그 `EditorCatalog`: 필터 값·스티커 이미지·폰트 파일을 편집기·저장·headless에 추가, 내장 항목 숨기기
-- `EditorUiConfig.palette`(`EditorPalette`, 명암비 경고)와 `uiFontId`
+- `EditorUiConfig.palette`(`EditorPalette`, 명암비 경고)와 `uiFontId`, 프라이머리 색 `primaryArgb`
 - 영상 headless `VideoProcessor`
 - Showcase Playground, 호스트 카탈로그 예제
 - Maven 배포 설정(`io.github.naury74`, sources jar), 별도 소비자 앱에서 R8 release 확인
@@ -24,6 +24,7 @@
 - 배포 모듈은 Kotlin 언어·API 2.2, `kotlin-stdlib` 2.2.0 의존으로 빌드(호스트 Kotlin 2.2 이상 지원)
 - `StickerToolPanel`의 `onAdd`는 이모지 대신 에셋 id를 넘김. 편집기의 `addSticker`도 에셋 id를 받음
 - 스티커 검증은 이모지와 등록한 이미지 스티커를 모두 허용(`StickerCatalog`)
+- **이름 변경**: `EditorUiConfig.accentArgb` → `primaryArgb`, `EditorPalette.onAccentArgb` → `onPrimaryArgb`. 프라이머리 색 위 글자색은 지정하지 않으면 자동으로 흰색·검정 중 잘 보이는 쪽을 씀(`EditorPalette.readableOn`). `contrastWarnings`에 프라이머리 색·패널 색 비교 추가
 - 기본값: `VideoEditorConfig.maxClipCount` 10, `maxTimelineDurationUs` 10분
 - headless 처리기의 `catalog` 기본값이 `null`(등록된 카탈로그 유지)로 바뀜
 - 좁은 화면에서 도구 패널 높이를 제한하고 패널만 스크롤, 텍스트 입력 중에는 영상 타임라인을 숨김

@@ -93,17 +93,36 @@ ImageEditorRequest(
 | 옵션 | 기본값 | 범위·규칙 |
 | --- | --- | --- |
 | `themeMode` | `DARK` | `DARK`, `LIGHT`, `SYSTEM` |
-| `accentArgb` | `null` (`#635BFF`) | ARGB Int |
+| `primaryArgb` | `null` (`#635BFF`) | 프라이머리(브랜드) 색, ARGB Int. 저장 버튼·선택된 칩과 도구·슬라이더·자르기 핸들·체크 표시에 쓰임 |
 | `cornerRadiusDp` | `14` | 0..32 |
 | `showExportProgress` | `true` | `false`이면 단계 대신 "저장하는 중"만 표시 |
 | `enableHaptics` | `true` | 시스템 햅틱 설정은 항상 존중 |
 | `localeTag` | `null` | `null`은 기기 언어. 빈 문자열은 오류 |
-| `palette` | `null` | `EditorPalette`. 배경·패널·강조 패널·글자·보조 글자·캔버스 여백·강조색 위 글자 색(ARGB)을 바꿈. `null`인 항목은 테마 기본값 |
+| `palette` | `null` | `EditorPalette`. 배경·패널·강조 패널·글자·보조 글자·캔버스 여백·프라이머리 색 위 글자 색(ARGB)을 바꿈. `null`인 항목은 테마 기본값 |
 | `uiFontId` | `null` | 편집기 문구 폰트. `catalog.fonts`에 있는 id여야 함 |
 
-기본 다크 팔레트: background `#0D0D0E`, surface `#171719`, raised `#242428`, foreground `#FFFFFF`, foregroundMuted `#A1A1AA`, accent `#635BFF`, onAccent `#FFFFFF`.
+기본 다크 팔레트: background `#0D0D0E`, surface `#171719`, raised `#242428`, foreground `#FFFFFF`, foregroundMuted `#A1A1AA`, primary `#635BFF`, onPrimary 자동(기본 색에서는 `#FFFFFF`).
 
-`EditorPalette.contrastWarnings(base, accentArgb)`는 글자·배경 명암비가 WCAG 기준(본문 4.5:1, 보조 글자·강조색 위 글자 3:1)보다 낮은 조합을 알려 줍니다. 편집기는 경고가 있어도 그대로 쓰므로 호스트가 확인하세요. Showcase Playground가 강조색에 대해 이 경고를 보여 줍니다.
+### 프라이머리 색
+
+호스트 앱의 브랜드 색을 그대로 넘기면 됩니다. 리소스 색은 `ContextCompat.getColor(context, R.color.brand)`로 ARGB를 얻어 넘깁니다.
+
+```kotlin
+FrameKitRequest(
+    input = EditorInput.Pick(MediaKind.ANY),
+    ui = EditorUiConfig(primaryArgb = ContextCompat.getColor(context, R.color.brand_primary)),
+)
+```
+
+- 저장 버튼처럼 프라이머리 색을 배경으로 쓰는 곳의 글자색은 `palette.onPrimaryArgb`를 주지 않으면 흰색·검정 중 명암비가 높은 쪽을 자동으로 고릅니다. 노랑 같은 밝은 색도 글자가 보입니다. 같은 계산은 `EditorPalette.readableOn(argb)`로 쓸 수 있습니다.
+- 다크·라이트 테마 모두 같은 프라이머리 색을 씁니다.
+
+`EditorPalette.contrastWarnings(base, primaryArgb)`는 다음 조합을 알려 줍니다.
+
+- 글자·배경 명암비가 WCAG 기준(본문 4.5:1, 보조 글자·프라이머리 색 위 글자 3:1)보다 낮은 조합
+- 프라이머리 색이 패널 색과 너무 비슷해(1.5:1 미만) 선택 표시가 잘 안 보이는 경우
+
+편집기는 경고가 있어도 그대로 쓰므로 호스트가 확인하세요. Showcase Playground가 고른 색에 대해 이 경고를 보여 줍니다.
 
 ## catalog: EditorCatalog
 

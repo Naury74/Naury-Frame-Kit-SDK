@@ -14,7 +14,7 @@
     <string name="example_restricted_title">제한 모드</string>
     <string name="example_restricted_description">자르기만, 실행 취소 없음, 최대 1080px·품질 85</string>
     <string name="example_brand_title">브랜드 테마</string>
-    <string name="example_brand_description">라이트 테마, 파란 강조색, 더 둥근 모서리</string>
+    <string name="example_brand_description">라이트 테마, 파란 프라이머리 색, 더 둥근 모서리</string>
     <string name="example_english_title">영어 UI</string>
     <string name="example_english_description">기기 언어와 관계없이 편집기 문구를 영어로 표시</string>
 
@@ -61,7 +61,7 @@
     <string name="playground_system">시스템</string>
     <string name="playground_korean">한국어</string>
     <string name="playground_english">영어</string>
-    <string name="playground_contrast_warning">이 강조색 위의 흰 글자는 잘 보이지 않아요.</string>
+    <string name="playground_contrast_warning">이 프라이머리 색은 패널 색과 비슷해 선택 표시가 잘 보이지 않아요.</string>
     <string name="playground_corner">모서리 %1$d dp</string>
     <string name="playground_progress">저장 단계 표시</string>
     <string name="playground_haptics">햅틱</string>

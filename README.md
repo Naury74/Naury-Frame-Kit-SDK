@@ -30,7 +30,7 @@ Android 앱에 넣어 쓰는 **비파괴 이미지·영상 편집 SDK**입니다
 | 편집 화면 사용성 | 원본 비교 버튼, 그리기·가리기 중 두 손가락 확대, 자르기 비율 직접 입력·자르기 중 회전, 뒤로 가기 시 적용 여부 확인, 저장 시 열린 도구 자동 적용, 접근성(화면 읽기·48dp·색 외 선택 표시) | v1.0 지원 |
 | 결과 | Success/Cancelled/Failure 한 번만 반환, 오류 코드와 다음 행동 | v0.1 지원 |
 | 세션 복원 | 프로세스가 종료돼도 확정한 편집 복원, 원본이 같은 이미지인지 확인 | v0.1 지원 |
-| 테마·언어 | 다크(기본)/라이트/시스템, accent 색, 모서리, ko/en, localeTag | v0.1 지원 |
+| 테마·언어 | 다크(기본)/라이트/시스템, 프라이머리(브랜드) 색(`primaryArgb`, 위 글자색 자동 대비), 모서리, ko/en, localeTag | v0.1 지원 |
 
 영상 편집(Media3 1.11.1)
 
@@ -157,7 +157,7 @@ FrameKitRequest(
     imageExport = ImageExportConfig(format = ImageFormat.PNG, maxWidth = 2048),
     video = VideoEditorConfig(maxTimelineDurationUs = 15_000_000),   // 최대 15초
     videoExport = VideoExportConfig(maxShortSide = 720),
-    ui = EditorUiConfig(themeMode = ThemeMode.LIGHT, accentArgb = 0xFF1E6BFF.toInt()),
+    ui = EditorUiConfig(themeMode = ThemeMode.LIGHT, primaryArgb = 0xFF1E6BFF.toInt()),
 )
 ```
 
@@ -204,7 +204,7 @@ FrameKitRequest(
         fonts = listOf(CustomFont("brand", "Brand", CatalogFile.Asset("fonts/brand.ttf"))),
     ),
     ui = EditorUiConfig(
-        accentArgb = 0xFF1E6BFF.toInt(),
+        primaryArgb = 0xFF1E6BFF.toInt(),
         palette = EditorPalette(backgroundArgb = 0xFF101820.toInt()),
         uiFontId = "brand",
     ),
@@ -246,7 +246,7 @@ app                 Showcase 앱
 
 | 예제 | 설정 |
 | --- | --- |
-| Playground | 도구·실행 취소·테마·강조색·모서리·언어·저장 설정을 골라 실제 요청으로 실행. SDK가 거부하는 조합을 실행 전에 표시 |
+| Playground | 도구·실행 취소·테마·프라이머리 색·모서리·언어·저장 설정을 골라 실제 요청으로 실행. SDK가 거부하는 조합을 실행 전에 표시 |
 | 사진 편집 | 기본 설정 |
 | 영상 편집 | 최대 10개 클립, 모든 영상 도구, MP4 저장 |
 | 사진 또는 영상 | `Pick(MediaKind.ANY)`, 고른 종류의 편집기가 열림 |
@@ -260,7 +260,7 @@ app                 Showcase 앱
 | PNG 저장 | `format = PNG` |
 | 제한 모드 | 자르기만, undo 끔, 최대 1080px·품질 85 |
 | 호스트 카탈로그 | 앱 assets의 스티커 이미지 2개와 필터 2개(Sunset, Ocean) 추가 |
-| 브랜드 테마 | 라이트 테마, 파란 accent, 모서리 22dp |
+| 브랜드 테마 | 라이트 테마, 파란 프라이머리 색, 모서리 22dp |
 | 영어 UI | `localeTag = "en"` |
 
 결과 화면에서 출력 크기·길이·MIME·파일 크기·경고를 확인하고 공유하거나 삭제할 수 있습니다.

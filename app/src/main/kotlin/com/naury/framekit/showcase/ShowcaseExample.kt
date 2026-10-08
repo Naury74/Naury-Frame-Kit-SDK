@@ -137,7 +137,7 @@ enum class ShowcaseExample(
         R.string.example_brand_description,
         FrameKitRequest(
             EditorInput.Pick(MediaKind.IMAGE),
-            ui = EditorUiConfig(themeMode = ThemeMode.LIGHT, accentArgb = 0xFF1E6BFF.toInt(), cornerRadiusDp = 22),
+            ui = EditorUiConfig(themeMode = ThemeMode.LIGHT, primaryArgb = 0xFF1E6BFF.toInt(), cornerRadiusDp = 22),
         ),
     ),
     ENGLISH(

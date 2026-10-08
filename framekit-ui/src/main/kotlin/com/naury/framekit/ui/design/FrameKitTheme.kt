@@ -17,6 +17,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.dp
 import com.naury.framekit.ui.config.EditorUiConfig
 import com.naury.framekit.ui.config.ThemeMode
@@ -92,8 +93,11 @@ public fun FrameKitTheme(config: EditorUiConfig, content: @Composable () -> Unit
         ThemeMode.LIGHT -> false
         ThemeMode.SYSTEM -> isSystemInDarkTheme()
     }
-    val accent = config.accentArgb?.let(::Color) ?: FrameKitColors.DefaultAccent
-    val colors = (if (dark) FrameKitColors.dark(accent) else FrameKitColors.light(accent)).with(config.palette)
+    val accent = config.primaryArgb?.let(::Color) ?: FrameKitColors.DefaultAccent
+    // 밝은 프라이머리 색(노랑 등)을 받아도 저장 버튼 글자가 보이도록 위 글자색을 자동으로 맞춘다. 팔레트가 지정하면 그 값을 쓴다.
+    val base = (if (dark) FrameKitColors.dark(accent) else FrameKitColors.light(accent))
+        .copy(onAccent = Color(EditorPalette.readableOn(accent.toArgb())))
+    val colors = base.with(config.palette)
     val radius = config.cornerRadiusDp.dp
     val catalog = LocalCatalogUi.current
     val fontFamily = remember(config.uiFontId, catalog) { config.uiFontId?.let(catalog.typeface)?.let { FontFamily(it) } }
@@ -122,7 +126,7 @@ private fun FrameKitColors.with(palette: EditorPalette?): FrameKitColors {
         foreground = palette.foregroundArgb.or(foreground),
         foregroundMuted = palette.foregroundMutedArgb.or(foregroundMuted),
         canvasBackground = palette.canvasArgb.or(canvasBackground),
-        onAccent = palette.onAccentArgb.or(onAccent),
+        onAccent = palette.onPrimaryArgb.or(onAccent),
     )
 }
 
