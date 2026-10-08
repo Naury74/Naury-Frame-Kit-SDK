@@ -99,7 +99,7 @@ ImageEditorRequest(
 | `cornerRadiusDp` | `14` | 0..32 |
 | `showExportProgress` | `true` | `false`이면 단계 대신 "저장하는 중"만 표시 |
 | `enableHaptics` | `true` | 시스템 햅틱 설정은 항상 존중 |
-| `localeTag` | `null` | `null`은 기기 언어. 빈 문자열은 오류 |
+| `localeTag` | `null` | BCP 47 태그(`ko`, `en`, `ja`, `zh-CN`, `zh-TW`, `vi`, `th`, `id`, `ru`, `es`, `pt-BR`, `fr`, `de`). `null`은 기기 언어, 제공하지 않는 언어는 영어. 빈 문자열은 오류 |
 | `palette` | `null` | `EditorPalette`. 배경·패널·강조 패널·글자·보조 글자·캔버스 여백·프라이머리 색 위 글자 색(ARGB)을 바꿈. `null`인 항목은 테마 기본값 |
 | `uiFontId` | `null` | 편집기 문구 폰트. `catalog.fonts`에 있는 id여야 함 |
 

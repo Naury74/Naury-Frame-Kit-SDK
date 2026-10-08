@@ -180,7 +180,12 @@ fun PlaygroundScreen(onBack: () -> Unit, onLaunch: (FrameKitRequest) -> Unit) {
             LabeledSlider(stringResource(R.string.playground_corner, settings.cornerRadiusDp), settings.cornerRadiusDp.toFloat(), 0f..40f) {
                 settings = settings.copy(cornerRadiusDp = it.roundToInt())
             }
-            Chips(listOf<Pair<String?, Int>>(null to R.string.playground_system, "ko" to R.string.playground_korean, "en" to R.string.playground_english), settings.localeTag) {
+            // 언어 이름은 각 언어 자체 표기로 보여 준다(日本語, Tiếng Việt 등). 시스템은 기기 언어를 따른다.
+            Chips(
+                listOf<Pair<String?, Int>>(null to R.string.playground_system) + EDITOR_LANGUAGES.map { it to R.string.playground_system },
+                settings.localeTag,
+                label = { tag -> tag?.let { languageName(it) } },
+            ) {
                 settings = settings.copy(localeTag = it)
             }
             SwitchRow(R.string.playground_progress, settings.showProgress) { settings = settings.copy(showProgress = it) }
@@ -271,4 +276,12 @@ private fun LabeledSlider(label: String, value: Float, range: ClosedFloatingPoin
         Text(label, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
         Slider(value = value, onValueChange = onChange, valueRange = range)
     }
+}
+
+// 편집기가 문구를 제공하는 언어(BCP 47).
+private val EDITOR_LANGUAGES = listOf("ko", "en", "ja", "zh-CN", "zh-TW", "vi", "th", "id", "ru", "es", "pt-BR", "fr", "de")
+
+private fun languageName(tag: String): String {
+    val locale = java.util.Locale.forLanguageTag(tag)
+    return locale.getDisplayName(locale).replaceFirstChar { it.titlecase(locale) }
 }
