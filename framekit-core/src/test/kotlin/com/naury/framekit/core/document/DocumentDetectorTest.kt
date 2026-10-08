@@ -107,6 +107,19 @@ class DocumentDetectorTest {
     }
 
     @Test
+    fun `textured bright areas such as buildings or roads are not paper`() {
+        // 밝기가 넓게 퍼진(130~250) 밝은 영역이 사진 폭을 채우고 아래에 어두운 바닥이 있는 장면.
+        val width = 200
+        val height = 200
+        val random = java.util.Random(7)
+        val scene = IntArray(width * height) { i ->
+            val y = i / width
+            if (y < 140) 130 + random.nextInt(121) else 30
+        }
+        assertThat(DocumentDetector.analyze(scene, width, height).quad).isNull()
+    }
+
+    @Test
     fun `irregular bright shapes and low contrast scenes are not documents`() {
         // 사각형이 아닌 큰 밝은 영역(구름·자동차 차체 같은 모양): 네 모서리 사각형을 채우지 못한다.
         val blob = IntArray(200 * 200) { i ->

@@ -61,23 +61,28 @@ public object DocumentDetector {
         if (fraction < MIN_FRACTION || fraction > MAX_FRACTION) return reject("region fraction $fraction")
         // 가까이 찍은 문서는 사진 가장자리에 닿을 수 있다. 하늘·벽 같은 배경과 구별하려고, 두 변 이상에 닿으면 영역 안에
         // 글자(잉크)가 어느 정도 있을 때만 문서로 본다. 네 변에 모두 닿으면 종이 모서리를 알 수 없어 문서로 보지 않는다.
+        // 종이는 글자를 빼면 거의 한 가지 밝기다. 하늘·건물·도로처럼 밝기가 넓게 퍼진 영역은 문서가 아니다.
+        // 테두리에서 충분히 안쪽에서, 가장 흔한 밝기(종이색) 근처에 있는 점의 비율을 잰다.
+        val interior = morph(region, width, height, closeRadius * 2, grow = false)
+        val histogram = IntArray(256)
+        var inside = 0
+        for (i in region.indices) if (interior[i]) {
+            histogram[luma[i].coerceIn(0, 255)]++
+            inside++
+        }
+        if (inside == 0) return reject("no interior")
+        val paperLevel = histogram.indices.maxBy { level -> (maxOf(0, level - 4)..minOf(255, level + 4)).sumOf { histogram[it] } }
+        val paperShare = (maxOf(0, paperLevel - PAPER_BAND)..minOf(255, paperLevel + PAPER_BAND)).sumOf { histogram[it] }.toDouble() / inside
+        note("paper", paperShare)
+        if (paperShare < MIN_PAPER_SHARE) return reject("not uniform like paper")
         val edges = edgesTouched(region, width, height)
         note("edges", edges.toDouble())
         if (edges >= 4) return reject("touches all edges")
         if (edges >= 2) {
-            // 종이 테두리의 흐려진 경계를 잉크로 세지 않도록, 테두리에서 충분히 안쪽만 본다. 작은 글자는 흐림을 거치면
-            // 종이 색에 섞이므로, 흐리기 전 밝기에서 종이보다 확실히 다른 점을 잉크로 센다.
-            val interior = morph(region, width, height, closeRadius * 2, grow = false)
-            var paperSum = 0L
-            var inside = 0
-            for (i in region.indices) if (interior[i]) {
-                inside++
-                paperSum += luma[i]
-            }
-            val paper = if (inside == 0) 0.0 else paperSum.toDouble() / inside
+            // 작은 글자는 흐림을 거치면 종이 색에 섞이므로, 흐리기 전 밝기에서 종이색과 확실히 다른 점을 잉크로 센다.
             var ink = 0
-            for (i in region.indices) if (interior[i] && abs(luma[i] - paper) > INK_DIFFERENCE) ink++
-            val inkRatio = if (inside == 0) 0.0 else ink.toDouble() / inside
+            for (i in region.indices) if (interior[i] && abs(luma[i] - paperLevel) > INK_DIFFERENCE) ink++
+            val inkRatio = ink.toDouble() / inside
             note("ink", inkRatio)
             if (inkRatio < MIN_INK_NEAR_EDGES) return reject("touches edges without text $inkRatio")
         }
@@ -252,4 +257,6 @@ public object DocumentDetector {
     private const val CLOSE_DIVISOR = 40
     private const val MIN_INK_NEAR_EDGES = 0.01
     private const val INK_DIFFERENCE = 40
+    private const val PAPER_BAND = 20
+    private const val MIN_PAPER_SHARE = 0.5
 }
