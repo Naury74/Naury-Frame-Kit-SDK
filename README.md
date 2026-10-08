@@ -75,7 +75,7 @@ SDK 확장(v1.0)
 | `framekit-ui-video` | 영상 편집 화면만 |
 | `framekit-image` / `framekit-video` | UI 없는 처리(headless)와 엔진 |
 
-Maven Central 공개 전에는 이 저장소에서 로컬 Maven에 올린 뒤 씁니다.
+Maven Central 공개 전에는 이 저장소에서 로컬 Maven에 올린 뒤 씁니다. Maven Central 배포 방법은 [docs/publishing.md](docs/publishing.md)에 있습니다.
 
 ```bash
 ./gradlew publishToMavenLocal   # com.naurylab:*:1.0.0-alpha01
