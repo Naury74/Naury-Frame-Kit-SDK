@@ -29,4 +29,16 @@
     <string name="framekit_document_working">Flattening…</string>
     <string name="framekit_document_applied">Document flattened. Crop, text, stickers, drawing and masks were reset.</string>
     <string name="framekit_document_failed">Couldn\'t flatten the document. Your edits are unchanged.</string>
+    <string name="framekit_scan_color">Scan (color)</string>
+    <string name="framekit_scan_grayscale">Scan (gray)</string>
+    <string name="framekit_scan_black_white">Black &amp; white</string>
+    <string name="framekit_scan_original">Original color</string>
+    <string name="framekit_document_detected">Looks like a document</string>
+    <string name="framekit_document_scan">Scan</string>
+    <string name="framekit_document_text_found">Text recognized</string>
+    <string name="framekit_document_text_view">View</string>
+    <string name="framekit_document_text_title">Recognized text</string>
+    <string name="framekit_document_text_copy">Copy text</string>
+    <string name="framekit_document_text_copied">Text copied</string>
+    <string name="framekit_action_close_dialog">Close</string>
 </resources>

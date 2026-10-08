@@ -42,6 +42,26 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
+import com.naury.framekit.ui.component.DialogActionStyle
+import com.naury.framekit.ui.component.DialogAction
+import com.naury.framekit.ui.component.FrameKitDialog
+import androidx.compose.foundation.text.selection.SelectionContainer
+import androidx.compose.ui.res.vectorResource
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.Icons
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.Text
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Icon
+import androidx.compose.ui.draw.shadow
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
@@ -247,6 +267,10 @@ private fun ReadyContent(state: ImageEditorUiState.Ready, viewModel: ImageEditor
         }, onDismiss = viewModel::dismissExportError)
         null -> Unit
     }
+    val documentText = state.documentText
+    if (state.showDocumentText && documentText != null) {
+        DocumentTextDialog(documentText, onDismiss = { viewModel.showDocumentText(false) })
+    }
     if (state.showDraftDialog) {
         ApplyDraftDialog(onApply = viewModel::applyDraftFromDialog, onDiscard = viewModel::discardDraftFromDialog, onKeepEditing = viewModel::dismissDraftDialog)
     }
@@ -279,6 +303,27 @@ private fun CanvasArea(state: ImageEditorUiState.Ready, viewModel: ImageEditorVi
                 onCompare = if (state.activeTool == null && history.isDirty) viewModel::showOriginal else null,
             )
         }
+        if (state.activeTool == null && state.export == null) {
+            val suggestion = state.documentSuggestion
+            Column(Modifier.align(Alignment.BottomCenter).padding(bottom = 12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                if (suggestion != null && !state.documentSuggestionDismissed && !state.documentRectified) {
+                    DocumentPill(
+                        text = stringResource(R.string.framekit_document_detected),
+                        action = stringResource(R.string.framekit_document_scan),
+                        onAction = { viewModel.selectTool(ImageTool.DOCUMENT) },
+                        onClose = viewModel::dismissDocumentSuggestion,
+                    )
+                }
+                if (state.documentText != null) {
+                    DocumentPill(
+                        text = stringResource(R.string.framekit_document_text_found),
+                        action = stringResource(R.string.framekit_document_text_view),
+                        onAction = { viewModel.showDocumentText(true) },
+                        onClose = null,
+                    )
+                }
+            }
+        }
         // 안내 메시지는 캔버스 아래쪽에 띄워 레이아웃과 상관없이 도구 패널을 가리지 않게 한다.
         FrameKitSnackbarHost(LocalEditorSnackbar.current, Modifier.align(Alignment.BottomCenter).padding(8.dp))
     }
@@ -293,7 +338,11 @@ private fun ToolArea(
     wide: Boolean = false,
     scrollPanel: Boolean = false,
 ) {
-    val tools = viewModel.config.enabledTools.filter { it != ImageTool.CUTOUT || viewModel.cutoutAvailable }
+    // 문서 보정은 문서로 판별된 사진(또는 이미 보정한 쪽)에서만 보여 줘, 일반 사진에서는 툴바를 차지하지 않게 한다.
+    val tools = viewModel.config.enabledTools.filter {
+        (it != ImageTool.CUTOUT || viewModel.cutoutAvailable) &&
+            (it != ImageTool.DOCUMENT || state.documentSuggestion != null || state.documentRectified)
+    }
     AnimatedContent(
         targetState = state.activeTool,
         modifier = modifier.background(FrameKitTheme.colors.background).wrapContentWidth(Alignment.CenterHorizontally),
@@ -349,6 +398,8 @@ private fun ToolArea(
                             DocumentToolPanel(
                                 busy = state.documentBusy,
                                 rectified = state.documentRectified,
+                                scanMode = state.scanMode,
+                                onScanMode = viewModel::selectScanMode,
                                 onDetect = viewModel::detectDocument,
                                 onWholeImage = viewModel::useWholeImage,
                                 onRestore = viewModel::restoreOriginalDocument,
@@ -358,6 +409,8 @@ private fun ToolArea(
                         DocumentToolPanel(
                             busy = state.documentBusy,
                             rectified = state.documentRectified,
+                            scanMode = state.scanMode,
+                            onScanMode = viewModel::selectScanMode,
                             onDetect = viewModel::detectDocument,
                             onWholeImage = viewModel::useWholeImage,
                             onRestore = viewModel::restoreOriginalDocument,
@@ -471,3 +524,65 @@ private const val TOOL_TRANSITION_MS = 200
 private const val MAX_TOOL_AREA_FRACTION = 0.55f
 
 private val LocalEditorSnackbar = staticCompositionLocalOf { SnackbarHostState() }
+
+/** 캔버스 아래쪽에 뜨는 작은 안내 알약. 문서 감지 제안과 인식한 글자 보기에 쓴다. */
+@Composable
+private fun DocumentPill(text: String, action: String, onAction: () -> Unit, onClose: (() -> Unit)?) {
+    val colors = FrameKitTheme.colors
+    Row(
+        Modifier
+            .padding(top = 8.dp)
+            .shadow(6.dp, CircleShape)
+            .background(colors.raised, CircleShape)
+            .padding(start = 14.dp, end = if (onClose != null) 4.dp else 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(painterResource(UiR.drawable.framekit_ic_document), contentDescription = null, tint = colors.accent, modifier = Modifier.size(18.dp))
+        Text(text, color = colors.foreground, style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(start = 8.dp, end = 4.dp))
+        TextButton(onClick = onAction) { Text(action, color = colors.accent, fontWeight = FontWeight.SemiBold) }
+        if (onClose != null) {
+            IconButton(onClick = onClose, modifier = Modifier.size(36.dp)) {
+                Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.framekit_action_close_dialog), tint = colors.foregroundMuted, modifier = Modifier.size(18.dp))
+            }
+        }
+    }
+}
+
+/** 문서 보정 뒤 인식한 글자를 보여 주고 클립보드로 복사한다. 글자는 길게 눌러 일부만 고를 수도 있다. */
+@Composable
+private fun DocumentTextDialog(text: String, onDismiss: () -> Unit) {
+    val colors = FrameKitTheme.colors
+    val clipboard = LocalClipboardManager.current
+    val context = LocalContext.current
+    val copied = stringResource(R.string.framekit_document_text_copied)
+    FrameKitDialog(
+        title = stringResource(R.string.framekit_document_text_title),
+        icon = ImageVector.vectorResource(UiR.drawable.framekit_ic_document),
+        onDismiss = onDismiss,
+        actions = listOf(
+            DialogAction(stringResource(R.string.framekit_document_text_copy), DialogActionStyle.PRIMARY) {
+                clipboard.setText(AnnotatedString(text))
+                // Android 13부터는 시스템이 복사를 알려 주므로 그 전 버전에서만 안내한다.
+                if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.TIRAMISU) {
+                    android.widget.Toast.makeText(context, copied, android.widget.Toast.LENGTH_SHORT).show()
+                }
+                onDismiss()
+            },
+            DialogAction(stringResource(R.string.framekit_action_close_dialog), DialogActionStyle.SECONDARY, onClick = onDismiss),
+        ),
+    ) {
+        SelectionContainer {
+            Text(
+                text,
+                color = colors.foreground,
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 280.dp)
+                    .background(colors.background, MaterialTheme.shapes.medium)
+                    .verticalScroll(rememberScrollState())
+                    .padding(12.dp),
+            )
+        }
+    }
+}

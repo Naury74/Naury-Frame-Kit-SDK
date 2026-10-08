@@ -259,6 +259,8 @@ class ImageEditorViewModelTest {
         }
         val docSource = File(context.cacheDir, "document.png").apply { outputStream().use { photo.compress(Bitmap.CompressFormat.PNG, 100, it) } }
         val viewModel = viewModel(EditorInput.FileSource(docSource.absolutePath))
+        // 문서 사진이라 열자마자 문서 보정을 제안한다.
+        assertThat(ready(viewModel).documentSuggestion).isNotNull()
         viewModel.selectTool(ImageTool.ADJUST)
         viewModel.changeAdjustment(25f)
         viewModel.finishGesture()
@@ -274,8 +276,13 @@ class ImageEditorViewModelTest {
         assertThat(ready(viewModel).documentQuad!!.topLeft.x).isEqualTo(0.0)
         viewModel.detectDocument()
 
+        viewModel.selectScanMode(com.naury.framekit.core.document.ScanMode.BLACK_WHITE)
         viewModel.applyDocument()
         val flattened = ready(viewModel)
+        // 강한 흑백 스캔이라 종이는 흰색, 펴낸 쪽은 다시 문서 보정을 제안하지 않는다.
+        val page = flattened.preview.bitmap
+        assertThat(page.getPixel(page.width / 2, page.height / 2)).isEqualTo(android.graphics.Color.WHITE)
+        assertThat(flattened.documentSuggestion).isNull()
         assertThat(flattened.activeTool).isNull()
         assertThat(flattened.documentRectified).isTrue()
         // 펴진 문서의 크기와 이어받은 보정 값.
@@ -290,6 +297,12 @@ class ImageEditorViewModelTest {
         assertThat(restored.displayed.adjustments.brightness).isWithin(1e-9).of(0.25)
         // 다시 쓰지 않는 중간 파일은 지운다.
         assertThat(File(context.filesDir, "documents-test").listFiles().orEmpty()).isEmpty()
+    }
+
+    @Test
+    fun `ordinary photos do not suggest the document tool`() {
+        val viewModel = viewModel(EditorInput.FileSource(sourceFile.absolutePath))
+        assertThat(ready(viewModel).documentSuggestion).isNull()
     }
 
     @Test

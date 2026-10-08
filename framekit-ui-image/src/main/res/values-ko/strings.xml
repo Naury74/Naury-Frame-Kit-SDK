@@ -29,4 +29,16 @@
     <string name="framekit_document_working">문서를 펴는 중…</string>
     <string name="framekit_document_applied">문서를 반듯하게 폈어요. 자르기·텍스트·스티커·그리기·가리기는 초기화했어요.</string>
     <string name="framekit_document_failed">문서를 펴지 못했어요. 편집은 그대로예요.</string>
+    <string name="framekit_scan_color">스캔 (컬러)</string>
+    <string name="framekit_scan_grayscale">스캔 (흑백)</string>
+    <string name="framekit_scan_black_white">선명한 흑백</string>
+    <string name="framekit_scan_original">원래 색</string>
+    <string name="framekit_document_detected">문서가 감지됐어요</string>
+    <string name="framekit_document_scan">스캔하기</string>
+    <string name="framekit_document_text_found">글자를 인식했어요</string>
+    <string name="framekit_document_text_view">보기</string>
+    <string name="framekit_document_text_title">인식한 글자</string>
+    <string name="framekit_document_text_copy">글자 복사</string>
+    <string name="framekit_document_text_copied">글자를 복사했어요</string>
+    <string name="framekit_action_close_dialog">닫기</string>
 </resources>

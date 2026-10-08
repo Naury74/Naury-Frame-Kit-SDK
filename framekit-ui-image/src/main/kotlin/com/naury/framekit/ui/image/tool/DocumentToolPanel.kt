@@ -18,6 +18,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.BorderStroke
+import com.naury.framekit.core.document.ScanMode
+import com.naury.framekit.ui.component.ChoiceChips
 import com.naury.framekit.ui.design.FrameKitTheme
 import com.naury.framekit.ui.image.R
 
@@ -30,6 +32,8 @@ import com.naury.framekit.ui.image.R
 internal fun DocumentToolPanel(
     busy: Boolean,
     rectified: Boolean,
+    scanMode: ScanMode,
+    onScanMode: (ScanMode) -> Unit,
     onDetect: () -> Unit,
     onWholeImage: () -> Unit,
     onRestore: () -> Unit,
@@ -49,6 +53,23 @@ internal fun DocumentToolPanel(
             color = colors.foregroundMuted,
             style = MaterialTheme.typography.bodySmall,
             textAlign = TextAlign.Center,
+        )
+        // 펴고 나서 어떻게 정리할지. 스캐너 앱처럼 기본은 색을 살린 스캔이다.
+        ChoiceChips(
+            options = ScanMode.entries,
+            selected = scanMode,
+            label = { mode ->
+                stringResource(
+                    when (mode) {
+                        ScanMode.COLOR -> R.string.framekit_scan_color
+                        ScanMode.GRAYSCALE -> R.string.framekit_scan_grayscale
+                        ScanMode.BLACK_WHITE -> R.string.framekit_scan_black_white
+                        ScanMode.ORIGINAL -> R.string.framekit_scan_original
+                    },
+                )
+            },
+            onSelect = onScanMode,
+            modifier = Modifier.padding(top = 10.dp),
         )
         Row(Modifier.fillMaxWidth().padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             PanelButton(stringResource(R.string.framekit_document_detect), onDetect, Modifier.weight(1f))

@@ -1,5 +1,7 @@
 package com.naury.framekit.ui.image.editor
 
+import com.naury.framekit.image.ocr.TextRecognizer
+import com.naury.framekit.core.document.ScanMode
 import com.naury.framekit.image.document.DocumentRectifier
 import com.naury.framekit.core.document.DocumentQuad
 import java.io.File
@@ -107,6 +109,7 @@ internal class ImageEditorViewModel(
     private val captureFile: (() -> Pair<File, Uri>)? = null,
     private val documentDirectory: File? = null,
     private val memoryBudgetBytes: Long = DEFAULT_MEMORY_BUDGET,
+    private val textRecognizer: TextRecognizer? = null,
 ) : ViewModel(), ImageCanvasActions {
 
     private val _state = MutableStateFlow<ImageEditorUiState>(ImageEditorUiState.Loading)
@@ -380,7 +383,19 @@ internal class ImageEditorViewModel(
                         if (carry == null) base else base.copy(transaction = HistoryTransaction.start(carry(base.transaction.history.current)))
                     }
                 }
-                _state.value = ready.copy(pageIndex = pageIndex, pageCount = pages.size, documentRectified = page.original != null)
+                _state.value = ready.copy(
+                    pageIndex = pageIndex,
+                    pageCount = pages.size,
+                    documentRectified = page.original != null,
+                    documentSuggestion = page.documentSuggestion,
+                    documentSuggestionDismissed = page.documentSuggestionDismissed,
+                    documentText = page.documentText,
+                )
+                checkDocument(page, ready.preview.bitmap)
+                if (page.recognizeAfterLoad) {
+                    page.recognizeAfterLoad = false
+                    recognizeDocument(page, ready.preview.bitmap)
+                }
             } catch (error: FrameKitException) {
                 logFailure("load", error)
                 _state.value = ImageEditorUiState.LoadFailed(error.code, canChooseAnother = request.input is EditorInput.Pick)
@@ -508,13 +523,20 @@ internal class ImageEditorViewModel(
             }
             when {
                 tool == ImageTool.TEXT -> openText(ready, existingId = null)
-                tool == ImageTool.DOCUMENT -> ready.copy(activeTool = tool, documentQuad = DocumentQuad.inset(), selectedOverlayId = null)
+                tool == ImageTool.DOCUMENT -> ready.copy(
+                    activeTool = tool,
+                    documentQuad = ready.documentSuggestion ?: DocumentQuad.inset(),
+                    selectedOverlayId = null,
+                    documentSuggestionDismissed = true,
+                )
                 tool.isDraft -> ready.copy(activeTool = tool, cropAspect = CropAspectRatio.Free, transaction = ready.transaction.begin(), selectedOverlayId = null)
                 else -> ready.copy(activeTool = tool)
             }
         }
         // 상태가 바뀐 뒤에 감지를 시작해야 결과가 열린 도구에 반영된다.
-        (_state.value as? ImageEditorUiState.Ready)?.takeIf { it.activeTool == ImageTool.DOCUMENT && tool == ImageTool.DOCUMENT }?.let(::detectDocumentLater)
+        (_state.value as? ImageEditorUiState.Ready)
+            ?.takeIf { it.activeTool == ImageTool.DOCUMENT && tool == ImageTool.DOCUMENT && it.documentSuggestion == null }
+            ?.let(::detectDocumentLater)
     }
 
 
@@ -690,6 +712,45 @@ internal class ImageEditorViewModel(
 
     // ---- 문서 보정 ----
 
+    // 사진을 열 때 한 번 문서인지 판별한다. 문서로 보일 때만 문서 보정 도구와 제안을 보여 준다.
+    private fun checkDocument(page: Page, preview: Bitmap) {
+        if (page.documentChecked || ImageTool.DOCUMENT !in config.enabledTools) return
+        page.documentChecked = true
+        // 이미 문서 보정으로 만든 쪽은 다시 제안하지 않는다.
+        if (page.original != null) return
+        viewModelScope.launch {
+            val found = withContext(ioDispatcher) { runCatching { DocumentRectifier.detect(preview) }.getOrNull() }
+            page.documentSuggestion = found
+            if (found != null && pages.getOrNull(pageIndex) === page) updateReady { it.copy(documentSuggestion = found) }
+        }
+    }
+
+    /** 문서 감지 제안을 닫는다. 도구는 툴바에 그대로 남는다. */
+    fun dismissDocumentSuggestion() {
+        pages.getOrNull(pageIndex)?.documentSuggestionDismissed = true
+        updateReady { it.copy(documentSuggestionDismissed = true) }
+    }
+
+    fun selectScanMode(mode: ScanMode) = updateReady { if (it.documentBusy) it else it.copy(scanMode = mode) }
+
+    // 문서를 편 뒤 글자를 인식해, 스캔이 글자까지 읽었다는 것을 보여 주고 복사할 수 있게 한다.
+    private fun recognizeDocument(page: Page, preview: Bitmap) {
+        val recognizer = textRecognizer ?: return
+        viewModelScope.launch {
+            val text = try {
+                recognizer.recognize(preview).joinToString("\n") { it.text }.trim().ifEmpty { null }
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                null
+            }
+            page.documentText = text
+            if (text != null && pages.getOrNull(pageIndex) === page) updateReady { it.copy(documentText = text) }
+        }
+    }
+
+    fun showDocumentText(show: Boolean) = updateReady { it.copy(showDocumentText = show && it.documentText != null) }
+
     private fun detectDocumentLater(ready: ImageEditorUiState.Ready) {
         val preview = ready.preview.bitmap
         viewModelScope.launch {
@@ -746,7 +807,7 @@ internal class ImageEditorViewModel(
             val output = File(directory, "${UUID.randomUUID()}.jpg")
             val written = withContext(ioDispatcher) {
                 try {
-                    DocumentRectifier(registry, contentResolver, memoryBudgetBytes).rectify(ready.source, quad, output)
+                    DocumentRectifier(registry, contentResolver, memoryBudgetBytes).rectify(ready.source, quad, output, ready.scanMode)
                     true
                 } catch (error: FrameKitException) {
                     logFailure("document", error)
@@ -766,6 +827,7 @@ internal class ImageEditorViewModel(
             val dropped = current.geometry != GeometryEdit() || current.overlays.isNotEmpty() || current.drawing.isNotEmpty() ||
                 current.privacyMasks.isNotEmpty() || current.cutout != null
             replacement.carry = { fresh -> fresh.copy(adjustments = current.adjustments, filter = current.filter) }
+            replacement.recognizeAfterLoad = true
             replacePage(page, replacement)
             if (dropped) updateReady { it.copy(notice = SessionNotice.DOCUMENT_APPLIED) }
         }
@@ -1189,4 +1251,13 @@ private class Page(val id: String, val input: EditorInput, val original: EditorI
 
     /** 문서 보정 뒤 처음 열 때, 이전 원본의 보정·필터를 새 프로젝트에 옮겨 담는다. */
     var carry: ((ImageProject) -> ImageProject)? = null
+
+    /** 문서 판별을 마쳤는지와 그 결과(문서가 아니면 `null`). 다시 열 때 또 계산하지 않는다. */
+    var documentChecked: Boolean = false
+    var documentSuggestion: DocumentQuad? = null
+    var documentSuggestionDismissed: Boolean = false
+
+    /** 문서 보정 직후 글자를 인식해야 하면 `true`. 인식한 글자는 [documentText]. */
+    var recognizeAfterLoad: Boolean = false
+    var documentText: String? = null
 }

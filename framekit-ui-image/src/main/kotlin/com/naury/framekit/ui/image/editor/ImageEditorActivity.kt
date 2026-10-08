@@ -125,6 +125,7 @@ internal class ImageEditorActivity : ComponentActivity() {
                 // 프로세스가 끝나도 이어서 편집할 수 있게 캐시가 아닌 앱 파일 폴더에 둔다.
                 documentDirectory = File(application.filesDir, "framekit/documents"),
                 memoryBudgetBytes = ImageMemoryBudget.bytes(application),
+                textRecognizer = TextRecognizers.find(application),
             )
         }
     }

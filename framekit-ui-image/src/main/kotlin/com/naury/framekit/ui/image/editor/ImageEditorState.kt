@@ -7,6 +7,7 @@ import com.naury.framekit.core.overlay.BrushKind
 import com.naury.framekit.core.overlay.EmojiCatalog
 import com.naury.framekit.core.overlay.PrivacyEffect
 import com.naury.framekit.core.document.DocumentQuad
+import com.naury.framekit.core.document.ScanMode
 import com.naury.framekit.core.geometry.CropAspectRatio
 import com.naury.framekit.core.history.HistoryTransaction
 import com.naury.framekit.core.model.ImageProject
@@ -38,6 +39,16 @@ internal sealed interface ImageEditorUiState {
         val documentBusy: Boolean = false,
         /** 지금 쪽이 문서 보정으로 만든 이미지라 원본으로 되돌릴 수 있으면 `true`. */
         val documentRectified: Boolean = false,
+        /** 사진을 열 때 문서로 판별해 찾은 모서리. 문서가 아니면 `null`이고 문서 보정 도구도 숨긴다. */
+        val documentSuggestion: DocumentQuad? = null,
+        /** 문서 감지 제안을 사용자가 닫았으면 `true`. */
+        val documentSuggestionDismissed: Boolean = false,
+        /** 문서 보정에서 고른 스캔 방식. */
+        val scanMode: ScanMode = ScanMode.COLOR,
+        /** 문서 보정 뒤 인식한 글자. 인식 모듈이 없거나 글자가 없으면 `null`. */
+        val documentText: String? = null,
+        /** 인식한 글자 보기 창을 열었으면 `true`. */
+        val showDocumentText: Boolean = false,
         val showApplyHint: Boolean = false,
         val showingOriginal: Boolean = false,
         val draggingCrop: Boolean = false,
