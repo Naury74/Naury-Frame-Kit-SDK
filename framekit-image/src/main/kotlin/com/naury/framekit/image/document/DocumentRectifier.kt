@@ -13,6 +13,7 @@ import com.naury.framekit.android.result.FrameKitException
 import com.naury.framekit.android.source.SourceResolver
 import com.naury.framekit.core.document.DocumentDetector
 import com.naury.framekit.core.document.DocumentQuad
+import com.naury.framekit.core.document.ScanMode
 import com.naury.framekit.core.model.PixelSize
 import com.naury.framekit.image.decode.BitmapDecoder
 import com.naury.framekit.image.decode.ImageSourceInfo
@@ -42,11 +43,19 @@ public class DocumentRectifier(
     /**
      * 펴낸 문서를 [output]에 JPEG로 쓴다. 긴 변은 [maxLongEdge]를 넘지 않고, 원본보다 키우지 않는다.
      *
+     * @param mode 편 뒤 적용할 스캔 보정([ScanEnhancer]). 기본은 색을 살린 스캔.
      * @return 결과 픽셀 크기.
      * @throws FrameKitException 모서리가 문서 모양이 아니면 `INVALID_PROJECT`, 메모리가 모자라면
      *   `INSUFFICIENT_MEMORY`, 파일을 쓰지 못하면 `OUTPUT_WRITE_FAILED`, 그 밖의 디코딩 오류.
      */
-    public fun rectify(info: ImageSourceInfo, quad: DocumentQuad, output: File, maxLongEdge: Int = MAX_LONG_EDGE, quality: Int = JPEG_QUALITY): PixelSize {
+    public fun rectify(
+        info: ImageSourceInfo,
+        quad: DocumentQuad,
+        output: File,
+        mode: ScanMode = ScanMode.COLOR,
+        maxLongEdge: Int = MAX_LONG_EDGE,
+        quality: Int = JPEG_QUALITY,
+    ): PixelSize {
         if (!quad.isUsable) throw FrameKitException(EditorErrorCode.INVALID_PROJECT, "Corners do not form a document")
         val upright = info.metadata.uprightSize
         val (fullWidth, fullHeight) = quad.rectifiedSize(upright.width, upright.height)
@@ -68,6 +77,7 @@ public class DocumentRectifier(
             }
             try {
                 warp(source, quad, result)
+                ScanEnhancer.enhance(result, mode)
                 try {
                     output.parentFile?.mkdirs()
                     output.outputStream().use { stream ->

@@ -114,6 +114,7 @@ class ImageProcessorTest {
         // 인식기는 쪽에 넣는 이미지 그대로를 받는다.
         assertThat(seen).isEqualTo(400 to 300)
         assertThat(result.output.warnings).isEmpty()
+        assertThat(result.output.recognizedText).isEqualTo("검색되는 글자")
         val pdf = String(published().single().readBytes(), Charsets.ISO_8859_1)
         assertThat(pdf).contains("/ToUnicode")
         assertThat(pdf).contains("3 Tr")

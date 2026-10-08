@@ -227,6 +227,7 @@ public class ImageExportCoordinator(
         onProgress: (Int, Int, ImageExportStage) -> Unit,
     ): EditedMedia {
         val warnings = mutableListOf<ExportWarning>()
+        val pageTexts = mutableListOf<String>()
         var partial: File? = outputStore.createPartial(ImageFormat.PDF.extension)
         try {
             try {
@@ -239,6 +240,7 @@ public class ImageExportCoordinator(
                             val layout = layouts[index]
                             val rendered = render(page.project, page.source, layout.pixels, config.pdf.backgroundArgb, page.assets, warnings)
                             val text = if (config.pdf.recognizeText) recognize(rendered, warnings) else emptyList()
+                            text.joinToString("\n") { it.text }.takeIf { it.isNotBlank() }?.let(pageTexts::add)
                             onProgress(index, pages.size, ImageExportStage.ENCODING)
                             val jpeg = try {
                                 java.io.ByteArrayOutputStream().also { buffer ->
@@ -277,6 +279,7 @@ public class ImageExportCoordinator(
                     fileSize = file.length(),
                     warnings = warnings.distinct(),
                     pageCount = indices.size,
+                    recognizedText = pageTexts.joinToString("\n\n").take(EditedMedia.MAX_RECOGNIZED_TEXT).ifBlank { null },
                 )
             }
         } finally {

@@ -36,6 +36,8 @@ public enum class ExportWarning {
  * @property durationMs 영상 길이(밀리초). 이미지는 `null`이다.
  * @property fileSize 파일 크기(바이트).
  * @property pageCount PDF 문서의 쪽 수. 사진·영상은 `null`이다. PDF의 [width]·[height]는 첫 쪽 크기(pt, 1/72인치)다.
+ * @property recognizedText PDF에 넣은 글자 레이어의 글자(줄은 줄바꿈, 쪽은 빈 줄로 구분). 글자 인식 모듈이 없거나 글자가
+ *   없으면 `null`. 결과 전달 크기 한도 때문에 [MAX_RECOGNIZED_TEXT]자에서 자르며, 전체는 PDF에 들어 있다.
  */
 @Parcelize
 public data class EditedMedia(
@@ -48,4 +50,10 @@ public data class EditedMedia(
     val fileSize: Long,
     val warnings: List<ExportWarning> = emptyList(),
     val pageCount: Int? = null,
-) : Parcelable
+    val recognizedText: String? = null,
+) : Parcelable {
+    public companion object {
+        /** [recognizedText]의 최대 글자 수. Activity 결과 Intent의 크기 한도 안에 들도록 정했다. */
+        public const val MAX_RECOGNIZED_TEXT: Int = 100_000
+    }
+}
