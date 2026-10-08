@@ -60,6 +60,22 @@ class DocumentDetectorTest {
     }
 
     @Test
+    fun `irregular bright shapes and low contrast scenes are not documents`() {
+        // 사각형이 아닌 큰 밝은 영역(구름·자동차 차체 같은 모양): 네 모서리 사각형을 채우지 못한다.
+        val blob = IntArray(200 * 200) { i ->
+            val x = i % 200 - 100.0; val y = i / 200 - 100.0
+            if (x * x + y * y < 80.0 * 80.0 || (x > 0 && y > 0 && x + y < 95)) 220 else 40
+        }
+        assertThat(DocumentDetector.detect(blob, 200, 200)).isNull()
+        // 종이와 바탕의 밝기 차이가 작은 장면.
+        val quad = listOf(0.2 to 0.2, 0.8 to 0.2, 0.8 to 0.8, 0.2 to 0.8)
+        assertThat(DocumentDetector.detect(scene(200, 200, quad, paper = 130, desk = 105), 200, 200)).isNull()
+        // 이미지의 작은 일부인 사각형(간판 등)은 문서로 보지 않는다.
+        val small = listOf(0.4 to 0.4, 0.6 to 0.4, 0.6 to 0.6, 0.4 to 0.6)
+        assertThat(DocumentDetector.detect(scene(200, 200, small), 200, 200)).isNull()
+    }
+
+    @Test
     fun `quad measures area convexity and rectified size`() {
         val quad = DocumentQuad(PointN(0.1, 0.1), PointN(0.9, 0.1), PointN(0.9, 0.6), PointN(0.1, 0.6))
         assertThat(quad.area).isWithin(1e-9).of(0.4)

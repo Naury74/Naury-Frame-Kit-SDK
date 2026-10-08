@@ -22,6 +22,11 @@ public object DocumentDetector {
         require(luma.size == width * height) { "Size does not match" }
         val blurred = boxBlur(boxBlur(luma, width, height), width, height)
         val threshold = otsu(blurred)
+        // 종이와 바탕의 밝기 차이가 작으면 문서라고 보기 어렵다(풍경·인물 사진 등).
+        var brightSum = 0L; var brightCount = 0; var darkSum = 0L; var darkCount = 0
+        blurred.forEach { if (it > threshold) { brightSum += it; brightCount++ } else { darkSum += it; darkCount++ } }
+        if (brightCount == 0 || darkCount == 0) return null
+        if (brightSum / brightCount - darkSum / darkCount < MIN_CONTRAST) return null
         val bright = BooleanArray(blurred.size) { blurred[it] > threshold }
 
         // 가운데 영역(가로·세로 20%)에서 더 많은 쪽을 문서 쪽으로 본다.
@@ -37,6 +42,8 @@ public object DocumentDetector {
         val count = region.count { it }
         val fraction = count.toDouble() / region.size
         if (fraction < MIN_FRACTION || fraction > MAX_FRACTION) return null
+        // 종이는 바탕 위에 놓여 있어 이미지 가장자리에 넓게 닿지 않는다. 두 변 이상에 넓게 닿으면 하늘·벽 같은 배경으로 본다.
+        if (edgesTouched(region, width, height) >= 2) return null
 
         var tl = 0; var tr = 0; var br = 0; var bl = 0
         var minSum = Int.MAX_VALUE; var maxSum = Int.MIN_VALUE; var minDiff = Int.MAX_VALUE; var maxDiff = Int.MIN_VALUE
@@ -53,7 +60,23 @@ public object DocumentDetector {
         }
         fun point(index: Int) = PointN((index % width + 0.5) / width, (index / width + 0.5) / height)
         val quad = DocumentQuad(point(tl), point(tr), point(br), point(bl))
-        return quad.takeIf { it.isUsable }
+        if (!quad.isUsable || quad.area < MIN_DOCUMENT_AREA) return null
+        // 종이는 네 모서리가 만드는 사각형을 거의 꽉 채운다. 모양이 들쭉날쭉한 영역(하늘·벽·자동차 등)은 걸러 낸다.
+        val fill = fraction / quad.area
+        if (fill < MIN_FILL || fill > MAX_FILL) return null
+        // 변 길이 비가 지나치게 길쭉하면 영수증 띠보다도 극단적인 것이라 문서가 아니라고 본다.
+        val (w, h) = quad.rectifiedSize(width, height)
+        if (maxOf(w, h).toDouble() / minOf(w, h) > MAX_ASPECT) return null
+        return quad
+    }
+
+    private fun edgesTouched(region: BooleanArray, width: Int, height: Int): Int {
+        fun coverage(indices: IntProgression): Double = indices.count { region[it] }.toDouble() / indices.count()
+        val top = coverage(0 until width)
+        val bottom = coverage((height - 1) * width until height * width)
+        val left = coverage(0 until width * height step width)
+        val right = coverage(width - 1 until width * height step width)
+        return listOf(top, bottom, left, right).count { it > EDGE_COVERAGE }
     }
 
     private fun boxBlur(source: IntArray, width: Int, height: Int): IntArray {
@@ -145,4 +168,10 @@ public object DocumentDetector {
     private const val MIN_SIDE = 8
     private const val MIN_FRACTION = 0.08
     private const val MAX_FRACTION = 0.97
+    private const val MIN_CONTRAST = 45
+    private const val MIN_DOCUMENT_AREA = 0.12
+    private const val MIN_FILL = 0.9
+    private const val MAX_FILL = 1.06
+    private const val MAX_ASPECT = 6.0
+    private const val EDGE_COVERAGE = 0.3
 }
