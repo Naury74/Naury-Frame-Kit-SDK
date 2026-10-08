@@ -29,18 +29,20 @@ public fun DiscardChangesDialog(onDiscard: () -> Unit, onKeepEditing: () -> Unit
 
 /**
  * 초안 도구(자르기·회전·텍스트 등)에서 바뀐 내용이 있는데 뒤로 가기를 눌렀을 때 묻는다.
- * 실수로 눌러 작업을 잃지 않도록 적용을 가장 눈에 띄게 두고, 버리기·계속 편집을 함께 보여 준다.
+ * 어떤 편집을 다루는지 바로 알 수 있도록 제목과 버튼에 도구 이름을 넣는다(예: "자르기 적용", "자르기 취소").
+ *
+ * @param toolName 열려 있는 도구의 화면 이름(예: "자르기").
  */
 @Composable
-public fun ApplyDraftDialog(onApply: () -> Unit, onDiscard: () -> Unit, onKeepEditing: () -> Unit) {
+public fun ApplyDraftDialog(toolName: String, onApply: () -> Unit, onDiscard: () -> Unit, onKeepEditing: () -> Unit) {
     FrameKitDialog(
-        title = stringResource(R.string.framekit_draft_title),
-        message = stringResource(R.string.framekit_draft_message),
+        title = stringResource(R.string.framekit_draft_title, toolName),
+        message = stringResource(R.string.framekit_draft_message, toolName),
         icon = Icons.Filled.Edit,
         onDismiss = onKeepEditing,
         actions = listOf(
-            DialogAction(stringResource(R.string.framekit_action_apply), DialogActionStyle.PRIMARY, onClick = onApply),
-            DialogAction(stringResource(R.string.framekit_action_discard), DialogActionStyle.DESTRUCTIVE, onClick = onDiscard),
+            DialogAction(stringResource(R.string.framekit_draft_apply, toolName), DialogActionStyle.PRIMARY, onClick = onApply),
+            DialogAction(stringResource(R.string.framekit_draft_discard, toolName), DialogActionStyle.DESTRUCTIVE, onClick = onDiscard),
             DialogAction(stringResource(R.string.framekit_action_keep_editing), DialogActionStyle.SECONDARY, onClick = onKeepEditing),
         ),
     )

@@ -279,7 +279,8 @@ private fun ReadyContent(state: VideoEditorUiState.Ready, viewModel: VideoEditor
         null -> Unit
     }
     if (state.showDraftDialog) {
-        ApplyDraftDialog(onApply = viewModel::applyDraftFromDialog, onDiscard = viewModel::discardDraftFromDialog, onKeepEditing = viewModel::dismissDraftDialog)
+        // 확인창 제목과 버튼에 열려 있는 도구 이름을 넣는다(툴바와 같은 이름).
+        ApplyDraftDialog(toolName = state.activeTool?.railItem()?.label.orEmpty(), onApply = viewModel::applyDraftFromDialog, onDiscard = viewModel::discardDraftFromDialog, onKeepEditing = viewModel::dismissDraftDialog)
     }
     if (state.showDiscardDialog) {
         DiscardChangesDialog(onDiscard = viewModel::confirmDiscard, onKeepEditing = viewModel::dismissDiscard)
