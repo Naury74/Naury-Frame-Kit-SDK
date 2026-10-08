@@ -5,7 +5,7 @@ import com.naury.framekit.android.capture.CaptureFiles
 import android.graphics.Bitmap
 import android.net.Uri
 import android.util.Log
-import android.view.SurfaceHolder
+import android.view.Surface
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -452,9 +452,9 @@ internal class VideoEditorViewModel(
         }
     }
 
-    fun attachSurface(holder: SurfaceHolder) = engine.attachSurface(holder)
+    fun attachSurface(surface: Surface, width: Int, height: Int) = engine.attachSurface(surface, width, height)
 
-    fun detachSurface(holder: SurfaceHolder) = engine.detachSurface(holder)
+    fun detachSurface(surface: Surface) = engine.detachSurface(surface)
 
     /** Activity가 멈출 때 호출된다. 백그라운드에서는 재생을 계속하지 않는다. */
     fun onStop() = engine.pause()
@@ -1077,6 +1077,13 @@ internal class VideoEditorViewModel(
 
     override fun selectMask(id: String?) = updateReady { it.copy(selectedMaskId = id) }
 
+    /** 그리던 새 마스크를 남기지 않고 버린다. 두 손가락 확대로 바뀔 때 쓴다. */
+    override fun cancelMask() {
+        maskAnchor ?: return
+        maskAnchor = null
+        updateReady { it.copy(transaction = it.transaction.cancel(), selectedMaskId = null) }
+    }
+
     /** 기존 마스크를 옮기거나([resize]가 `false`) 오른쪽 아래 모서리로 크기를 바꾸기 시작한다. */
     override fun beginMaskEdit(id: String, resize: Boolean) {
         val ready = _state.value as? VideoEditorUiState.Ready ?: return
@@ -1351,6 +1358,7 @@ internal interface VideoCanvasActions {
     fun beginMask(x: Double, y: Double)
     fun extendMask(x: Double, y: Double)
     fun finishMask()
+    fun cancelMask()
     fun selectMask(id: String?)
     fun beginMaskEdit(id: String, resize: Boolean)
     fun dragMaskEdit(dx: Double, dy: Double)

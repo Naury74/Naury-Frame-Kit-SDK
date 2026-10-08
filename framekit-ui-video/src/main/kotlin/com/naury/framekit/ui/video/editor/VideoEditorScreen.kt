@@ -294,8 +294,8 @@ private fun CanvasArea(state: VideoEditorUiState.Ready, viewModel: VideoEditorVi
             previewSize = previewSize,
             positionUs = playback.positionUs,
             actions = viewModel,
-            onAttachSurface = { viewModel.attachSurface(it.holder) },
-            onDetachSurface = { viewModel.detachSurface(it.holder) },
+            onAttachSurface = viewModel::attachSurface,
+            onDetachSurface = viewModel::detachSurface,
             onTap = viewModel::togglePlayback,
         )
         val previewFailed by viewModel.previewFailed.collectAsStateWithLifecycle()

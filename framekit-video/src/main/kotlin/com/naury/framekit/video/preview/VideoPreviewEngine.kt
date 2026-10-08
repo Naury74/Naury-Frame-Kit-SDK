@@ -9,7 +9,8 @@ import androidx.annotation.OptIn
 import androidx.media3.common.util.ExperimentalApi
 import androidx.media3.common.util.UnstableApi
 import android.content.Context
-import android.view.SurfaceHolder
+import android.view.Surface
+import androidx.media3.common.util.Size
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.transformer.CompositionPlayer
@@ -54,8 +55,18 @@ public interface VideoPreviewEngine {
 
     /** Scrubbing 모드는 사용자가 playhead를 끄는 동안 정확한 프레임보다 빠른 seek를 우선한다. */
     public fun setScrubbing(enabled: Boolean)
-    public fun attachSurface(holder: SurfaceHolder)
-    public fun detachSurface(holder: SurfaceHolder)
+
+    /**
+     * 미리보기를 그릴 [surface]를 연결한다. TextureView의 SurfaceTexture로 만든 Surface를 넘기면 화면 확대·잘라내기가
+     * 일반 View처럼 동작한다.
+     *
+     * @param width surface 폭(px).
+     * @param height surface 높이(px).
+     */
+    public fun attachSurface(surface: Surface, width: Int, height: Int)
+
+    /** [attachSurface]로 연결한 [surface]를 뗀다. 다른 surface가 연결되어 있으면 아무것도 하지 않는다. */
+    public fun detachSurface(surface: Surface)
     public fun release()
 }
 
@@ -126,12 +137,12 @@ public class Media3VideoPreviewEngine(context: Context, private val scope: Corou
         if (!released) player.setScrubbingModeEnabled(enabled)
     }
 
-    override fun attachSurface(holder: SurfaceHolder) {
-        if (!released) player.setVideoSurfaceHolder(holder)
+    override fun attachSurface(surface: Surface, width: Int, height: Int) {
+        if (!released && width > 0 && height > 0) player.setVideoSurface(surface, Size(width, height))
     }
 
-    override fun detachSurface(holder: SurfaceHolder) {
-        if (!released) player.clearVideoSurfaceHolder(holder)
+    override fun detachSurface(surface: Surface) {
+        if (!released) player.clearVideoSurface(surface)
     }
 
     override fun release() {

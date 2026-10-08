@@ -7,7 +7,7 @@ import com.naury.framekit.android.session.EditorSessionStore
 import java.util.concurrent.Executor
 import android.app.Application
 import android.net.Uri
-import android.view.SurfaceHolder
+import android.view.Surface
 import androidx.lifecycle.SavedStateHandle
 import androidx.test.core.app.ApplicationProvider
 import com.google.common.truth.Truth.assertThat
@@ -470,8 +470,8 @@ class VideoEditorViewModelTest {
         }
 
         override fun setScrubbing(enabled: Boolean) = Unit
-        override fun attachSurface(holder: SurfaceHolder) = Unit
-        override fun detachSurface(holder: SurfaceHolder) = Unit
+        override fun attachSurface(surface: Surface, width: Int, height: Int) = Unit
+        override fun detachSurface(surface: Surface) = Unit
         override fun release() = Unit
     }
 }
