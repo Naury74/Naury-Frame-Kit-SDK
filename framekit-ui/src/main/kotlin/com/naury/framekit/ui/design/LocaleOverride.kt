@@ -2,6 +2,7 @@ package com.naury.framekit.ui.design
 
 import android.annotation.SuppressLint
 import android.content.res.Configuration
+import android.view.ContextThemeWrapper
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
@@ -25,9 +26,11 @@ public fun ProvideEditorLocale(localeTag: String?, content: @Composable () -> Un
     }
     val context = LocalContext.current
     val baseConfiguration = LocalConfiguration.current
-    val localized = remember(localeTag, baseConfiguration) {
+    // createConfigurationContext는 Activity가 아닌 Context를 돌려줘, 사진 선택기·권한 요청처럼 Activity를 찾아야 하는
+    // 기능이 끊긴다. Activity를 감싼 래퍼에 언어만 바꾼 설정을 덮어 Activity 연결은 그대로 둔다.
+    val localized = remember(localeTag, baseConfiguration, context) {
         val configuration = Configuration(baseConfiguration).apply { setLocale(Locale.forLanguageTag(localeTag)) }
-        context.createConfigurationContext(configuration)
+        ContextThemeWrapper(context, 0).apply { applyOverrideConfiguration(configuration) }
     }
     CompositionLocalProvider(
         LocalContext provides localized,

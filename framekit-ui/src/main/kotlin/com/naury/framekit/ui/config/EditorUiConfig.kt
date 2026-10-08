@@ -28,7 +28,8 @@ public enum class ThemeMode {
  * @property showExportProgress 내보내기 오버레이에 현재 단계를 표시할지 여부.
  * @property enableHaptics 스냅과 선택 시 짧은 햅틱을 재생할지 여부. `true`여도 기기 설정은
  *   그대로 존중한다.
- * @property localeTag `ko`, `en` 같은 BCP 47 언어 태그. `null`이면 기기 로케일.
+ * @property localeTag `ko`, `en`, `ja`, `zh-CN`, `zh-TW`, `vi`, `th`, `id`, `ru`, `es`, `pt-BR`, `fr`, `de` 같은 BCP 47 언어 태그.
+ *   `null`이면 기기 로케일. 제공하지 않는 언어는 영어로 보인다.
  * @property palette 배경·패널·글자 색을 바꾸는 값. `null`이면 테마 기본 색.
  * @property uiFontId 편집기 문구에 쓸 폰트. 요청 카탈로그에 등록한 폰트 id이며, `null`이면 시스템 폰트.
  */
