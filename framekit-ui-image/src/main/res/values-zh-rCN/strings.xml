@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="framekit_tool_draw">绘图</string>
+    <string name="framekit_brush_pen">钢笔</string>
+    <string name="framekit_brush_marker">马克笔</string>
+    <string name="framekit_brush_highlighter">荧光笔</string>
+    <string name="framekit_brush_eraser">橡皮擦</string>
+    <string name="framekit_brush_width">粗细</string>
+    <string name="framekit_brush_opacity">不透明度</string>
+    <string name="framekit_tool_cutout">抠图</string>
+    <string name="framekit_cutout_remove">移除背景</string>
+    <string name="framekit_cutout_restore">恢复背景</string>
+    <string name="framekit_cutout_processing">正在识别主体…</string>
+    <string name="framekit_cutout_description">保留主体并将背景变为透明。保存为 JPEG 时背景会以纯色填充；如需保留透明，请选择 PNG 或 WEBP。</string>
+    <string name="framekit_cutout_unavailable">背景移除模型仍在准备中。请稍后重试。</string>
+    <string name="framekit_cutout_failed">无法移除背景。请重试。</string>
+    <string name="framekit_page_limit">无法再添加更多照片。</string>
+    <string name="framekit_page_position">第 %1$d 张，共 %2$d 张</string>
+    <string name="framekit_page_label">第 %1$d 张照片</string>
+    <string name="framekit_page_add">添加照片</string>
+    <string name="framekit_page_move_earlier">前移</string>
+    <string name="framekit_page_move_later">后移</string>
+    <string name="framekit_page_remove">移除此照片</string>
+    <string name="framekit_tool_document">文档校正</string>
+    <string name="framekit_document_hint">将四角拖到页面边缘，然后应用即可拉平。</string>
+    <string name="framekit_document_detect">自动检测</string>
+    <string name="framekit_document_whole">整张照片</string>
+    <string name="framekit_document_restore">原图</string>
+    <string name="framekit_document_working">正在拉平…</string>
+    <string name="framekit_document_applied">已拉平文档。裁剪、文字、贴纸、绘图和遮挡已重置。</string>
+    <string name="framekit_document_failed">无法拉平文档。你的编辑保持不变。</string>
+    <string name="framekit_scan_color">扫描（彩色）</string>
+    <string name="framekit_scan_grayscale">扫描（灰度）</string>
+    <string name="framekit_scan_black_white">高对比黑白</string>
+    <string name="framekit_scan_original">原色</string>
+    <string name="framekit_document_detected">检测到文档</string>
+    <string name="framekit_document_scan">扫描</string>
+    <string name="framekit_document_text_found">已识别文字</string>
+    <string name="framekit_document_text_view">查看</string>
+    <string name="framekit_document_text_title">识别的文字</string>
+    <string name="framekit_document_text_copy">复制文字</string>
+    <string name="framekit_document_text_copied">已复制文字</string>
+    <string name="framekit_action_close_dialog">关闭</string>
+</resources>

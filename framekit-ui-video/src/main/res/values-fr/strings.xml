@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="framekit_tool_trim">Couper</string>
+    <string name="framekit_tool_speed">Vitesse</string>
+    <string name="framekit_tool_audio">Son</string>
+    <string name="framekit_play">Lire</string>
+    <string name="framekit_pause">Pause</string>
+    <string name="framekit_time_position">%1$s / %2$s</string>
+    <string name="framekit_trim_start">Début</string>
+    <string name="framekit_trim_end">Fin</string>
+    <string name="framekit_trim_help">Faites glisser les poignées pour choisir la partie à garder.</string>
+    <string name="framekit_timeline">Timeline</string>
+    <string name="framekit_speed_value">%1$s×</string>
+    <string name="framekit_speed_too_long">À cette vitesse, la vidéo dépasse la durée autorisée.</string>
+    <string name="framekit_speed_too_short">À cette vitesse, la vidéo est plus courte que la durée autorisée.</string>
+    <string name="framekit_audio_mute">Couper le son</string>
+    <string name="framekit_audio_unmute">Réactiver le son</string>
+    <string name="framekit_audio_volume">Volume</string>
+    <string name="framekit_audio_none">Cette vidéo n\'a pas de son.</string>
+    <string name="framekit_mask_help">Faites glisser sur la vidéo pour couvrir une zone. Elle est masquée pendant 3 secondes à partir de la tête de lecture.</string>
+    <string name="framekit_mask_range">Affiché de %1$s à %2$s</string>
+    <string name="framekit_mask_start_here">Commencer ici</string>
+    <string name="framekit_mask_end_here">Terminer ici</string>
+    <string name="framekit_mask_delete">Supprimer le masque</string>
+    <plurals name="framekit_mask_limit">
+        <item quantity="one">Vous pouvez ajouter jusqu\'à %1$d masque.</item>
+        <item quantity="other">Vous pouvez ajouter jusqu\'à %1$d masques.</item>
+        <item quantity="many">Vous pouvez ajouter jusqu\'à %1$d masques.</item>
+    </plurals>
+    <string name="framekit_clip_add">Ajouter un clip</string>
+    <string name="framekit_clip_split">Diviser</string>
+    <string name="framekit_clip_move_left">Déplacer avant</string>
+    <string name="framekit_clip_move_right">Déplacer après</string>
+    <string name="framekit_clip_delete">Supprimer le clip</string>
+    <plurals name="framekit_clip_limit">
+        <item quantity="one">Vous pouvez utiliser jusqu\'à %1$d clip.</item>
+        <item quantity="other">Vous pouvez utiliser jusqu\'à %1$d clips.</item>
+        <item quantity="many">Vous pouvez utiliser jusqu\'à %1$d clips.</item>
+    </plurals>
+    <string name="framekit_timeline_full">En ajouter davantage dépasserait la durée autorisée.</string>
+    <string name="framekit_split_unavailable">Impossible de diviser ici. Éloignez-vous un peu du bord du clip.</string>
+    <string name="framekit_add_failed">Impossible d\'ouvrir le fichier sélectionné.</string>
+    <string name="framekit_partially_restored">Certains fichiers n\'ont pas pu être ouverts. Le montage continue sans eux.</string>
+    <string name="framekit_original_sound">Son d\'origine</string>
+    <string name="framekit_music">Musique de fond</string>
+    <string name="framekit_music_add">Ajouter de la musique</string>
+    <string name="framekit_music_remove">Supprimer la musique</string>
+    <string name="framekit_music_loop">Boucle</string>
+    <string name="framekit_music_start_here">Démarrer à la tête de lecture</string>
+    <string name="framekit_music_offset">Début dans le morceau</string>
+    <string name="framekit_music_untitled">Musique</string>
+    <string name="framekit_sticker_help">Les autocollants s\'affichent 3 secondes à partir de la tête de lecture. Faites glisser pour déplacer ; utilisez deux doigts pour redimensionner ou pivoter.</string>
+    <string name="framekit_item_delete">Supprimer</string>
+    <string name="framekit_tool_canvas">Format</string>
+    <string name="framekit_canvas_original">Premier clip</string>
+    <string name="framekit_canvas_fit">Ajuster</string>
+    <string name="framekit_canvas_fill">Remplir</string>
+    <string name="framekit_canvas_help">Les clips d\'un autre format sont ajustés avec des bandes noires, ou remplissent le cadre en perdant leurs bords.</string>
+    <string name="framekit_preview_unavailable">L\'aperçu ne peut pas être affiché pour le moment.</string>
+    <string name="framekit_speed_result">Durée %1$s → %2$s</string>
+    <string name="framekit_cleared">Tous les éléments ont été effacés</string>
+</resources>

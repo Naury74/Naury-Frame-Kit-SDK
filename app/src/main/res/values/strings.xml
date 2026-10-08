@@ -60,8 +60,6 @@
     <string name="playground_dark">Dark</string>
     <string name="playground_light">Light</string>
     <string name="playground_system">System</string>
-    <string name="playground_korean">Korean</string>
-    <string name="playground_english">English</string>
     <string name="playground_contrast_warning">This primary color is too close to the panel color, so selections are hard to see.</string>
     <string name="playground_corner">Corner radius %1$d dp</string>
     <string name="playground_progress">Show export stages</string>

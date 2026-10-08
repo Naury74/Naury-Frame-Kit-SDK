@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="framekit_tool_trim">修剪</string>
+    <string name="framekit_tool_speed">速度</string>
+    <string name="framekit_tool_audio">声音</string>
+    <string name="framekit_play">播放</string>
+    <string name="framekit_pause">暂停</string>
+    <string name="framekit_time_position">%1$s / %2$s</string>
+    <string name="framekit_trim_start">起点</string>
+    <string name="framekit_trim_end">终点</string>
+    <string name="framekit_trim_help">拖动手柄选择要保留的部分。</string>
+    <string name="framekit_timeline">时间轴</string>
+    <string name="framekit_speed_value">%1$s×</string>
+    <string name="framekit_speed_too_long">此速度会使视频超出允许的时长。</string>
+    <string name="framekit_speed_too_short">此速度会使视频短于允许的时长。</string>
+    <string name="framekit_audio_mute">静音</string>
+    <string name="framekit_audio_unmute">取消静音</string>
+    <string name="framekit_audio_volume">音量</string>
+    <string name="framekit_audio_none">此视频没有声音。</string>
+    <string name="framekit_mask_help">在视频上拖动以遮挡区域，将从播放位置起遮挡 3 秒。</string>
+    <string name="framekit_mask_range">显示时段 %1$s – %2$s</string>
+    <string name="framekit_mask_start_here">从这里开始</string>
+    <string name="framekit_mask_end_here">到这里结束</string>
+    <string name="framekit_mask_delete">删除遮罩</string>
+    <plurals name="framekit_mask_limit">
+        <item quantity="other">最多可添加 %1$d 个遮罩。</item>
+    </plurals>
+    <string name="framekit_clip_add">添加片段</string>
+    <string name="framekit_clip_split">分割</string>
+    <string name="framekit_clip_move_left">前移</string>
+    <string name="framekit_clip_move_right">后移</string>
+    <string name="framekit_clip_delete">删除片段</string>
+    <plurals name="framekit_clip_limit">
+        <item quantity="other">最多可使用 %1$d 个片段。</item>
+    </plurals>
+    <string name="framekit_timeline_full">继续添加会使视频超出允许的时长。</string>
+    <string name="framekit_split_unavailable">无法在此处分割。请稍微远离片段边缘。</string>
+    <string name="framekit_add_failed">无法打开所选文件。</string>
+    <string name="framekit_partially_restored">部分文件无法打开，将在不含这些文件的情况下继续编辑。</string>
+    <string name="framekit_original_sound">原声</string>
+    <string name="framekit_music">背景音乐</string>
+    <string name="framekit_music_add">添加音乐</string>
+    <string name="framekit_music_remove">移除音乐</string>
+    <string name="framekit_music_loop">循环</string>
+    <string name="framekit_music_start_here">从播放位置开始</string>
+    <string name="framekit_music_offset">歌曲起始位置</string>
+    <string name="framekit_music_untitled">音乐</string>
+    <string name="framekit_sticker_help">贴纸会从播放位置起显示 3 秒。拖动可移动，双指可缩放或旋转。</string>
+    <string name="framekit_item_delete">删除</string>
+    <string name="framekit_tool_canvas">画面比例</string>
+    <string name="framekit_canvas_original">第一个片段</string>
+    <string name="framekit_canvas_fit">适应</string>
+    <string name="framekit_canvas_fill">填满</string>
+    <string name="framekit_canvas_help">比例不同的片段会加黑边以适应画面，或裁掉边缘以填满画面。</string>
+    <string name="framekit_preview_unavailable">暂时无法显示预览。</string>
+    <string name="framekit_speed_result">时长 %1$s → %2$s</string>
+    <string name="framekit_cleared">已全部清除</string>
+</resources>

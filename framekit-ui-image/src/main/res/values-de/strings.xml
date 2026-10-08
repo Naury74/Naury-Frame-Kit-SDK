@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="framekit_tool_draw">Zeichnen</string>
+    <string name="framekit_brush_pen">Stift</string>
+    <string name="framekit_brush_marker">Marker</string>
+    <string name="framekit_brush_highlighter">Textmarker</string>
+    <string name="framekit_brush_eraser">Radierer</string>
+    <string name="framekit_brush_width">Breite</string>
+    <string name="framekit_brush_opacity">Deckkraft</string>
+    <string name="framekit_tool_cutout">Freistellen</string>
+    <string name="framekit_cutout_remove">Hintergrund entfernen</string>
+    <string name="framekit_cutout_restore">Hintergrund zurück</string>
+    <string name="framekit_cutout_processing">Motiv wird erkannt …</string>
+    <string name="framekit_cutout_description">Behält das Motiv und macht den Hintergrund transparent. Bei JPEG wird er mit einer Vollfarbe gefüllt; wähle PNG oder WEBP, um die Transparenz zu erhalten.</string>
+    <string name="framekit_cutout_unavailable">Das Modell zum Entfernen des Hintergrunds wird noch vorbereitet. Versuche es gleich noch einmal.</string>
+    <string name="framekit_cutout_failed">Der Hintergrund konnte nicht entfernt werden. Versuche es erneut.</string>
+    <string name="framekit_page_limit">Es können keine weiteren Fotos hinzugefügt werden.</string>
+    <string name="framekit_page_position">Foto %1$d von %2$d</string>
+    <string name="framekit_page_label">Foto %1$d</string>
+    <string name="framekit_page_add">Fotos hinzufügen</string>
+    <string name="framekit_page_move_earlier">Nach vorne</string>
+    <string name="framekit_page_move_later">Nach hinten</string>
+    <string name="framekit_page_remove">Dieses Foto entfernen</string>
+    <string name="framekit_tool_document">Dokument</string>
+    <string name="framekit_document_hint">Ziehe die Ecken an die Seitenränder und wende es dann an, um die Seite zu begradigen.</string>
+    <string name="framekit_document_detect">Erkennen</string>
+    <string name="framekit_document_whole">Ganzes Foto</string>
+    <string name="framekit_document_restore">Original</string>
+    <string name="framekit_document_working">Wird begradigt …</string>
+    <string name="framekit_document_applied">Dokument begradigt. Zuschnitt, Text, Sticker, Zeichnungen und Masken wurden zurückgesetzt.</string>
+    <string name="framekit_document_failed">Das Dokument konnte nicht begradigt werden. Deine Bearbeitungen bleiben unverändert.</string>
+    <string name="framekit_scan_color">Scan (Farbe)</string>
+    <string name="framekit_scan_grayscale">Scan (Grau)</string>
+    <string name="framekit_scan_black_white">Schwarzweiß</string>
+    <string name="framekit_scan_original">Originalfarbe</string>
+    <string name="framekit_document_detected">Sieht aus wie ein Dokument</string>
+    <string name="framekit_document_scan">Scannen</string>
+    <string name="framekit_document_text_found">Text erkannt</string>
+    <string name="framekit_document_text_view">Anzeigen</string>
+    <string name="framekit_document_text_title">Erkannter Text</string>
+    <string name="framekit_document_text_copy">Text kopieren</string>
+    <string name="framekit_document_text_copied">Text kopiert</string>
+    <string name="framekit_action_close_dialog">Schließen</string>
+</resources>

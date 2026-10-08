@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="framekit_tool_trim">トリム</string>
+    <string name="framekit_tool_speed">速度</string>
+    <string name="framekit_tool_audio">サウンド</string>
+    <string name="framekit_play">再生</string>
+    <string name="framekit_pause">一時停止</string>
+    <string name="framekit_time_position">%1$s / %2$s</string>
+    <string name="framekit_trim_start">開始位置</string>
+    <string name="framekit_trim_end">終了位置</string>
+    <string name="framekit_trim_help">ハンドルをドラッグして残す部分を選択してください。</string>
+    <string name="framekit_timeline">タイムライン</string>
+    <string name="framekit_speed_value">%1$s×</string>
+    <string name="framekit_speed_too_long">この速度では動画が上限より長くなります。</string>
+    <string name="framekit_speed_too_short">この速度では動画が下限より短くなります。</string>
+    <string name="framekit_audio_mute">ミュート</string>
+    <string name="framekit_audio_unmute">ミュート解除</string>
+    <string name="framekit_audio_volume">音量</string>
+    <string name="framekit_audio_none">この動画には音声がありません。</string>
+    <string name="framekit_mask_help">動画の上をドラッグして隠す範囲を指定します。再生位置から3秒間隠れます。</string>
+    <string name="framekit_mask_range">%1$s – %2$s に表示</string>
+    <string name="framekit_mask_start_here">ここから開始</string>
+    <string name="framekit_mask_end_here">ここで終了</string>
+    <string name="framekit_mask_delete">マスクを削除</string>
+    <plurals name="framekit_mask_limit">
+        <item quantity="other">マスクは最大%1$d個まで追加できます。</item>
+    </plurals>
+    <string name="framekit_clip_add">クリップを追加</string>
+    <string name="framekit_clip_split">分割</string>
+    <string name="framekit_clip_move_left">前へ</string>
+    <string name="framekit_clip_move_right">後ろへ</string>
+    <string name="framekit_clip_delete">クリップを削除</string>
+    <plurals name="framekit_clip_limit">
+        <item quantity="other">クリップは最大%1$d個まで使用できます。</item>
+    </plurals>
+    <string name="framekit_timeline_full">これ以上追加すると動画が上限より長くなります。</string>
+    <string name="framekit_split_unavailable">ここでは分割できません。クリップの端から少し離してください。</string>
+    <string name="framekit_add_failed">選択したファイルを開けませんでした。</string>
+    <string name="framekit_partially_restored">一部のファイルを開けなかったため、それらを除いて編集を続けます。</string>
+    <string name="framekit_original_sound">元の音声</string>
+    <string name="framekit_music">BGM</string>
+    <string name="framekit_music_add">音楽を追加</string>
+    <string name="framekit_music_remove">音楽を削除</string>
+    <string name="framekit_music_loop">ループ</string>
+    <string name="framekit_music_start_here">再生位置から開始</string>
+    <string name="framekit_music_offset">曲の開始位置</string>
+    <string name="framekit_music_untitled">音楽</string>
+    <string name="framekit_sticker_help">ステッカーは再生位置から3秒間表示されます。ドラッグで移動、2本指でサイズや角度を変更できます。</string>
+    <string name="framekit_item_delete">削除</string>
+    <string name="framekit_tool_canvas">画面比率</string>
+    <string name="framekit_canvas_original">最初のクリップ</string>
+    <string name="framekit_canvas_fit">フィット</string>
+    <string name="framekit_canvas_fill">フィル</string>
+    <string name="framekit_canvas_help">形の異なるクリップは、黒い余白を付けて収めるか、端を切って画面を埋めます。</string>
+    <string name="framekit_preview_unavailable">現在プレビューを表示できません。</string>
+    <string name="framekit_speed_result">長さ %1$s → %2$s</string>
+    <string name="framekit_cleared">すべてクリアしました</string>
+</resources>

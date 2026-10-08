@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="framekit_tool_trim">Aparar</string>
+    <string name="framekit_tool_speed">Velocidade</string>
+    <string name="framekit_tool_audio">Áudio</string>
+    <string name="framekit_play">Reproduzir</string>
+    <string name="framekit_pause">Pausar</string>
+    <string name="framekit_time_position">%1$s / %2$s</string>
+    <string name="framekit_trim_start">Início</string>
+    <string name="framekit_trim_end">Fim</string>
+    <string name="framekit_trim_help">Arraste as alças para escolher o trecho que vai ficar.</string>
+    <string name="framekit_timeline">Linha do tempo</string>
+    <string name="framekit_speed_value">%1$s×</string>
+    <string name="framekit_speed_too_long">Com esta velocidade, o vídeo fica mais longo que o permitido.</string>
+    <string name="framekit_speed_too_short">Com esta velocidade, o vídeo fica mais curto que o permitido.</string>
+    <string name="framekit_audio_mute">Silenciar</string>
+    <string name="framekit_audio_unmute">Ativar som</string>
+    <string name="framekit_audio_volume">Volume</string>
+    <string name="framekit_audio_none">Este vídeo não tem som.</string>
+    <string name="framekit_mask_help">Arraste sobre o vídeo para cobrir uma área. Ela fica oculta por 3 segundos a partir do cursor de reprodução.</string>
+    <string name="framekit_mask_range">Visível %1$s – %2$s</string>
+    <string name="framekit_mask_start_here">Começar aqui</string>
+    <string name="framekit_mask_end_here">Terminar aqui</string>
+    <string name="framekit_mask_delete">Excluir máscara</string>
+    <plurals name="framekit_mask_limit">
+        <item quantity="one">É possível adicionar até %1$d máscara.</item>
+        <item quantity="other">É possível adicionar até %1$d máscaras.</item>
+        <item quantity="many">É possível adicionar até %1$d máscaras.</item>
+    </plurals>
+    <string name="framekit_clip_add">Adicionar clipe</string>
+    <string name="framekit_clip_split">Dividir</string>
+    <string name="framekit_clip_move_left">Mover para antes</string>
+    <string name="framekit_clip_move_right">Mover para depois</string>
+    <string name="framekit_clip_delete">Excluir clipe</string>
+    <plurals name="framekit_clip_limit">
+        <item quantity="one">É possível usar até %1$d clipe.</item>
+        <item quantity="other">É possível usar até %1$d clipes.</item>
+        <item quantity="many">É possível usar até %1$d clipes.</item>
+    </plurals>
+    <string name="framekit_timeline_full">Adicionar mais deixaria o vídeo mais longo que o permitido.</string>
+    <string name="framekit_split_unavailable">Não é possível dividir aqui. Afaste-se um pouco da borda do clipe.</string>
+    <string name="framekit_add_failed">Não foi possível abrir o arquivo selecionado.</string>
+    <string name="framekit_partially_restored">Alguns arquivos não puderam ser abertos, então a edição continua sem eles.</string>
+    <string name="framekit_original_sound">Som original</string>
+    <string name="framekit_music">Música de fundo</string>
+    <string name="framekit_music_add">Adicionar música</string>
+    <string name="framekit_music_remove">Remover música</string>
+    <string name="framekit_music_loop">Repetir</string>
+    <string name="framekit_music_start_here">Começar no cursor</string>
+    <string name="framekit_music_offset">Início na música</string>
+    <string name="framekit_music_untitled">Música</string>
+    <string name="framekit_sticker_help">As figurinhas aparecem por 3 segundos a partir do cursor. Arraste para mover; use dois dedos para redimensionar ou girar.</string>
+    <string name="framekit_item_delete">Excluir</string>
+    <string name="framekit_tool_canvas">Formato</string>
+    <string name="framekit_canvas_original">Primeiro clipe</string>
+    <string name="framekit_canvas_fit">Ajustar</string>
+    <string name="framekit_canvas_fill">Preencher</string>
+    <string name="framekit_canvas_help">Clipes com outro formato são ajustados com barras pretas ou preenchem o quadro e perdem as bordas.</string>
+    <string name="framekit_preview_unavailable">Não é possível mostrar a prévia agora.</string>
+    <string name="framekit_speed_result">Duração %1$s → %2$s</string>
+    <string name="framekit_cleared">Todos os itens foram removidos</string>
+</resources>

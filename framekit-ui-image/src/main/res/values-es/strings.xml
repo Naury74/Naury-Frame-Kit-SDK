@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="framekit_tool_draw">Dibujar</string>
+    <string name="framekit_brush_pen">Bolígrafo</string>
+    <string name="framekit_brush_marker">Marcador</string>
+    <string name="framekit_brush_highlighter">Resaltador</string>
+    <string name="framekit_brush_eraser">Borrador</string>
+    <string name="framekit_brush_width">Grosor</string>
+    <string name="framekit_brush_opacity">Opacidad</string>
+    <string name="framekit_tool_cutout">Quitar fondo</string>
+    <string name="framekit_cutout_remove">Quitar fondo</string>
+    <string name="framekit_cutout_restore">Restaurar fondo</string>
+    <string name="framekit_cutout_processing">Buscando el sujeto…</string>
+    <string name="framekit_cutout_description">Conserva el sujeto y hace transparente el fondo. Al guardar en JPEG, el fondo se rellena con un color sólido; elige PNG o WEBP para mantener la transparencia.</string>
+    <string name="framekit_cutout_unavailable">El modelo para quitar fondos aún se está preparando. Vuelve a intentarlo en un momento.</string>
+    <string name="framekit_cutout_failed">No se pudo quitar el fondo. Vuelve a intentarlo.</string>
+    <string name="framekit_page_limit">No se pueden añadir más fotos.</string>
+    <string name="framekit_page_position">Foto %1$d de %2$d</string>
+    <string name="framekit_page_label">Foto %1$d</string>
+    <string name="framekit_page_add">Añadir fotos</string>
+    <string name="framekit_page_move_earlier">Mover antes</string>
+    <string name="framekit_page_move_later">Mover después</string>
+    <string name="framekit_page_remove">Quitar esta foto</string>
+    <string name="framekit_tool_document">Documento</string>
+    <string name="framekit_document_hint">Arrastra las esquinas a los bordes de la página y aplica para enderezarla.</string>
+    <string name="framekit_document_detect">Detectar</string>
+    <string name="framekit_document_whole">Foto completa</string>
+    <string name="framekit_document_restore">Original</string>
+    <string name="framekit_document_working">Enderezando…</string>
+    <string name="framekit_document_applied">Documento enderezado. Se restablecieron el recorte, el texto, los stickers, los dibujos y las áreas ocultas.</string>
+    <string name="framekit_document_failed">No se pudo enderezar el documento. Tus ediciones no cambiaron.</string>
+    <string name="framekit_scan_color">Escaneo (color)</string>
+    <string name="framekit_scan_grayscale">Escaneo (gris)</string>
+    <string name="framekit_scan_black_white">Blanco y negro</string>
+    <string name="framekit_scan_original">Color original</string>
+    <string name="framekit_document_detected">Parece un documento</string>
+    <string name="framekit_document_scan">Escanear</string>
+    <string name="framekit_document_text_found">Texto reconocido</string>
+    <string name="framekit_document_text_view">Ver</string>
+    <string name="framekit_document_text_title">Texto reconocido</string>
+    <string name="framekit_document_text_copy">Copiar texto</string>
+    <string name="framekit_document_text_copied">Texto copiado</string>
+    <string name="framekit_action_close_dialog">Cerrar</string>
+</resources>

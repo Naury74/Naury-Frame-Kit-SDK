@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="framekit_tool_trim">Potong</string>
+    <string name="framekit_tool_speed">Kecepatan</string>
+    <string name="framekit_tool_audio">Audio</string>
+    <string name="framekit_play">Putar</string>
+    <string name="framekit_pause">Jeda</string>
+    <string name="framekit_time_position">%1$s / %2$s</string>
+    <string name="framekit_trim_start">Titik awal</string>
+    <string name="framekit_trim_end">Titik akhir</string>
+    <string name="framekit_trim_help">Seret pegangan untuk memilih bagian yang ingin disimpan.</string>
+    <string name="framekit_timeline">Linimasa</string>
+    <string name="framekit_speed_value">%1$s×</string>
+    <string name="framekit_speed_too_long">Kecepatan ini membuat video lebih panjang dari batas.</string>
+    <string name="framekit_speed_too_short">Kecepatan ini membuat video lebih pendek dari batas.</string>
+    <string name="framekit_audio_mute">Bisukan</string>
+    <string name="framekit_audio_unmute">Bunyikan</string>
+    <string name="framekit_audio_volume">Volume</string>
+    <string name="framekit_audio_none">Video ini tidak memiliki suara.</string>
+    <string name="framekit_mask_help">Seret di video untuk menutupi area. Area itu disembunyikan selama 3 detik dari posisi putar.</string>
+    <string name="framekit_mask_range">Tampil %1$s – %2$s</string>
+    <string name="framekit_mask_start_here">Mulai di sini</string>
+    <string name="framekit_mask_end_here">Akhiri di sini</string>
+    <string name="framekit_mask_delete">Hapus masker</string>
+    <plurals name="framekit_mask_limit">
+        <item quantity="other">Maksimal %1$d masker dapat ditambahkan.</item>
+    </plurals>
+    <string name="framekit_clip_add">Tambah klip</string>
+    <string name="framekit_clip_split">Bagi</string>
+    <string name="framekit_clip_move_left">Pindah ke depan</string>
+    <string name="framekit_clip_move_right">Pindah ke belakang</string>
+    <string name="framekit_clip_delete">Hapus klip</string>
+    <plurals name="framekit_clip_limit">
+        <item quantity="other">Maksimal %1$d klip dapat digunakan.</item>
+    </plurals>
+    <string name="framekit_timeline_full">Menambahkan lagi akan membuat video lebih panjang dari batas.</string>
+    <string name="framekit_split_unavailable">Tidak dapat membagi di sini. Geser sedikit menjauh dari tepi klip.</string>
+    <string name="framekit_add_failed">File yang dipilih tidak dapat dibuka.</string>
+    <string name="framekit_partially_restored">Beberapa file tidak dapat dibuka, jadi pengeditan dilanjutkan tanpa file tersebut.</string>
+    <string name="framekit_original_sound">Suara asli</string>
+    <string name="framekit_music">Musik latar</string>
+    <string name="framekit_music_add">Tambah musik</string>
+    <string name="framekit_music_remove">Hapus musik</string>
+    <string name="framekit_music_loop">Ulangi</string>
+    <string name="framekit_music_start_here">Mulai di posisi putar</string>
+    <string name="framekit_music_offset">Titik mulai lagu</string>
+    <string name="framekit_music_untitled">Musik</string>
+    <string name="framekit_sticker_help">Stiker tampil selama 3 detik dari posisi putar. Seret untuk memindahkan; gunakan dua jari untuk mengubah ukuran atau memutar.</string>
+    <string name="framekit_item_delete">Hapus</string>
+    <string name="framekit_tool_canvas">Kanvas</string>
+    <string name="framekit_canvas_original">Klip pertama</string>
+    <string name="framekit_canvas_fit">Pas</string>
+    <string name="framekit_canvas_fill">Penuh</string>
+    <string name="framekit_canvas_help">Klip dengan bentuk berbeda dipaskan dengan bilah hitam, atau memenuhi bingkai dengan tepi terpotong.</string>
+    <string name="framekit_preview_unavailable">Pratinjau tidak dapat ditampilkan saat ini.</string>
+    <string name="framekit_speed_result">Durasi %1$s → %2$s</string>
+    <string name="framekit_cleared">Semua item dihapus</string>
+</resources>

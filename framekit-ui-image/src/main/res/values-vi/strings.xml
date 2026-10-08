@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="framekit_tool_draw">Vẽ</string>
+    <string name="framekit_brush_pen">Bút</string>
+    <string name="framekit_brush_marker">Bút dạ</string>
+    <string name="framekit_brush_highlighter">Bút nhớ</string>
+    <string name="framekit_brush_eraser">Tẩy</string>
+    <string name="framekit_brush_width">Độ dày</string>
+    <string name="framekit_brush_opacity">Độ mờ đục</string>
+    <string name="framekit_tool_cutout">Tách nền</string>
+    <string name="framekit_cutout_remove">Xóa nền</string>
+    <string name="framekit_cutout_restore">Khôi phục nền</string>
+    <string name="framekit_cutout_processing">Đang tìm chủ thể…</string>
+    <string name="framekit_cutout_description">Giữ lại chủ thể và làm nền trong suốt. Khi lưu JPEG, nền sẽ được tô một màu; hãy chọn PNG hoặc WEBP để giữ độ trong suốt.</string>
+    <string name="framekit_cutout_unavailable">Mô hình xóa nền vẫn đang được chuẩn bị. Hãy thử lại sau giây lát.</string>
+    <string name="framekit_cutout_failed">Không xóa được nền. Hãy thử lại.</string>
+    <string name="framekit_page_limit">Không thể thêm ảnh nữa.</string>
+    <string name="framekit_page_position">Ảnh %1$d/%2$d</string>
+    <string name="framekit_page_label">Ảnh %1$d</string>
+    <string name="framekit_page_add">Thêm ảnh</string>
+    <string name="framekit_page_move_earlier">Lên trước</string>
+    <string name="framekit_page_move_later">Ra sau</string>
+    <string name="framekit_page_remove">Bỏ ảnh này</string>
+    <string name="framekit_tool_document">Tài liệu</string>
+    <string name="framekit_document_hint">Kéo các góc đến mép trang giấy, rồi áp dụng để làm phẳng.</string>
+    <string name="framekit_document_detect">Tự động tìm</string>
+    <string name="framekit_document_whole">Toàn bộ ảnh</string>
+    <string name="framekit_document_restore">Bản gốc</string>
+    <string name="framekit_document_working">Đang làm phẳng…</string>
+    <string name="framekit_document_applied">Đã làm phẳng tài liệu. Cắt, chữ, nhãn dán, hình vẽ và vùng che đã được đặt lại.</string>
+    <string name="framekit_document_failed">Không làm phẳng được tài liệu. Các chỉnh sửa vẫn giữ nguyên.</string>
+    <string name="framekit_scan_color">Quét (màu)</string>
+    <string name="framekit_scan_grayscale">Quét (xám)</string>
+    <string name="framekit_scan_black_white">Đen trắng</string>
+    <string name="framekit_scan_original">Màu gốc</string>
+    <string name="framekit_document_detected">Có vẻ là tài liệu</string>
+    <string name="framekit_document_scan">Quét</string>
+    <string name="framekit_document_text_found">Đã nhận dạng chữ</string>
+    <string name="framekit_document_text_view">Xem</string>
+    <string name="framekit_document_text_title">Chữ đã nhận dạng</string>
+    <string name="framekit_document_text_copy">Sao chép chữ</string>
+    <string name="framekit_document_text_copied">Đã sao chép chữ</string>
+    <string name="framekit_action_close_dialog">Đóng</string>
+</resources>

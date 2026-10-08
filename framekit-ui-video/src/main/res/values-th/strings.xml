@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="framekit_tool_trim">ตัดช่วง</string>
+    <string name="framekit_tool_speed">ความเร็ว</string>
+    <string name="framekit_tool_audio">เสียง</string>
+    <string name="framekit_play">เล่น</string>
+    <string name="framekit_pause">หยุดชั่วคราว</string>
+    <string name="framekit_time_position">%1$s / %2$s</string>
+    <string name="framekit_trim_start">จุดเริ่มต้น</string>
+    <string name="framekit_trim_end">จุดสิ้นสุด</string>
+    <string name="framekit_trim_help">ลากที่จับเพื่อเลือกช่วงที่ต้องการเก็บไว้</string>
+    <string name="framekit_timeline">ไทม์ไลน์</string>
+    <string name="framekit_speed_value">%1$s×</string>
+    <string name="framekit_speed_too_long">ความเร็วนี้ทำให้วิดีโอยาวเกินกว่าที่อนุญาต</string>
+    <string name="framekit_speed_too_short">ความเร็วนี้ทำให้วิดีโอสั้นกว่าที่อนุญาต</string>
+    <string name="framekit_audio_mute">ปิดเสียง</string>
+    <string name="framekit_audio_unmute">เปิดเสียง</string>
+    <string name="framekit_audio_volume">ระดับเสียง</string>
+    <string name="framekit_audio_none">วิดีโอนี้ไม่มีเสียง</string>
+    <string name="framekit_mask_help">ลากบนวิดีโอเพื่อปิดบังพื้นที่ พื้นที่นั้นจะถูกปิดบัง 3 วินาทีนับจากตำแหน่งที่เล่น</string>
+    <string name="framekit_mask_range">แสดง %1$s – %2$s</string>
+    <string name="framekit_mask_start_here">เริ่มตรงนี้</string>
+    <string name="framekit_mask_end_here">จบตรงนี้</string>
+    <string name="framekit_mask_delete">ลบมาสก์</string>
+    <plurals name="framekit_mask_limit">
+        <item quantity="other">เพิ่มมาสก์ได้สูงสุด %1$d รายการ</item>
+    </plurals>
+    <string name="framekit_clip_add">เพิ่มคลิป</string>
+    <string name="framekit_clip_split">แยก</string>
+    <string name="framekit_clip_move_left">เลื่อนไปก่อน</string>
+    <string name="framekit_clip_move_right">เลื่อนไปหลัง</string>
+    <string name="framekit_clip_delete">ลบคลิป</string>
+    <plurals name="framekit_clip_limit">
+        <item quantity="other">ใช้คลิปได้สูงสุด %1$d คลิป</item>
+    </plurals>
+    <string name="framekit_timeline_full">หากเพิ่มอีก วิดีโอจะยาวเกินกว่าที่อนุญาต</string>
+    <string name="framekit_split_unavailable">แยกตรงนี้ไม่ได้ โปรดเลื่อนออกจากขอบคลิปเล็กน้อย</string>
+    <string name="framekit_add_failed">เปิดไฟล์ที่เลือกไม่ได้</string>
+    <string name="framekit_partially_restored">บางไฟล์เปิดไม่ได้ จึงแก้ไขต่อโดยไม่มีไฟล์เหล่านั้น</string>
+    <string name="framekit_original_sound">เสียงต้นฉบับ</string>
+    <string name="framekit_music">เพลงประกอบ</string>
+    <string name="framekit_music_add">เพิ่มเพลง</string>
+    <string name="framekit_music_remove">ลบเพลง</string>
+    <string name="framekit_music_loop">เล่นวนซ้ำ</string>
+    <string name="framekit_music_start_here">เริ่มที่ตำแหน่งที่เล่น</string>
+    <string name="framekit_music_offset">จุดเริ่มในเพลง</string>
+    <string name="framekit_music_untitled">เพลง</string>
+    <string name="framekit_sticker_help">สติกเกอร์จะแสดง 3 วินาทีนับจากตำแหน่งที่เล่น ลากเพื่อย้าย ใช้สองนิ้วเพื่อปรับขนาดหรือหมุน</string>
+    <string name="framekit_item_delete">ลบ</string>
+    <string name="framekit_tool_canvas">อัตราส่วนภาพ</string>
+    <string name="framekit_canvas_original">คลิปแรก</string>
+    <string name="framekit_canvas_fit">พอดี</string>
+    <string name="framekit_canvas_fill">เต็มจอ</string>
+    <string name="framekit_canvas_help">คลิปที่มีสัดส่วนต่างกันจะถูกปรับให้พอดีพร้อมแถบดำ หรือขยายเต็มเฟรมโดยขอบบางส่วนถูกตัดออก</string>
+    <string name="framekit_preview_unavailable">ไม่สามารถแสดงตัวอย่างได้ในขณะนี้</string>
+    <string name="framekit_speed_result">ความยาว %1$s → %2$s</string>
+    <string name="framekit_cleared">ล้างทุกรายการแล้ว</string>
+</resources>

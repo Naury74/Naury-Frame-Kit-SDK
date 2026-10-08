@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="framekit_tool_draw">描画</string>
+    <string name="framekit_brush_pen">ペン</string>
+    <string name="framekit_brush_marker">マーカー</string>
+    <string name="framekit_brush_highlighter">蛍光ペン</string>
+    <string name="framekit_brush_eraser">消しゴム</string>
+    <string name="framekit_brush_width">太さ</string>
+    <string name="framekit_brush_opacity">不透明度</string>
+    <string name="framekit_tool_cutout">背景削除</string>
+    <string name="framekit_cutout_remove">背景を削除</string>
+    <string name="framekit_cutout_restore">背景を復元</string>
+    <string name="framekit_cutout_processing">被写体を検出中…</string>
+    <string name="framekit_cutout_description">被写体だけを残して背景を透明にします。JPEG で保存すると背景は単色で塗りつぶされます。透明のまま残すには PNG または WEBP を選んでください。</string>
+    <string name="framekit_cutout_unavailable">背景削除モデルを準備中です。しばらくしてからもう一度お試しください。</string>
+    <string name="framekit_cutout_failed">背景を削除できませんでした。もう一度お試しください。</string>
+    <string name="framekit_page_limit">これ以上写真を追加できません。</string>
+    <string name="framekit_page_position">%2$d枚中%1$d枚目</string>
+    <string name="framekit_page_label">%1$d枚目の写真</string>
+    <string name="framekit_page_add">写真を追加</string>
+    <string name="framekit_page_move_earlier">前へ</string>
+    <string name="framekit_page_move_later">後ろへ</string>
+    <string name="framekit_page_remove">この写真を外す</string>
+    <string name="framekit_tool_document">書類補正</string>
+    <string name="framekit_document_hint">四隅をページの端に合わせて適用すると、まっすぐに補正されます。</string>
+    <string name="framekit_document_detect">自動検出</string>
+    <string name="framekit_document_whole">写真全体</string>
+    <string name="framekit_document_restore">オリジナル</string>
+    <string name="framekit_document_working">補正中…</string>
+    <string name="framekit_document_applied">書類を補正しました。切り抜き・テキスト・ステッカー・描画・マスクはリセットされました。</string>
+    <string name="framekit_document_failed">書類を補正できませんでした。編集内容は変更されていません。</string>
+    <string name="framekit_scan_color">スキャン（カラー）</string>
+    <string name="framekit_scan_grayscale">スキャン（グレー）</string>
+    <string name="framekit_scan_black_white">くっきり白黒</string>
+    <string name="framekit_scan_original">元の色</string>
+    <string name="framekit_document_detected">書類のようです</string>
+    <string name="framekit_document_scan">スキャン</string>
+    <string name="framekit_document_text_found">文字を認識しました</string>
+    <string name="framekit_document_text_view">表示</string>
+    <string name="framekit_document_text_title">認識した文字</string>
+    <string name="framekit_document_text_copy">文字をコピー</string>
+    <string name="framekit_document_text_copied">文字をコピーしました</string>
+    <string name="framekit_action_close_dialog">閉じる</string>
+</resources>

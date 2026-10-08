@@ -59,8 +59,6 @@
     <string name="playground_dark">다크</string>
     <string name="playground_light">라이트</string>
     <string name="playground_system">시스템</string>
-    <string name="playground_korean">한국어</string>
-    <string name="playground_english">영어</string>
     <string name="playground_contrast_warning">이 프라이머리 색은 패널 색과 비슷해 선택 표시가 잘 보이지 않아요.</string>
     <string name="playground_corner">모서리 %1$d dp</string>
     <string name="playground_progress">저장 단계 표시</string>

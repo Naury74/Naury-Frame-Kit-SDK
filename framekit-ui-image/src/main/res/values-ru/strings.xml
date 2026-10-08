@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="framekit_tool_draw">Рисование</string>
+    <string name="framekit_brush_pen">Ручка</string>
+    <string name="framekit_brush_marker">Маркер</string>
+    <string name="framekit_brush_highlighter">Выделитель</string>
+    <string name="framekit_brush_eraser">Ластик</string>
+    <string name="framekit_brush_width">Толщина</string>
+    <string name="framekit_brush_opacity">Непрозрачность</string>
+    <string name="framekit_tool_cutout">Удаление фона</string>
+    <string name="framekit_cutout_remove">Удалить фон</string>
+    <string name="framekit_cutout_restore">Вернуть фон</string>
+    <string name="framekit_cutout_processing">Поиск объекта…</string>
+    <string name="framekit_cutout_description">Оставляет объект и делает фон прозрачным. В JPEG фон заливается сплошным цветом — чтобы сохранить прозрачность, выберите PNG или WEBP.</string>
+    <string name="framekit_cutout_unavailable">Модель удаления фона ещё готовится. Повторите попытку чуть позже.</string>
+    <string name="framekit_cutout_failed">Не удалось удалить фон. Повторите попытку.</string>
+    <string name="framekit_page_limit">Больше фото добавить нельзя.</string>
+    <string name="framekit_page_position">Фото %1$d из %2$d</string>
+    <string name="framekit_page_label">Фото %1$d</string>
+    <string name="framekit_page_add">Добавить фото</string>
+    <string name="framekit_page_move_earlier">Ближе к началу</string>
+    <string name="framekit_page_move_later">Ближе к концу</string>
+    <string name="framekit_page_remove">Убрать это фото</string>
+    <string name="framekit_tool_document">Документ</string>
+    <string name="framekit_document_hint">Перетащите углы к краям страницы и нажмите «Применить», чтобы выровнять её.</string>
+    <string name="framekit_document_detect">Найти</string>
+    <string name="framekit_document_whole">Всё фото</string>
+    <string name="framekit_document_restore">Оригинал</string>
+    <string name="framekit_document_working">Выравнивание…</string>
+    <string name="framekit_document_applied">Документ выровнен. Обрезка, текст, стикеры, рисунки и скрытие сброшены.</string>
+    <string name="framekit_document_failed">Не удалось выровнять документ. Правки не изменились.</string>
+    <string name="framekit_scan_color">Скан (цветной)</string>
+    <string name="framekit_scan_grayscale">Скан (серый)</string>
+    <string name="framekit_scan_black_white">Чёрно-белый</string>
+    <string name="framekit_scan_original">Исходный цвет</string>
+    <string name="framekit_document_detected">Похоже на документ</string>
+    <string name="framekit_document_scan">Сканировать</string>
+    <string name="framekit_document_text_found">Текст распознан</string>
+    <string name="framekit_document_text_view">Показать</string>
+    <string name="framekit_document_text_title">Распознанный текст</string>
+    <string name="framekit_document_text_copy">Копировать текст</string>
+    <string name="framekit_document_text_copied">Текст скопирован</string>
+    <string name="framekit_action_close_dialog">Закрыть</string>
+</resources>

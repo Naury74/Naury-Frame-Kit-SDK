@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="framekit_tool_trim">Обрезка</string>
+    <string name="framekit_tool_speed">Скорость</string>
+    <string name="framekit_tool_audio">Звук</string>
+    <string name="framekit_play">Воспроизвести</string>
+    <string name="framekit_pause">Пауза</string>
+    <string name="framekit_time_position">%1$s / %2$s</string>
+    <string name="framekit_trim_start">Начало</string>
+    <string name="framekit_trim_end">Конец</string>
+    <string name="framekit_trim_help">Перетащите маркеры, чтобы выбрать нужный фрагмент.</string>
+    <string name="framekit_timeline">Шкала времени</string>
+    <string name="framekit_speed_value">%1$s×</string>
+    <string name="framekit_speed_too_long">С такой скоростью видео станет длиннее допустимого.</string>
+    <string name="framekit_speed_too_short">С такой скоростью видео станет короче допустимого.</string>
+    <string name="framekit_audio_mute">Выключить звук</string>
+    <string name="framekit_audio_unmute">Включить звук</string>
+    <string name="framekit_audio_volume">Громкость</string>
+    <string name="framekit_audio_none">В этом видео нет звука.</string>
+    <string name="framekit_mask_help">Проведите по видео, чтобы закрыть область. Она скрывается на 3 секунды от текущей позиции.</string>
+    <string name="framekit_mask_range">Показ %1$s – %2$s</string>
+    <string name="framekit_mask_start_here">Начать здесь</string>
+    <string name="framekit_mask_end_here">Закончить здесь</string>
+    <string name="framekit_mask_delete">Удалить маску</string>
+    <plurals name="framekit_mask_limit">
+        <item quantity="one">Можно добавить не более %1$d маски.</item>
+        <item quantity="few">Можно добавить не более %1$d масок.</item>
+        <item quantity="many">Можно добавить не более %1$d масок.</item>
+        <item quantity="other">Можно добавить не более %1$d маски.</item>
+    </plurals>
+    <string name="framekit_clip_add">Добавить клип</string>
+    <string name="framekit_clip_split">Разделить</string>
+    <string name="framekit_clip_move_left">Ближе к началу</string>
+    <string name="framekit_clip_move_right">Ближе к концу</string>
+    <string name="framekit_clip_delete">Удалить клип</string>
+    <plurals name="framekit_clip_limit">
+        <item quantity="one">Можно использовать не более %1$d клипа.</item>
+        <item quantity="few">Можно использовать не более %1$d клипов.</item>
+        <item quantity="many">Можно использовать не более %1$d клипов.</item>
+        <item quantity="other">Можно использовать не более %1$d клипа.</item>
+    </plurals>
+    <string name="framekit_timeline_full">Если добавить ещё, видео станет длиннее допустимого.</string>
+    <string name="framekit_split_unavailable">Здесь разделить нельзя. Отойдите немного от края клипа.</string>
+    <string name="framekit_add_failed">Не удалось открыть выбранный файл.</string>
+    <string name="framekit_partially_restored">Некоторые файлы не открылись, редактирование продолжится без них.</string>
+    <string name="framekit_original_sound">Исходный звук</string>
+    <string name="framekit_music">Фоновая музыка</string>
+    <string name="framekit_music_add">Добавить музыку</string>
+    <string name="framekit_music_remove">Удалить музыку</string>
+    <string name="framekit_music_loop">Повтор</string>
+    <string name="framekit_music_start_here">Начать с текущей позиции</string>
+    <string name="framekit_music_offset">Начало в треке</string>
+    <string name="framekit_music_untitled">Музыка</string>
+    <string name="framekit_sticker_help">Стикеры видны 3 секунды от текущей позиции. Перетаскивайте, чтобы переместить; двумя пальцами — менять размер и поворот.</string>
+    <string name="framekit_item_delete">Удалить</string>
+    <string name="framekit_tool_canvas">Формат</string>
+    <string name="framekit_canvas_original">Первый клип</string>
+    <string name="framekit_canvas_fit">Вписать</string>
+    <string name="framekit_canvas_fill">Заполнить</string>
+    <string name="framekit_canvas_help">Клипы другой формы вписываются с чёрными полосами или заполняют кадр с обрезкой краёв.</string>
+    <string name="framekit_preview_unavailable">Сейчас не удаётся показать превью.</string>
+    <string name="framekit_speed_result">Длительность %1$s → %2$s</string>
+    <string name="framekit_cleared">Все элементы удалены</string>
+</resources>

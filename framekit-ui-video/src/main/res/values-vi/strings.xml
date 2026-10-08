@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="framekit_tool_trim">Cắt đoạn</string>
+    <string name="framekit_tool_speed">Tốc độ</string>
+    <string name="framekit_tool_audio">Âm thanh</string>
+    <string name="framekit_play">Phát</string>
+    <string name="framekit_pause">Tạm dừng</string>
+    <string name="framekit_time_position">%1$s / %2$s</string>
+    <string name="framekit_trim_start">Điểm đầu</string>
+    <string name="framekit_trim_end">Điểm cuối</string>
+    <string name="framekit_trim_help">Kéo các tay cầm để chọn đoạn muốn giữ.</string>
+    <string name="framekit_timeline">Dòng thời gian</string>
+    <string name="framekit_speed_value">%1$s×</string>
+    <string name="framekit_speed_too_long">Với tốc độ này, video sẽ dài hơn mức cho phép.</string>
+    <string name="framekit_speed_too_short">Với tốc độ này, video sẽ ngắn hơn mức cho phép.</string>
+    <string name="framekit_audio_mute">Tắt tiếng</string>
+    <string name="framekit_audio_unmute">Bật tiếng</string>
+    <string name="framekit_audio_volume">Âm lượng</string>
+    <string name="framekit_audio_none">Video này không có âm thanh.</string>
+    <string name="framekit_mask_help">Kéo trên video để che một vùng. Vùng đó sẽ bị che trong 3 giây kể từ vị trí phát.</string>
+    <string name="framekit_mask_range">Hiển thị %1$s – %2$s</string>
+    <string name="framekit_mask_start_here">Bắt đầu tại đây</string>
+    <string name="framekit_mask_end_here">Kết thúc tại đây</string>
+    <string name="framekit_mask_delete">Xóa vùng che</string>
+    <plurals name="framekit_mask_limit">
+        <item quantity="other">Có thể thêm tối đa %1$d vùng che.</item>
+    </plurals>
+    <string name="framekit_clip_add">Thêm clip</string>
+    <string name="framekit_clip_split">Tách</string>
+    <string name="framekit_clip_move_left">Lên trước</string>
+    <string name="framekit_clip_move_right">Ra sau</string>
+    <string name="framekit_clip_delete">Xóa clip</string>
+    <plurals name="framekit_clip_limit">
+        <item quantity="other">Có thể dùng tối đa %1$d clip.</item>
+    </plurals>
+    <string name="framekit_timeline_full">Thêm nữa sẽ khiến video dài hơn mức cho phép.</string>
+    <string name="framekit_split_unavailable">Không thể tách tại đây. Hãy di chuyển ra xa mép clip một chút.</string>
+    <string name="framekit_add_failed">Không mở được tệp đã chọn.</string>
+    <string name="framekit_partially_restored">Một số tệp không mở được nên sẽ tiếp tục chỉnh sửa mà không có chúng.</string>
+    <string name="framekit_original_sound">Âm thanh gốc</string>
+    <string name="framekit_music">Nhạc nền</string>
+    <string name="framekit_music_add">Thêm nhạc</string>
+    <string name="framekit_music_remove">Xóa nhạc</string>
+    <string name="framekit_music_loop">Lặp lại</string>
+    <string name="framekit_music_start_here">Bắt đầu tại vị trí phát</string>
+    <string name="framekit_music_offset">Điểm bắt đầu bài hát</string>
+    <string name="framekit_music_untitled">Nhạc</string>
+    <string name="framekit_sticker_help">Nhãn dán hiển thị trong 3 giây kể từ vị trí phát. Kéo để di chuyển; dùng hai ngón tay để đổi kích thước hoặc xoay.</string>
+    <string name="framekit_item_delete">Xóa</string>
+    <string name="framekit_tool_canvas">Khung hình</string>
+    <string name="framekit_canvas_original">Clip đầu tiên</string>
+    <string name="framekit_canvas_fit">Vừa khung</string>
+    <string name="framekit_canvas_fill">Lấp đầy</string>
+    <string name="framekit_canvas_help">Clip có tỷ lệ khác sẽ được thêm viền đen cho vừa, hoặc lấp đầy khung và bị cắt mép.</string>
+    <string name="framekit_preview_unavailable">Hiện không thể hiển thị bản xem trước.</string>
+    <string name="framekit_speed_result">Độ dài %1$s → %2$s</string>
+    <string name="framekit_cleared">Đã xóa tất cả</string>
+</resources>

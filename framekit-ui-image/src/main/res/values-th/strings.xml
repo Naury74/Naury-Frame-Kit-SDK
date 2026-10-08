@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="framekit_tool_draw">วาด</string>
+    <string name="framekit_brush_pen">ปากกา</string>
+    <string name="framekit_brush_marker">มาร์กเกอร์</string>
+    <string name="framekit_brush_highlighter">ปากกาเน้นข้อความ</string>
+    <string name="framekit_brush_eraser">ยางลบ</string>
+    <string name="framekit_brush_width">ความหนา</string>
+    <string name="framekit_brush_opacity">ความทึบ</string>
+    <string name="framekit_tool_cutout">ลบพื้นหลัง</string>
+    <string name="framekit_cutout_remove">ลบพื้นหลัง</string>
+    <string name="framekit_cutout_restore">คืนค่าพื้นหลัง</string>
+    <string name="framekit_cutout_processing">กำลังหาวัตถุหลัก…</string>
+    <string name="framekit_cutout_description">เก็บวัตถุหลักไว้และทำให้พื้นหลังโปร่งใส หากบันทึกเป็น JPEG พื้นหลังจะถูกเติมด้วยสีทึบ เลือก PNG หรือ WEBP เพื่อคงความโปร่งใส</string>
+    <string name="framekit_cutout_unavailable">โมเดลลบพื้นหลังยังเตรียมไม่เสร็จ โปรดลองอีกครั้งในอีกสักครู่</string>
+    <string name="framekit_cutout_failed">ลบพื้นหลังไม่สำเร็จ โปรดลองอีกครั้ง</string>
+    <string name="framekit_page_limit">เพิ่มรูปภาพไม่ได้อีกแล้ว</string>
+    <string name="framekit_page_position">รูปที่ %1$d จาก %2$d</string>
+    <string name="framekit_page_label">รูปที่ %1$d</string>
+    <string name="framekit_page_add">เพิ่มรูปภาพ</string>
+    <string name="framekit_page_move_earlier">เลื่อนไปก่อน</string>
+    <string name="framekit_page_move_later">เลื่อนไปหลัง</string>
+    <string name="framekit_page_remove">นำรูปนี้ออก</string>
+    <string name="framekit_tool_document">เอกสาร</string>
+    <string name="framekit_document_hint">ลากมุมไปที่ขอบกระดาษ แล้วกดใช้เพื่อปรับให้เรียบ</string>
+    <string name="framekit_document_detect">ตรวจหา</string>
+    <string name="framekit_document_whole">ทั้งรูป</string>
+    <string name="framekit_document_restore">ต้นฉบับ</string>
+    <string name="framekit_document_working">กำลังปรับให้เรียบ…</string>
+    <string name="framekit_document_applied">ปรับเอกสารให้เรียบแล้ว การครอบตัด ข้อความ สติกเกอร์ ภาพวาด และการปิดบังถูกรีเซ็ต</string>
+    <string name="framekit_document_failed">ปรับเอกสารให้เรียบไม่ได้ การแก้ไขของคุณยังเหมือนเดิม</string>
+    <string name="framekit_scan_color">สแกน (สี)</string>
+    <string name="framekit_scan_grayscale">สแกน (เทา)</string>
+    <string name="framekit_scan_black_white">ขาวดำ</string>
+    <string name="framekit_scan_original">สีเดิม</string>
+    <string name="framekit_document_detected">ดูเหมือนเป็นเอกสาร</string>
+    <string name="framekit_document_scan">สแกน</string>
+    <string name="framekit_document_text_found">จดจำข้อความแล้ว</string>
+    <string name="framekit_document_text_view">ดู</string>
+    <string name="framekit_document_text_title">ข้อความที่จดจำได้</string>
+    <string name="framekit_document_text_copy">คัดลอกข้อความ</string>
+    <string name="framekit_document_text_copied">คัดลอกข้อความแล้ว</string>
+    <string name="framekit_action_close_dialog">ปิด</string>
+</resources>

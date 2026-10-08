@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="framekit_tool_trim">Kürzen</string>
+    <string name="framekit_tool_speed">Tempo</string>
+    <string name="framekit_tool_audio">Ton</string>
+    <string name="framekit_play">Abspielen</string>
+    <string name="framekit_pause">Pause</string>
+    <string name="framekit_time_position">%1$s / %2$s</string>
+    <string name="framekit_trim_start">Anfang</string>
+    <string name="framekit_trim_end">Ende</string>
+    <string name="framekit_trim_help">Ziehe die Griffe, um den Teil zu wählen, der bleiben soll.</string>
+    <string name="framekit_timeline">Zeitleiste</string>
+    <string name="framekit_speed_value">%1$s×</string>
+    <string name="framekit_speed_too_long">Mit diesem Tempo wird das Video länger als erlaubt.</string>
+    <string name="framekit_speed_too_short">Mit diesem Tempo wird das Video kürzer als erlaubt.</string>
+    <string name="framekit_audio_mute">Ton aus</string>
+    <string name="framekit_audio_unmute">Ton an</string>
+    <string name="framekit_audio_volume">Lautstärke</string>
+    <string name="framekit_audio_none">Dieses Video hat keinen Ton.</string>
+    <string name="framekit_mask_help">Ziehe über das Video, um einen Bereich abzudecken. Er wird ab der Abspielposition 3 Sekunden lang verdeckt.</string>
+    <string name="framekit_mask_range">Sichtbar %1$s – %2$s</string>
+    <string name="framekit_mask_start_here">Hier beginnen</string>
+    <string name="framekit_mask_end_here">Hier enden</string>
+    <string name="framekit_mask_delete">Maske löschen</string>
+    <plurals name="framekit_mask_limit">
+        <item quantity="one">Es kann höchstens %1$d Maske hinzugefügt werden.</item>
+        <item quantity="other">Es können höchstens %1$d Masken hinzugefügt werden.</item>
+    </plurals>
+    <string name="framekit_clip_add">Clip hinzufügen</string>
+    <string name="framekit_clip_split">Teilen</string>
+    <string name="framekit_clip_move_left">Nach vorne</string>
+    <string name="framekit_clip_move_right">Nach hinten</string>
+    <string name="framekit_clip_delete">Clip löschen</string>
+    <plurals name="framekit_clip_limit">
+        <item quantity="one">Es kann höchstens %1$d Clip verwendet werden.</item>
+        <item quantity="other">Es können höchstens %1$d Clips verwendet werden.</item>
+    </plurals>
+    <string name="framekit_timeline_full">Mehr hinzuzufügen würde das Video länger als erlaubt machen.</string>
+    <string name="framekit_split_unavailable">Hier kann nicht geteilt werden. Gehe etwas weg vom Clip-Rand.</string>
+    <string name="framekit_add_failed">Die ausgewählte Datei konnte nicht geöffnet werden.</string>
+    <string name="framekit_partially_restored">Einige Dateien konnten nicht geöffnet werden. Die Bearbeitung wird ohne sie fortgesetzt.</string>
+    <string name="framekit_original_sound">Originalton</string>
+    <string name="framekit_music">Hintergrundmusik</string>
+    <string name="framekit_music_add">Musik hinzufügen</string>
+    <string name="framekit_music_remove">Musik entfernen</string>
+    <string name="framekit_music_loop">Wiederholen</string>
+    <string name="framekit_music_start_here">Ab Abspielposition</string>
+    <string name="framekit_music_offset">Startpunkt im Song</string>
+    <string name="framekit_music_untitled">Musik</string>
+    <string name="framekit_sticker_help">Sticker erscheinen ab der Abspielposition 3 Sekunden lang. Zum Verschieben ziehen; mit zwei Fingern Größe und Drehung ändern.</string>
+    <string name="framekit_item_delete">Löschen</string>
+    <string name="framekit_tool_canvas">Format</string>
+    <string name="framekit_canvas_original">Erster Clip</string>
+    <string name="framekit_canvas_fit">Einpassen</string>
+    <string name="framekit_canvas_fill">Füllen</string>
+    <string name="framekit_canvas_help">Clips mit anderem Seitenverhältnis werden mit schwarzen Balken eingepasst oder füllen das Bild und verlieren ihre Ränder.</string>
+    <string name="framekit_preview_unavailable">Die Vorschau kann gerade nicht angezeigt werden.</string>
+    <string name="framekit_speed_result">Länge %1$s → %2$s</string>
+    <string name="framekit_cleared">Alle Elemente entfernt</string>
+</resources>

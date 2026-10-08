@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="framekit_tool_draw">Dessin</string>
+    <string name="framekit_brush_pen">Stylo</string>
+    <string name="framekit_brush_marker">Marqueur</string>
+    <string name="framekit_brush_highlighter">Surligneur</string>
+    <string name="framekit_brush_eraser">Gomme</string>
+    <string name="framekit_brush_width">Épaisseur</string>
+    <string name="framekit_brush_opacity">Opacité</string>
+    <string name="framekit_tool_cutout">Détourage</string>
+    <string name="framekit_cutout_remove">Supprimer l\'arrière-plan</string>
+    <string name="framekit_cutout_restore">Rétablir l\'arrière-plan</string>
+    <string name="framekit_cutout_processing">Détection du sujet…</string>
+    <string name="framekit_cutout_description">Conserve le sujet et rend l\'arrière-plan transparent. En JPEG, il est rempli d\'une couleur unie ; choisissez PNG ou WEBP pour garder la transparence.</string>
+    <string name="framekit_cutout_unavailable">Le modèle de suppression d\'arrière-plan est en cours de préparation. Réessayez dans un instant.</string>
+    <string name="framekit_cutout_failed">Impossible de supprimer l\'arrière-plan. Réessayez.</string>
+    <string name="framekit_page_limit">Impossible d\'ajouter d\'autres photos.</string>
+    <string name="framekit_page_position">Photo %1$d sur %2$d</string>
+    <string name="framekit_page_label">Photo %1$d</string>
+    <string name="framekit_page_add">Ajouter des photos</string>
+    <string name="framekit_page_move_earlier">Déplacer avant</string>
+    <string name="framekit_page_move_later">Déplacer après</string>
+    <string name="framekit_page_remove">Retirer cette photo</string>
+    <string name="framekit_tool_document">Document</string>
+    <string name="framekit_document_hint">Faites glisser les coins vers les bords de la page, puis appliquez pour la redresser.</string>
+    <string name="framekit_document_detect">Détecter</string>
+    <string name="framekit_document_whole">Photo entière</string>
+    <string name="framekit_document_restore">Original</string>
+    <string name="framekit_document_working">Redressement…</string>
+    <string name="framekit_document_applied">Document redressé. Le recadrage, le texte, les autocollants, les dessins et les masques ont été réinitialisés.</string>
+    <string name="framekit_document_failed">Impossible de redresser le document. Vos retouches sont inchangées.</string>
+    <string name="framekit_scan_color">Scan (couleur)</string>
+    <string name="framekit_scan_grayscale">Scan (gris)</string>
+    <string name="framekit_scan_black_white">Noir et blanc</string>
+    <string name="framekit_scan_original">Couleurs d\'origine</string>
+    <string name="framekit_document_detected">Cela ressemble à un document</string>
+    <string name="framekit_document_scan">Numériser</string>
+    <string name="framekit_document_text_found">Texte reconnu</string>
+    <string name="framekit_document_text_view">Afficher</string>
+    <string name="framekit_document_text_title">Texte reconnu</string>
+    <string name="framekit_document_text_copy">Copier le texte</string>
+    <string name="framekit_document_text_copied">Texte copié</string>
+    <string name="framekit_action_close_dialog">Fermer</string>
+</resources>
