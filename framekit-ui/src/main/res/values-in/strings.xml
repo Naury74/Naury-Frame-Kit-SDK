@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="framekit_action_close">Tutup</string>
+    <string name="framekit_action_back">Kembali</string>
     <string name="framekit_action_save">Simpan</string>
     <string name="framekit_action_undo">Urungkan</string>
     <string name="framekit_action_redo">Ulangi</string>
@@ -92,12 +93,23 @@
     <string name="framekit_font_serif">Serif</string>
     <string name="framekit_font_serif_bold">Serif tebal</string>
     <string name="framekit_font_mono">Mono</string>
-    <string name="framekit_font_handwriting">Tulisan tangan</string>
+    <string name="framekit_font_handwriting">Huruf sambung</string>
     <string name="framekit_align_start">Rata kiri</string>
     <string name="framekit_align_center">Rata tengah</string>
     <string name="framekit_align_end">Rata kanan</string>
     <string name="framekit_text_outline">Garis tepi</string>
     <string name="framekit_text_background">Latar</string>
+    <string name="framekit_text_color">Warna teks</string>
+    <string name="framekit_text_background_color">Warna latar</string>
+    <string name="framekit_text_outline_color">Warna garis tepi</string>
+    <string name="framekit_text_outline_width">Ketebalan garis tepi</string>
+    <string name="framekit_text_background_opacity">Opasitas latar</string>
+    <string name="framekit_text_background_corner">Kelengkungan sudut</string>
+    <string name="framekit_text_background_padding">Jarak tepi latar</string>
+    <string name="framekit_text_shadow_color">Warna bayangan</string>
+    <string name="framekit_text_shadow_blur">Keburaman bayangan</string>
+    <string name="framekit_text_shadow_distance">Jarak bayangan</string>
+    <string name="framekit_text_shadow_opacity">Opasitas bayangan</string>
     <string name="framekit_text_shadow">Bayangan</string>
     <string name="framekit_overlay_delete">Hapus</string>
     <string name="framekit_overlay_duplicate">Duplikat</string>

@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="framekit_action_close">关闭</string>
+    <string name="framekit_action_back">返回</string>
     <string name="framekit_action_save">保存</string>
     <string name="framekit_action_undo">撤销</string>
     <string name="framekit_action_redo">重做</string>
@@ -92,12 +93,23 @@
     <string name="framekit_font_serif">宋体</string>
     <string name="framekit_font_serif_bold">粗宋体</string>
     <string name="framekit_font_mono">等宽</string>
-    <string name="framekit_font_handwriting">手写</string>
+    <string name="framekit_font_handwriting">花体</string>
     <string name="framekit_align_start">左对齐</string>
     <string name="framekit_align_center">居中对齐</string>
     <string name="framekit_align_end">右对齐</string>
     <string name="framekit_text_outline">描边</string>
     <string name="framekit_text_background">背景</string>
+    <string name="framekit_text_color">文字颜色</string>
+    <string name="framekit_text_background_color">背景颜色</string>
+    <string name="framekit_text_outline_color">描边颜色</string>
+    <string name="framekit_text_outline_width">描边粗细</string>
+    <string name="framekit_text_background_opacity">背景不透明度</string>
+    <string name="framekit_text_background_corner">圆角</string>
+    <string name="framekit_text_background_padding">背景边距</string>
+    <string name="framekit_text_shadow_color">阴影颜色</string>
+    <string name="framekit_text_shadow_blur">阴影模糊</string>
+    <string name="framekit_text_shadow_distance">阴影距离</string>
+    <string name="framekit_text_shadow_opacity">阴影不透明度</string>
     <string name="framekit_text_shadow">阴影</string>
     <string name="framekit_overlay_delete">删除</string>
     <string name="framekit_overlay_duplicate">复制</string>

@@ -42,6 +42,10 @@ import com.naury.framekit.ui.design.FrameKitTheme
  *
  * @param onCancel 변경이 이미 커밋되는 도구는 `null`. 이때 체크 버튼은 도구를 닫는다.
  */
+@Deprecated(
+    "제목은 상단 바, 취소는 뒤로 가기 버튼으로 옮겼다. EditorTopBar(toolTitle = …)와 ToolActionBar를 쓴다.",
+    ReplaceWith("ToolActionBar(onApply = onApply, modifier = modifier, onReset = onReset)"),
+)
 @Composable
 public fun ApplyCancelBar(
     title: String,

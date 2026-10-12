@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="framekit_action_close">Schließen</string>
+    <string name="framekit_action_back">Zurück</string>
     <string name="framekit_action_save">Speichern</string>
     <string name="framekit_action_undo">Rückgängig</string>
     <string name="framekit_action_redo">Wiederholen</string>
@@ -95,12 +96,23 @@
     <string name="framekit_font_serif">Serif</string>
     <string name="framekit_font_serif_bold">Serif fett</string>
     <string name="framekit_font_mono">Mono</string>
-    <string name="framekit_font_handwriting">Handschrift</string>
+    <string name="framekit_font_handwriting">Schreibschrift</string>
     <string name="framekit_align_start">Linksbündig</string>
     <string name="framekit_align_center">Zentriert</string>
     <string name="framekit_align_end">Rechtsbündig</string>
     <string name="framekit_text_outline">Kontur</string>
     <string name="framekit_text_background">Hintergrund</string>
+    <string name="framekit_text_color">Textfarbe</string>
+    <string name="framekit_text_background_color">Hintergrundfarbe</string>
+    <string name="framekit_text_outline_color">Konturfarbe</string>
+    <string name="framekit_text_outline_width">Konturstärke</string>
+    <string name="framekit_text_background_opacity">Hintergrunddeckkraft</string>
+    <string name="framekit_text_background_corner">Eckenrundung</string>
+    <string name="framekit_text_background_padding">Hintergrundabstand</string>
+    <string name="framekit_text_shadow_color">Schattenfarbe</string>
+    <string name="framekit_text_shadow_blur">Schattenweichzeichnung</string>
+    <string name="framekit_text_shadow_distance">Schattenabstand</string>
+    <string name="framekit_text_shadow_opacity">Schattendeckkraft</string>
     <string name="framekit_text_shadow">Schatten</string>
     <string name="framekit_overlay_delete">Löschen</string>
     <string name="framekit_overlay_duplicate">Duplizieren</string>

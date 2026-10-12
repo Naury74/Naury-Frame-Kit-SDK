@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="framekit_action_close">Đóng</string>
+    <string name="framekit_action_back">Quay lại</string>
     <string name="framekit_action_save">Lưu</string>
     <string name="framekit_action_undo">Hoàn tác</string>
     <string name="framekit_action_redo">Làm lại</string>
@@ -92,12 +93,23 @@
     <string name="framekit_font_serif">Serif</string>
     <string name="framekit_font_serif_bold">Serif đậm</string>
     <string name="framekit_font_mono">Đơn cách</string>
-    <string name="framekit_font_handwriting">Viết tay</string>
+    <string name="framekit_font_handwriting">Chữ thảo</string>
     <string name="framekit_align_start">Căn trái</string>
     <string name="framekit_align_center">Căn giữa</string>
     <string name="framekit_align_end">Căn phải</string>
     <string name="framekit_text_outline">Viền chữ</string>
     <string name="framekit_text_background">Nền</string>
+    <string name="framekit_text_color">Màu chữ</string>
+    <string name="framekit_text_background_color">Màu nền</string>
+    <string name="framekit_text_outline_color">Màu viền</string>
+    <string name="framekit_text_outline_width">Độ dày viền</string>
+    <string name="framekit_text_background_opacity">Độ mờ đục của nền</string>
+    <string name="framekit_text_background_corner">Độ bo góc</string>
+    <string name="framekit_text_background_padding">Khoảng đệm nền</string>
+    <string name="framekit_text_shadow_color">Màu bóng</string>
+    <string name="framekit_text_shadow_blur">Độ nhòe bóng</string>
+    <string name="framekit_text_shadow_distance">Khoảng cách bóng</string>
+    <string name="framekit_text_shadow_opacity">Độ mờ đục của bóng</string>
     <string name="framekit_text_shadow">Đổ bóng</string>
     <string name="framekit_overlay_delete">Xóa</string>
     <string name="framekit_overlay_duplicate">Nhân bản</string>

@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="framekit_action_close">Cerrar</string>
+    <string name="framekit_action_back">Atrás</string>
     <string name="framekit_action_save">Guardar</string>
     <string name="framekit_action_undo">Deshacer</string>
     <string name="framekit_action_redo">Rehacer</string>
@@ -95,12 +96,23 @@
     <string name="framekit_font_serif">Serif</string>
     <string name="framekit_font_serif_bold">Serif negrita</string>
     <string name="framekit_font_mono">Mono</string>
-    <string name="framekit_font_handwriting">Manuscrita</string>
+    <string name="framekit_font_handwriting">Caligráfica</string>
     <string name="framekit_align_start">Alinear a la izquierda</string>
     <string name="framekit_align_center">Centrar</string>
     <string name="framekit_align_end">Alinear a la derecha</string>
     <string name="framekit_text_outline">Contorno</string>
     <string name="framekit_text_background">Fondo</string>
+    <string name="framekit_text_color">Color del texto</string>
+    <string name="framekit_text_background_color">Color de fondo</string>
+    <string name="framekit_text_outline_color">Color del contorno</string>
+    <string name="framekit_text_outline_width">Grosor del contorno</string>
+    <string name="framekit_text_background_opacity">Opacidad del fondo</string>
+    <string name="framekit_text_background_corner">Redondeo de esquinas</string>
+    <string name="framekit_text_background_padding">Margen del fondo</string>
+    <string name="framekit_text_shadow_color">Color de la sombra</string>
+    <string name="framekit_text_shadow_blur">Desenfoque de la sombra</string>
+    <string name="framekit_text_shadow_distance">Distancia de la sombra</string>
+    <string name="framekit_text_shadow_opacity">Opacidad de la sombra</string>
     <string name="framekit_text_shadow">Sombra</string>
     <string name="framekit_overlay_delete">Eliminar</string>
     <string name="framekit_overlay_duplicate">Duplicar</string>

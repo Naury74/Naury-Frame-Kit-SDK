@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="framekit_action_close">Fermer</string>
+    <string name="framekit_action_back">Retour</string>
     <string name="framekit_action_save">Enregistrer</string>
     <string name="framekit_action_undo">Annuler</string>
     <string name="framekit_action_redo">Rétablir</string>
@@ -95,12 +96,23 @@
     <string name="framekit_font_serif">Serif</string>
     <string name="framekit_font_serif_bold">Serif gras</string>
     <string name="framekit_font_mono">Mono</string>
-    <string name="framekit_font_handwriting">Manuscrite</string>
+    <string name="framekit_font_handwriting">Cursive</string>
     <string name="framekit_align_start">Aligner à gauche</string>
     <string name="framekit_align_center">Centrer</string>
     <string name="framekit_align_end">Aligner à droite</string>
     <string name="framekit_text_outline">Contour</string>
     <string name="framekit_text_background">Arrière-plan</string>
+    <string name="framekit_text_color">Couleur du texte</string>
+    <string name="framekit_text_background_color">Couleur d\'arrière-plan</string>
+    <string name="framekit_text_outline_color">Couleur du contour</string>
+    <string name="framekit_text_outline_width">Épaisseur du contour</string>
+    <string name="framekit_text_background_opacity">Opacité de l\'arrière-plan</string>
+    <string name="framekit_text_background_corner">Arrondi des angles</string>
+    <string name="framekit_text_background_padding">Marge de l\'arrière-plan</string>
+    <string name="framekit_text_shadow_color">Couleur de l\'ombre</string>
+    <string name="framekit_text_shadow_blur">Flou de l\'ombre</string>
+    <string name="framekit_text_shadow_distance">Distance de l\'ombre</string>
+    <string name="framekit_text_shadow_opacity">Opacité de l\'ombre</string>
     <string name="framekit_text_shadow">Ombre</string>
     <string name="framekit_overlay_delete">Supprimer</string>
     <string name="framekit_overlay_duplicate">Dupliquer</string>

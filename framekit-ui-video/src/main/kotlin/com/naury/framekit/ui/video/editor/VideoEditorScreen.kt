@@ -88,7 +88,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.naury.framekit.core.video.Timeline
 import com.naury.framekit.ui.R as UiR
-import com.naury.framekit.ui.component.ApplyCancelBar
+import com.naury.framekit.ui.component.ToolActionBar
 import com.naury.framekit.ui.component.ApplyDraftDialog
 import com.naury.framekit.ui.component.FrameKitSnackbarHost
 import com.naury.framekit.ui.component.verticalFadingScroll
@@ -208,7 +208,15 @@ private fun ReadyContent(state: VideoEditorUiState.Ready, viewModel: VideoEditor
     CompositionLocalProvider(LocalEditorSnackbar provides snackbar) {
         BoxWithConstraints(Modifier.fillMaxSize()) {
             val topBar = @Composable {
-                EditorTopBar(onClose = viewModel::requestClose, onSave = viewModel::save, saveEnabled = state.export == null)
+                // 도구 화면에서는 X 대신 뒤로 가기 화살표와 도구 이름을 보여 준다. 뒤로 가기는 시스템 뒤로 가기와 같아서
+                // 바뀐 내용이 있으면 적용할지 먼저 묻는다.
+                val tool = state.activeTool
+                EditorTopBar(
+                    onClose = if (tool != null) viewModel::onBack else viewModel::requestClose,
+                    onSave = viewModel::save,
+                    saveEnabled = state.export == null,
+                    toolTitle = tool?.railItem()?.label,
+                )
             }
             when (val layout = EditorLayoutPolicy.decide(maxWidth.value, maxHeight.value, posture)) {
                 // 키보드 인셋을 뺀 실제 높이를 기준으로 비율을 잡아야 입력 중에도 캔버스가 남는다.
@@ -349,14 +357,12 @@ private fun PreviewColumn(state: VideoEditorUiState.Ready, viewModel: VideoEdito
     }
 }
 
-/** 넓은 레이아웃. 상단 바, 그 바로 아래에 도구 격자 또는 열린 도구를 둔다. */
+/** 넓은 레이아웃. 상단 바, 그 바로 아래에 도구 격자 또는 열린 도구를 두고, 적용 줄은 패널 맨 아래에 고정한다. */
 @Composable
 private fun SidePanel(state: VideoEditorUiState.Ready, viewModel: VideoEditorViewModel, topBar: @Composable () -> Unit, modifier: Modifier) {
     Column(modifier.background(FrameKitTheme.colors.background)) {
         topBar()
-        Column(Modifier.weight(1f).verticalFadingScroll()) {
-            ToolArea(state, viewModel, wide = true)
-        }
+        ToolArea(state, viewModel, wide = true, modifier = Modifier.weight(1f), scrollPanel = true)
     }
 }
 
@@ -537,11 +543,11 @@ private fun ToolArea(
         transitionSpec = { fadeIn(tween(TOOL_TRANSITION_MS)) togetherWith fadeOut(tween(TOOL_TRANSITION_MS)) },
         label = "video-tool-area",
     ) { tool ->
-        Column(Modifier.fillMaxWidth()) {
+        Column(if (wide) Modifier.fillMaxSize() else Modifier.fillMaxWidth()) {
             val geometry = state.clip.effects.geometry
             when (tool) {
-                VideoTool.TRIM -> ToolPanelWithActions(R.string.framekit_tool_trim, viewModel, isDraft = true, scrollPanel) {}
-                VideoTool.CROP -> ToolPanelWithActions(UiR.string.framekit_tool_crop, viewModel, isDraft = true, scrollPanel) {
+                VideoTool.TRIM -> ToolPanelWithActions(viewModel, isDraft = true, scrollPanel, wide) {}
+                VideoTool.CROP -> ToolPanelWithActions(viewModel, isDraft = true, scrollPanel, wide) {
                     CropToolPanel(
                         aspect = state.cropAspect,
                         onSelectAspect = viewModel::selectAspect,
@@ -550,7 +556,7 @@ private fun ToolArea(
                         onFlipHorizontal = viewModel::flipHorizontal,
                     )
                 }
-                VideoTool.ROTATE -> ToolPanelWithActions(UiR.string.framekit_tool_rotate, viewModel, isDraft = true, scrollPanel) {
+                VideoTool.ROTATE -> ToolPanelWithActions(viewModel, isDraft = true, scrollPanel, wide) {
                     RotateToolPanel(
                         straightenDegrees = geometry.straightenDegrees,
                         onRotateLeft = viewModel::rotateLeft,
@@ -561,10 +567,10 @@ private fun ToolArea(
                         onStraightenFinished = viewModel::finishStraighten,
                     )
                 }
-                VideoTool.CANVAS -> ToolPanelWithActions(R.string.framekit_tool_canvas, viewModel, isDraft = false, scrollPanel) {
+                VideoTool.CANVAS -> ToolPanelWithActions(viewModel, isDraft = false, scrollPanel, wide) {
                     CanvasToolPanel(canvas = state.displayed.canvas, onChange = viewModel::setCanvas)
                 }
-                VideoTool.ADJUST -> ToolPanelWithActions(UiR.string.framekit_tool_adjust, viewModel, isDraft = false, scrollPanel) {
+                VideoTool.ADJUST -> ToolPanelWithActions(viewModel, isDraft = false, scrollPanel, wide) {
                     AdjustToolPanel(
                         adjustments = state.clip.effects.adjustments,
                         selected = state.adjustKind,
@@ -573,7 +579,7 @@ private fun ToolArea(
                         onChangeFinished = viewModel::finishGesture,
                     )
                 }
-                VideoTool.FILTER -> ToolPanelWithActions(UiR.string.framekit_tool_filter, viewModel, isDraft = false, scrollPanel) {
+                VideoTool.FILTER -> ToolPanelWithActions(viewModel, isDraft = false, scrollPanel, wide) {
                     val thumbnails by viewModel.filterThumbnails.collectAsStateWithLifecycle()
                     FilterToolPanel(
                         selection = state.clip.effects.filter,
@@ -583,10 +589,10 @@ private fun ToolArea(
                         onIntensityFinished = viewModel::finishGesture,
                     )
                 }
-                VideoTool.SPEED -> ToolPanelWithActions(R.string.framekit_tool_speed, viewModel, isDraft = true, scrollPanel) {
+                VideoTool.SPEED -> ToolPanelWithActions(viewModel, isDraft = true, scrollPanel, wide) {
                     SpeedToolPanel(speed = state.clip.speed, sourceDurationUs = state.clip.sourceRange.durationUs, onSelect = viewModel::selectSpeed)
                 }
-                VideoTool.AUDIO -> ToolPanelWithActions(R.string.framekit_tool_audio, viewModel, isDraft = false, scrollPanel) {
+                VideoTool.AUDIO -> ToolPanelWithActions(viewModel, isDraft = false, scrollPanel, wide) {
                     val music = state.displayed.timeline.audioClips.firstOrNull()
                     val loaded = music?.let { state.music[it.source] }
                     val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri -> viewModel.addMusic(uri) }
@@ -617,14 +623,14 @@ private fun ToolArea(
                         onGestureFinished = viewModel::finishGesture,
                     )
                 }
-                VideoTool.TEXT -> ToolPanelWithActions(UiR.string.framekit_tool_text, viewModel, isDraft = true, scrollPanel) {
+                VideoTool.TEXT -> ToolPanelWithActions(viewModel, isDraft = true, scrollPanel, wide) {
                     val editing = state.displayed.timeline.overlays.firstOrNull { it.overlay.id == state.editingTextId }
                     val text = editing?.overlay as? ImageOverlay.Text
                     if (text != null) {
                         TextToolPanel(text = text, onText = viewModel::updateText, onStyle = viewModel::updateTextStyle, onOpacity = viewModel::updateTextOpacity)
                     }
                 }
-                VideoTool.STICKER -> ToolPanelWithActions(UiR.string.framekit_tool_sticker, viewModel, isDraft = false, scrollPanel) {
+                VideoTool.STICKER -> ToolPanelWithActions(viewModel, isDraft = false, scrollPanel, wide) {
                     val selected = state.displayed.timeline.overlays.firstOrNull { it.overlay.id == state.selectedOverlayId }
                     TimedRangeRow(
                         range = selected?.range,
@@ -635,7 +641,7 @@ private fun ToolArea(
                     )
                     StickerToolPanel(category = state.stickerCategory, onCategory = viewModel::selectStickerCategory, onAdd = viewModel::addSticker)
                 }
-                VideoTool.PRIVACY -> ToolPanelWithActions(UiR.string.framekit_tool_privacy, viewModel, isDraft = false, scrollPanel) {
+                VideoTool.PRIVACY -> ToolPanelWithActions(viewModel, isDraft = false, scrollPanel, wide) {
                     val selected = state.displayed.timeline.privacyMasks.firstOrNull { it.mask.id == state.selectedMaskId }
                     TimedRangeRow(
                         range = selected?.range,
@@ -652,7 +658,9 @@ private fun ToolArea(
                 }
                 null -> when {
                     tools.isEmpty() -> Unit
-                    wide -> ToolGrid(items = tools.map { it.railItem() }, onSelect = viewModel::selectTool)
+                    wide -> Column(Modifier.weight(1f).verticalFadingScroll()) {
+                        ToolGrid(items = tools.map { it.railItem() }, onSelect = viewModel::selectTool)
+                    }
                     else -> ToolRail(items = tools.map { it.railItem() }, selected = null, onSelect = viewModel::selectTool)
                 }
             }
@@ -660,21 +668,20 @@ private fun ToolArea(
     }
 }
 
+/**
+ * 도구 패널과 하단 적용 줄. 제목과 뒤로 가기(취소)는 상단 바가 맡는다.
+ *
+ * @param fill 넓은 화면처럼 패널이 남는 높이를 모두 차지해 적용 줄을 맨 아래에 고정할 때 `true`.
+ */
 @Composable
-private fun ColumnScope.ToolPanelWithActions(title: Int, viewModel: VideoEditorViewModel, isDraft: Boolean, scroll: Boolean, panel: @Composable () -> Unit) {
+private fun ColumnScope.ToolPanelWithActions(viewModel: VideoEditorViewModel, isDraft: Boolean, scroll: Boolean, fill: Boolean, panel: @Composable () -> Unit) {
     if (scroll) {
-        // 높이가 모자라면 패널만 스크롤하고 적용·취소 줄은 항상 보이게 둔다.
-        Column(Modifier.weight(1f, fill = false).verticalFadingScroll()) { panel() }
+        // 높이가 모자라면 패널만 스크롤하고 적용 줄은 항상 보이게 둔다.
+        Column(Modifier.weight(1f, fill = fill).verticalFadingScroll()) { panel() }
     } else {
         panel()
     }
-    ApplyCancelBar(
-        title = stringResource(title),
-        // 바로 기록되는 도구도 취소하면 도구를 열기 전 상태로 되돌린다.
-        onCancel = if (isDraft) viewModel::cancelTool else viewModel::revertTool,
-        onApply = if (isDraft) viewModel::applyTool else viewModel::closeTool,
-        onReset = viewModel::resetTool,
-    )
+    ToolActionBar(onApply = if (isDraft) viewModel::applyTool else viewModel::closeTool, onReset = viewModel::resetTool)
 }
 
 @Composable

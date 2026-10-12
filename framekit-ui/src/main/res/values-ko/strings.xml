@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="framekit_action_close">닫기</string>
+    <string name="framekit_action_back">뒤로</string>
     <string name="framekit_action_save">저장</string>
     <string name="framekit_action_undo">실행 취소</string>
     <string name="framekit_action_redo">다시 실행</string>
@@ -95,12 +96,23 @@
     <string name="framekit_font_serif">명조</string>
     <string name="framekit_font_serif_bold">명조 굵게</string>
     <string name="framekit_font_mono">고정폭</string>
-    <string name="framekit_font_handwriting">손글씨</string>
+    <string name="framekit_font_handwriting">필기체</string>
     <string name="framekit_align_start">왼쪽 정렬</string>
     <string name="framekit_align_center">가운데 정렬</string>
     <string name="framekit_align_end">오른쪽 정렬</string>
     <string name="framekit_text_outline">외곽선</string>
     <string name="framekit_text_background">배경</string>
+    <string name="framekit_text_color">글자 색</string>
+    <string name="framekit_text_background_color">배경 색</string>
+    <string name="framekit_text_outline_color">외곽선 색</string>
+    <string name="framekit_text_outline_width">외곽선 두께</string>
+    <string name="framekit_text_background_opacity">배경 불투명도</string>
+    <string name="framekit_text_background_corner">모서리 둥글기</string>
+    <string name="framekit_text_background_padding">배경 여백</string>
+    <string name="framekit_text_shadow_color">그림자 색</string>
+    <string name="framekit_text_shadow_blur">그림자 흐림</string>
+    <string name="framekit_text_shadow_distance">그림자 거리</string>
+    <string name="framekit_text_shadow_opacity">그림자 불투명도</string>
     <string name="framekit_text_shadow">그림자</string>
     <string name="framekit_overlay_delete">삭제</string>
     <string name="framekit_overlay_duplicate">복제</string>

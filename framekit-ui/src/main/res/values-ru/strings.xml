@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="framekit_action_close">Закрыть</string>
+    <string name="framekit_action_back">Назад</string>
     <string name="framekit_action_save">Сохранить</string>
     <string name="framekit_action_undo">Отменить</string>
     <string name="framekit_action_redo">Повторить</string>
@@ -101,6 +102,17 @@
     <string name="framekit_align_end">По правому краю</string>
     <string name="framekit_text_outline">Контур</string>
     <string name="framekit_text_background">Фон</string>
+    <string name="framekit_text_color">Цвет текста</string>
+    <string name="framekit_text_background_color">Цвет фона</string>
+    <string name="framekit_text_outline_color">Цвет контура</string>
+    <string name="framekit_text_outline_width">Толщина контура</string>
+    <string name="framekit_text_background_opacity">Непрозрачность фона</string>
+    <string name="framekit_text_background_corner">Скругление углов</string>
+    <string name="framekit_text_background_padding">Отступ фона</string>
+    <string name="framekit_text_shadow_color">Цвет тени</string>
+    <string name="framekit_text_shadow_blur">Размытие тени</string>
+    <string name="framekit_text_shadow_distance">Смещение тени</string>
+    <string name="framekit_text_shadow_opacity">Непрозрачность тени</string>
     <string name="framekit_text_shadow">Тень</string>
     <string name="framekit_overlay_delete">Удалить</string>
     <string name="framekit_overlay_duplicate">Дублировать</string>

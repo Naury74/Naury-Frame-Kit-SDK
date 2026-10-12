@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="framekit_action_close">Close</string>
+    <string name="framekit_action_back">Back</string>
     <string name="framekit_action_save">Save</string>
     <string name="framekit_action_undo">Undo</string>
     <string name="framekit_action_redo">Redo</string>
@@ -95,12 +96,23 @@
     <string name="framekit_font_serif">Serif</string>
     <string name="framekit_font_serif_bold">Serif bold</string>
     <string name="framekit_font_mono">Mono</string>
-    <string name="framekit_font_handwriting">Handwriting</string>
+    <string name="framekit_font_handwriting">Script</string>
     <string name="framekit_align_start">Align left</string>
     <string name="framekit_align_center">Align center</string>
     <string name="framekit_align_end">Align right</string>
     <string name="framekit_text_outline">Outline</string>
     <string name="framekit_text_background">Background</string>
+    <string name="framekit_text_color">Text color</string>
+    <string name="framekit_text_background_color">Background color</string>
+    <string name="framekit_text_outline_color">Outline color</string>
+    <string name="framekit_text_outline_width">Outline width</string>
+    <string name="framekit_text_background_opacity">Background opacity</string>
+    <string name="framekit_text_background_corner">Corner roundness</string>
+    <string name="framekit_text_background_padding">Background padding</string>
+    <string name="framekit_text_shadow_color">Shadow color</string>
+    <string name="framekit_text_shadow_blur">Shadow blur</string>
+    <string name="framekit_text_shadow_distance">Shadow distance</string>
+    <string name="framekit_text_shadow_opacity">Shadow opacity</string>
     <string name="framekit_text_shadow">Shadow</string>
     <string name="framekit_overlay_delete">Delete</string>
     <string name="framekit_overlay_duplicate">Duplicate</string>
