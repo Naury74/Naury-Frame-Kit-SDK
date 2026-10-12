@@ -2,7 +2,7 @@
 
 Android 앱에 넣어 쓰는 **비파괴 이미지·영상 편집 SDK**입니다. 호스트 앱은 Uri를 넘기거나 내장 Photo Picker를 띄우고, FrameKit 편집 화면에서 편집한 뒤 결과 파일의 `content://` Uri와 메타데이터를 받습니다. 원본은 절대 덮어쓰지 않습니다.
 
-> 현재 버전은 **1.0.0-alpha01** 입니다. 사진 편집(자르기·회전·보정·필터·텍스트·이모지 스티커·그리기·모자이크·배경 제거)과 여러 장 사진 편집·PDF 문서 저장, 카메라로 찍은 직후 편집, UI 없는 headless 저장, 여러 클립 영상 편집(나누기·순서 변경, 구간·자르기·회전·보정·필터·속도·소리·배경 음악·텍스트·스티커·모자이크, MP4 저장), 호스트 필터·스티커·폰트 카탈로그, 색 팔레트, 사진·영상 headless 처리가 동작합니다. Maven Central 배포 전이므로 지금은 `publishToMavenLocal` 또는 소스 모듈로 의존합니다.
+> 현재 버전은 **1.0.0-alpha02** 입니다. 사진 편집(자르기·회전·보정·필터·텍스트·이모지 스티커·그리기·모자이크·배경 제거)과 여러 장 사진 편집·PDF 문서 저장, 카메라로 찍은 직후 편집, UI 없는 headless 저장, 여러 클립 영상 편집(나누기·순서 변경, 구간·자르기·회전·보정·필터·속도·소리·배경 음악·텍스트·스티커·모자이크, MP4 저장), 호스트 필터·스티커·폰트 카탈로그, 색 팔레트, 사진·영상 headless 처리가 동작합니다. 움직이는 이미지 편집, 음성 녹음·편집, 워터마크, 고르기 시트는 1.0.0-alpha02에서 추가되었습니다.
 
 호스트 앱은 SDK 라이브러리만 추가하면 됩니다. 편집 화면(Activity)은 SDK 안에 있고 manifest merge로 자동 등록되며, 호스트는 Activity Result 한 번으로 편집 화면을 띄우고 결과 파일을 돌려받습니다. 저장소의 `app` 모듈은 SDK를 확인·시연하기 위한 Showcase입니다.
 
@@ -25,9 +25,9 @@ Android 앱에 넣어 쓰는 **비파괴 이미지·영상 편집 SDK**입니다
 | PDF 문서 | 편집한 사진(여러 장이면 쪽 순서대로)을 PDF로 저장. A4·A5·Letter·Legal·사진 크기, 방향, 여백, dpi, 한 문서/사진마다. 문서·문서 흑백 필터 | v1.0 지원 |
 | 문서 스캔 | 문서 사진을 열면 자동 감지·제안, 네 모서리 자동 감지와 끌기(돋보기), 반듯하게 펴기, 스캔 보정(그림자 제거·흰 배경·흑백), 인식한 글자 보기·복사, 원본으로 되돌리기 | v1.0 지원 |
 | PDF 글자 검색(OCR) | 선택 모듈 `framekit-ocr`로 쪽마다 글자를 인식해 보이지 않는 글자 레이어 추가(검색·복사), 한국어·영어, 기기 안에서 처리 | v1.0 지원 |
-| 움직이는 이미지 | 사진 여러 장을 카메라 움직임(확대·이동)·전환(페이드·밀기·줌)·움직이는 텍스트·스티커와 함께 이어 붙이기, GIF·움직이는 WebP 열어서 구간·속도·부메랑·보정·필터·텍스트 편집, MP4·GIF·움직이는 WebP로 저장(`MotionEditorContract`) | 다음 버전 |
-| 음성 편집 | 새로 녹음(탭·누르고 말하기·잠시 멈춤), 소리 파일 이어 붙이기, 녹음 끼워 넣기·겹쳐 넣기, 나누기·구간 자르기·볼륨·페이드, 파형 타임라인, M4A 저장, 녹음기로만 쓰기(`AudioEditorContract`, `MediaKind.AUDIO`) | 다음 버전 |
-| 워터마크 | 사진·영상에 글자 워터마크(한 곳·반복·대각선·띠), 자리·크기·불투명도·색·기울기·촘촘함·상자·그림자, 여러 장이면 모든 사진에. 호스트가 문구·추천 문구를 주거나 열 때 바로 얹기·잠금(`WatermarkConfig`) | 다음 버전 |
+| 움직이는 이미지 | 사진 여러 장을 카메라 움직임(확대·이동)·전환(페이드·밀기·줌)·움직이는 텍스트·스티커와 함께 이어 붙이기, GIF·움직이는 WebP 열어서 구간·속도·부메랑·보정·필터·텍스트 편집, MP4·GIF·움직이는 WebP로 저장(`MotionEditorContract`) | 1.0.0-alpha02 지원 |
+| 음성 편집 | 새로 녹음(탭·누르고 말하기·잠시 멈춤), 소리 파일 이어 붙이기, 녹음 끼워 넣기·겹쳐 넣기, 나누기·구간 자르기·볼륨·페이드, 파형 타임라인, M4A 저장, 녹음기로만 쓰기(`AudioEditorContract`, `MediaKind.AUDIO`) | 1.0.0-alpha02 지원 |
+| 워터마크 | 사진·영상에 글자 워터마크(한 곳·반복·대각선·띠), 자리·크기·불투명도·색·기울기·촘촘함·상자·그림자, 여러 장이면 모든 사진에. 호스트가 문구·추천 문구를 주거나 열 때 바로 얹기·잠금(`WatermarkConfig`) | 1.0.0-alpha02 지원 |
 | Headless | `ImageProcessor`로 UI 없이 편집·저장, `ExportHandle` 상태·취소 | v0.2 지원 |
 | 큰 사진 | 250MP까지 열기, 자른 영역·띠 단위 디코딩으로 메모리 제한, 실패 시 앱 종료 없이 오류 반환 | v0.2 지원 |
 | 폴드·태블릿 | 화면 크기·폴드 자세(탁상·책)에 맞춘 배치, 접고 펴도 편집 유지 | v0.2 지원 |
@@ -65,7 +65,7 @@ SDK 확장(v1.0)
 | 영상 headless | `VideoProcessor`로 UI 없이 클립·음악·효과를 MP4로 저장 | v1.0 지원 |
 | 배포 | Maven 좌표 `com.naurylab:<모듈>`, sources jar, Kotlin 2.2 이상 호스트 지원 | v1.0 지원(로컬 배포 확인) |
 
-계획된 기능(아직 **미지원**): 장면 전환(crossfade)·PiP·HDR 유지·MediaStore/SAF 저장·Maven Central 공개 배포. 자세한 순서는 [Roadmap](#roadmap)을 보세요.
+계획된 기능(아직 **미지원**): 장면 전환(crossfade)·PiP·HDR 유지·MediaStore/SAF 저장. 자세한 순서는 [Roadmap](#roadmap)을 보세요.
 
 ## 설치
 
@@ -80,17 +80,12 @@ SDK 확장(v1.0)
 | `framekit-ui-audio` | 음성 녹음·편집 화면만(`AudioEditorContract`) |
 | `framekit-image` / `framekit-video` | UI 없는 처리(headless)와 엔진 |
 
-Maven Central 공개 전에는 이 저장소에서 로컬 Maven에 올린 뒤 씁니다. Maven Central 배포 방법은 [docs/publishing.md](docs/publishing.md)에 있습니다.
-
-```bash
-./gradlew publishToMavenLocal   # com.naurylab:*:1.0.0-alpha01
-```
+Maven Central에 `com.naurylab:<모듈>:<버전>`으로 올라가 있습니다. 배포 방법은 [docs/publishing.md](docs/publishing.md)에 있습니다.
 
 ```kotlin
 // settings.gradle.kts
 dependencyResolutionManagement {
     repositories {
-        mavenLocal()
         google()
         mavenCentral()
     }
@@ -98,7 +93,7 @@ dependencyResolutionManagement {
 
 // app/build.gradle.kts
 dependencies {
-    implementation("com.naurylab:framekit:1.0.0-alpha01")
+    implementation("com.naurylab:framekit:1.0.0-alpha02")
 }
 ```
 
@@ -107,8 +102,8 @@ dependencies {
 배경 제거·PDF 글자 검색이 필요하면 선택 모듈을 추가합니다. 추가하면 편집기에 "배경 제거" 도구가 나타나고, PDF 저장에 글자 레이어가 들어갑니다.
 
 ```kotlin
-implementation("com.naurylab:framekit-segmentation:1.0.0-alpha01") // 배경 제거
-implementation("com.naurylab:framekit-ocr:1.0.0-alpha01")          // PDF 글자 검색(OCR)
+implementation("com.naurylab:framekit-segmentation:1.0.0-alpha02") // 배경 제거
+implementation("com.naurylab:framekit-ocr:1.0.0-alpha02")          // PDF 글자 검색(OCR)
 ```
 
 두 모듈은 Google Play 서비스의 ML Kit을 쓰므로 Play 서비스가 없는 기기에서는 동작하지 않고, ML Kit 의존성이 `INTERNET`·`ACCESS_NETWORK_STATE` 권한을 추가합니다. 자세한 내용은 [integration](docs/integration.md#배경-제거-선택-모듈)을 보세요.

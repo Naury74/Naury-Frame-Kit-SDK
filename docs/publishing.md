@@ -80,8 +80,8 @@ CI에서는 같은 이름에 `ORG_GRADLE_PROJECT_`를 붙인 환경 변수(예: 
 3. 배포한 커밋에 태그를 달고 올립니다.
 
 ```bash
-git tag v1.0.0-alpha01
-git push origin v1.0.0-alpha01
+git tag v1.0.0-alpha02
+git push origin v1.0.0-alpha02
 ```
 
 업로드 없이 묶음만 만들어 내용을 보려면 `./gradlew cleanCentralStaging centralBundle --no-configuration-cache`를 씁니다.
