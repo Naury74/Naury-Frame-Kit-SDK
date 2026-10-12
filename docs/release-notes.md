@@ -8,7 +8,6 @@
 - 배경 음악·음성을 한 줄에 여러 조각으로 넣고 나누기·옮기기·양 끝 자르기·삭제·반복·볼륨·페이드인/아웃(`AudioClip.timelineEndUs`, `startOffsetUs`, `fadeInUs`, `fadeOutUs`, `AudioEditing`). 움직이는 이미지 편집기도 같은 방식의 소리 줄
 - 원본 소리 구간 음소거와 되살리기(`VideoClip.mutedRanges`, `TimeRanges`)
 - 소리 줄에 파형 표시(`WaveformExtractor`)
-- Showcase 앱 아이콘
 - 도구 화면의 상단 바: 닫기(X) 대신 뒤로 가기 화살표와 도구 이름(`EditorTopBar(toolTitle = …)`). 뒤로 가기는 시스템 뒤로 가기와 같아 바뀐 내용이 있으면 적용할지 묻는다.
 - 도구 하단 바를 `ToolActionBar`로 교체: 왼쪽 초기화, 오른쪽 적용(아이콘과 글자). 넓은 화면에서는 패널 맨 아래에 고정. `ApplyCancelBar`는 deprecated.
 - 도구 줄(`ToolRail`)이 가로로 넘칠 때 가려진 도구가 있는 쪽에 둥근 화살표(누르면 넘김)와 넓은 흐림을 보이고, 처음 한 번 살짝 밀었다 되돌려 옆으로 넘길 수 있음을 알림(`HorizontalScrollHints`)
@@ -45,7 +44,7 @@
 - `EditorUiConfig.palette`(`EditorPalette`, 명암비 경고)와 `uiFontId`, 프라이머리 색 `primaryArgb`
 - 영상 headless `VideoProcessor`
 - Showcase Playground, 호스트 카탈로그 예제
-- Maven 배포 설정(`com.naurylab`, sources jar), 별도 소비자 앱에서 R8 release 확인
+- Maven Central 배포(`com.naurylab`, sources jar)
 - 진입점: `EditorInput.Multiple`(사진 여러 장·영상 여러 개), `Pick(kind, maxItems)`(여러 개 고르기), `Capture(kind)`(카메라 앱으로 찍거나 녹화한 뒤 편집)
 - 여러 장 사진 편집: 쪽 목록에서 고르기·추가·순서 변경·삭제, 사진마다 저장 또는 PDF 한 개로 저장(`ImageEditorConfig.maxImageCount`)
 - PDF 저장: `ImageFormat.PDF`와 `PdfOptions`(A4·A5·Letter·Legal·사진 크기, 방향, 여백, dpi, 한 문서/사진마다), headless `ImageProcessor.startPdfExport`
@@ -97,7 +96,7 @@
 - Apple 실리콘 Mac의 arm64 에뮬레이터에서 ML Kit(배경 제거·글자 인식)이 SIGILL로 앱을 종료시킴. 실기기는 정상
 - 카탈로그는 프로세스 전체에 하나만 등록됨
 
-## 0.4.0 (개발 중)
+## 0.4.0
 
 ### 추가
 
@@ -115,7 +114,7 @@
 - `VideoExportCoordinator.export`에 `audioSources` 인자 추가(기본값 있음)
 - 텍스트·스티커 제스처 계산을 `framekit-ui`의 `OverlayGestures`로 이동
 
-## 0.3.0 (개발 중)
+## 0.3.0
 
 ### 추가
 
@@ -148,7 +147,7 @@
 - WEBP 손실/무손실 저장, 메타데이터 ALL 정책
 - `ImageProcessor`·`ExportHandle`로 UI 없는 편집·저장
 - 큰 사진 방어: 250MP 상한, 자른 영역·띠 단위 디코딩
-- 폴드·태블릿 레이아웃(화면 크기·폴드 자세), CI 수정
+- 폴드·태블릿 레이아웃(화면 크기·폴드 자세)
 
 ### 변경
 
@@ -159,11 +158,10 @@
 
 - 캔버스 확대·이동 제스처 없음(1.0.0-alpha01에서 추가)
 - 그리기 필압은 굵기에 반영하지 않음
-- 텍스트·스티커·그리기·가리기의 실기기 수동 확인 전
 
 ## 0.1.0
 
-첫 vertical slice: Photo Picker → 이미지 표시 → 자르기·회전 → undo → JPEG/PNG 저장 → 호스트 결과 수신.
+첫 버전: Photo Picker → 이미지 표시 → 자르기·회전 → undo → JPEG/PNG 저장 → 호스트 결과 수신.
 
 ### 추가
 
@@ -172,13 +170,10 @@
 - image: EXIF 1..8 디코딩, 공통 RenderPlan과 Canvas renderer, JPEG/PNG export, SAFE EXIF
 - ui: 다크/라이트 테마, 공통 컴포넌트, ko/en 문구
 - ui-image: `ImageEditorContract`, 자르기·회전 도구, 저장 진행·취소·재시도
-- app: Showcase 홈, 예제, 결과 화면
 - 세션 복원: 프로세스 종료 후 마지막으로 적용한 편집 복원, 원본 지문 확인, 중단된 저장 안내, 7일 지난 세션 정리
 
 ### Known Issues
 
 - 프로세스 종료 후 undo 기록과 미적용 도구 변경은 복원하지 않음(설계상 동작)
-- 기기에서 실제 프로세스 종료 후 복원은 아직 수동 확인 전(자동 테스트로 확인)
 - pan/zoom 제스처 없음
 - 출력 대상은 AppFile만 지원
-- 실기기·release 빌드 기기 실행 미검증

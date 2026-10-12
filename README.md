@@ -4,7 +4,7 @@ Android 앱에 넣어 쓰는 **비파괴 이미지·영상 편집 SDK**입니다
 
 > 현재 버전은 **1.0.0-alpha02** 입니다. 사진 편집(자르기·회전·보정·필터·텍스트·이모지 스티커·그리기·모자이크·배경 제거)과 여러 장 사진 편집·PDF 문서 저장, 카메라로 찍은 직후 편집, UI 없는 headless 저장, 여러 클립 영상 편집(나누기·순서 변경, 구간·자르기·회전·보정·필터·속도·소리·배경 음악·텍스트·스티커·모자이크, MP4 저장), 호스트 필터·스티커·폰트 카탈로그, 색 팔레트, 사진·영상 headless 처리가 동작합니다. 움직이는 이미지 편집, 음성 녹음·편집, 워터마크, 고르기 시트는 1.0.0-alpha02에서 추가되었습니다.
 
-호스트 앱은 SDK 라이브러리만 추가하면 됩니다. 편집 화면(Activity)은 SDK 안에 있고 manifest merge로 자동 등록되며, 호스트는 Activity Result 한 번으로 편집 화면을 띄우고 결과 파일을 돌려받습니다. 저장소의 `app` 모듈은 SDK를 확인·시연하기 위한 Showcase입니다.
+호스트 앱은 SDK 라이브러리만 추가하면 됩니다. 편집 화면(Activity)은 SDK 안에 있고 manifest merge로 자동 등록되며, 호스트는 Activity Result 한 번으로 편집 화면을 띄우고 결과 파일을 돌려받습니다.
 
 ## 지원 기능
 
@@ -80,7 +80,7 @@ SDK 확장(v1.0)
 | `framekit-ui-audio` | 음성 녹음·편집 화면만(`AudioEditorContract`) |
 | `framekit-image` / `framekit-video` | UI 없는 처리(headless)와 엔진 |
 
-Maven Central에 `com.naurylab:<모듈>:<버전>`으로 올라가 있습니다. 배포 방법은 [docs/publishing.md](docs/publishing.md)에 있습니다.
+Maven Central에서 `com.naurylab:<모듈>:<버전>`으로 받습니다.
 
 ```kotlin
 // settings.gradle.kts
@@ -97,7 +97,7 @@ dependencies {
 }
 ```
 
-저장소를 함께 빌드하려면 `include(":framekit-core", …)`로 모듈을 포함하고 `implementation(project(":framekit"))`를 씁니다. 호스트 앱은 Compose를 쓰지 않아도 되고 Kotlin 2.2 이상이면 됩니다. 별도 소비자 앱(Compose 없음, Kotlin 2.2, R8 release)에서 `mavenLocal` 산출물로 영상 편집·저장·결과 수신까지 확인했습니다.
+호스트 앱은 Compose를 쓰지 않아도 되고 Kotlin 2.2 이상이면 됩니다. R8(release) 빌드에서도 별도 keep 규칙 없이 동작합니다.
 
 배경 제거·PDF 글자 검색이 필요하면 선택 모듈을 추가합니다. 추가하면 편집기에 "배경 제거" 도구가 나타나고, PDF 저장에 글자 레이어가 들어갑니다.
 
@@ -108,7 +108,7 @@ implementation("com.naurylab:framekit-ocr:1.0.0-alpha02")          // PDF 글자
 
 두 모듈은 Google Play 서비스의 ML Kit을 쓰므로 Play 서비스가 없는 기기에서는 동작하지 않고, ML Kit 의존성이 `INTERNET`·`ACCESS_NETWORK_STATE` 권한을 추가합니다. 자세한 내용은 [integration](docs/integration.md#배경-제거-선택-모듈)을 보세요.
 
-요구 사항: minSdk 26, compileSdk 37, Java 17 target. 빌드 기준은 [docs/build-baseline.md](docs/build-baseline.md)에 있습니다.
+요구 사항: minSdk 26, compileSdk 37, Java 17 target.
 
 ## Quick Start
 
@@ -226,27 +226,6 @@ FrameKitRequest(
 
 자세한 내용은 [docs/integration.md](docs/integration.md)를 보세요.
 
-## 구조
-
-```
-framekit-core       Kotlin JVM. 프로젝트 모델, 좌표·행렬, crop 계산, undo/redo, 검증
-framekit-android    Uri/파일 source 등록, 결과 DTO, 오류 코드, AppFile 출력·FileProvider
-framekit-image      디코딩, RenderPlan, OpenGL 색 보정(CPU 대체), 오버레이·가리기 렌더러, 저장, headless
-framekit-ui         Compose 공통 테마·컴포넌트·문구
-framekit-ui-image   이미지 편집 화면, ImageEditorContract
-framekit-video      Media3 어댑터: 미리보기 플레이어, Transformer 저장, 색·모자이크 GL 효과, 썸네일
-framekit-ui-video   영상 편집 화면(타임라인), VideoEditorContract
-framekit-motion     움직이는 이미지: 프레임 렌더러, GIF·움직이는 WebP 인코더/디코더, MP4 인코더, 저장
-framekit-ui-motion  움직이는 이미지 편집 화면, MotionEditorContract
-framekit-ui-audio   음성 녹음·편집 화면, AudioEditorContract
-framekit            통합 모듈: FrameKitContract가 원본 종류에 맞는 편집기를 연다
-framekit-segmentation  (선택) ML Kit 배경 제거
-framekit-ocr        (선택) ML Kit 글자 인식, PDF 글자 레이어
-app                 Showcase 앱
-```
-
-미리보기와 저장은 같은 `ImageRenderPlan`과 같은 renderer를 사용하므로 화면에서 본 결과와 저장된 결과가 일치합니다. 영상도 미리보기와 저장이 같은 `VideoRenderPlan`에서 Media3 Composition을 만들고, 색 보정은 사진과 같은 GLSL을 씁니다. Media3 타입은 `framekit-video` 밖으로 나오지 않습니다. 모듈 의존 규칙과 데이터 흐름은 [docs/architecture.md](docs/architecture.md)에 있습니다.
-
 ## Showcase
 
 `app` 모듈은 SDK를 실제로 호출하는 예제 앱입니다.
@@ -281,29 +260,8 @@ app                 Showcase 앱
 
 결과 화면에서 출력 크기·길이·MIME·파일 크기·경고를 확인하고 공유하거나 삭제할 수 있습니다.
 
-```bash
-./gradlew :app:installDebug
-```
 
-## 검증
-
-```bash
-./gradlew test lint :app:assembleDebug :app:assembleRelease publishToMavenLocal
-```
-
-| 범위 | 내용 |
-| --- | --- |
-| JVM 단위 테스트 | undo/redo(D01~D07), 검증(V01), EXIF·crop·좌표 변환(G01~G04) |
-| Robolectric | EXIF 1..8 디코딩(API 27/36), 영역·띠 디코딩, 렌더 픽셀, preview/export 일치, 오버레이 위치(G05)·지우개·형광펜, 모자이크 격자(Q06), 저장 실패·취소 정리(Q07~Q09), 편집 흐름(Q01·Q10), 세션 복원(Q13·Q14), headless |
-| 실기기 계측 | Galaxy Z Fold7(Android 16): GL 색 보정이 CPU 기준과 일치(보정 12종·프리셋 전부, 평균 오차 ≤ 1/255) |
-| 실기기 계측(영상) | 실제 Media3 저장: 구간 정확도(1프레임 이내), 2배속 길이, 회전·반전 방향, 필터 색, 구간 모자이크, 취소 시 파일 없음, 미리보기 준비, 소리 있는·없는 클립 이어 붙이기, 나누기·순서 변경 길이, 반복 음악이 영상보다 길어지지 않음, 구간 텍스트, 정사각형 맞추기·채우기 |
-| 실기기 수동 | Galaxy Z Fold7 릴리스 빌드: 편집·저장, 프로세스 종료 후 복원, 108MP 사진 저장, 펼친 화면·태블릿 크기 전환, 필터·비네트 |
-| 에뮬레이터 수동 | 폴더블 에뮬레이터(Android 16): 영상 선택→구간 자르기→MP4 저장, 미리보기 모자이크, 넓은 화면 배치, 클립 추가·스티커·두 클립 저장, 호스트 스티커·필터, Playground 검증 표시 |
-| 소비자 앱 | 별도 프로젝트(Compose 없음, Kotlin 2.2, R8 release)가 `mavenLocal`의 `framekit`으로 영상 편집·필터·저장 결과 수신 |
-
-**아직 검증하지 않은 것**: API 26/27 저사양 기기, Galaxy S23 성능 기준, 텍스트·스티커·그리기·가리기와 영상 편집 화면의 실기기 수동 확인, 4K·HDR 영상, 성능 수치. 검증 전에는 지원한다고 표시하지 않습니다.
-
-## Known Issues
+## 주의사항
 
 - 프로세스 종료 후에는 확정한 편집만 돌아오고 undo 기록과 열려 있던 도구의 미적용 변경은 사라집니다(설계상 동작).
 - `localeTag`를 쓰는 호스트가 App Bundle language split을 켜 두면 기기 언어가 아닌 문구 리소스가 빠질 수 있습니다. [integration 문서](docs/integration.md#언어)를 참고하세요.
@@ -316,20 +274,6 @@ app                 Showcase 앱
 - 출력 대상은 `OutputTarget.AppFile`만 지원합니다. MediaStore·SAF 문서 저장은 계획 중입니다.
 
 전체 변경 이력은 [docs/release-notes.md](docs/release-notes.md)에 있습니다.
-
-## Roadmap
-
-| 버전 | 범위 |
-| --- | --- |
-| v0.1 | 이미지 자르기·회전·반전, JPEG/PNG, undo/redo, 기본 UI와 Activity Result 계약 |
-| v0.2 | 보정 12종·필터와 템플릿, 텍스트·스티커·그리기, 블러·모자이크, 배경 제거, WEBP, 이미지 headless |
-| v0.3 | 단일 영상 재생·구간·자르기·회전·보정·필터·속도·소리·구간 모자이크, MP4 저장 (Media3), 통합 FrameKitContract |
-| v0.4 | 여러 클립, 나누기·순서 변경, 화면 비율, 배경 음악, 구간 텍스트·스티커 |
-| v1.0 | 사용자 정의 필터·스티커·폰트, 색 팔레트·문구 폰트, 이미지·영상 headless, 여러 장 사진·PDF·카메라 진입점, 편집 화면 사용성·접근성, Playground, Maven 배포 설정, Apache 2.0, 문서 (1.0.0-alpha01) |
-
-## 기여
-
-빌드 기준, 커밋 규칙, 검증 방법은 [CONTRIBUTING.md](CONTRIBUTING.md)를 보세요.
 
 ## License
 

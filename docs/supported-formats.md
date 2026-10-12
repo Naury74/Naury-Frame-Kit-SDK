@@ -41,12 +41,3 @@
 | 소리 | 원본 소리 유지·음소거·볼륨, 배속 시 높이 유지. 소리 없는 영상도 지원 |
 
 디코딩·인코딩 가능 여부는 기기마다 다르므로, 기기가 처리하지 못하면 `UNSUPPORTED_FORMAT`·`DECODE_FAILED`·`ENCODE_FAILED`를 돌려줍니다.
-
-## 검증 환경
-
-| 환경 | 결과 |
-| --- | --- |
-| Robolectric API 36 / API 27 | EXIF 1..8 디코딩, render, export 자동 테스트 통과 |
-| 에뮬레이터 API 36 (arm64 폴더블) | 실제 Picker → 편집 → 저장 흐름 확인 |
-| Galaxy Z Fold7 (Android 16) | GL 색 보정 계측 테스트, 편집·저장·복원·108MP 수동 확인 |
-| API 26/27 실기기 | 미검증 |

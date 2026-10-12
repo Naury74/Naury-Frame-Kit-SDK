@@ -145,7 +145,7 @@ val centralBundle = tasks.register<Zip>("centralBundle") {
         val root = centralStaging.get().asFile
         val unsigned = root.walkTopDown().filter { it.isFile && it.extension in setOf("aar", "jar", "pom", "module") }
             .filter { !java.io.File(it.path + ".asc").exists() }.toList()
-        check(unsigned.isEmpty()) { "서명되지 않은 파일이 있습니다. docs/publishing.md의 서명 키 설정을 확인하세요: ${unsigned.take(3)}" }
+        check(unsigned.isEmpty()) { "서명되지 않은 파일이 있습니다. 서명 키 설정(~/.gradle/gradle.properties)을 확인하세요: ${unsigned.take(3)}" }
     }
     from(centralStaging) { exclude("**/maven-metadata*") }
     archiveFileName.set("central-bundle.zip")
@@ -174,7 +174,7 @@ tasks.register("publishToCentral") {
         // 복사해 붙여 넣으며 생긴 앞뒤 공백이 토큰에 섞이면 인증이 실패하므로 잘라 낸다.
         val user = providers.gradleProperty("centralPortalUsername").orNull?.trim()?.takeIf { it.isNotEmpty() }
         val password = providers.gradleProperty("centralPortalPassword").orNull?.trim()?.takeIf { it.isNotEmpty() }
-        check(user != null && password != null) { "centralPortalUsername / centralPortalPassword가 없습니다. docs/publishing.md를 참고하세요." }
+        check(user != null && password != null) { "centralPortalUsername / centralPortalPassword가 없습니다. ~/.gradle/gradle.properties에 넣으세요." }
         val bundle = layout.buildDirectory.file("central-bundle.zip").get().asFile
         val auto = providers.gradleProperty("centralAutoPublish").orNull == "true"
         val token = java.util.Base64.getEncoder().encodeToString("$user:$password".toByteArray())
