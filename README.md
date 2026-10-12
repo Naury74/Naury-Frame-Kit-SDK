@@ -25,6 +25,7 @@ Android 앱에 넣어 쓰는 **비파괴 이미지·영상 편집 SDK**입니다
 | PDF 문서 | 편집한 사진(여러 장이면 쪽 순서대로)을 PDF로 저장. A4·A5·Letter·Legal·사진 크기, 방향, 여백, dpi, 한 문서/사진마다. 문서·문서 흑백 필터 | v1.0 지원 |
 | 문서 스캔 | 문서 사진을 열면 자동 감지·제안, 네 모서리 자동 감지와 끌기(돋보기), 반듯하게 펴기, 스캔 보정(그림자 제거·흰 배경·흑백), 인식한 글자 보기·복사, 원본으로 되돌리기 | v1.0 지원 |
 | PDF 글자 검색(OCR) | 선택 모듈 `framekit-ocr`로 쪽마다 글자를 인식해 보이지 않는 글자 레이어 추가(검색·복사), 한국어·영어, 기기 안에서 처리 | v1.0 지원 |
+| 움직이는 이미지 | 사진 여러 장을 카메라 움직임(확대·이동)·전환(페이드·밀기·줌)·움직이는 텍스트·스티커와 함께 이어 붙이기, GIF·움직이는 WebP 열어서 구간·속도·부메랑·보정·필터·텍스트 편집, MP4·GIF·움직이는 WebP로 저장(`MotionEditorContract`) | 다음 버전 |
 | Headless | `ImageProcessor`로 UI 없이 편집·저장, `ExportHandle` 상태·취소 | v0.2 지원 |
 | 큰 사진 | 250MP까지 열기, 자른 영역·띠 단위 디코딩으로 메모리 제한, 실패 시 앱 종료 없이 오류 반환 | v0.2 지원 |
 | 폴드·태블릿 | 화면 크기·폴드 자세(탁상·책)에 맞춘 배치, 접고 펴도 편집 유지 | v0.2 지원 |
@@ -73,6 +74,7 @@ SDK 확장(v1.0)
 | `framekit` | 사진·영상 편집 화면 모두, `FrameKitContract` |
 | `framekit-ui-image` | 사진 편집 화면만. Media3가 포함되지 않음 |
 | `framekit-ui-video` | 영상 편집 화면만 |
+| `framekit-ui-motion` | 움직이는 이미지 편집 화면만(`MotionEditorContract`) |
 | `framekit-image` / `framekit-video` | UI 없는 처리(headless)와 엔진 |
 
 Maven Central 공개 전에는 이 저장소에서 로컬 Maven에 올린 뒤 씁니다. Maven Central 배포 방법은 [docs/publishing.md](docs/publishing.md)에 있습니다.
@@ -236,6 +238,8 @@ framekit-ui         Compose 공통 테마·컴포넌트·문구
 framekit-ui-image   이미지 편집 화면, ImageEditorContract
 framekit-video      Media3 어댑터: 미리보기 플레이어, Transformer 저장, 색·모자이크 GL 효과, 썸네일
 framekit-ui-video   영상 편집 화면(타임라인), VideoEditorContract
+framekit-motion     움직이는 이미지: 프레임 렌더러, GIF·움직이는 WebP 인코더/디코더, MP4 인코더, 저장
+framekit-ui-motion  움직이는 이미지 편집 화면, MotionEditorContract
 framekit            통합 모듈: FrameKitContract가 원본 종류에 맞는 편집기를 연다
 framekit-segmentation  (선택) ML Kit 배경 제거
 framekit-ocr        (선택) ML Kit 글자 인식, PDF 글자 레이어
@@ -254,6 +258,8 @@ app                 Showcase 앱
 | 사진 편집 | 기본 설정 |
 | 영상 편집 | 최대 10개 클립, 모든 영상 도구, MP4 저장 |
 | 사진 또는 영상 | `Pick(MediaKind.ANY)`, 고른 종류의 편집기가 열림 |
+| 움직이는 이미지 만들기 | `MotionEditorContract`, 사진 최대 20장으로 슬라이드쇼를 만들어 MP4·GIF·WebP로 저장 |
+| GIF·WebP 편집 | `MotionEditorContract`, 움직이는 GIF·WebP 하나를 열어 편집(처음 저장 형식 GIF) |
 | 여러 장 사진 | 최대 10장을 골라 한 장씩 편집하고 사진마다 저장 |
 | 사진을 PDF로 | 최대 20쪽, 문서 보정·문서 필터, 글자 검색이 되는 A4 PDF 하나로 저장 |
 | 카메라로 찍기 / 녹화 | `Capture(IMAGE)` / `Capture(VIDEO)` |

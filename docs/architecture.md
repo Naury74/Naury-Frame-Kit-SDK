@@ -27,7 +27,9 @@
 | `framekit-ui-image` | Compose library | `ImageEditorContract`, 편집 Activity·ViewModel·도구 |
 | `framekit-video` | Android library | Media3 어댑터: `VideoRenderPlan`, Composition 생성, 미리보기(`VideoPreviewEngine`), `VideoExportCoordinator`, 색·모자이크 GL 효과, 썸네일 |
 | `framekit-ui-video` | Compose library | `VideoEditorContract`, 영상 편집 Activity·ViewModel·타임라인 |
-| `framekit` | Android library | `FrameKitContract`, 원본 종류에 따라 편집기를 고르는 라우터 Activity |
+| `framekit-motion` | Android library | 움직이는 이미지: `MotionProject`, `MotionTimeline`, `MotionRenderer`(사진 렌더러·색 보정·오버레이 재사용), GIF·움직이는 WebP 인코더/디코더, MP4 인코더(MediaCodec+EGL), `MotionExporter` |
+| `framekit-ui-motion` | Compose library | `MotionEditorContract`, 움직이는 이미지 편집 Activity·ViewModel·도구 |
+| `framekit` | Android library | `FrameKitContract`, 원본 종류에 따라 편집기를 고르는 라우터 Activity(움직이는 GIF·WebP는 움직이는 이미지 편집기로) |
 
 의존 규칙:
 
@@ -35,6 +37,7 @@
 - 엔진(image)은 UI를 참조하지 않습니다.
 - 영상은 별도 `framekit-video`/`framekit-ui-video`로 두어 이미지 전용 앱이 Media3를 받지 않습니다. Media3 타입과 `@UnstableApi`는 `framekit-video` 안의 어댑터에만 있고 UI는 `VideoPreviewEngine` 같은 FrameKit 인터페이스만 씁니다.
 - 자르기·회전·보정·필터·가리기 패널과 자르기 프레임은 `framekit-ui`에 있어 사진·영상 편집기가 함께 씁니다.
+- 움직이는 이미지는 Media3를 쓰지 않고 `framekit-image` 렌더러로 프레임을 하나씩 그려 인코더에 넘깁니다. 움직이는 WebP는 Android 내장 WebP 압축으로 만든 프레임을 애니메이션 컨테이너로 묶어 네이티브 라이브러리가 필요 없습니다.
 - SDK 모듈은 explicit API mode로 공개 범위를 명시하고, 리소스 이름에 `framekit_` prefix를 붙입니다.
 - DI 프레임워크 없이 생성자 주입을 사용합니다.
 

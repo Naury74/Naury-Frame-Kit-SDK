@@ -4,6 +4,11 @@
 
 ### 바뀜
 
+- 영상 편집기 타임라인을 줄(영상·원본 소리·배경 음악·음성·텍스트·가리기)로 나눈 트랙 타임라인으로 바꿈. 고른 클립의 양 끝을 끌어 바로 자르고(구간 도구 대신), 무엇을 고르냐에 따라 아래 동작이 바뀜
+- 배경 음악·음성을 한 줄에 여러 조각으로 넣고 나누기·옮기기·양 끝 자르기·삭제·반복·볼륨·페이드인/아웃(`AudioClip.timelineEndUs`, `startOffsetUs`, `fadeInUs`, `fadeOutUs`, `AudioEditing`). 움직이는 이미지 편집기도 같은 방식의 소리 줄
+- 원본 소리 구간 음소거와 되살리기(`VideoClip.mutedRanges`, `TimeRanges`)
+- 소리 줄에 파형 표시(`WaveformExtractor`)
+- Showcase 앱 아이콘
 - 도구 화면의 상단 바: 닫기(X) 대신 뒤로 가기 화살표와 도구 이름(`EditorTopBar(toolTitle = …)`). 뒤로 가기는 시스템 뒤로 가기와 같아 바뀐 내용이 있으면 적용할지 묻는다.
 - 도구 하단 바를 `ToolActionBar`로 교체: 왼쪽 초기화, 오른쪽 적용(아이콘과 글자). 넓은 화면에서는 패널 맨 아래에 고정. `ApplyCancelBar`는 deprecated.
 - 텍스트 글꼴 이름 "손글씨" → "필기체"(13개 언어). 저장되는 글꼴 id `handwriting`은 그대로.
@@ -12,6 +17,11 @@
 
 ### 추가
 
+- 배경 음악과 음성 트랙(`AudioRole.MUSIC`/`VOICE`): 영상 편집기와 움직이는 이미지 편집기에서 음성 파일 불러오기·마이크 녹음(`VoiceRecorder`, `VoiceRecordDialog`, 호스트가 `RECORD_AUDIO`를 선언했을 때만), 트랙마다 볼륨·시작 위치·반복
+- 움직이는 이미지 편집기에서 프로세스가 끝나도 편집 이어 가기, MP4 저장 시 소리 섞기(`AudioTrackMixer`)
+- 움직이는 이미지 편집기 `MotionEditorContract`(`framekit-motion`, `framekit-ui-motion`): 사진으로 슬라이드쇼 만들기(카메라 움직임·전환·사진당 시간·부메랑·화면 비율), GIF·움직이는 WebP 편집(구간·속도·부메랑), 보정·필터, 움직이는 텍스트·스티커, MP4·GIF·움직이는 WebP 저장
+- GIF·움직이는 WebP 인코더/디코더(네이티브 라이브러리 없음), 프레임 MP4 인코더, `MediaType.ANIMATED_IMAGE`
+- `FrameKitContract`가 움직이는 GIF·WebP를 움직이는 이미지 편집기로 연다(`openAnimatedInMotionEditor`)
 - 텍스트 꾸밈 세부 설정: 외곽선 색·두께, 배경 색·불투명도·모서리 둥글기·여백, 그림자 색·흐림·거리·불투명도
 - 배경 제거 모델 내려받기 흐름: 이유·데이터 사용 안내(모바일 데이터면 강조), 진행률, 앱이 끝나도 이어받기, 다 받으면 바로 배경 제거(`BackgroundRemover.modelState`/`downloadModel`, `OnDeviceModelState`)
 - 분리 프로세스 도구(`IsolatedWorkerService`, `IsolatedServiceClient`, `ProcessCrashGuard`, `PixelFiles`)
