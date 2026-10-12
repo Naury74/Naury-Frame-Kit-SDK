@@ -54,7 +54,7 @@ internal object Media3CompositionFactory {
         val music = plan.audio.mapNotNull { audioSequence(it, durationUs) }
         val effects = buildList<Effect> {
             if (timeline.privacyMasks.isNotEmpty()) add(PrivacyGlEffect(timeline.privacyMasks))
-            if (timeline.overlays.isNotEmpty()) add(OverlayEffect(listOf(TimedBitmapOverlay(timeline.overlays))))
+            if (timeline.overlays.isNotEmpty() || timeline.watermark != null) add(OverlayEffect(listOf(TimedBitmapOverlay(timeline.overlays, timeline.watermark))))
         }
         return Composition.Builder(listOf(video) + music)
             .setHdrMode(Composition.HDR_MODE_TONE_MAP_HDR_TO_SDR_USING_OPEN_GL)
