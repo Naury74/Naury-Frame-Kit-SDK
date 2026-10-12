@@ -83,4 +83,9 @@
     <string name="example_camera_video_description">使用相機應用程式錄製並編輯片段</string>
     <string name="example_mixed_title">照片或影片（多個）</string>
     <string name="example_mixed_description">可選擇多個；全部為照片時開啟照片編輯器，全部為影片時開啟影片編輯器</string>
+    <string name="example_motion_make_title">製作動態圖片</string>
+    <string name="example_motion_make_description">將相片配上縮放、轉場和動態文字串連起來，儲存為 MP4、GIF 或 WebP</string>
+    <string name="example_motion_edit_title">編輯 GIF·WebP</string>
+    <string name="example_motion_edit_description">開啟動態 GIF·WebP，剪輯片段、調整速度、來回播放、濾鏡和文字</string>
+    <string name="result_animated">動態圖片</string>
 </resources>

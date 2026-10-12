@@ -1,15 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <application>
+        <!-- debug 빌드에서는 배경 제거기를 감싸 "모델 없음 → 내려받기" 흐름을 시험할 수 있게 한다(SimulatedDownloadRemover). -->
+        <meta-data
+            android:name="com.naury.framekit.BACKGROUND_REMOVER"
+            android:value="com.naury.framekit.showcase.debug.SimulatedDownloadRemover"
+            tools:replace="android:value" />
         <!--
             debug 빌드 전용. 배경 제거 모델이 없는 상태를 시험하려고 adb로 모델 상태를 보거나 해제를 요청한다.
-            adb shell am broadcast -n com.naury.framekit.showcase/.debug.ModelDebugReceiver -a com.naury.framekit.showcase.debug.MODEL -e op status|release
+            adb shell am broadcast -n com.naury.framekit.showcase/.debug.ModelDebugReceiver -a com.naury.framekit.showcase.debug.MODEL -e op status|release|simulate|unsimulate
         -->
         <receiver
             android:name=".debug.ModelDebugReceiver"
             android:exported="true"
-            android:process=":framekit_segmentation">
+            android:process=":framekit_segmentation"
+            tools:ignore="ExportedReceiver">
             <intent-filter>
                 <action android:name="com.naury.framekit.showcase.debug.MODEL" />
             </intent-filter>

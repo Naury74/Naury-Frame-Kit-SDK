@@ -2,6 +2,9 @@ package com.naury.framekit.showcase
 
 import androidx.annotation.StringRes
 import com.naury.framekit.FrameKitRequest
+import com.naury.framekit.motion.export.MotionExportConfig
+import com.naury.framekit.motion.export.MotionFormat
+import com.naury.framekit.ui.motion.contract.MotionEditorRequest
 import com.naury.framekit.android.catalog.CatalogFile
 import com.naury.framekit.android.catalog.CustomFilter
 import com.naury.framekit.android.catalog.CustomSticker
@@ -20,11 +23,14 @@ import com.naury.framekit.ui.video.contract.VideoEditorConfig
 import com.naury.framekit.ui.video.contract.VideoTool
 import com.naury.framekit.video.export.VideoExportConfig
 
-/** 홈 화면의 예제. 각 예제는 실제 요청으로 FrameKit을 실행한다. */
+/**
+ * 홈 화면의 예제. 각 예제는 실제 요청으로 FrameKit을 실행한다. [motion]이 있으면 [request] 대신 움직이는 이미지 편집기로 연다.
+ */
 enum class ShowcaseExample(
     @StringRes val title: Int,
     @StringRes val description: Int,
     val request: FrameKitRequest,
+    val motion: MotionEditorRequest? = null,
 ) {
     DEFAULT(
         R.string.example_default_title,
@@ -40,6 +46,18 @@ enum class ShowcaseExample(
         R.string.example_any_title,
         R.string.example_any_description,
         FrameKitRequest(EditorInput.Pick(MediaKind.ANY)),
+    ),
+    MOTION_MAKE(
+        R.string.example_motion_make_title,
+        R.string.example_motion_make_description,
+        FrameKitRequest(EditorInput.Pick(MediaKind.IMAGE)),
+        motion = MotionEditorRequest(EditorInput.Pick(MediaKind.IMAGE, maxItems = 20)),
+    ),
+    MOTION_EDIT(
+        R.string.example_motion_edit_title,
+        R.string.example_motion_edit_description,
+        FrameKitRequest(EditorInput.Pick(MediaKind.IMAGE)),
+        motion = MotionEditorRequest(EditorInput.Pick(MediaKind.IMAGE), export = MotionExportConfig(format = MotionFormat.GIF)),
     ),
     MULTI_PHOTO(
         R.string.example_multi_photo_title,

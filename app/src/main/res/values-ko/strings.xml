@@ -84,4 +84,9 @@
     <string name="example_camera_video_description">카메라 앱으로 녹화한 영상을 편집</string>
     <string name="example_mixed_title">사진·영상 여러 개</string>
     <string name="example_mixed_description">여러 개를 고르면 모두 사진일 때 사진 편집기, 모두 영상일 때 영상 편집기</string>
+    <string name="example_motion_make_title">움직이는 이미지 만들기</string>
+    <string name="example_motion_make_description">사진을 확대·전환·움직이는 글자와 함께 이어 붙여 MP4·GIF·WebP로 저장</string>
+    <string name="example_motion_edit_title">GIF·WebP 편집</string>
+    <string name="example_motion_edit_description">움직이는 GIF·WebP를 열어 구간·속도·부메랑·필터·텍스트 편집</string>
+    <string name="result_animated">움직이는 이미지</string>
 </resources>

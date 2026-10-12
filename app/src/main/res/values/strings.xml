@@ -85,4 +85,9 @@
     <string name="example_camera_video_description">Record with the camera app and edit the clip</string>
     <string name="example_mixed_title">Photos or videos (many)</string>
     <string name="example_mixed_description">Pick several; all photos open the photo editor, all videos the video editor</string>
+    <string name="example_motion_make_title">Make an animated image</string>
+    <string name="example_motion_make_description">Turn photos into a moving clip with zoom, transitions and animated text, then save as MP4, GIF or WebP</string>
+    <string name="example_motion_edit_title">Edit a GIF or WebP</string>
+    <string name="example_motion_edit_description">Open an animated GIF or WebP to trim, change speed, boomerang, filter and add text</string>
+    <string name="result_animated">Animated image</string>
 </resources>

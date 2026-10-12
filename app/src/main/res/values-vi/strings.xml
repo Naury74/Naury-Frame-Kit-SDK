@@ -83,4 +83,9 @@
     <string name="example_camera_video_description">Quay bằng ứng dụng máy ảnh và sửa clip</string>
     <string name="example_mixed_title">Nhiều ảnh hoặc video</string>
     <string name="example_mixed_description">Chọn nhiều tệp; nếu tất cả là ảnh sẽ mở trình sửa ảnh, nếu tất cả là video sẽ mở trình sửa video</string>
+    <string name="example_motion_make_title">Tạo ảnh động</string>
+    <string name="example_motion_make_description">Ghép ảnh với hiệu ứng thu phóng, chuyển cảnh và chữ chuyển động, lưu thành MP4, GIF hoặc WebP</string>
+    <string name="example_motion_edit_title">Chỉnh sửa GIF·WebP</string>
+    <string name="example_motion_edit_description">Mở GIF·WebP động để cắt đoạn, đổi tốc độ, phát qua lại, thêm bộ lọc và chữ</string>
+    <string name="result_animated">Ảnh động</string>
 </resources>

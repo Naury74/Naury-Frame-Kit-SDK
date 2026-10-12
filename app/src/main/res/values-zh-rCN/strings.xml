@@ -83,4 +83,9 @@
     <string name="example_camera_video_description">用相机应用录制并编辑片段</string>
     <string name="example_mixed_title">照片或视频（多个）</string>
     <string name="example_mixed_description">可选择多个；全部为照片时打开照片编辑器，全部为视频时打开视频编辑器</string>
+    <string name="example_motion_make_title">制作动图</string>
+    <string name="example_motion_make_description">将照片配上缩放、转场和动态文字串联起来，保存为 MP4、GIF 或 WebP</string>
+    <string name="example_motion_edit_title">编辑 GIF·WebP</string>
+    <string name="example_motion_edit_description">打开动态 GIF·WebP，剪辑片段、调整速度、来回播放、滤镜和文字</string>
+    <string name="result_animated">动图</string>
 </resources>

@@ -98,13 +98,17 @@ private fun ResultCard(media: EditedMedia) {
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Box(Modifier.fillMaxWidth().heightIn(min = 120.dp), contentAlignment = Alignment.Center) {
-            preview?.let {
+            // GIF·움직이는 WebP는 움직이는 채로 보여 준다(Android 9 이상).
+            if (media.mediaType == MediaType.ANIMATED_IMAGE && Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                AnimatedPreview(media)
+            } else preview?.let {
                 Image(
                     it.asImageBitmap(),
                     contentDescription = stringResource(
                         when (media.mediaType) {
                             MediaType.VIDEO -> R.string.result_video
                             MediaType.DOCUMENT -> R.string.result_document
+                            MediaType.ANIMATED_IMAGE -> R.string.result_animated
                             else -> R.string.result_image
                         },
                     ),
@@ -124,6 +128,24 @@ private fun ResultCard(media: EditedMedia) {
             Button(onClick = { share(context, media) }) { Text(stringResource(R.string.result_share)) }
         }
     }
+}
+
+@androidx.annotation.RequiresApi(Build.VERSION_CODES.P)
+@Composable
+private fun AnimatedPreview(media: EditedMedia) {
+    val context = LocalContext.current
+    val drawable by produceState<android.graphics.drawable.Drawable?>(null, media.uri) {
+        value = withContext(Dispatchers.IO) { runCatching { ImageDecoder.decodeDrawable(ImageDecoder.createSource(context.contentResolver, media.uri)) }.getOrNull() }
+    }
+    val current = drawable ?: return
+    androidx.compose.ui.viewinterop.AndroidView(
+        factory = { android.widget.ImageView(it).apply { adjustViewBounds = true } },
+        update = { view ->
+            view.setImageDrawable(current)
+            (current as? android.graphics.drawable.AnimatedImageDrawable)?.start()
+        },
+        modifier = Modifier.fillMaxWidth().heightIn(max = 420.dp),
+    )
 }
 
 @Composable

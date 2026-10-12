@@ -15,6 +15,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalResources
 import com.naury.framekit.FrameKitContract
+import com.naury.framekit.ui.motion.contract.MotionEditorContract
 import com.naury.framekit.android.output.FrameKitOutputs
 import com.naury.framekit.android.result.EditedMedia
 import com.naury.framekit.android.result.FrameKitResult
@@ -50,6 +51,19 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
+                // 움직이는 이미지 예제는 같은 결과 처리로 움직이는 이미지 편집기를 연다.
+                val motionEditor = rememberLauncherForActivityResult(MotionEditorContract()) { outcome ->
+                    when (outcome) {
+                        is FrameKitResult.Success -> {
+                            elapsedMs = SystemClock.elapsedRealtime() - launchedAt
+                            result = ArrayList(outcome.outputs)
+                            lastMessage = null
+                        }
+                        FrameKitResult.Cancelled -> lastMessage = resources.getString(R.string.result_cancelled)
+                        is FrameKitResult.Failure -> lastMessage = resources.getString(R.string.result_failed, outcome.error.code.name, outcome.error.diagnosticId)
+                    }
+                }
+
                 val current = result
                 if (current == null && playground) {
                     BackHandler { playground = false }
@@ -65,7 +79,8 @@ class MainActivity : ComponentActivity() {
                         message = lastMessage,
                         onLaunch = { example ->
                             launchedAt = SystemClock.elapsedRealtime()
-                            editor.launch(example.request)
+                            val motion = example.motion
+                            if (motion != null) motionEditor.launch(motion) else editor.launch(example.request)
                         },
                         onPlayground = { playground = true },
                     )
