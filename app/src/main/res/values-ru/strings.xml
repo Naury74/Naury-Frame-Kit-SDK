@@ -96,4 +96,17 @@
     <string name="example_host_album_description">Приложение выбирает файлы и передаёт их FrameKit, который спрашивает, что сделать</string>
     <string name="result_original">Изменено</string>
     <string name="result_original_yes">Нет (оригинал)</string>
+    <string name="example_audio_record_title">Записать и отредактировать</string>
+    <string name="example_audio_record_description">Запишите голос (нажатием или удержанием), затем обрежьте, разделите и допишите</string>
+    <string name="example_audio_hold_title">Диктофон «удерживай и говори»</string>
+    <string name="example_audio_hold_description">Удерживайте кнопку для записи и сразу получите файл без редактирования</string>
+    <string name="example_audio_file_title">Редактировать аудиофайлы</string>
+    <string name="example_audio_file_description">Выберите до 5 аудиофайлов, склейте, обрежьте или добавьте записи</string>
+    <string name="result_audio">Аудио</string>
+    <string name="result_audio_play">Воспроизвести</string>
+    <string name="result_audio_pause">Пауза</string>
+    <string name="example_watermark_title">Добавить водяной знак</string>
+    <string name="example_watermark_description">Введите текст или выберите вариант и разместите в одном месте, повтором, по диагонали или полосой</string>
+    <string name="example_watermark_locked_title">Закреплённый водяной знак</string>
+    <string name="example_watermark_locked_description">Приложение ставит повторяющийся знак SAMPLE, который нельзя изменить или убрать</string>
 </resources>

@@ -94,4 +94,17 @@
     <string name="example_host_album_description">Ứng dụng chọn tệp trước rồi giao cho FrameKit, FrameKit sẽ hỏi muốn làm gì</string>
     <string name="result_original">Chỉnh sửa</string>
     <string name="result_original_yes">Không (bản gốc)</string>
+    <string name="example_audio_record_title">Ghi âm và chỉnh sửa</string>
+    <string name="example_audio_record_description">Ghi giọng nói (chạm hoặc giữ), rồi cắt, tách và ghi thêm</string>
+    <string name="example_audio_hold_title">Máy ghi âm giữ để nói</string>
+    <string name="example_audio_hold_description">Giữ nút để ghi và nhận tệp ngay, không chỉnh sửa</string>
+    <string name="example_audio_file_title">Chỉnh sửa tệp âm thanh</string>
+    <string name="example_audio_file_description">Chọn tối đa 5 tệp âm thanh, nối lại, cắt hoặc thêm bản ghi</string>
+    <string name="result_audio">Âm thanh</string>
+    <string name="result_audio_play">Phát</string>
+    <string name="result_audio_pause">Tạm dừng</string>
+    <string name="example_watermark_title">Thêm hình mờ</string>
+    <string name="example_watermark_description">Nhập chữ hoặc chọn gợi ý, rồi đặt ở một chỗ, lặp lại, đường chéo hoặc dải</string>
+    <string name="example_watermark_locked_title">Hình mờ bị khóa</string>
+    <string name="example_watermark_locked_description">Ứng dụng đặt hình mờ SAMPLE lặp lại, người dùng không thể đổi hay gỡ</string>
 </resources>

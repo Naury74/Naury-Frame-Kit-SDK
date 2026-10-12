@@ -1,5 +1,8 @@
 package com.naury.framekit.showcase
 
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import android.content.ClipData
 import android.content.Context
 import android.content.Intent
@@ -99,7 +102,9 @@ private fun ResultCard(media: EditedMedia) {
     ) {
         Box(Modifier.fillMaxWidth().heightIn(min = 120.dp), contentAlignment = Alignment.Center) {
             // GIF·움직이는 WebP는 움직이는 채로 보여 준다(Android 9 이상).
-            if (media.mediaType == MediaType.ANIMATED_IMAGE && Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            if (media.mediaType == MediaType.AUDIO) {
+                AudioPreview(media)
+            } else if (media.mediaType == MediaType.ANIMATED_IMAGE && Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                 AnimatedPreview(media)
             } else preview?.let {
                 Image(
@@ -109,6 +114,7 @@ private fun ResultCard(media: EditedMedia) {
                             MediaType.VIDEO -> R.string.result_video
                             MediaType.DOCUMENT -> R.string.result_document
                             MediaType.ANIMATED_IMAGE -> R.string.result_animated
+                            MediaType.AUDIO -> R.string.result_audio
                             else -> R.string.result_image
                         },
                     ),
@@ -147,6 +153,26 @@ private fun AnimatedPreview(media: EditedMedia) {
         },
         modifier = Modifier.fillMaxWidth().heightIn(max = 420.dp),
     )
+}
+
+/** 소리 결과를 바로 들어 볼 수 있는 재생 버튼. */
+@Composable
+private fun AudioPreview(media: EditedMedia) {
+    val context = LocalContext.current
+    var playing by remember { mutableStateOf(false) }
+    val player = remember(media.uri) { android.media.MediaPlayer() }
+    androidx.compose.runtime.DisposableEffect(player) {
+        runCatching {
+            player.setDataSource(context, media.uri)
+            player.setOnCompletionListener { playing = false }
+            player.prepare()
+        }
+        onDispose { player.release() }
+    }
+    Button(onClick = {
+        if (playing) player.pause() else player.start()
+        playing = !playing
+    }) { Text(stringResource(if (playing) R.string.result_audio_pause else R.string.result_audio_play)) }
 }
 
 @Composable

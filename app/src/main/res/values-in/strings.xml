@@ -94,4 +94,17 @@
     <string name="example_host_album_description">Aplikasi memilih file dulu lalu menyerahkannya ke FrameKit, yang akan bertanya</string>
     <string name="result_original">Diedit</string>
     <string name="result_original_yes">Tidak (asli)</string>
+    <string name="example_audio_record_title">Rekam dan edit</string>
+    <string name="example_audio_record_description">Rekam suara (ketuk atau tahan), lalu pangkas, pisahkan, dan rekam lagi</string>
+    <string name="example_audio_hold_title">Perekam tahan untuk bicara</string>
+    <string name="example_audio_hold_description">Tahan tombol untuk merekam dan langsung dapatkan file tanpa edit</string>
+    <string name="example_audio_file_title">Edit file audio</string>
+    <string name="example_audio_file_description">Pilih hingga 5 file audio, gabungkan, pangkas, atau tambahkan rekaman</string>
+    <string name="result_audio">Audio</string>
+    <string name="result_audio_play">Putar</string>
+    <string name="result_audio_pause">Jeda</string>
+    <string name="example_watermark_title">Tambah tanda air</string>
+    <string name="example_watermark_description">Ketik teks atau pilih saran, lalu pasang di satu titik, berulang, diagonal, atau pita</string>
+    <string name="example_watermark_locked_title">Tanda air terkunci</string>
+    <string name="example_watermark_locked_description">Aplikasi memasang tanda air SAMPLE berulang yang tidak bisa diubah atau dihapus pengguna</string>
 </resources>

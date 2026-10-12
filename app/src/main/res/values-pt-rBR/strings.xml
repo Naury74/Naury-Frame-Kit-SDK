@@ -96,4 +96,17 @@
     <string name="example_host_album_description">Seu app escolhe os arquivos e entrega ao FrameKit, que pergunta o que fazer</string>
     <string name="result_original">Editado</string>
     <string name="result_original_yes">Não (original)</string>
+    <string name="example_audio_record_title">Gravar e editar</string>
+    <string name="example_audio_record_description">Grave sua voz (tocando ou segurando) e depois corte, divida e grave mais</string>
+    <string name="example_audio_hold_title">Gravador segure para falar</string>
+    <string name="example_audio_hold_description">Segure o botão para gravar e receba o arquivo na hora, sem editar</string>
+    <string name="example_audio_file_title">Editar arquivos de áudio</string>
+    <string name="example_audio_file_description">Escolha até 5 áudios, junte, corte ou adicione gravações</string>
+    <string name="result_audio">Áudio</string>
+    <string name="result_audio_play">Reproduzir</string>
+    <string name="result_audio_pause">Pausar</string>
+    <string name="example_watermark_title">Adicionar marca d\'água</string>
+    <string name="example_watermark_description">Digite um texto ou escolha uma sugestão e coloque em um lugar, repetido, na diagonal ou em faixa</string>
+    <string name="example_watermark_locked_title">Marca d\'água bloqueada</string>
+    <string name="example_watermark_locked_description">O app aplica uma marca SAMPLE repetida que não pode ser alterada nem removida</string>
 </resources>

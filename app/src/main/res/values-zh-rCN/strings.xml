@@ -94,4 +94,17 @@
     <string name="example_host_album_description">应用先选好文件再交给 FrameKit，由它询问要做什么</string>
     <string name="result_original">编辑</string>
     <string name="result_original_yes">未编辑（原件）</string>
+    <string name="example_audio_record_title">录音并编辑</string>
+    <string name="example_audio_record_description">录下声音（点按或按住），然后剪辑、分割并继续录音</string>
+    <string name="example_audio_hold_title">按住说话录音机</string>
+    <string name="example_audio_hold_description">按住按钮录音，不编辑直接拿到文件</string>
+    <string name="example_audio_file_title">编辑音频文件</string>
+    <string name="example_audio_file_description">最多选择 5 个音频文件拼接，剪辑或添加录音</string>
+    <string name="result_audio">音频</string>
+    <string name="result_audio_play">播放</string>
+    <string name="result_audio_pause">暂停</string>
+    <string name="example_watermark_title">添加水印</string>
+    <string name="example_watermark_description">输入文字或选择推荐文字，以单处、重复、对角线或横条方式添加</string>
+    <string name="example_watermark_locked_title">锁定水印</string>
+    <string name="example_watermark_locked_description">应用指定的重复 SAMPLE 水印，用户无法修改或移除</string>
 </resources>

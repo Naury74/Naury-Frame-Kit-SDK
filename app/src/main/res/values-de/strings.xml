@@ -96,4 +96,17 @@
     <string name="example_host_album_description">Deine App wählt die Dateien und übergibt sie an FrameKit, das fragt, was passieren soll</string>
     <string name="result_original">Bearbeitet</string>
     <string name="result_original_yes">Nein (Original)</string>
+    <string name="example_audio_record_title">Aufnehmen und bearbeiten</string>
+    <string name="example_audio_record_description">Stimme aufnehmen (tippen oder halten), dann schneiden, teilen und weiter aufnehmen</string>
+    <string name="example_audio_hold_title">Halten-zum-Sprechen-Recorder</string>
+    <string name="example_audio_hold_description">Taste halten zum Aufnehmen und die Datei sofort ohne Bearbeitung erhalten</string>
+    <string name="example_audio_file_title">Audiodateien bearbeiten</string>
+    <string name="example_audio_file_description">Bis zu 5 Audiodateien wählen, zusammenfügen, schneiden oder Aufnahmen hinzufügen</string>
+    <string name="result_audio">Audio</string>
+    <string name="result_audio_play">Abspielen</string>
+    <string name="result_audio_pause">Pause</string>
+    <string name="example_watermark_title">Wasserzeichen hinzufügen</string>
+    <string name="example_watermark_description">Text eingeben oder Vorschlag wählen und an einer Stelle, wiederholt, diagonal oder als Band platzieren</string>
+    <string name="example_watermark_locked_title">Gesperrtes Wasserzeichen</string>
+    <string name="example_watermark_locked_description">Die App setzt ein wiederholtes SAMPLE-Wasserzeichen, das nicht geändert oder entfernt werden kann</string>
 </resources>

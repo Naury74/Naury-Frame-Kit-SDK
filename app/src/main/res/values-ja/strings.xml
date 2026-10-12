@@ -94,4 +94,17 @@
     <string name="example_host_album_description">アプリが先に選んだファイルを渡すと、FrameKitが何をするか尋ねます</string>
     <string name="result_original">編集</string>
     <string name="result_original_yes">なし（元のまま）</string>
+    <string name="example_audio_record_title">録音して編集</string>
+    <string name="example_audio_record_description">声を録音（タップまたは長押し）してカット・分割・追加録音</string>
+    <string name="example_audio_hold_title">長押しで話す録音機</string>
+    <string name="example_audio_hold_description">ボタンを押している間だけ録音し、編集せずにすぐ受け取る</string>
+    <string name="example_audio_file_title">音声ファイルを編集</string>
+    <string name="example_audio_file_description">音声ファイルを最大5件選んでつなぎ、カットや録音を追加</string>
+    <string name="result_audio">音声</string>
+    <string name="result_audio_play">再生</string>
+    <string name="result_audio_pause">一時停止</string>
+    <string name="example_watermark_title">透かしを入れる</string>
+    <string name="example_watermark_description">文字を入力するか候補から選び、1か所・繰り返し・対角線・帯で配置</string>
+    <string name="example_watermark_locked_title">固定の透かし</string>
+    <string name="example_watermark_locked_description">アプリが決めた繰り返しのSAMPLE透かしが入り、変更・削除はできない</string>
 </resources>

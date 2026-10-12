@@ -96,4 +96,17 @@
     <string name="example_host_album_description">Your app picks the files first and hands them to FrameKit, which asks what to do</string>
     <string name="result_original">Edited</string>
     <string name="result_original_yes">Not edited (original)</string>
+    <string name="example_audio_record_title">Record and edit</string>
+    <string name="example_audio_record_description">Record your voice (tap or hold), then cut, split and add more</string>
+    <string name="example_audio_hold_title">Hold-to-talk recorder</string>
+    <string name="example_audio_hold_description">Hold the button to record and get the file right away, no editing</string>
+    <string name="example_audio_file_title">Edit sound files</string>
+    <string name="example_audio_file_description">Pick up to 5 audio files, join them and cut or add recordings</string>
+    <string name="result_audio">Audio</string>
+    <string name="result_audio_play">Play</string>
+    <string name="result_audio_pause">Pause</string>
+    <string name="example_watermark_title">Add a watermark</string>
+    <string name="example_watermark_description">Type a watermark or pick a suggested one, then choose one spot, repeat, diagonal or band</string>
+    <string name="example_watermark_locked_title">Locked watermark</string>
+    <string name="example_watermark_locked_description">The app applies a repeating SAMPLE watermark that users can\'t change or remove</string>
 </resources>

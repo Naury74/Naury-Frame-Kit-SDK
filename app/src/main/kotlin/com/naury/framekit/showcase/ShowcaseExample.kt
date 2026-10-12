@@ -2,6 +2,8 @@ package com.naury.framekit.showcase
 
 import androidx.annotation.StringRes
 import com.naury.framekit.FrameKitRequest
+import com.naury.framekit.ui.audioeditor.contract.AudioEditorConfig
+import com.naury.framekit.ui.audioeditor.contract.RecordMode
 import com.naury.framekit.EditorChooser
 import com.naury.framekit.motion.export.MotionExportConfig
 import com.naury.framekit.motion.export.MotionFormat
@@ -17,6 +19,8 @@ import com.naury.framekit.image.export.ImageFormat
 import com.naury.framekit.image.export.PdfOptions
 import com.naury.framekit.core.pdf.PdfPageSize
 import com.naury.framekit.ui.config.EditorUiConfig
+import com.naury.framekit.ui.config.WatermarkConfig
+import com.naury.framekit.core.overlay.WatermarkPattern
 import com.naury.framekit.ui.config.ThemeMode
 import com.naury.framekit.ui.image.contract.ImageEditorConfig
 import com.naury.framekit.ui.image.contract.ImageTool
@@ -61,6 +65,21 @@ enum class ShowcaseExample(
         R.string.example_any_title,
         R.string.example_any_description,
         FrameKitRequest(EditorInput.Pick(MediaKind.ANY)),
+    ),
+    AUDIO_RECORD(
+        R.string.example_audio_record_title,
+        R.string.example_audio_record_description,
+        FrameKitRequest(EditorInput.Capture(MediaKind.AUDIO)),
+    ),
+    AUDIO_HOLD(
+        R.string.example_audio_hold_title,
+        R.string.example_audio_hold_description,
+        FrameKitRequest(EditorInput.Capture(MediaKind.AUDIO), audio = AudioEditorConfig(recordMode = RecordMode.HOLD, editAfterRecording = false)),
+    ),
+    AUDIO_FILE(
+        R.string.example_audio_file_title,
+        R.string.example_audio_file_description,
+        FrameKitRequest(EditorInput.Pick(MediaKind.AUDIO, maxItems = 5)),
     ),
     MOTION_MAKE(
         R.string.example_motion_make_title,
@@ -165,6 +184,24 @@ enum class ShowcaseExample(
             ),
         ),
     ),
+    WATERMARK(
+        R.string.example_watermark_title,
+        R.string.example_watermark_description,
+        FrameKitRequest(
+            EditorInput.Pick(MediaKind.ANY),
+            image = ImageEditorConfig(watermark = WATERMARK_SUGGESTED),
+            video = VideoEditorConfig(watermark = WATERMARK_SUGGESTED),
+        ),
+    ),
+    WATERMARK_LOCKED(
+        R.string.example_watermark_locked_title,
+        R.string.example_watermark_locked_description,
+        FrameKitRequest(
+            EditorInput.Pick(MediaKind.ANY),
+            image = ImageEditorConfig(watermark = WATERMARK_LOCKED_CONFIG),
+            video = VideoEditorConfig(watermark = WATERMARK_LOCKED_CONFIG),
+        ),
+    ),
     CUSTOM_BRAND(
         R.string.example_brand_title,
         R.string.example_brand_description,
@@ -179,3 +216,15 @@ enum class ShowcaseExample(
         FrameKitRequest(EditorInput.Pick(MediaKind.IMAGE), ui = EditorUiConfig(localeTag = "en")),
     ),
 }
+
+// 호스트가 문구 후보만 주고, 사용자가 편집기에서 고르고 꾸민다.
+private val WATERMARK_SUGGESTED = WatermarkConfig(text = "© NauryLab", suggestions = listOf("© NauryLab", "@naurylab", "NauryLab Studio"))
+
+// 호스트가 정한 반복 워터마크를 바꿀 수 없게 넣는다(예: 미리보기용 시안).
+private val WATERMARK_LOCKED_CONFIG = WatermarkConfig(
+    text = "SAMPLE · NauryLab",
+    pattern = WatermarkPattern.TILE,
+    opacity = 0.35,
+    applyOnOpen = true,
+    locked = true,
+)

@@ -94,4 +94,17 @@
     <string name="example_host_album_description">แอปเลือกไฟล์ก่อนแล้วส่งให้ FrameKit ซึ่งจะถามว่าจะทำอะไร</string>
     <string name="result_original">แก้ไข</string>
     <string name="result_original_yes">ไม่ (ต้นฉบับ)</string>
+    <string name="example_audio_record_title">อัดเสียงและแก้ไข</string>
+    <string name="example_audio_record_description">อัดเสียง (แตะหรือกดค้าง) แล้วตัด แยก และอัดเพิ่ม</string>
+    <string name="example_audio_hold_title">เครื่องอัดเสียงแบบกดค้างพูด</string>
+    <string name="example_audio_hold_description">กดปุ่มค้างเพื่ออัด แล้วรับไฟล์ทันทีโดยไม่แก้ไข</string>
+    <string name="example_audio_file_title">แก้ไขไฟล์เสียง</string>
+    <string name="example_audio_file_description">เลือกไฟล์เสียงได้สูงสุด 5 ไฟล์ ต่อกัน ตัด หรือเพิ่มเสียงที่อัด</string>
+    <string name="result_audio">เสียง</string>
+    <string name="result_audio_play">เล่น</string>
+    <string name="result_audio_pause">หยุดชั่วคราว</string>
+    <string name="example_watermark_title">ใส่ลายน้ำ</string>
+    <string name="example_watermark_description">พิมพ์ข้อความหรือเลือกคำแนะนำ แล้ววางแบบจุดเดียว ซ้ำ แนวทแยง หรือแถบ</string>
+    <string name="example_watermark_locked_title">ลายน้ำแบบล็อก</string>
+    <string name="example_watermark_locked_description">แอปใส่ลายน้ำ SAMPLE แบบซ้ำที่ผู้ใช้เปลี่ยนหรือลบไม่ได้</string>
 </resources>

@@ -95,4 +95,17 @@
     <string name="example_host_album_description">호스트 앱이 먼저 고른 파일을 넘기면 FrameKit이 무엇을 할지 물어봄</string>
     <string name="result_original">편집</string>
     <string name="result_original_yes">안 함(원본)</string>
+    <string name="example_audio_record_title">녹음하고 편집</string>
+    <string name="example_audio_record_description">목소리를 녹음(탭 또는 누르고 말하기)한 뒤 자르고 나누고 더 녹음</string>
+    <string name="example_audio_hold_title">누르고 말하기 녹음기</string>
+    <string name="example_audio_hold_description">버튼을 누르는 동안 녹음하고 편집 없이 바로 파일 받기</string>
+    <string name="example_audio_file_title">소리 파일 편집</string>
+    <string name="example_audio_file_description">소리 파일을 최대 5개 골라 이어 붙이고 자르거나 녹음 추가</string>
+    <string name="result_audio">소리</string>
+    <string name="result_audio_play">재생</string>
+    <string name="result_audio_pause">일시정지</string>
+    <string name="example_watermark_title">워터마크 넣기</string>
+    <string name="example_watermark_description">문구를 직접 쓰거나 추천 문구를 골라 한 곳·반복·대각선·띠로 넣기</string>
+    <string name="example_watermark_locked_title">잠긴 워터마크</string>
+    <string name="example_watermark_locked_description">앱이 정한 반복 SAMPLE 워터마크가 들어가고 사용자는 바꾸거나 지울 수 없음</string>
 </resources>

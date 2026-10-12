@@ -96,4 +96,17 @@
     <string name="example_host_album_description">Votre appli choisit les fichiers et les transmet à FrameKit, qui demande quoi faire</string>
     <string name="result_original">Modifié</string>
     <string name="result_original_yes">Non (original)</string>
+    <string name="example_audio_record_title">Enregistrer et modifier</string>
+    <string name="example_audio_record_description">Enregistrez votre voix (appui ou maintien), puis coupez, divisez et ajoutez-en</string>
+    <string name="example_audio_hold_title">Dictaphone à maintenir</string>
+    <string name="example_audio_hold_description">Maintenez le bouton pour enregistrer et recevez le fichier tout de suite, sans montage</string>
+    <string name="example_audio_file_title">Modifier des fichiers audio</string>
+    <string name="example_audio_file_description">Choisissez jusqu\'à 5 fichiers audio, assemblez-les, coupez ou ajoutez des enregistrements</string>
+    <string name="result_audio">Audio</string>
+    <string name="result_audio_play">Lire</string>
+    <string name="result_audio_pause">Pause</string>
+    <string name="example_watermark_title">Ajouter un filigrane</string>
+    <string name="example_watermark_description">Saisissez un texte ou choisissez une suggestion, puis placez-le à un endroit, en répétition, en diagonale ou en bandeau</string>
+    <string name="example_watermark_locked_title">Filigrane verrouillé</string>
+    <string name="example_watermark_locked_description">L\'app applique un filigrane SAMPLE répété que l\'utilisateur ne peut ni modifier ni retirer</string>
 </resources>
