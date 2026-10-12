@@ -1,5 +1,14 @@
 package com.naury.framekit
 
+import com.naury.framekit.android.input.isSingleSource
+import com.naury.framekit.motion.codec.AnimatedImageProbe
+import com.naury.framekit.ui.motion.contract.MotionEditorContract
+import java.io.File
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
@@ -29,6 +38,7 @@ internal class FrameKitActivity : ComponentActivity() {
 
     private val imageEditor = registerForActivityResult(ImageEditorContract(), ::deliver)
     private val videoEditor = registerForActivityResult(VideoEditorContract(), ::deliver)
+    private val motionEditor = registerForActivityResult(MotionEditorContract(), ::deliver)
     private val picker = registerForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri: Uri? ->
         if (uri == null) deliver(FrameKitResult.Cancelled) else open(EditorInput.UriSource(uri))
     }
@@ -68,6 +78,11 @@ internal class FrameKitActivity : ComponentActivity() {
             if (input.maxItems > 1) multiPicker.launch(request) else picker.launch(request)
             return
         }
+        // 사진 한 장을 고를 때는 직접 골라, 움직이는 이미지면 움직이는 이미지 편집기로 보낸다.
+        if (input is EditorInput.Pick && input.kind == MediaKind.IMAGE && input.maxItems == 1 && request.openAnimatedInMotionEditor) {
+            picker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+            return
+        }
         val kind = MediaKindResolver.resolve(input, contentResolver)
         if (input is EditorInput.Multiple && kind != null) {
             val limit = if (kind == MediaKind.IMAGE) request.image.maxImageCount else request.video.maxClipCount
@@ -84,6 +99,18 @@ internal class FrameKitActivity : ComponentActivity() {
 
     private fun launchEditor(kind: MediaKind, input: EditorInput) {
         try {
+            if (kind == MediaKind.IMAGE && request.openAnimatedInMotionEditor && input.isSingleSource) {
+                // 파일을 읽어야 해서 메인 스레드 밖에서 판단한 뒤 편집기를 연다.
+                lifecycleScope.launch {
+                    val animated = withContext(Dispatchers.IO) { isAnimated(input) }
+                    try {
+                        if (animated) motionEditor.launch(request.forMotion(input)) else imageEditor.launch(request.forImage(input))
+                    } catch (_: RuntimeException) {
+                        deliver(FrameKitResult.Failure(EditorError(EditorErrorCode.INVALID_CONFIGURATION)))
+                    }
+                }
+                return
+            }
             when (kind) {
                 MediaKind.IMAGE -> imageEditor.launch(request.forImage(input))
                 else -> videoEditor.launch(request.forVideo(input))
@@ -93,6 +120,16 @@ internal class FrameKitActivity : ComponentActivity() {
             deliver(FrameKitResult.Failure(EditorError(EditorErrorCode.INVALID_CONFIGURATION)))
         }
     }
+
+    // 원본 앞부분만 읽어 판단한다. 읽지 못하면 움직이지 않는 사진으로 본다.
+    private fun isAnimated(input: EditorInput): Boolean = runCatching {
+        val stream = when (input) {
+            is EditorInput.UriSource -> contentResolver.openInputStream(input.uri)
+            is EditorInput.FileSource -> File(input.absolutePath).inputStream()
+            else -> null
+        } ?: return false
+        AnimatedImageProbe.isAnimated(stream)
+    }.getOrDefault(false)
 
     private fun deliver(result: FrameKitResult) {
         if (delivered) return

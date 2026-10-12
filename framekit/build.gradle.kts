@@ -33,6 +33,7 @@ kotlin {
 dependencies {
     api(project(":framekit-ui-image"))
     api(project(":framekit-ui-video"))
+    api(project(":framekit-ui-motion"))
     implementation(libs.androidx.activity.compose)
 
     testImplementation(libs.junit4)

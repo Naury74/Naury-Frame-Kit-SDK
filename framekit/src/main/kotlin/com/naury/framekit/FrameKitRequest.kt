@@ -17,12 +17,18 @@ import com.naury.framekit.ui.video.contract.VideoEditorConfig
 import com.naury.framekit.ui.video.contract.VideoEditorRequest
 import com.naury.framekit.video.export.VideoExportConfig
 import kotlinx.parcelize.Parcelize
+import com.naury.framekit.motion.export.MotionExportConfig
+import com.naury.framekit.ui.motion.contract.MotionEditorConfig
+import com.naury.framekit.ui.motion.contract.MotionEditorRequest
 
 /**
  * [FrameKitContract] 실행 요청이다. FrameKit은 소스에 따라 사진 편집기 또는 영상 편집기를 열기 때문에
  * 두 편집기 설정을 모두 미리 전달한다.
  *
  * `EditorInput.Pick(MediaKind.ANY)`를 쓰면 사용자가 시스템 picker에서 사진이나 영상을 고를 수 있다.
+ *
+ * @property openAnimatedInMotionEditor 고른(또는 넘긴) 사진 하나가 움직이는 이미지(GIF·움직이는 WebP)면 사진 편집기 대신
+ *   움직이는 이미지 편집기로 연다. `false`면 사진 편집기가 첫 프레임을 편집한다.
  */
 @Parcelize
 public data class FrameKitRequest(
@@ -34,12 +40,15 @@ public data class FrameKitRequest(
     val ui: EditorUiConfig = EditorUiConfig(),
     val output: OutputTarget = OutputTarget.AppFile,
     val catalog: EditorCatalog = EditorCatalog(),
+    val motion: MotionEditorConfig = MotionEditorConfig(),
+    val motionExport: MotionExportConfig = MotionExportConfig(),
+    val openAnimatedInMotionEditor: Boolean = true,
 ) : Parcelable {
 
     /** 두 편집기 설정을 모두 검증한다. 검증에 실패하면 결과는 `INVALID_CONFIGURATION`이 된다. */
     public fun validate(): ValidationResult {
         val issues = mutableListOf<ValidationIssue>()
-        listOf(image.validate(), imageExport.validate(), video.validate(), videoExport.validate(), ui.validate(), catalog.validate()).forEach { result ->
+        listOf(image.validate(), imageExport.validate(), video.validate(), videoExport.validate(), motion.validate(), motionExport.validate(), ui.validate(), catalog.validate()).forEach { result ->
             if (result is ValidationResult.Invalid) issues += result.issues
         }
         when (input) {
@@ -66,6 +75,8 @@ public data class FrameKitRequest(
 
     internal fun forVideo(input: EditorInput): VideoEditorRequest =
         VideoEditorRequest(input.limitedTo(MediaKind.VIDEO, video.maxClipCount), video, videoExport, ui, output, catalog)
+
+    internal fun forMotion(input: EditorInput): MotionEditorRequest = MotionEditorRequest(input, motion, motionExport, ui, output, catalog)
 
     private fun EditorInput.limitedTo(kind: MediaKind, limit: Int): EditorInput = when (this) {
         is EditorInput.Pick -> EditorInput.Pick(kind, maxItems.coerceIn(1, limit))

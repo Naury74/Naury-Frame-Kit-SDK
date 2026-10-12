@@ -16,6 +16,8 @@ val sdkModules = mapOf(
     "framekit-ui" to "편집 화면 공통 Compose 테마·컴포넌트·도구 패널",
     "framekit-ui-image" to "사진 편집 화면과 ImageEditorContract",
     "framekit-ui-video" to "영상 편집 화면과 VideoEditorContract",
+    "framekit-motion" to "움직이는 이미지(GIF·움직이는 WebP·MP4) 렌더링·인코딩·디코딩",
+    "framekit-ui-motion" to "움직이는 이미지 편집 화면과 MotionEditorContract",
     "framekit" to "사진·영상 편집기를 고르는 FrameKitContract (통합)",
     "framekit-segmentation" to "ML Kit 배경 제거 (선택)",
     "framekit-ocr" to "ML Kit 글자 인식, PDF 글자 레이어 (선택)",
