@@ -37,6 +37,12 @@ public enum class ImageTool(internal val isDraft: Boolean) {
      * 배경 제거와 복원은 각각 실행 취소 한 단계다.
      */
     CUTOUT(isDraft = false),
+
+    /**
+     * 글자 워터마크(한 곳·반복·대각선·띠). 도구 세션 하나가 실행 취소 한 단계이고, 여러 장이면 모든 사진에 적용된다.
+     * 호스트가 [ImageEditorConfig.watermark]를 잠그면 숨겨진다.
+     */
+    WATERMARK(isDraft = true),
     ;
 
     /** 잘린 결과 대신 회전된 이미지 전체를 보여주는 도구. */
@@ -44,6 +50,6 @@ public enum class ImageTool(internal val isDraft: Boolean) {
 
     public companion object {
         /** 이 버전에서 사용할 수 있는 도구, 레일 순서대로. */
-        public val defaults: Set<ImageTool> = linkedSetOf(CROP, ROTATE, DOCUMENT, CUTOUT, ADJUST, FILTER, TEXT, STICKER, DRAW, PRIVACY)
+        public val defaults: Set<ImageTool> = linkedSetOf(CROP, ROTATE, DOCUMENT, CUTOUT, ADJUST, FILTER, TEXT, STICKER, DRAW, PRIVACY, WATERMARK)
     }
 }

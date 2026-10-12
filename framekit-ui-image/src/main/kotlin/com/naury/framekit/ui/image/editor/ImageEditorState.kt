@@ -72,7 +72,9 @@ internal sealed interface ImageEditorUiState {
             get() = transaction.draft?.let { draft ->
                 val blank = draft.overlays.firstOrNull { it.id == editingTextId }?.let { it is ImageOverlay.Text && it.text.isBlank() } == true
                 val compared = if (blank && transaction.history.current.overlays.none { it.id == editingTextId }) draft.copy(overlays = draft.overlays.filterNot { it.id == editingTextId }) else draft
-                !compared.sameContentAs(transaction.history.current)
+                // 문구가 빈 워터마크는 없는 것과 같다(워터마크 도구를 열기만 한 경우).
+                val settled = compared.watermark?.takeIf { it.text.isBlank() }?.let { compared.copy(watermark = null) } ?: compared
+                !settled.sameContentAs(transaction.history.current)
             } == true
     }
 }

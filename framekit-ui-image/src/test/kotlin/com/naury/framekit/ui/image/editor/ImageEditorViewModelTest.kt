@@ -36,6 +36,8 @@ import com.naury.framekit.core.geometry.CropHandle
 import com.naury.framekit.image.export.ImageExportConfig
 import com.naury.framekit.image.export.ImageExportCoordinator
 import com.naury.framekit.ui.image.contract.ImageEditorConfig
+import com.naury.framekit.ui.config.WatermarkConfig
+import com.naury.framekit.core.overlay.WatermarkPattern
 import com.naury.framekit.ui.image.contract.ImageEditorRequest
 import com.naury.framekit.ui.image.contract.ImageTool
 import kotlinx.coroutines.Dispatchers
@@ -879,6 +881,96 @@ class ImageEditorViewModelTest {
         target.delete()
         empty.onCaptured(false)
         assertThat(empty.result.value).isEqualTo(FrameKitResult.Cancelled)
+    }
+
+    @Test
+    fun `watermark tool session is one undo step and opening it alone changes nothing`() {
+        val viewModel = viewModel(EditorInput.FileSource(sourceFile.absolutePath))
+
+        viewModel.selectTool(ImageTool.WATERMARK)
+        assertThat(ready(viewModel).hasDraftChanges).isFalse()
+        viewModel.updateWatermark { it.copy(text = "© Naury") }
+        viewModel.updateWatermark { it.copy(pattern = WatermarkPattern.TILE) }
+        listOf(0.3, 0.5, 0.4).forEach { opacity -> viewModel.updateWatermark { it.copy(opacity = opacity) } }
+        viewModel.applyTool()
+
+        val history = ready(viewModel).transaction.history
+        assertThat(history.past).hasSize(1)
+        assertThat(history.current.watermark?.text).isEqualTo("© Naury")
+        assertThat(history.current.watermark?.pattern).isEqualTo(WatermarkPattern.TILE)
+    }
+
+    @Test
+    fun `blank watermark text or remove leaves no watermark`() {
+        val viewModel = viewModel(EditorInput.FileSource(sourceFile.absolutePath))
+        viewModel.selectTool(ImageTool.WATERMARK)
+        viewModel.applyTool()
+        assertThat(ready(viewModel).transaction.history.current.watermark).isNull()
+        assertThat(ready(viewModel).isDirty).isFalse()
+
+        viewModel.selectTool(ImageTool.WATERMARK)
+        viewModel.updateWatermark { it.copy(text = "draft") }
+        viewModel.applyTool()
+        viewModel.selectTool(ImageTool.WATERMARK)
+        viewModel.removeWatermark()
+
+        assertThat(ready(viewModel).activeTool).isNull()
+        assertThat(ready(viewModel).transaction.history.current.watermark).isNull()
+    }
+
+    @Test
+    fun `host watermark prefills the tool and applyOnOpen starts with it without being dirty`() {
+        val prefill = viewModel(
+            EditorInput.FileSource(sourceFile.absolutePath),
+            config = ImageEditorConfig(watermark = WatermarkConfig(text = "@shop", pattern = WatermarkPattern.BAND)),
+        )
+        assertThat(ready(prefill).transaction.history.current.watermark).isNull()
+        prefill.selectTool(ImageTool.WATERMARK)
+        assertThat(ready(prefill).displayed.watermark?.text).isEqualTo("@shop")
+        assertThat(ready(prefill).displayed.watermark?.pattern).isEqualTo(WatermarkPattern.BAND)
+
+        val applied = viewModel(
+            EditorInput.FileSource(sourceFile.absolutePath),
+            config = ImageEditorConfig(watermark = WatermarkConfig(text = "@shop", applyOnOpen = true)),
+        )
+        assertThat(ready(applied).transaction.history.current.watermark?.text).isEqualTo("@shop")
+        assertThat(ready(applied).isDirty).isFalse()
+    }
+
+    @Test
+    fun `locked watermark cannot be opened and is saved`() {
+        val viewModel = viewModel(
+            EditorInput.FileSource(sourceFile.absolutePath),
+            config = ImageEditorConfig(watermark = WatermarkConfig(text = "SAMPLE", applyOnOpen = true, locked = true)),
+        )
+
+        viewModel.selectTool(ImageTool.WATERMARK)
+        assertThat(ready(viewModel).activeTool).isNull()
+        viewModel.save()
+
+        assertThat(viewModel.result.value).isInstanceOf(FrameKitResult.Success::class.java)
+        assertThat(ready(viewModel).transaction.history.current.watermark?.text).isEqualTo("SAMPLE")
+    }
+
+    @Test
+    fun `watermark set on one photo goes on every photo`() {
+        val inputs = EditorInput.Multiple(listOf(EditorInput.FileSource(sourceFile.absolutePath), EditorInput.FileSource(secondPhoto().absolutePath)))
+        val viewModel = viewModel(inputs)
+
+        viewModel.selectTool(ImageTool.WATERMARK)
+        viewModel.updateWatermark { it.copy(text = "© Naury") }
+        viewModel.applyTool()
+        viewModel.selectPage(1)
+
+        assertThat(ready(viewModel).transaction.history.current.watermark?.text).isEqualTo("© Naury")
+    }
+
+    @Test
+    fun `invalid watermark config is rejected`() {
+        assertThat(ImageEditorConfig(watermark = WatermarkConfig(text = " ", applyOnOpen = true)).validate().isValid).isFalse()
+        assertThat(ImageEditorConfig(watermark = WatermarkConfig(text = "a", locked = true)).validate().isValid).isFalse()
+        assertThat(ImageEditorConfig(watermark = WatermarkConfig(text = "a", opacity = 0.0)).validate().isValid).isFalse()
+        assertThat(ImageEditorConfig(watermark = WatermarkConfig(text = "a", applyOnOpen = true, locked = true)).validate().isValid).isTrue()
     }
 
     private fun viewModel(

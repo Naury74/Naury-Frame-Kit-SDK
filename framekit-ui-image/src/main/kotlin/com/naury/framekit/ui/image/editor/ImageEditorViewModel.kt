@@ -1,5 +1,6 @@
 package com.naury.framekit.ui.image.editor
 
+import com.naury.framekit.core.overlay.Watermark
 import android.graphics.Canvas
 import com.naury.framekit.core.model.PixelSize
 import com.naury.framekit.core.model.SourceMetadata
@@ -137,6 +138,12 @@ internal class ImageEditorViewModel(
     private var maskAnchor: PointN? = null
     // 바로 기록되는 도구(보정·필터 등)를 열 때의 프로젝트. 뒤로 가기·취소 때 이 상태로 되돌린다.
     private var toolEntry: ImageProject? = null
+
+    // 워터마크 도구를 다시 열 때 채울 마지막 값, 여러 장에서 모든 사진에 넣을 워터마크(사용자가 바꾼 적이 있을 때만).
+    private var lastWatermark: Watermark? = null
+    private var sharedWatermark: Shared? = null
+
+    private data class Shared(val watermark: Watermark?)
     // 여러 장을 편집할 때 사진마다 따로 세션을 둔다. 첫 사진은 이전 버전과 같은 키를 쓴다.
     private val recorders = mutableMapOf<String, ImageSessionRecorder>()
     private var session: ImageSessionRecorder = recorderFor(MAIN_PAGE_ID)
@@ -556,14 +563,18 @@ internal class ImageEditorViewModel(
         preview: DecodedImage,
     ): ImageEditorUiState.Ready {
         val projectId = ProjectId(restored?.snapshot?.projectId ?: UUID.randomUUID().toString())
-        val baseline = ImageProject(projectId, sourceId, grainSeed = restored?.snapshot?.grainSeed ?: Random.nextLong())
+        val baseline = ImageProject(projectId, sourceId, watermark = config.watermark?.initialWatermark, grainSeed = restored?.snapshot?.grainSeed ?: Random.nextLong())
         // 저장된 값이 지금 원본에 맞지 않으면(예: crop 범위 밖) 복원하지 않고 처음부터 연다.
         val committed = restored?.snapshot?.toProject(sourceId)
             ?.takeIf { ImageProjectValidator.validate(it, info.metadata).isValid }
-        val transaction = if (committed != null) {
+        var transaction = if (committed != null) {
             HistoryTransaction(EditHistory.restore(baseline, committed))
         } else {
             HistoryTransaction.start(baseline)
+        }
+        // 다른 사진에서 워터마크를 바꿨으면 처음 여는 사진에도 같은 워터마크를 넣는다.
+        sharedWatermark?.let { (watermark) ->
+            if (transaction.history.current.watermark != watermark) transaction = transaction.update(transaction.history.current.copy(watermark = watermark)).commit()
         }
         val notice = when {
             restored?.exportWasInterrupted == true -> SessionNotice.EXPORT_INTERRUPTED
@@ -581,8 +592,15 @@ internal class ImageEditorViewModel(
             if (ready.activeTool != null || ready.export != null || ready.transaction.isActive || tool !in config.enabledTools) {
                 return@updateReady ready
             }
+            if (tool == ImageTool.WATERMARK && watermarkLocked) return@updateReady ready
             when {
                 tool == ImageTool.TEXT -> openText(ready, existingId = null)
+                tool == ImageTool.WATERMARK -> {
+                    val begun = ready.transaction.begin()
+                    val draft = checkNotNull(begun.draft)
+                    val start = draft.watermark ?: lastWatermark ?: config.watermark?.template() ?: Watermark("")
+                    ready.copy(activeTool = tool, transaction = begun.update(draft.copy(watermark = start)), selectedOverlayId = null)
+                }
                 tool == ImageTool.DOCUMENT -> ready.copy(
                     activeTool = tool,
                     documentQuad = ready.documentSuggestion ?: DocumentQuad.inset(),
@@ -750,10 +768,55 @@ internal class ImageEditorViewModel(
             val text = draft.overlays.firstOrNull { it.id == editing } as? ImageOverlay.Text
             if (text != null && text.text.isBlank()) transaction = transaction.update(OverlayEditing.remove(draft, editing))
         }
+        if (ready.activeTool == ImageTool.WATERMARK) {
+            val current = transaction.draft
+            val watermark = current?.watermark?.takeIf { it.text.isNotBlank() }?.normalized()
+            if (current != null) transaction = transaction.update(current.copy(watermark = watermark))
+            if (watermark != null) lastWatermark = watermark
+            shareWatermark(watermark)
+        }
         val committed = transaction.commit()
         val selected = ready.selectedOverlayId?.takeIf { id -> committed.history.current.overlays.any { it.id == id } }
         ready.copy(activeTool = null, transaction = committed, editingTextId = null, selectedOverlayId = selected)
     }
+
+    // ---- 워터마크 ----
+
+    /** 워터마크 도구에서 고친 값. 문구가 비어 있는 동안은 그려지지 않고, 그대로 적용하면 워터마크가 없어진다. */
+    fun updateWatermark(transform: (Watermark) -> Watermark) = updateReady { ready ->
+        val draft = ready.transaction.draft ?: return@updateReady ready
+        if (ready.activeTool != ImageTool.WATERMARK) return@updateReady ready
+        ready.copy(transaction = ready.transaction.update(draft.copy(watermark = transform(draft.watermark ?: Watermark("")))))
+    }
+
+    /** 워터마크를 없애고 도구를 닫는다. 실행 취소 한 단계다. */
+    fun removeWatermark() {
+        updateWatermark { it.copy(text = "") }
+        applyTool()
+    }
+
+    /** 호스트가 워터마크를 잠갔으면 사용자가 바꿀 수 없다. */
+    internal val watermarkLocked: Boolean get() = config.watermark?.locked == true
+
+    internal val watermarkSuggestions: List<String> get() = config.watermark?.suggestions.orEmpty()
+
+    // 여러 장이면 모든 사진에 같은 워터마크를 넣는다. 아직 열지 않은 사진은 열 때 넣는다.
+    private fun shareWatermark(watermark: Watermark?) {
+        if (pages.size <= 1) return
+        sharedWatermark = Shared(watermark)
+        pages.forEachIndexed { index, page ->
+            if (index == pageIndex) return@forEachIndexed
+            val transaction = page.transaction ?: return@forEachIndexed
+            if (transaction.history.current.watermark != watermark) {
+                page.transaction = transaction.update(transaction.history.current.copy(watermark = watermark)).commit()
+            }
+        }
+        pagesChanged = true
+    }
+
+    // 잠긴 워터마크는 복원된 세션 등과 상관없이 저장할 때 항상 넣는다.
+    private fun enforced(project: ImageProject): ImageProject =
+        if (watermarkLocked) project.copy(watermark = config.watermark?.initialWatermark) else project
 
     /** 초안 도구 취소. 프로젝트는 도구를 열기 전 상태로 돌아간다. */
     fun cancelTool() = updateReady { ready ->
@@ -1235,7 +1298,7 @@ internal class ImageEditorViewModel(
         // 결과를 이미 보냈거나 export가 진행 중이면 두 번째 저장 요청은 무시한다.
         if (_result.value != null || ready.export != null || exportJob?.isActive == true) return
         if (pages.size > 1 || request.export.format == ImageFormat.PDF) return saveAll(ready)
-        val snapshot = ready.transaction.history.current
+        val snapshot = enforced(ready.transaction.history.current)
         updateReady { it.copy(export = ExportUiState.Running(ExportStageUi.PREPARING)) }
         exportJob = viewModelScope.launch {
             try {
@@ -1280,8 +1343,13 @@ internal class ImageEditorViewModel(
                     pages.map { page ->
                         val (sourceId, info) = openPage(page)
                         val project = page.transaction?.history?.current
-                            ?: ImageProject(ProjectId(newId()), sourceId, grainSeed = Random.nextLong())
-                        PdfPage(project, info, recorders[page.id]?.assets() ?: assetFallback)
+                            ?: ImageProject(
+                                ProjectId(newId()),
+                                sourceId,
+                                watermark = sharedWatermark?.watermark ?: config.watermark?.initialWatermark,
+                                grainSeed = Random.nextLong(),
+                            )
+                        PdfPage(enforced(project), info, recorders[page.id]?.assets() ?: assetFallback)
                     }
                 }
                 val total = jobs.size

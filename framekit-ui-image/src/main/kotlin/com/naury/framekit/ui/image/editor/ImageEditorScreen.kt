@@ -1,5 +1,6 @@
 package com.naury.framekit.ui.image.editor
 
+import com.naury.framekit.ui.tool.WatermarkToolPanel
 import com.naury.framekit.android.input.MediaKind
 import com.naury.framekit.ui.source.rememberSourceLaunchers
 import androidx.activity.compose.BackHandler
@@ -358,6 +359,7 @@ private fun ToolArea(
     // 문서 보정은 문서로 판별된 사진(또는 이미 보정한 쪽)에서만 보여 줘, 일반 사진에서는 툴바를 차지하지 않게 한다.
     val tools = viewModel.config.enabledTools.filter {
         (it != ImageTool.CUTOUT || viewModel.cutoutAvailable) &&
+            (it != ImageTool.WATERMARK || !viewModel.watermarkLocked) &&
             (it != ImageTool.DOCUMENT || state.documentSuggestion != null || state.documentRectified)
     }
     AnimatedContent(
@@ -452,6 +454,16 @@ private fun ToolArea(
                         onIntensityFinished = viewModel::finishGesture,
                     )
                 }
+                ImageTool.WATERMARK -> ToolPanelWithActions(viewModel, isDraft = true, scrollPanel, wide) {
+                    state.displayed.watermark?.let { watermark ->
+                        WatermarkToolPanel(
+                            watermark = watermark,
+                            suggestions = viewModel.watermarkSuggestions,
+                            onChange = viewModel::updateWatermark,
+                            onRemove = viewModel::removeWatermark.takeIf { state.transaction.history.current.watermark != null },
+                        )
+                    }
+                }
                 null -> if (wide) {
                     Column(Modifier.weight(1f).verticalFadingScroll()) {
                         if (viewModel.pageLimit > 1) PagesRow(state, viewModel)
@@ -528,6 +540,7 @@ private fun ImageTool.railItem(): ToolRailItem<ImageTool> = when (this) {
     ImageTool.CUTOUT -> ToolRailItem(this, stringResource(R.string.framekit_tool_cutout), painterResource(UiR.drawable.framekit_ic_cutout))
     ImageTool.DOCUMENT -> ToolRailItem(this, stringResource(R.string.framekit_tool_document), painterResource(UiR.drawable.framekit_ic_document))
     ImageTool.PRIVACY -> ToolRailItem(this, stringResource(UiR.string.framekit_tool_privacy), painterResource(UiR.drawable.framekit_ic_privacy))
+    ImageTool.WATERMARK -> ToolRailItem(this, stringResource(UiR.string.framekit_tool_watermark), painterResource(UiR.drawable.framekit_ic_watermark))
 }
 
 private const val TOOL_TRANSITION_MS = 200

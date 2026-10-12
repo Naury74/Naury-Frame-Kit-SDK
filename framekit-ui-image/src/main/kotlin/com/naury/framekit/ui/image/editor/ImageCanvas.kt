@@ -1,5 +1,6 @@
 package com.naury.framekit.ui.image.editor
 
+import com.naury.framekit.image.overlay.WatermarkRenderer
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGestures
@@ -168,6 +169,7 @@ internal fun ImageCanvas(
                 val viewportHeight = constraints.maxHeight
                 LaunchedEffect(viewportWidth, viewportHeight) { actions.onViewportSize(viewportWidth, viewportHeight) }
                 val overlayRenderer = remember { OverlayRenderer() }
+                val watermarkRenderer = remember { WatermarkRenderer() }
                 val showOverlays = !toolMode && !state.showingOriginal
                 val selected = state.selectedOverlayId?.let { id -> project.overlays.firstOrNull { it.id == id } }
                     ?.takeIf { showOverlays && state.activeTool != ImageTool.TEXT && state.activeTool != ImageTool.DRAW && state.activeTool != ImageTool.PRIVACY }
@@ -420,6 +422,15 @@ internal fun ImageCanvas(
                         drawIntoCanvas { canvas ->
                             canvas.nativeCanvas.withMatrix(outputToViewport.toAndroidMatrix()) {
                                 overlayRenderer.draw(this, plan.outputSize, project.overlays, project.drawing)
+                            }
+                        }
+                    }
+                    if (showOverlays && project.watermark != null) {
+                        drawIntoCanvas { canvas ->
+                            canvas.nativeCanvas.withMatrix(outputToViewport.toAndroidMatrix()) {
+                                // 반복·대각선 무늬가 사진 밖 화면으로 번지지 않게 출력 영역으로 자른다.
+                                clipRect(0f, 0f, plan.outputSize.width.toFloat(), plan.outputSize.height.toFloat())
+                                watermarkRenderer.draw(this, plan.outputSize, project.watermark)
                             }
                         }
                     }
