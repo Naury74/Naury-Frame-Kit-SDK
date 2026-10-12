@@ -55,4 +55,16 @@
     <string name="framekit_preview_unavailable">現在プレビューを表示できません。</string>
     <string name="framekit_speed_result">長さ %1$s → %2$s</string>
     <string name="framekit_cleared">すべてクリアしました</string>
+    <string name="framekit_lane_video">動画</string>
+    <string name="framekit_lane_original">元の音声</string>
+    <string name="framekit_lane_text">テキスト・ステッカー</string>
+    <string name="framekit_lane_mask">ぼかし</string>
+    <string name="framekit_audio_fade_in">フェードイン</string>
+    <string name="framekit_audio_fade_out">フェードアウト</string>
+    <string name="framekit_original_mute_range">一部をミュート</string>
+    <string name="framekit_original_restore">音声を戻す</string>
+    <string name="framekit_original_mute_apply">この部分をミュート</string>
+    <string name="framekit_selection_done">閉じる</string>
+    <string name="framekit_mute_range_help">ハンドルをドラッグしてミュートする範囲を選びます。</string>
+    <string name="framekit_sound_timeline_help">追加した音声はタイムラインに表示されます。タップして分割・移動・カット・フェードができます。</string>
 </resources>

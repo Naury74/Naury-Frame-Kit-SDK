@@ -1,5 +1,10 @@
 package com.naury.framekit.ui.video.tool
 
+import com.naury.framekit.core.video.AudioRole
+import com.naury.framekit.ui.audio.AudioTrackSection
+import com.naury.framekit.ui.audio.AudioTrackUi
+import com.naury.framekit.ui.R as UiR
+
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -29,22 +34,7 @@ import com.naury.framekit.ui.video.R
 import com.naury.framekit.ui.video.timeline.formatTime
 import kotlin.math.roundToInt
 
-/**
- * 배경 음악 한 곡의 화면 표시 값.
- *
- * @property startUs 출력 타임라인에서 음악이 시작하는 시간(µs).
- * @property offsetUs 곡 안에서 재생을 시작하는 위치(µs).
- */
-internal data class MusicUi(
-    val name: String?,
-    val volume: Double,
-    val loop: Boolean,
-    val startUs: Long,
-    val offsetUs: Long,
-    val songDurationUs: Long,
-)
-
-/** 선택한 클립의 원본 소리(음소거·볼륨)와 배경 음악(추가·볼륨·반복·시작 위치·삭제). */
+/** 선택한 클립의 원본 소리(음소거·볼륨)와 배경 음악·음성 트랙(추가·녹음·볼륨·반복·시작 위치·삭제). */
 @Composable
 internal fun AudioToolPanel(
     hasAudio: Boolean,
@@ -54,14 +44,15 @@ internal fun AudioToolPanel(
     onVolume: (Float) -> Unit,
     onVolumeFinished: () -> Unit,
     modifier: Modifier = Modifier,
-    music: MusicUi? = null,
+    tracks: Map<AudioRole, AudioTrackUi> = emptyMap(),
     busy: Boolean = false,
-    onAddMusic: (() -> Unit)? = null,
-    onMusicVolume: (Float) -> Unit = {},
-    onMusicLoop: (Boolean) -> Unit = {},
-    onMusicStartHere: () -> Unit = {},
-    onMusicOffset: (Long) -> Unit = {},
-    onRemoveMusic: () -> Unit = {},
+    onAddFile: ((AudioRole) -> Unit)? = null,
+    onRecordVoice: (() -> Unit)? = null,
+    onTrackVolume: (AudioRole, Float) -> Unit = { _, _ -> },
+    onTrackLoop: (AudioRole, Boolean) -> Unit = { _, _ -> },
+    onTrackStartHere: (AudioRole) -> Unit = {},
+    onTrackOffset: (AudioRole, Long) -> Unit = { _, _ -> },
+    onRemoveTrack: (AudioRole) -> Unit = {},
     onGestureFinished: () -> Unit = {},
 ) {
     val colors = FrameKitTheme.colors
@@ -87,53 +78,28 @@ internal fun AudioToolPanel(
                 snapThreshold = 4f,
             )
         }
-        if (onAddMusic == null) return@Column
-        SectionTitle(stringResource(R.string.framekit_music))
-        if (music == null) {
-            TextButton(onClick = onAddMusic, enabled = !busy, modifier = Modifier.padding(horizontal = 8.dp)) {
-                Icon(Icons.Filled.Add, contentDescription = null, tint = colors.accent)
-                Text(stringResource(R.string.framekit_music_add), color = colors.accent, modifier = Modifier.padding(start = 6.dp))
-            }
-            return@Column
-        }
-        Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                music.name ?: stringResource(R.string.framekit_music_untitled),
-                color = colors.foreground,
-                style = MaterialTheme.typography.labelLarge,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f),
-            )
-            TextButton(onClick = onAddMusic, enabled = !busy) { Text(stringResource(R.string.framekit_music_add), color = colors.accent) }
-            IconButton(onClick = onRemoveMusic) {
-                Icon(Icons.Filled.Delete, contentDescription = stringResource(R.string.framekit_music_remove), tint = colors.foregroundMuted)
-            }
-        }
-        ValueSlider(
-            label = stringResource(R.string.framekit_audio_volume),
-            value = (music.volume * 100).toFloat(),
-            valueRange = 0f..200f,
-            onValueChange = onMusicVolume,
-            onValueChangeFinished = onGestureFinished,
-            formatValue = { "${it.roundToInt()}%" },
-            resetValue = 100f,
-            snapThreshold = 4f,
+        if (onAddFile == null) return@Column
+        Text(
+            stringResource(R.string.framekit_sound_timeline_help),
+            color = colors.foregroundMuted,
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp),
         )
-        if (music.songDurationUs > MIN_SONG_US) {
-            ValueSlider(
-                label = stringResource(R.string.framekit_music_offset),
-                value = (music.offsetUs / 1_000_000.0).toFloat(),
-                valueRange = 0f..((music.songDurationUs - MIN_SONG_US) / 1_000_000f),
-                onValueChange = { onMusicOffset((it * 1_000_000).toLong()) },
-                onValueChangeFinished = onGestureFinished,
-                formatValue = { formatTime((it * 1_000_000).toLong()) },
+        AudioRole.entries.forEach { role ->
+            AudioTrackSection(
+                title = stringResource(if (role == AudioRole.MUSIC) UiR.string.framekit_track_music else UiR.string.framekit_track_voice),
+                addLabel = stringResource(if (role == AudioRole.MUSIC) UiR.string.framekit_track_music_add else UiR.string.framekit_track_voice_add),
+                track = tracks[role],
+                busy = busy,
+                onAddFile = { onAddFile(role) },
+                onRemove = { onRemoveTrack(role) },
+                onVolume = { onTrackVolume(role, it) },
+                onLoop = { onTrackLoop(role, it) },
+                onStartHere = { onTrackStartHere(role) },
+                onOffset = { onTrackOffset(role, it) },
+                onGestureFinished = onGestureFinished,
+                onRecord = if (role == AudioRole.VOICE) onRecordVoice else null,
             )
-        }
-        SwitchRow(stringResource(R.string.framekit_music_loop), music.loop, onMusicLoop)
-        Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text(formatTime(music.startUs), color = colors.foregroundMuted, style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(start = 8.dp).weight(1f))
-            TextButton(onClick = onMusicStartHere) { Text(stringResource(R.string.framekit_music_start_here), color = colors.accent) }
         }
     }
 }
@@ -169,4 +135,3 @@ private fun SwitchRow(label: String, checked: Boolean, onChange: (Boolean) -> Un
     }
 }
 
-private const val MIN_SONG_US = 1_000_000L

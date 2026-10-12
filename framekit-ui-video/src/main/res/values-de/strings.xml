@@ -57,4 +57,16 @@
     <string name="framekit_preview_unavailable">Die Vorschau kann gerade nicht angezeigt werden.</string>
     <string name="framekit_speed_result">Länge %1$s → %2$s</string>
     <string name="framekit_cleared">Alle Elemente entfernt</string>
+    <string name="framekit_lane_video">Video</string>
+    <string name="framekit_lane_original">Originalton</string>
+    <string name="framekit_lane_text">Text·Sticker</string>
+    <string name="framekit_lane_mask">Verbergen</string>
+    <string name="framekit_audio_fade_in">Einblenden</string>
+    <string name="framekit_audio_fade_out">Ausblenden</string>
+    <string name="framekit_original_mute_range">Teil stummschalten</string>
+    <string name="framekit_original_restore">Ton wiederherstellen</string>
+    <string name="framekit_original_mute_apply">Diesen Teil stummschalten</string>
+    <string name="framekit_selection_done">Fertig</string>
+    <string name="framekit_mute_range_help">Ziehe die Griffe, um den stummzuschaltenden Teil zu wählen.</string>
+    <string name="framekit_sound_timeline_help">Hinzugefügte Töne erscheinen in der Zeitleiste. Tippe auf ein Stück, um es zu teilen, zu verschieben, zu kürzen oder einzublenden.</string>
 </resources>

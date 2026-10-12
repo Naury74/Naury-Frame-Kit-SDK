@@ -1,5 +1,8 @@
 package com.naury.framekit.ui.video.editor
 
+import com.naury.framekit.core.overlay.ImageOverlay
+import com.naury.framekit.core.video.TimeRangeUs
+import com.naury.framekit.core.video.AudioClip
 import com.naury.framekit.android.result.EditorErrorCode
 import com.naury.framekit.android.session.SourceReference
 import com.naury.framekit.android.source.SourceLocation
@@ -35,6 +38,9 @@ internal sealed interface VideoEditorUiState {
     /**
      * @property selectedClipId 클립 단위 도구(구간·자르기·회전·보정·필터·속도·소리)가 고치는 클립.
      * @property busy 클립이나 음악을 불러오는 중이면 `true`.
+     * @property selectedAudioId 타임라인에서 고른 배경 음악·음성 조각. 고르면 아래에 그 조각의 동작이 나온다.
+     * @property originalSelected 선택한 클립의 원본 소리 줄을 골랐으면 `true`(구간 음소거 등).
+     * @property muteSelection 원본 소리에서 끌 구간을 고르는 중이면 그 구간(출력 시간 µs).
      */
     data class Ready(
         val sources: Map<SourceId, LoadedVideo>,
@@ -56,6 +62,9 @@ internal sealed interface VideoEditorUiState {
         val showApplyHint: Boolean = false,
         val notice: VideoNotice? = null,
         val busy: Boolean = false,
+        val selectedAudioId: String? = null,
+        val originalSelected: Boolean = false,
+        val muteSelection: TimeRangeUs? = null,
     ) : VideoEditorUiState {
         val displayed: VideoProject get() = transaction.displayed
         val clips: List<VideoClip> get() = displayed.timeline.videoClips
@@ -68,8 +77,18 @@ internal sealed interface VideoEditorUiState {
         val durationUs: Long get() = TimelineTimeMapper.durationUs(displayed.timeline)
         val sourceDurationUs: Long get() = source.metadata.durationUs ?: clip.sourceRange.endExclusiveUs
         val isDirty: Boolean get() = transaction.history.isDirty
+        // 새로 연 텍스트를 비워 둔 채면 적용해도 빠지므로 바뀐 것으로 보지 않는다.
         val hasDraftChanges: Boolean
-            get() = transaction.draft?.let { !it.sameContentAs(transaction.history.current) } == true
+            get() = transaction.draft?.let { draft ->
+                val overlays = draft.timeline.overlays
+                val blank = overlays.firstOrNull { it.overlay.id == editingTextId }?.overlay.let { it is ImageOverlay.Text && it.text.isBlank() }
+                val isNew = transaction.history.current.timeline.overlays.none { it.overlay.id == editingTextId }
+                val compared = if (blank && isNew) draft.copy(timeline = draft.timeline.copy(overlays = overlays.filterNot { it.overlay.id == editingTextId })) else draft
+                !compared.sameContentAs(transaction.history.current)
+            } == true
+
+        /** 고른 오디오 조각. */
+        val selectedAudio: AudioClip? get() = displayed.timeline.audioClips.firstOrNull { it.id == selectedAudioId }
     }
 }
 

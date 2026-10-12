@@ -61,4 +61,16 @@
     <string name="framekit_preview_unavailable">Сейчас не удаётся показать превью.</string>
     <string name="framekit_speed_result">Длительность %1$s → %2$s</string>
     <string name="framekit_cleared">Все элементы удалены</string>
+    <string name="framekit_lane_video">Видео</string>
+    <string name="framekit_lane_original">Исходный звук</string>
+    <string name="framekit_lane_text">Текст·стикеры</string>
+    <string name="framekit_lane_mask">Скрытие</string>
+    <string name="framekit_audio_fade_in">Нарастание</string>
+    <string name="framekit_audio_fade_out">Затухание</string>
+    <string name="framekit_original_mute_range">Отключить звук части</string>
+    <string name="framekit_original_restore">Вернуть звук</string>
+    <string name="framekit_original_mute_apply">Отключить звук здесь</string>
+    <string name="framekit_selection_done">Готово</string>
+    <string name="framekit_mute_range_help">Перетащите маркеры, чтобы выбрать часть без звука.</string>
+    <string name="framekit_sound_timeline_help">Добавленные звуки показаны на шкале времени. Нажмите на фрагмент, чтобы разделить, переместить, обрезать или задать затухание.</string>
 </resources>

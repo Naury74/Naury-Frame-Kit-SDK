@@ -1,5 +1,8 @@
 package com.naury.framekit.ui.video.editor
 
+import com.naury.framekit.video.audio.Waveform
+import com.naury.framekit.core.video.TimeRanges
+import com.naury.framekit.core.video.AudioEditing
 import java.io.File
 import com.naury.framekit.android.capture.CaptureFiles
 import android.graphics.Bitmap
@@ -44,6 +47,7 @@ import com.naury.framekit.core.overlay.PrivacyMask
 import com.naury.framekit.core.overlay.TextStyleSpec
 import com.naury.framekit.core.validation.VideoProjectValidator
 import com.naury.framekit.core.video.AudioClip
+import com.naury.framekit.core.video.AudioRole
 import com.naury.framekit.core.video.CanvasSpec
 import com.naury.framekit.core.video.TimeRangeUs
 import com.naury.framekit.core.video.TimedOverlay
@@ -133,6 +137,7 @@ internal class VideoEditorViewModel(
     private val describe: (Uri) -> String? = { null },
     private val captureFile: (() -> Pair<File, Uri>)? = null,
     cleanup: (() -> Unit)? = null,
+    private val waveformLoader: (SourceLocation) -> Waveform? = { null },
 ) : ViewModel(), VideoCanvasActions {
 
     private val _state = MutableStateFlow<VideoEditorUiState>(VideoEditorUiState.Loading)
@@ -144,6 +149,12 @@ internal class VideoEditorViewModel(
     val result: StateFlow<FrameKitResult?> = _result.asStateFlow()
 
     private val engine = previewEngineFactory(viewModelScope)
+
+    private val _waveforms = MutableStateFlow<Map<SourceId, Waveform>>(emptyMap())
+
+    /** 원본(영상의 소리·배경 음악·음성)별 파형. 타임라인의 소리 줄에 그린다. 처음 보이면 그때 읽는다. */
+    val waveforms: StateFlow<Map<SourceId, Waveform>> = _waveforms.asStateFlow()
+    private val waveformsLoading = mutableSetOf<SourceId>()
 
     /** 미리보기의 재생 위치와 상태(미리보기 타임라인의 출력 시간 기준). */
     val playback: StateFlow<VideoPlaybackState> = engine.state
@@ -192,12 +203,30 @@ internal class VideoEditorViewModel(
         cleanup?.let { task -> viewModelScope.launch(ioDispatcher) { runCatching(task) } }
         if (savedState.contains(VideoSessionRecorder.KEY_SESSION_ID) && session != null) restore() else start()
         viewModelScope.launch {
-            state.collect { current -> if (current is VideoEditorUiState.Ready) requestPreview(current) }
+            state.collect { current ->
+                if (current is VideoEditorUiState.Ready) {
+                    requestPreview(current)
+                    loadWaveforms(current)
+                }
+            }
         }
         viewModelScope.launch {
             previewRequests.filterNotNull().collectLatest { project ->
                 delay(previewDebounceMillis)
                 showPreview(project)
+            }
+        }
+    }
+
+    // 소리가 있는 영상 원본과 소리 조각 원본의 파형을 한 번씩 읽는다.
+    private fun loadWaveforms(ready: VideoEditorUiState.Ready) {
+        val wanted = ready.clips.mapNotNull { clip -> ready.sources[clip.source]?.takeIf { it.info.metadata.hasAudio }?.let { clip.source to it.location } } +
+            ready.displayed.timeline.audioClips.mapNotNull { clip -> ready.music[clip.source]?.let { clip.source to it.location } }
+        wanted.distinctBy { it.first }.forEach { (id, location) ->
+            if (id in _waveforms.value || !waveformsLoading.add(id)) return@forEach
+            viewModelScope.launch(ioDispatcher) {
+                val waveform = runCatching { waveformLoader(location) }.getOrNull()
+                if (waveform != null) _waveforms.update { it + (id to waveform) }
             }
         }
     }
@@ -893,17 +922,29 @@ internal class VideoEditorViewModel(
 
     /** 배경 음악을 고른다. 이미 있으면 바꾼다. 재생 위치에서 시작한다. */
     fun addMusic(uri: Uri?) {
+        if (uri != null) addAudio(AudioRole.MUSIC, EditorInput.UriSource(uri), describe(uri))
+    }
+
+    /** 음성 파일을 고른다. 이미 있으면 바꾼다. 재생 위치에서 시작한다. */
+    fun addVoice(uri: Uri?) {
+        if (uri != null) addAudio(AudioRole.VOICE, EditorInput.UriSource(uri), describe(uri))
+    }
+
+    /** 방금 녹음한 음성 파일을 넣는다. 재생 위치에서 시작한다. */
+    fun addRecordedVoice(file: File) = addAudio(AudioRole.VOICE, EditorInput.FileSource(file.absolutePath), null)
+
+    private fun addAudio(role: AudioRole, input: EditorInput, name: String?) {
         val ready = _state.value as? VideoEditorUiState.Ready ?: return
-        if (uri == null || ready.busy || ready.transaction.isActive) return
+        if (ready.busy || ready.transaction.isActive) return
         updateReady { it.copy(busy = true) }
         viewModelScope.launch {
             val opened = withContext(ioDispatcher) {
                 try {
-                    openAudio(EditorInput.UriSource(uri), describe(uri))
+                    openAudio(input, name)
                 } catch (cancelled: CancellationException) {
                     throw cancelled
                 } catch (error: Exception) {
-                    logFailure("music", error as? FrameKitException ?: FrameKitException(EditorErrorCode.DECODE_FAILED, cause = error))
+                    logFailure("audio", error as? FrameKitException ?: FrameKitException(EditorErrorCode.DECODE_FAILED, cause = error))
                     null
                 }
             }
@@ -912,34 +953,231 @@ internal class VideoEditorViewModel(
             session?.addAudio(id, loaded.reference)
             updateReady { it.copy(music = it.music + (id to loaded), busy = false) }
             val start = engine.state.value.positionUs.coerceAtLeast(0)
-            val clip = AudioClip(newId(), id, TimeRangeUs(0, loaded.info.metadata.durationUs ?: 0L), timelineStartUs = start)
-            commitImmediate { Edit.clampTimed(Edit.setMusic(it, clip)) }
+            // 같은 줄에 조각을 더한다(바꾸지 않음). 배경 음악만 영상 끝까지 반복한다.
+            val clip = AudioClip(newId(), id, TimeRangeUs(0, loaded.info.metadata.durationUs ?: 0L), timelineStartUs = start, role = role, loop = role == AudioRole.MUSIC)
+            commitImmediate { Edit.clampTimed(it.copy(timeline = it.timeline.copy(audioClips = it.timeline.audioClips + clip))) }
+            updateReady { it.copy(selectedAudioId = clip.id, originalSelected = false) }
         }
     }
 
-    fun removeMusic() = commitImmediate { Edit.setMusic(it, null) }
+    fun removeMusic() = removeAudio(AudioRole.MUSIC)
 
-    fun setMusicLoop(loop: Boolean) = commitImmediate { p -> Edit.updateMusic(p) { it.copy(loop = loop) } }
+    fun removeAudio(role: AudioRole) = commitImmediate { Edit.setAudio(it, role, null) }
+
+    fun setMusicLoop(loop: Boolean) = setAudioLoop(AudioRole.MUSIC, loop)
+
+    fun setAudioLoop(role: AudioRole, loop: Boolean) = commitImmediate { p -> Edit.updateAudio(p, role) { it.copy(loop = loop) } }
 
     /** 배경 음악이 재생 위치에서 시작하게 한다. */
-    fun startMusicHere() {
+    fun startMusicHere() = startAudioHere(AudioRole.MUSIC)
+
+    /** [role] 트랙이 재생 위치에서 시작하게 한다. */
+    fun startAudioHere(role: AudioRole) {
         val position = engine.state.value.positionUs
-        commitImmediate { p -> Edit.clampTimed(Edit.updateMusic(p) { it.copy(timelineStartUs = position.coerceAtLeast(0)) }) }
+        commitImmediate { p -> Edit.clampTimed(Edit.updateAudio(p, role) { it.copy(timelineStartUs = position.coerceAtLeast(0)) }) }
     }
 
     /** 배경 음악 볼륨 슬라이더(퍼센트), `0..200`. */
-    fun changeMusicVolume(percent: Float) = updateGesture { _, project ->
-        Edit.updateMusic(project) { it.copy(volume = (percent / 100.0).coerceIn(0.0, VideoClip.MAX_VOLUME)) }
+    fun changeMusicVolume(percent: Float) = changeAudioVolume(AudioRole.MUSIC, percent)
+
+    /** [role] 트랙 볼륨 슬라이더(퍼센트), `0..200`. */
+    fun changeAudioVolume(role: AudioRole, percent: Float) = updateGesture { _, project ->
+        Edit.updateAudio(project, role) { it.copy(volume = (percent / 100.0).coerceIn(0.0, VideoClip.MAX_VOLUME)) }
     }
 
     /** 곡의 어느 지점부터 쓸지(원본 시간 µs). 곡 끝에서 1초는 남긴다. */
-    fun changeMusicOffset(offsetUs: Long) = updateGesture { ready, project ->
-        Edit.updateMusic(project) { clip ->
+    fun changeMusicOffset(offsetUs: Long) = changeAudioOffset(AudioRole.MUSIC, offsetUs)
+
+    /** [role] 트랙 원본의 어느 지점부터 쓸지(원본 시간 µs). 끝에서 1초는 남긴다. */
+    fun changeAudioOffset(role: AudioRole, offsetUs: Long) = updateGesture { ready, project ->
+        Edit.updateAudio(project, role) { clip ->
             val total = ready.music[clip.source]?.info?.metadata?.durationUs ?: clip.sourceRange.endExclusiveUs
             val start = offsetUs.coerceIn(0, max(0, total - MIN_MUSIC_US))
             clip.copy(sourceRange = TimeRangeUs(start, total))
         }
     }
+
+    // ---- 타임라인에서 바로 고치기 ----
+
+    private var edgeTrimOrigin: TimeRangeUs? = null
+    private var audioDrag: Pair<AudioDragMode, AudioClip>? = null
+
+    /** 타임라인에서 클립의 끝 손잡이를 잡았다. 한 번 끌기가 실행 취소 한 단계다. */
+    fun beginClipEdgeTrim(clipId: String, edge: TrimEdge): Boolean {
+        val ready = _state.value as? VideoEditorUiState.Ready ?: return false
+        if (ready.activeTool != null || ready.export != null || ready.transaction.isActive || VideoTool.TRIM !in config.enabledTools) return false
+        val clip = ready.clips.firstOrNull { it.id == clipId } ?: return false
+        engine.pause()
+        updateReady { it.copy(selectedClipId = clipId, selectedAudioId = null, originalSelected = false, transaction = it.transaction.begin()) }
+        trimEdge = edge
+        edgeTrimOrigin = clip.sourceRange
+        return true
+    }
+
+    /** @param deltaOutputUs 손잡이를 잡은 뒤 움직인 거리(출력 시간 µs). 오른쪽이 양수. */
+    fun dragClipEdgeTrim(deltaOutputUs: Long) {
+        val origin = edgeTrimOrigin ?: return
+        val edge = trimEdge ?: return
+        val clip = (_state.value as? VideoEditorUiState.Ready)?.clip ?: return
+        val delta = (deltaOutputUs * clip.speed).toLong()
+        dragTrim(if (edge == TrimEdge.START) origin.startUs + delta else origin.endExclusiveUs + delta)
+    }
+
+    fun endClipEdgeTrim() {
+        if (edgeTrimOrigin == null) return
+        edgeTrimOrigin = null
+        trimEdge = null
+        updateReady { ready ->
+            val draft = ready.transaction.draft ?: return@updateReady ready
+            // 클립 길이가 바뀌면 끝을 넘은 텍스트·마스크·소리를 맞춘다.
+            val next = if (draft.sameContentAs(ready.transaction.history.current)) ready.transaction.cancel() else ready.transaction.update(Edit.clampTimed(draft)).commit()
+            ready.copy(transaction = next)
+        }
+    }
+
+    /** 타임라인에서 배경 음악·음성 조각을 고른다. `null`이면 고르기를 푼다. */
+    fun selectAudio(id: String?) = updateReady { ready ->
+        if (ready.activeTool != null) ready else ready.copy(selectedAudioId = id, originalSelected = false, muteSelection = null, selectedOverlayId = null, selectedMaskId = null)
+    }
+
+    /** 클립의 원본 소리 줄을 고른다. */
+    fun selectOriginal(clipId: String) = updateReady { ready ->
+        if (ready.activeTool != null) ready else ready.copy(selectedClipId = clipId, originalSelected = true, selectedAudioId = null, muteSelection = null)
+    }
+
+    fun clearTimelineSelection() = updateReady { it.copy(selectedAudioId = null, originalSelected = false, muteSelection = null) }
+
+    /** 고른 조각을 재생 위치에서 둘로 나눈다. */
+    fun splitSelectedAudio() {
+        val ready = _state.value as? VideoEditorUiState.Ready ?: return
+        val clip = ready.selectedAudio ?: return
+        val split = AudioEditing.split(clip, engine.state.value.positionUs, ready.durationUs, newId(), MIN_AUDIO_PIECE_US)
+            ?: return updateReady { it.copy(notice = VideoNotice.SPLIT_UNAVAILABLE) }
+        engine.pause()
+        commitImmediate { project -> project.copy(timeline = project.timeline.copy(audioClips = project.timeline.audioClips.flatMap { if (it.id == clip.id) split.toList() else listOf(it) })) }
+        updateReady { it.copy(selectedAudioId = split.second.id) }
+    }
+
+    fun deleteSelectedAudio() {
+        val id = (_state.value as? VideoEditorUiState.Ready)?.selectedAudioId ?: return
+        commitImmediate { project -> project.copy(timeline = project.timeline.copy(audioClips = project.timeline.audioClips.filterNot { it.id == id })) }
+        updateReady { it.copy(selectedAudioId = null) }
+    }
+
+    /** 고른 조각을 끝까지 반복할지. 반복을 켜면 조각의 끝 제한을 풀어 영상 끝까지 채운다. */
+    fun setSelectedAudioLoop(loop: Boolean) = updateSelectedAudio(commit = true) { it.copy(loop = loop, timelineEndUs = if (loop) null else it.timelineEndUs) }
+
+    /** 고른 조각의 볼륨(퍼센트, `0..200`). 슬라이더를 끄는 동안 불리고 [finishGesture]로 기록한다. */
+    fun changeSelectedAudioVolume(percent: Float) = updateSelectedAudio(commit = false) { it.copy(volume = (percent / 100.0).coerceIn(0.0, VideoClip.MAX_VOLUME)) }
+
+    /** 고른 조각의 페이드인·아웃 시간(µs). 조각 길이의 절반을 넘지 않는다. */
+    fun changeSelectedAudioFade(fadeInUs: Long?, fadeOutUs: Long?) {
+        val ready = _state.value as? VideoEditorUiState.Ready ?: return
+        val half = (ready.selectedAudio?.outputRange(ready.durationUs)?.durationUs ?: 0L) / 2
+        updateSelectedAudio(commit = false) { clip ->
+            clip.copy(fadeInUs = (fadeInUs ?: clip.fadeInUs).coerceIn(0, half), fadeOutUs = (fadeOutUs ?: clip.fadeOutUs).coerceIn(0, half))
+        }
+    }
+
+    private fun updateSelectedAudio(commit: Boolean, transform: (AudioClip) -> AudioClip) {
+        val id = (_state.value as? VideoEditorUiState.Ready)?.selectedAudioId ?: return
+        val change: (VideoProject) -> VideoProject = { project ->
+            project.copy(timeline = project.timeline.copy(audioClips = project.timeline.audioClips.map { if (it.id == id) transform(it) else it }))
+        }
+        if (commit) commitImmediate(change) else updateGesture { _, project -> change(project) }
+    }
+
+    /** 조각을 끌기 시작한다. [mode]가 [AudioDragMode.MOVE]면 옮기고, 끝이면 그쪽을 자른다. */
+    fun beginAudioDrag(id: String, mode: AudioDragMode): Boolean {
+        val ready = _state.value as? VideoEditorUiState.Ready ?: return false
+        if (ready.activeTool != null || ready.export != null || ready.transaction.isActive) return false
+        val clip = ready.displayed.timeline.audioClips.firstOrNull { it.id == id } ?: return false
+        engine.pause()
+        audioDrag = mode to clip
+        updateReady { it.copy(selectedAudioId = id, originalSelected = false, transaction = it.transaction.begin()) }
+        return true
+    }
+
+    fun dragAudio(deltaOutputUs: Long) {
+        val (mode, origin) = audioDrag ?: return
+        updateReady { ready ->
+            val draft = ready.transaction.draft ?: return@updateReady ready
+            val duration = ready.durationUs
+            val range = origin.outputRange(duration)
+            val next = when (mode) {
+                AudioDragMode.MOVE -> AudioEditing.move(origin, range.startUs + deltaOutputUs, duration)
+                AudioDragMode.START -> AudioEditing.trimStart(origin, range.startUs + deltaOutputUs, duration, MIN_AUDIO_PIECE_US)
+                AudioDragMode.END -> AudioEditing.trimEnd(origin, range.endExclusiveUs + deltaOutputUs, duration, MIN_AUDIO_PIECE_US)
+            }
+            ready.copy(transaction = ready.transaction.update(draft.copy(timeline = draft.timeline.copy(audioClips = draft.timeline.audioClips.map { if (it.id == origin.id) next else it }))))
+        }
+    }
+
+    fun endAudioDrag() {
+        if (audioDrag == null) return
+        audioDrag = null
+        updateReady { ready ->
+            val draft = ready.transaction.draft ?: return@updateReady ready
+            ready.copy(transaction = if (draft.sameContentAs(ready.transaction.history.current)) ready.transaction.cancel() else ready.transaction.commit())
+        }
+    }
+
+    // ---- 원본 소리 구간 음소거 ----
+
+    /** 재생 위치부터 2초(클립 끝까지)를 끌 구간으로 잡는다. 손잡이로 조절한 뒤 [applyMuteSelection]으로 끈다. */
+    fun beginMuteSelection() {
+        val ready = _state.value as? VideoEditorUiState.Ready ?: return
+        val start = ready.clipStartUs
+        val end = start + ready.clip.outputDurationUs
+        val from = engine.state.value.positionUs.coerceIn(start, (end - MIN_AUDIO_PIECE_US).coerceAtLeast(start))
+        engine.pause()
+        updateReady { it.copy(originalSelected = true, muteSelection = TimeRangeUs(from, minOf(end, from + DEFAULT_MUTE_US))) }
+    }
+
+    /** 끌 구간의 한쪽 끝을 출력 시간 [timeUs]로 옮긴다. 선택한 클립 안에 머문다. */
+    fun moveMuteSelection(edge: TrimEdge, timeUs: Long) = updateReady { ready ->
+        val selection = ready.muteSelection ?: return@updateReady ready
+        val start = ready.clipStartUs
+        val end = start + ready.clip.outputDurationUs
+        val next = when (edge) {
+            TrimEdge.START -> TimeRangeUs(timeUs.coerceIn(start, selection.endExclusiveUs - MIN_AUDIO_PIECE_US), selection.endExclusiveUs)
+            TrimEdge.END -> TimeRangeUs(selection.startUs, timeUs.coerceIn(selection.startUs + MIN_AUDIO_PIECE_US, end))
+        }
+        ready.copy(muteSelection = next)
+    }
+
+    fun cancelMuteSelection() = updateReady { it.copy(muteSelection = null) }
+
+    /** 고른 구간의 원본 소리를 끈다. 실행 취소 한 단계다. */
+    fun applyMuteSelection() {
+        val ready = _state.value as? VideoEditorUiState.Ready ?: return
+        val selection = ready.muteSelection ?: return
+        val clip = ready.clip
+        val source = toSource(clip, ready.clipStartUs, selection)
+        commitImmediate { project -> Edit.updateClip(project, clip.id) { it.copy(mutedRanges = TimeRanges.normalize(it.mutedRanges + source)) } }
+        updateReady { it.copy(muteSelection = null) }
+    }
+
+    /** 재생 위치가 걸친, 소리를 끈 구간을 되살린다. */
+    fun restoreMutedAtPlayhead() {
+        val ready = _state.value as? VideoEditorUiState.Ready ?: return
+        val clip = ready.clip
+        val sourceTime = clip.sourceRange.startUs + ((engine.state.value.positionUs - ready.clipStartUs) * clip.speed).toLong()
+        val hit = clip.mutedRanges.firstOrNull { sourceTime in it } ?: return
+        commitImmediate { project -> Edit.updateClip(project, clip.id) { it.copy(mutedRanges = TimeRanges.subtract(it.mutedRanges, hit)) } }
+    }
+
+    /** 재생 위치가 소리를 끈 구간 안이면 `true`. 동작 줄의 "되살리기"를 보일지 정한다. */
+    fun isMutedAtPlayhead(ready: VideoEditorUiState.Ready, positionUs: Long): Boolean {
+        val clip = ready.clip
+        val sourceTime = clip.sourceRange.startUs + ((positionUs - ready.clipStartUs) * clip.speed).toLong()
+        return clip.mutedRanges.any { sourceTime in it }
+    }
+
+    private fun toSource(clip: VideoClip, clipStartUs: Long, output: TimeRangeUs): TimeRangeUs = TimeRangeUs(
+        clip.sourceRange.startUs + ((output.startUs - clipStartUs) * clip.speed).toLong(),
+        clip.sourceRange.startUs + ((output.endExclusiveUs - clipStartUs) * clip.speed).toLong(),
+    )
 
     // ---- 텍스트·스티커 ----
 
@@ -1373,11 +1611,16 @@ internal class VideoEditorViewModel(
         const val FRAME_US = 33_333L
         const val DEFAULT_ITEM_US = 3_000_000L
         const val MIN_MUSIC_US = 1_000_000L
+        const val MIN_AUDIO_PIECE_US = 200_000L
+        const val DEFAULT_MUTE_US = 2_000_000L
         const val MIN_MASK_SIZE = 0.01
     }
 }
 
 internal enum class TrimEdge { START, END }
+
+/** 타임라인에서 오디오 조각을 끄는 방식. */
+internal enum class AudioDragMode { MOVE, START, END }
 
 internal enum class SpeedCheck { OK, TOO_LONG, TOO_SHORT }
 

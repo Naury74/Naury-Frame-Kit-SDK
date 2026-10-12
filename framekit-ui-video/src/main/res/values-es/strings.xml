@@ -59,4 +59,16 @@
     <string name="framekit_preview_unavailable">La vista previa no está disponible ahora.</string>
     <string name="framekit_speed_result">Duración %1$s → %2$s</string>
     <string name="framekit_cleared">Se borraron todos los elementos</string>
+    <string name="framekit_lane_video">Vídeo</string>
+    <string name="framekit_lane_original">Sonido original</string>
+    <string name="framekit_lane_text">Texto·stickers</string>
+    <string name="framekit_lane_mask">Ocultar</string>
+    <string name="framekit_audio_fade_in">Fundido de entrada</string>
+    <string name="framekit_audio_fade_out">Fundido de salida</string>
+    <string name="framekit_original_mute_range">Silenciar parte</string>
+    <string name="framekit_original_restore">Recuperar sonido</string>
+    <string name="framekit_original_mute_apply">Silenciar esta parte</string>
+    <string name="framekit_selection_done">Listo</string>
+    <string name="framekit_mute_range_help">Arrastra los controles para elegir la parte que quieres silenciar.</string>
+    <string name="framekit_sound_timeline_help">Los sonidos añadidos aparecen en la línea de tiempo. Toca un fragmento para dividirlo, moverlo, recortarlo o añadir fundidos.</string>
 </resources>

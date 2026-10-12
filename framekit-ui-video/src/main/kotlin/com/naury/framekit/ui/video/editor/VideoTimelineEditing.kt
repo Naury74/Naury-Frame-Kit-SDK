@@ -2,6 +2,7 @@ package com.naury.framekit.ui.video.editor
 
 import com.naury.framekit.core.overlay.ImageOverlay
 import com.naury.framekit.core.video.AudioClip
+import com.naury.framekit.core.video.AudioRole
 import com.naury.framekit.core.video.TimeRangeUs
 import com.naury.framekit.core.video.TimedOverlay
 import com.naury.framekit.core.video.TimedPrivacyMask
@@ -103,9 +104,16 @@ internal object VideoTimelineEditing {
     // ---- 배경 음악 ----
 
     /** 배경 음악은 한 곡만 둔다. 새 곡은 기존 곡을 바꾼다. */
-    fun setMusic(project: VideoProject, music: AudioClip?): VideoProject =
-        project.copy(timeline = project.timeline.copy(audioClips = listOfNotNull(music)))
+    /** [role] 트랙을 [clip]으로 바꾼다. `null`이면 뺀다. 다른 쓰임새의 트랙은 그대로 둔다. */
+    fun setAudio(project: VideoProject, role: AudioRole, clip: AudioClip?): VideoProject {
+        val others = project.timeline.audioClips.filter { it.role != role }
+        return project.copy(timeline = project.timeline.copy(audioClips = others + listOfNotNull(clip?.copy(role = role))))
+    }
 
-    fun updateMusic(project: VideoProject, transform: (AudioClip) -> AudioClip): VideoProject =
-        project.copy(timeline = project.timeline.copy(audioClips = project.timeline.audioClips.map(transform)))
+    fun updateAudio(project: VideoProject, role: AudioRole, transform: (AudioClip) -> AudioClip): VideoProject =
+        project.copy(timeline = project.timeline.copy(audioClips = project.timeline.audioClips.map { if (it.role == role) transform(it) else it }))
+
+    fun setMusic(project: VideoProject, music: AudioClip?): VideoProject = setAudio(project, AudioRole.MUSIC, music)
+
+    fun updateMusic(project: VideoProject, transform: (AudioClip) -> AudioClip): VideoProject = updateAudio(project, AudioRole.MUSIC, transform)
 }

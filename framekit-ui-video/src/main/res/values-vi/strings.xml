@@ -55,4 +55,16 @@
     <string name="framekit_preview_unavailable">Hiện không thể hiển thị bản xem trước.</string>
     <string name="framekit_speed_result">Độ dài %1$s → %2$s</string>
     <string name="framekit_cleared">Đã xóa tất cả</string>
+    <string name="framekit_lane_video">Video</string>
+    <string name="framekit_lane_original">Âm thanh gốc</string>
+    <string name="framekit_lane_text">Chữ·nhãn dán</string>
+    <string name="framekit_lane_mask">Che</string>
+    <string name="framekit_audio_fade_in">Hiện dần</string>
+    <string name="framekit_audio_fade_out">Tắt dần</string>
+    <string name="framekit_original_mute_range">Tắt tiếng một đoạn</string>
+    <string name="framekit_original_restore">Khôi phục âm thanh</string>
+    <string name="framekit_original_mute_apply">Tắt tiếng đoạn này</string>
+    <string name="framekit_selection_done">Xong</string>
+    <string name="framekit_mute_range_help">Kéo tay cầm để chọn đoạn cần tắt tiếng.</string>
+    <string name="framekit_sound_timeline_help">Âm thanh đã thêm hiển thị trên dòng thời gian. Chạm vào một đoạn để tách, di chuyển, cắt hoặc làm mờ dần.</string>
 </resources>

@@ -1,5 +1,7 @@
 package com.naury.framekit.ui.video.editor
 
+import com.naury.framekit.android.source.SourceLocation
+import com.naury.framekit.video.audio.WaveformExtractor
 import com.naury.framekit.android.input.MediaKind
 import com.naury.framekit.android.capture.CaptureFiles
 import androidx.compose.runtime.CompositionLocalProvider
@@ -115,6 +117,13 @@ internal class VideoEditorActivity : ComponentActivity() {
                 readSource = reader::read,
                 readAudio = reader::readAudio,
                 describe = { uri -> displayName(application.contentResolver, uri) },
+                waveformLoader = { location ->
+                    val uri = when (location) {
+                        is SourceLocation.Content -> location.uri
+                        is SourceLocation.LocalFile -> Uri.fromFile(location.file)
+                    }
+                    WaveformExtractor.extract(application, uri)
+                },
                 exporter = { project, sources, locations, audioSources, onProgress ->
                     coordinator.export(
                         project = project,

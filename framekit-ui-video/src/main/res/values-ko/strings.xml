@@ -55,4 +55,16 @@
     <string name="framekit_preview_unavailable">지금은 미리보기를 보여 줄 수 없어요.</string>
     <string name="framekit_speed_result">길이 %1$s → %2$s</string>
     <string name="framekit_cleared">모두 지웠어요</string>
+    <string name="framekit_lane_video">영상</string>
+    <string name="framekit_lane_original">원본 소리</string>
+    <string name="framekit_lane_text">텍스트·스티커</string>
+    <string name="framekit_lane_mask">가리기</string>
+    <string name="framekit_audio_fade_in">페이드 인</string>
+    <string name="framekit_audio_fade_out">페이드 아웃</string>
+    <string name="framekit_original_mute_range">구간 음소거</string>
+    <string name="framekit_original_restore">소리 되살리기</string>
+    <string name="framekit_original_mute_apply">이 구간 소리 끄기</string>
+    <string name="framekit_selection_done">닫기</string>
+    <string name="framekit_mute_range_help">손잡이를 끌어 소리를 끌 구간을 정하세요.</string>
+    <string name="framekit_sound_timeline_help">넣은 소리는 타임라인에 나타나요. 조각을 눌러 나누기·옮기기·자르기·페이드를 할 수 있어요.</string>
 </resources>

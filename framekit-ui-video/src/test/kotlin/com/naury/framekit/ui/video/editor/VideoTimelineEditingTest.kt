@@ -9,6 +9,7 @@ import com.naury.framekit.core.overlay.MaskShape
 import com.naury.framekit.core.overlay.PrivacyEffect
 import com.naury.framekit.core.overlay.PrivacyMask
 import com.naury.framekit.core.video.AudioClip
+import com.naury.framekit.core.video.AudioRole
 import com.naury.framekit.core.video.TimeRangeUs
 import com.naury.framekit.core.video.TimedOverlay
 import com.naury.framekit.core.video.TimedPrivacyMask
@@ -57,5 +58,18 @@ class VideoTimelineEditingTest {
         assertThat(VideoTimelineEditing.moveEdge(range, 9_000_000, start = false, durationUs = 6_000_000, minUs = 33_333))
             .isEqualTo(TimeRangeUs(2_000_000, 6_000_000))
         assertThat(VideoTimelineEditing.defaultRange(5_500_000, 6_000_000, 3_000_000)).isEqualTo(TimeRangeUs(3_000_000, 6_000_000))
+    }
+
+    @Test
+    fun `music and voice tracks are replaced independently`() {
+        val base = project
+        val voice = AudioClip("v", SourceId("voice"), TimeRangeUs(0, 1_000_000), timelineStartUs = 0)
+        val withVoice = VideoTimelineEditing.setAudio(base, AudioRole.VOICE, voice)
+        assertThat(withVoice.timeline.audioClips.map { it.role }).containsExactly(AudioRole.MUSIC, AudioRole.VOICE)
+        val noMusic = VideoTimelineEditing.setMusic(withVoice, null)
+        assertThat(noMusic.timeline.audioClips.single().role).isEqualTo(AudioRole.VOICE)
+        val louder = VideoTimelineEditing.updateAudio(withVoice, AudioRole.VOICE) { it.copy(volume = 1.5) }
+        assertThat(louder.timeline.audioClips.first { it.role == AudioRole.MUSIC }.volume).isEqualTo(1.0)
+        assertThat(louder.timeline.audioClips.first { it.role == AudioRole.VOICE }.volume).isEqualTo(1.5)
     }
 }

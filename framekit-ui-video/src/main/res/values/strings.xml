@@ -57,4 +57,16 @@
     <string name="framekit_preview_unavailable">The preview can\'t be shown right now.</string>
     <string name="framekit_speed_result">Length %1$s → %2$s</string>
     <string name="framekit_cleared">Cleared all items</string>
+    <string name="framekit_lane_video">Video</string>
+    <string name="framekit_lane_original">Original sound</string>
+    <string name="framekit_lane_text">Text·stickers</string>
+    <string name="framekit_lane_mask">Blur</string>
+    <string name="framekit_audio_fade_in">Fade in</string>
+    <string name="framekit_audio_fade_out">Fade out</string>
+    <string name="framekit_original_mute_range">Mute part</string>
+    <string name="framekit_original_restore">Restore sound</string>
+    <string name="framekit_original_mute_apply">Mute this part</string>
+    <string name="framekit_selection_done">Done</string>
+    <string name="framekit_mute_range_help">Drag the handles to choose the part to mute.</string>
+    <string name="framekit_sound_timeline_help">Added sounds appear on the timeline. Tap a piece there to split, move, trim or fade it.</string>
 </resources>

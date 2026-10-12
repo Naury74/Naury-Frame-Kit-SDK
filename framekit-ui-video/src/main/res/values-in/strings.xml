@@ -55,4 +55,16 @@
     <string name="framekit_preview_unavailable">Pratinjau tidak dapat ditampilkan saat ini.</string>
     <string name="framekit_speed_result">Durasi %1$s → %2$s</string>
     <string name="framekit_cleared">Semua item dihapus</string>
+    <string name="framekit_lane_video">Video</string>
+    <string name="framekit_lane_original">Suara asli</string>
+    <string name="framekit_lane_text">Teks·stiker</string>
+    <string name="framekit_lane_mask">Samarkan</string>
+    <string name="framekit_audio_fade_in">Fade in</string>
+    <string name="framekit_audio_fade_out">Fade out</string>
+    <string name="framekit_original_mute_range">Bisukan bagian</string>
+    <string name="framekit_original_restore">Pulihkan suara</string>
+    <string name="framekit_original_mute_apply">Bisukan bagian ini</string>
+    <string name="framekit_selection_done">Selesai</string>
+    <string name="framekit_mute_range_help">Seret pegangan untuk memilih bagian yang akan dibisukan.</string>
+    <string name="framekit_sound_timeline_help">Suara yang ditambahkan muncul di linimasa. Ketuk potongan untuk memisahkan, memindahkan, memangkas, atau memberi fade.</string>
 </resources>

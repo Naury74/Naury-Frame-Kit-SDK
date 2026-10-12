@@ -1,5 +1,6 @@
 package com.naury.framekit.ui.video.editor
 
+import com.naury.framekit.core.video.AudioRole
 import com.naury.framekit.core.overlay.EmojiCatalog
 import com.naury.framekit.video.source.AudioSourceInfo
 import com.naury.framekit.core.video.TimelineTimeMapper
@@ -379,6 +380,74 @@ class VideoEditorViewModelTest {
         viewModel.applyTool()
 
         assertThat(ready(viewModel).displayed.timeline.audioClips).isEmpty()
+    }
+
+    @Test
+    fun `clip edges trim directly on the timeline as one undo step`() {
+        val viewModel = viewModel(durationUs = 6_000_000)
+        val id = ready(viewModel).clip.id
+        assertThat(viewModel.beginClipEdgeTrim(id, TrimEdge.END)).isTrue()
+        viewModel.dragClipEdgeTrim(-1_500_000)
+        viewModel.dragClipEdgeTrim(-2_000_000)
+        viewModel.endClipEdgeTrim()
+        assertThat(ready(viewModel).clip.sourceRange).isEqualTo(TimeRangeUs(0, 4_000_000))
+        assertThat(ready(viewModel).transaction.history.past).hasSize(1)
+
+        viewModel.beginClipEdgeTrim(id, TrimEdge.START)
+        viewModel.dragClipEdgeTrim(1_000_000)
+        viewModel.endClipEdgeTrim()
+        assertThat(ready(viewModel).clip.sourceRange).isEqualTo(TimeRangeUs(1_000_000, 4_000_000))
+        viewModel.undo()
+        assertThat(ready(viewModel).clip.sourceRange).isEqualTo(TimeRangeUs(0, 4_000_000))
+    }
+
+    @Test
+    fun `audio pieces split move and fade on their own lane`() {
+        val viewModel = viewModel(durationUs = 6_000_000)
+        viewModel.addMusic(fileUri("audio1"))
+        dispatcher.scheduler.advanceUntilIdle()
+        viewModel.addVoice(fileUri("audio2"))
+        dispatcher.scheduler.advanceUntilIdle()
+        val voice = ready(viewModel).displayed.timeline.audioClips.single { it.role == AudioRole.VOICE }
+        // 같은 쓰임새여도 바꾸지 않고 줄에 더한다.
+        assertThat(ready(viewModel).displayed.timeline.audioClips.map { it.role }).containsExactly(AudioRole.MUSIC, AudioRole.VOICE)
+        assertThat(ready(viewModel).selectedAudioId).isEqualTo(voice.id)
+
+        engine.seekTo(1_000_000)
+        viewModel.splitSelectedAudio()
+        val voices = ready(viewModel).displayed.timeline.audioClips.filter { it.role == AudioRole.VOICE }
+        assertThat(voices).hasSize(2)
+        assertThat(voices.map { it.outputRange(6_000_000) }).containsExactly(TimeRangeUs(0, 1_000_000), TimeRangeUs(1_000_000, 2_000_000)).inOrder()
+
+        assertThat(viewModel.beginAudioDrag(voices[1].id, AudioDragMode.MOVE)).isTrue()
+        viewModel.dragAudio(2_000_000)
+        viewModel.endAudioDrag()
+        assertThat(ready(viewModel).selectedAudio!!.outputRange(6_000_000)).isEqualTo(TimeRangeUs(3_000_000, 4_000_000))
+
+        viewModel.changeSelectedAudioFade(300_000, 900_000)
+        viewModel.finishGesture()
+        // 페이드는 조각 길이의 절반을 넘지 않는다.
+        assertThat(ready(viewModel).selectedAudio!!.fadeInUs).isEqualTo(300_000)
+        assertThat(ready(viewModel).selectedAudio!!.fadeOutUs).isEqualTo(500_000)
+        viewModel.deleteSelectedAudio()
+        assertThat(ready(viewModel).displayed.timeline.audioClips.count { it.role == AudioRole.VOICE }).isEqualTo(1)
+    }
+
+    @Test
+    fun `part of the original sound can be muted and restored`() {
+        val viewModel = viewModel(durationUs = 6_000_000)
+        engine.seekTo(1_000_000)
+        viewModel.selectOriginal(ready(viewModel).clip.id)
+        viewModel.beginMuteSelection()
+        assertThat(ready(viewModel).muteSelection).isEqualTo(TimeRangeUs(1_000_000, 3_000_000))
+        viewModel.moveMuteSelection(TrimEdge.END, 4_000_000)
+        viewModel.applyMuteSelection()
+        assertThat(ready(viewModel).clip.mutedRanges).containsExactly(TimeRangeUs(1_000_000, 4_000_000))
+        assertThat(viewModel.isMutedAtPlayhead(ready(viewModel), 2_000_000)).isTrue()
+
+        engine.seekTo(2_000_000)
+        viewModel.restoreMutedAtPlayhead()
+        assertThat(ready(viewModel).clip.mutedRanges).isEmpty()
     }
 
     @Test

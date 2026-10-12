@@ -55,4 +55,16 @@
     <string name="framekit_preview_unavailable">ไม่สามารถแสดงตัวอย่างได้ในขณะนี้</string>
     <string name="framekit_speed_result">ความยาว %1$s → %2$s</string>
     <string name="framekit_cleared">ล้างทุกรายการแล้ว</string>
+    <string name="framekit_lane_video">วิดีโอ</string>
+    <string name="framekit_lane_original">เสียงต้นฉบับ</string>
+    <string name="framekit_lane_text">ข้อความ·สติกเกอร์</string>
+    <string name="framekit_lane_mask">ปิดบัง</string>
+    <string name="framekit_audio_fade_in">เฟดเข้า</string>
+    <string name="framekit_audio_fade_out">เฟดออก</string>
+    <string name="framekit_original_mute_range">ปิดเสียงบางช่วง</string>
+    <string name="framekit_original_restore">คืนเสียง</string>
+    <string name="framekit_original_mute_apply">ปิดเสียงช่วงนี้</string>
+    <string name="framekit_selection_done">ปิด</string>
+    <string name="framekit_mute_range_help">ลากที่จับเพื่อเลือกช่วงที่จะปิดเสียง</string>
+    <string name="framekit_sound_timeline_help">เสียงที่เพิ่มจะแสดงบนไทม์ไลน์ แตะชิ้นเสียงเพื่อแยก ย้าย ตัด หรือเฟด</string>
 </resources>

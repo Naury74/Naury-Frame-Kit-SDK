@@ -55,4 +55,16 @@
     <string name="framekit_preview_unavailable">暂时无法显示预览。</string>
     <string name="framekit_speed_result">时长 %1$s → %2$s</string>
     <string name="framekit_cleared">已全部清除</string>
+    <string name="framekit_lane_video">视频</string>
+    <string name="framekit_lane_original">原声</string>
+    <string name="framekit_lane_text">文字·贴纸</string>
+    <string name="framekit_lane_mask">遮挡</string>
+    <string name="framekit_audio_fade_in">淡入</string>
+    <string name="framekit_audio_fade_out">淡出</string>
+    <string name="framekit_original_mute_range">部分静音</string>
+    <string name="framekit_original_restore">恢复声音</string>
+    <string name="framekit_original_mute_apply">将此段静音</string>
+    <string name="framekit_selection_done">关闭</string>
+    <string name="framekit_mute_range_help">拖动手柄选择要静音的片段。</string>
+    <string name="framekit_sound_timeline_help">添加的声音会显示在时间轴上，点按片段即可分割、移动、裁剪或淡入淡出。</string>
 </resources>

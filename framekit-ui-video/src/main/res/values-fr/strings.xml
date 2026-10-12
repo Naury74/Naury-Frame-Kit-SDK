@@ -59,4 +59,16 @@
     <string name="framekit_preview_unavailable">L\'aperçu ne peut pas être affiché pour le moment.</string>
     <string name="framekit_speed_result">Durée %1$s → %2$s</string>
     <string name="framekit_cleared">Tous les éléments ont été effacés</string>
+    <string name="framekit_lane_video">Vidéo</string>
+    <string name="framekit_lane_original">Son d\'origine</string>
+    <string name="framekit_lane_text">Texte·stickers</string>
+    <string name="framekit_lane_mask">Masquage</string>
+    <string name="framekit_audio_fade_in">Fondu d\'entrée</string>
+    <string name="framekit_audio_fade_out">Fondu de sortie</string>
+    <string name="framekit_original_mute_range">Couper une partie</string>
+    <string name="framekit_original_restore">Rétablir le son</string>
+    <string name="framekit_original_mute_apply">Couper le son ici</string>
+    <string name="framekit_selection_done">OK</string>
+    <string name="framekit_mute_range_help">Faites glisser les poignées pour choisir la partie sans son.</string>
+    <string name="framekit_sound_timeline_help">Les sons ajoutés apparaissent sur la timeline. Touchez un morceau pour le diviser, le déplacer, le couper ou ajouter un fondu.</string>
 </resources>

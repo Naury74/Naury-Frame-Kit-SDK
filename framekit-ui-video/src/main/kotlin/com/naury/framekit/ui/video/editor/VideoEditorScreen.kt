@@ -1,5 +1,16 @@
 package com.naury.framekit.ui.video.editor
 
+import com.naury.framekit.core.video.TimeRanges
+import com.naury.framekit.ui.video.timeline.TimelineOriginal
+import com.naury.framekit.ui.video.timeline.TimelineAudio
+import com.naury.framekit.ui.video.timeline.TrackLane
+import com.naury.framekit.ui.video.timeline.TrackTimelineActions
+import com.naury.framekit.ui.video.timeline.TrackTimeline
+import com.naury.framekit.ui.audio.VoiceRecordDialog
+import com.naury.framekit.ui.audio.VoiceRecorder
+import com.naury.framekit.ui.audio.AudioTrackUi
+import com.naury.framekit.core.video.AudioRole
+import androidx.compose.ui.platform.LocalContext
 import com.naury.framekit.ui.text.messageRes
 import com.naury.framekit.ui.source.rememberSourceLaunchers
 import com.naury.framekit.android.input.MediaKind
@@ -19,11 +30,9 @@ import com.naury.framekit.core.video.TimelineTimeMapper
 import com.naury.framekit.ui.tool.StickerToolPanel
 import com.naury.framekit.ui.tool.TextToolPanel
 import com.naury.framekit.ui.video.contract.VideoEditorConfig
-import com.naury.framekit.ui.video.timeline.MultiClipTimeline
 import com.naury.framekit.ui.video.timeline.TimelineClip
 import com.naury.framekit.ui.video.timeline.TimelineItem
 import com.naury.framekit.ui.video.timeline.TimelineItemKind
-import com.naury.framekit.ui.video.tool.MusicUi
 import com.naury.framekit.ui.video.tool.TimedRangeRow
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -352,7 +361,7 @@ private fun PreviewColumn(state: VideoEditorUiState.Ready, viewModel: VideoEdito
         if (state.activeTool?.isGeometry != true) {
             PlaybackRow(state, viewModel)
             TimelineRow(state, viewModel)
-            if (state.activeTool == null) ClipActionBar(state, viewModel)
+            if (state.activeTool == null && !state.hasTimelineSelection) ClipActionBar(state, viewModel)
         }
     }
 }
@@ -378,7 +387,7 @@ private fun ControlArea(state: VideoEditorUiState.Ready, viewModel: VideoEditorV
             if (state.activeTool?.isGeometry != true && !imeVisible) {
                 PlaybackRow(state, viewModel)
                 TimelineRow(state, viewModel)
-                if (state.activeTool == null) ClipActionBar(state, viewModel)
+                if (state.activeTool == null && !state.hasTimelineSelection) ClipActionBar(state, viewModel)
             }
             ToolArea(state, viewModel, wide = false, modifier = Modifier.weight(1f, fill = false), scrollPanel = true)
         }
@@ -462,34 +471,86 @@ private fun TimelineRow(state: VideoEditorUiState.Ready, viewModel: VideoEditorV
         val size = state.sources[clip.source]?.info?.metadata?.uprightSize
         TimelineClip(clip.id, clip.source, clip.sourceRange, clip.speed, starts[index], clip.outputDurationUs, size?.let { it.width.toFloat() / it.height } ?: 1f)
     }
+    // 원본 소리 줄: 소리가 있는 클립만 그리고, 꺼 둔 구간은 출력 시간으로 바꿔 보여 준다.
+    val originals = project.timeline.videoClips.mapIndexedNotNull { index, clip ->
+        if (state.sources[clip.source]?.info?.metadata?.hasAudio != true) return@mapIndexedNotNull null
+        val start = starts[index]
+        val muted = TimeRanges.clip(clip.mutedRanges, clip.sourceRange).map {
+            TimeRangeUs(start + ((it.startUs - clip.sourceRange.startUs) / clip.speed).toLong(), start + ((it.endExclusiveUs - clip.sourceRange.startUs) / clip.speed).toLong())
+        }
+        TimelineOriginal(clip.id, TimeRangeUs(start, start + clip.outputDurationUs), clip.muted, muted, clip.source, clip.sourceRange.startUs, clip.speed)
+    }
+    val audio = project.timeline.audioClips.map { clip ->
+        TimelineAudio(
+            clip.id, clip.role, clip.outputRange(state.durationUs), state.music[clip.source]?.name, clip.loop, clip.fadeInUs, clip.fadeOutUs,
+            clip.source, clip.sourceRange, clip.startOffsetUs, clip.timelineStartUs,
+        )
+    }
     val items = buildList {
         project.timeline.overlays.forEach { add(TimelineItem(TimelineItemKind.OVERLAY, it.overlay.id, it.range, it.overlay.id == state.selectedOverlayId)) }
         project.timeline.privacyMasks.forEach { add(TimelineItem(TimelineItemKind.MASK, it.mask.id, it.range, it.mask.id == state.selectedMaskId)) }
-        project.timeline.audioClips.forEach { music ->
-            val end = (music.timelineStartUs + if (music.loop) state.durationUs else music.sourceRange.durationUs).coerceAtMost(state.durationUs)
-            add(TimelineItem(TimelineItemKind.MUSIC, music.id, TimeRangeUs(music.timelineStartUs, end), false))
-        }
     }
-    MultiClipTimeline(
+    val audioEnabled = VideoTool.AUDIO in viewModel.config.enabledTools && state.export == null
+    val waveforms by viewModel.waveforms.collectAsStateWithLifecycle()
+    val musicPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri -> viewModel.addMusic(uri) }
+    val labels = mapOf(
+        TrackLane.VIDEO to stringResource(R.string.framekit_lane_video),
+        TrackLane.ORIGINAL to stringResource(R.string.framekit_lane_original),
+        TrackLane.MUSIC to stringResource(UiR.string.framekit_track_music),
+        TrackLane.VOICE to stringResource(UiR.string.framekit_track_voice),
+        TrackLane.OVERLAY to stringResource(R.string.framekit_lane_text),
+        TrackLane.MASK to stringResource(R.string.framekit_lane_mask),
+    )
+    val emptyLabels = if (audioEnabled && state.activeTool == null) {
+        mapOf(AudioRole.MUSIC to stringResource(UiR.string.framekit_track_music_add), AudioRole.VOICE to stringResource(UiR.string.framekit_track_voice_add))
+    } else {
+        emptyMap()
+    }
+    TrackTimeline(
         clips = clips,
         selectedClipId = state.clip.id,
+        clipHandles = state.activeTool == null && VideoTool.TRIM in viewModel.config.enabledTools && state.export == null,
+        originals = originals,
+        originalSelected = state.originalSelected,
+        audio = audio,
+        selectedAudioId = state.selectedAudioId,
         items = items,
+        muteSelection = state.muteSelection,
         durationUs = state.durationUs,
         positionUs = playback.positionUs,
+        labels = labels,
+        emptyAudioLabels = emptyLabels,
+        waveforms = waveforms,
         loadFrame = viewModel::timelineFrame,
-        onScrub = { viewModel.seekTo(it, scrubbing = true) },
-        onScrubEnd = {
-            viewModel.finishScrub()
-            viewModel.selectClipAtPlayhead()
-        },
-        onSelectClip = { viewModel.selectClip(it) },
-        onSelectItem = { kind, id ->
-            when (kind) {
-                TimelineItemKind.OVERLAY -> viewModel.selectOverlay(id)
-                TimelineItemKind.MASK -> viewModel.selectMask(id)
-                TimelineItemKind.MUSIC -> Unit
-            }
-        },
+        actions = TrackTimelineActions(
+            onScrub = { viewModel.seekTo(it, scrubbing = true) },
+            onScrubEnd = {
+                viewModel.finishScrub()
+                viewModel.selectClipAtPlayhead()
+            },
+            onSelectClip = { id ->
+                viewModel.clearTimelineSelection()
+                viewModel.selectClip(id)
+            },
+            onSelectOriginal = viewModel::selectOriginal,
+            onSelectAudio = viewModel::selectAudio,
+            onSelectItem = { kind, id ->
+                when (kind) {
+                    TimelineItemKind.OVERLAY -> viewModel.selectOverlay(id)
+                    TimelineItemKind.MASK -> viewModel.selectMask(id)
+                    TimelineItemKind.MUSIC -> Unit
+                }
+            },
+            // 음악은 바로 고르고, 음성은 녹음도 할 수 있도록 소리 도구를 연다.
+            onAddAudio = { role -> if (role == AudioRole.MUSIC) musicPicker.launch(arrayOf("audio/*")) else viewModel.selectTool(VideoTool.AUDIO) },
+            onBeginClipEdge = viewModel::beginClipEdgeTrim,
+            onDragClipEdge = viewModel::dragClipEdgeTrim,
+            onEndClipEdge = viewModel::endClipEdgeTrim,
+            onBeginAudioDrag = viewModel::beginAudioDrag,
+            onDragAudio = viewModel::dragAudio,
+            onEndAudioDrag = viewModel::endAudioDrag,
+            onMoveMuteEdge = viewModel::moveMuteSelection,
+        ),
         description = description,
     )
 }
@@ -536,7 +597,8 @@ private fun ToolArea(
     modifier: Modifier = Modifier,
     scrollPanel: Boolean = false,
 ) {
-    val tools = viewModel.config.enabledTools.toList().sortedBy { it.ordinal }
+    // 구간 자르기는 타임라인의 클립 손잡이로 하므로 도구 목록에서는 뺀다.
+    val tools = viewModel.config.enabledTools.filter { it != VideoTool.TRIM }.sortedBy { it.ordinal }
     AnimatedContent(
         targetState = state.activeTool,
         modifier = modifier.fillMaxWidth(),
@@ -593,9 +655,14 @@ private fun ToolArea(
                     SpeedToolPanel(speed = state.clip.speed, sourceDurationUs = state.clip.sourceRange.durationUs, onSelect = viewModel::selectSpeed)
                 }
                 VideoTool.AUDIO -> ToolPanelWithActions(viewModel, isDraft = false, scrollPanel, wide) {
-                    val music = state.displayed.timeline.audioClips.firstOrNull()
-                    val loaded = music?.let { state.music[it.source] }
-                    val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri -> viewModel.addMusic(uri) }
+                    val musicPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri -> viewModel.addMusic(uri) }
+                    val voicePicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri -> viewModel.addVoice(uri) }
+                    val context = LocalContext.current
+                    // 호스트가 녹음 권한을 선언했고 마이크가 있을 때만 녹음 버튼을 보여 준다.
+                    val canRecord = remember { VoiceRecorder.isDeclared(context) && VoiceRecorder.hasMicrophone(context) }
+                    var recording by rememberSaveable { mutableStateOf(false) }
+                    // 조각별 조절은 타임라인에서 조각을 골라서 한다. 여기서는 추가만 한다.
+                    val tracks = emptyMap<AudioRole, AudioTrackUi>()
                     AudioToolPanel(
                         hasAudio = state.source.metadata.hasAudio,
                         muted = state.clip.muted,
@@ -603,25 +670,26 @@ private fun ToolArea(
                         onMuted = viewModel::setMuted,
                         onVolume = viewModel::changeVolume,
                         onVolumeFinished = viewModel::finishGesture,
-                        music = music?.let {
-                            MusicUi(
-                                name = loaded?.name,
-                                volume = it.volume,
-                                loop = it.loop,
-                                startUs = it.timelineStartUs,
-                                offsetUs = it.sourceRange.startUs,
-                                songDurationUs = loaded?.info?.metadata?.durationUs ?: it.sourceRange.endExclusiveUs,
-                            )
-                        },
+                        tracks = tracks,
                         busy = state.busy,
-                        onAddMusic = { picker.launch(arrayOf("audio/*")) },
-                        onMusicVolume = viewModel::changeMusicVolume,
-                        onMusicLoop = viewModel::setMusicLoop,
-                        onMusicStartHere = viewModel::startMusicHere,
-                        onMusicOffset = viewModel::changeMusicOffset,
-                        onRemoveMusic = viewModel::removeMusic,
+                        onAddFile = { role -> (if (role == AudioRole.MUSIC) musicPicker else voicePicker).launch(arrayOf("audio/*")) },
+                        onRecordVoice = if (canRecord) ({ recording = true }) else null,
+                        onTrackVolume = viewModel::changeAudioVolume,
+                        onTrackLoop = viewModel::setAudioLoop,
+                        onTrackStartHere = viewModel::startAudioHere,
+                        onTrackOffset = viewModel::changeAudioOffset,
+                        onRemoveTrack = viewModel::removeAudio,
                         onGestureFinished = viewModel::finishGesture,
                     )
+                    if (recording) {
+                        VoiceRecordDialog(
+                            onRecorded = { file ->
+                                recording = false
+                                viewModel.addRecordedVoice(file)
+                            },
+                            onDismiss = { recording = false },
+                        )
+                    }
                 }
                 VideoTool.TEXT -> ToolPanelWithActions(viewModel, isDraft = true, scrollPanel, wide) {
                     val editing = state.displayed.timeline.overlays.firstOrNull { it.overlay.id == state.editingTextId }
@@ -657,6 +725,7 @@ private fun ToolArea(
                     )
                 }
                 null -> when {
+                    state.hasTimelineSelection -> TimelineSelectionPanel(state, viewModel)
                     tools.isEmpty() -> Unit
                     wide -> Column(Modifier.weight(1f).verticalFadingScroll()) {
                         ToolGrid(items = tools.map { it.railItem() }, onSelect = viewModel::selectTool)

@@ -59,4 +59,16 @@
     <string name="framekit_preview_unavailable">Não é possível mostrar a prévia agora.</string>
     <string name="framekit_speed_result">Duração %1$s → %2$s</string>
     <string name="framekit_cleared">Todos os itens foram removidos</string>
+    <string name="framekit_lane_video">Vídeo</string>
+    <string name="framekit_lane_original">Som original</string>
+    <string name="framekit_lane_text">Texto·figurinhas</string>
+    <string name="framekit_lane_mask">Ocultar</string>
+    <string name="framekit_audio_fade_in">Fade in</string>
+    <string name="framekit_audio_fade_out">Fade out</string>
+    <string name="framekit_original_mute_range">Silenciar trecho</string>
+    <string name="framekit_original_restore">Restaurar som</string>
+    <string name="framekit_original_mute_apply">Silenciar este trecho</string>
+    <string name="framekit_selection_done">Concluir</string>
+    <string name="framekit_mute_range_help">Arraste as alças para escolher o trecho a silenciar.</string>
+    <string name="framekit_sound_timeline_help">Os sons adicionados aparecem na linha do tempo. Toque em um trecho para dividir, mover, cortar ou aplicar fade.</string>
 </resources>
