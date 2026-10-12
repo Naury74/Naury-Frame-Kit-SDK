@@ -93,6 +93,39 @@ Button(onClick = { editor.launch(FrameKitRequest(EditorInput.Pick(MediaKind.ANY)
 - 촬영을 취소하면 `Cancelled`입니다.
 - 회전·재생성 중에도 카메라를 두 번 띄우지 않으며, 프로세스가 종료돼도 찍은 파일 경로를 기억해 이어서 엽니다.
 
+## 자동으로 열기와 고르기 시트
+
+`FrameKitContract`는 원본을 받은 뒤 편집기를 여는 방식을 `chooser`로 고릅니다.
+
+| 값 | 동작 |
+| --- | --- |
+| `EditorChooser.AUTO`(기본) | 원본 종류를 보고 바로 엽니다. 사진→사진 편집, 영상→영상 편집, 움직이는 GIF·WebP→움직이는 이미지 편집 |
+| `EditorChooser.ASK` | 원본 미리보기와 함께 "어떻게 할까요?" 시트를 띄워 사용자가 고릅니다 |
+
+```kotlin
+// 라이브러리가 사진·영상을 고르게 하고, 고른 뒤 무엇을 할지 묻기
+editor.launch(FrameKitRequest(EditorInput.Pick(MediaKind.ANY, maxItems = 10), chooser = EditorChooser.ASK))
+
+// 호스트 앱의 앨범에서 이미 고른 파일을 넘기고 무엇을 할지 묻기
+editor.launch(FrameKitRequest(EditorInput.Multiple(uris.map(EditorInput::UriSource)), chooser = EditorChooser.ASK))
+
+// 고를 수 있는 동작 제한(예: 사진 편집과 그대로 보내기만)
+editor.launch(FrameKitRequest(input, chooser = EditorChooser.ASK, chooserActions = setOf(EditorAction.EDIT_PHOTO, EditorAction.SEND_ORIGINAL)))
+```
+
+원본에 맞는 동작만 보여 줍니다.
+
+| 원본 | 선택지 |
+| --- | --- |
+| 사진 한 장·여러 장 | 사진 편집(여러 장이면 한 장씩) · PDF로 묶기 · 움직이는 이미지 만들기 · 편집 없이 보내기 |
+| 움직이는 GIF·WebP 하나 | 움직이는 이미지 편집 · 첫 장면만 사진으로 편집 · 편집 없이 보내기 |
+| 영상 | 영상 편집 · 편집 없이 보내기 |
+| 사진과 영상이 섞임 | 편집 없이 보내기(함께 편집할 수 없다는 안내) |
+
+- 선택지가 하나만 남으면 묻지 않고 바로 실행합니다.
+- 시트를 닫으면 `Cancelled`입니다. 카메라 촬영(`Capture`)은 시트 없이 바로 엽니다.
+- **편집 없이 보내기**는 원본을 그대로 `Success`로 돌려줍니다. 각 `EditedMedia`의 `isOriginal`이 `true`이고, `uri`는 넘긴(또는 고른) 원본 그대로입니다. 사진 선택기로 고른 원본의 읽기 권한은 앱 프로세스가 끝나면 사라질 수 있으니, 오래 쓰려면 복사해 두세요.
+
 ## 결과
 
 `FrameKitResult`는 한 번의 실행에 정확히 한 번 전달됩니다.

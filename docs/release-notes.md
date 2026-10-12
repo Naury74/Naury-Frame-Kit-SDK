@@ -17,6 +17,8 @@
 
 ### 추가
 
+- 고르기 시트(`FrameKitRequest.chooser = EditorChooser.ASK`, `chooserActions`): 원본 미리보기와 함께 사진 편집·PDF·움직이는 이미지·영상 편집·편집 없이 보내기 중에서 선택. 기본은 이전처럼 자동(`AUTO`)
+- 편집 없이 보내기 결과 `EditedMedia.isOriginal`
 - 배경 음악과 음성 트랙(`AudioRole.MUSIC`/`VOICE`): 영상 편집기와 움직이는 이미지 편집기에서 음성 파일 불러오기·마이크 녹음(`VoiceRecorder`, `VoiceRecordDialog`, 호스트가 `RECORD_AUDIO`를 선언했을 때만), 트랙마다 볼륨·시작 위치·반복
 - 움직이는 이미지 편집기에서 프로세스가 끝나도 편집 이어 가기, MP4 저장 시 소리 섞기(`AudioTrackMixer`)
 - 움직이는 이미지 편집기 `MotionEditorContract`(`framekit-motion`, `framekit-ui-motion`): 사진으로 슬라이드쇼 만들기(카메라 움직임·전환·사진당 시간·부메랑·화면 비율), GIF·움직이는 WebP 편집(구간·속도·부메랑), 보정·필터, 움직이는 텍스트·스티커, MP4·GIF·움직이는 WebP 저장

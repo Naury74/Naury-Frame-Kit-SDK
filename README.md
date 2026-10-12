@@ -258,6 +258,8 @@ app                 Showcase 앱
 | 사진 편집 | 기본 설정 |
 | 영상 편집 | 최대 10개 클립, 모든 영상 도구, MP4 저장 |
 | 사진 또는 영상 | `Pick(MediaKind.ANY)`, 고른 종류의 편집기가 열림 |
+| 무엇을 할지 묻기 | `chooser = EditorChooser.ASK`, 고른 뒤 편집·PDF·움직이는 이미지·그대로 보내기 중 선택 |
+| 앱 앨범에서 고른 파일 넘기기 | 호스트가 먼저 고른 파일을 `Multiple`로 넘기고 고르기 시트로 묻기 |
 | 움직이는 이미지 만들기 | `MotionEditorContract`, 사진 최대 20장으로 슬라이드쇼를 만들어 MP4·GIF·WebP로 저장 |
 | GIF·WebP 편집 | `MotionEditorContract`, 움직이는 GIF·WebP 하나를 열어 편집(처음 저장 형식 GIF) |
 | 여러 장 사진 | 최대 10장을 골라 한 장씩 편집하고 사진마다 저장 |
