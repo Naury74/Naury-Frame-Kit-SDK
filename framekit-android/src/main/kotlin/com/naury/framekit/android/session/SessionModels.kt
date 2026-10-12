@@ -1,5 +1,8 @@
 package com.naury.framekit.android.session
 
+import com.naury.framekit.core.overlay.WatermarkPosition
+import com.naury.framekit.core.overlay.WatermarkPattern
+import com.naury.framekit.core.overlay.Watermark
 import com.naury.framekit.core.effect.Adjustments
 import com.naury.framekit.core.effect.FilterCatalog
 import com.naury.framekit.core.effect.FilterSelection
@@ -84,6 +87,7 @@ public data class ImageProjectSnapshot(
     val drawing: List<StrokeSnapshot> = emptyList(),
     val privacyMasks: List<PrivacyMaskSnapshot> = emptyList(),
     val cutoutMaskAssetId: String? = null,
+    val watermark: WatermarkSnapshot? = null,
 ) {
     public fun toProject(source: SourceId): ImageProject = ImageProject(
         id = ProjectId(projectId),
@@ -102,6 +106,7 @@ public data class ImageProjectSnapshot(
         drawing = drawing.map(StrokeSnapshot::toModel),
         privacyMasks = privacyMasks.map(PrivacyMaskSnapshot::toModel),
         cutout = cutoutMaskAssetId?.let(::SubjectCutout),
+        watermark = watermark?.toModel(),
         revision = revision,
     )
 
@@ -126,8 +131,45 @@ public data class ImageProjectSnapshot(
                 drawing = project.drawing.map(StrokeSnapshot::of),
                 privacyMasks = project.privacyMasks.map(PrivacyMaskSnapshot::of),
                 cutoutMaskAssetId = project.cutout?.maskAssetId,
+                watermark = project.watermark?.let(WatermarkSnapshot::of),
             )
         }
+    }
+}
+
+/** [Watermark]의 저장 형태. 모르는 무늬·자리 이름은 기본값으로 읽는다. */
+@Serializable
+public data class WatermarkSnapshot(
+    val text: String,
+    val pattern: String = WatermarkPattern.SINGLE.name,
+    val position: String = WatermarkPosition.BOTTOM_END.name,
+    val size: Double = Watermark.DEFAULT_SIZE,
+    val opacity: Double = 0.7,
+    val color: Int = -1,
+    val rotation: Double = -30.0,
+    val density: Double = 1.0,
+    val shadow: Boolean = true,
+    val background: Boolean = false,
+    val fontId: String = "sans-bold",
+) {
+    public fun toModel(): Watermark = Watermark(
+        text = text,
+        pattern = WatermarkPattern.entries.firstOrNull { it.name == pattern } ?: WatermarkPattern.SINGLE,
+        position = WatermarkPosition.entries.firstOrNull { it.name == position } ?: WatermarkPosition.BOTTOM_END,
+        sizeRatio = size,
+        opacity = opacity,
+        colorArgb = color,
+        rotationDegrees = rotation,
+        density = density,
+        shadow = shadow,
+        background = background,
+        fontId = fontId,
+    ).normalized()
+
+    public companion object {
+        public fun of(w: Watermark): WatermarkSnapshot = WatermarkSnapshot(
+            w.text, w.pattern.name, w.position.name, w.sizeRatio, w.opacity, w.colorArgb, w.rotationDegrees, w.density, w.shadow, w.background, w.fontId,
+        )
     }
 }
 

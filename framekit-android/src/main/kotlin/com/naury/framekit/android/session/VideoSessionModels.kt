@@ -40,6 +40,7 @@ public data class VideoProjectSnapshot(
     val audioSources: List<SourceReference> = emptyList(),
     val audioClips: List<AudioClipSnapshot> = emptyList(),
     val overlays: List<TimedOverlaySnapshot> = emptyList(),
+    val watermark: WatermarkSnapshot? = null,
 ) {
     /**
      * @param sources 세션 원본 목록 순서대로 새로 등록한 registry 키.
@@ -53,6 +54,7 @@ public data class VideoProjectSnapshot(
             audioClips = audioClips.map { it.toModel(audio) },
             overlays = overlays.map(TimedOverlaySnapshot::toModel),
             privacyMasks = privacyMasks.map(TimedMaskSnapshot::toModel),
+            watermark = watermark?.toModel(),
         ),
         canvas = CanvasSpec(canvasAspectWidth, canvasAspectHeight, CanvasFit.entries.firstOrNull { it.name == canvasFit } ?: CanvasFit.FIT),
         grainSeed = grainSeed,
@@ -75,6 +77,7 @@ public data class VideoProjectSnapshot(
             canvasFit = project.canvas.fit.name,
             audioClips = project.timeline.audioClips.map { AudioClipSnapshot.of(it, audio) },
             overlays = project.timeline.overlays.map(TimedOverlaySnapshot::of),
+            watermark = project.timeline.watermark?.let(WatermarkSnapshot::of),
         )
     }
 }
