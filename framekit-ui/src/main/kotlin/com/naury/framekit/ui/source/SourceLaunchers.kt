@@ -103,5 +103,5 @@ public fun rememberSourceLaunchers(
 private fun MediaKind.toPickerType(): ActivityResultContracts.PickVisualMedia.VisualMediaType = when (this) {
     MediaKind.IMAGE -> ActivityResultContracts.PickVisualMedia.ImageOnly
     MediaKind.VIDEO -> ActivityResultContracts.PickVisualMedia.VideoOnly
-    MediaKind.ANY -> ActivityResultContracts.PickVisualMedia.ImageAndVideo
+    MediaKind.ANY, MediaKind.AUDIO -> ActivityResultContracts.PickVisualMedia.ImageAndVideo
 }
