@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="framekit_chooser_title">どうしますか？</string>
+    <string name="framekit_chooser_mixed">写真と動画は一緒に編集できません。そのまま送ることはできます。</string>
+    <string name="framekit_chooser_photo">写真を編集</string>
+    <string name="framekit_chooser_photo_body">切り抜き・補正・フィルター・テキストで仕上げます</string>
+    <string name="framekit_chooser_photo_each">写真を1枚ずつ編集</string>
+    <string name="framekit_chooser_photo_each_body">1枚ずつ編集して写真ごとに保存します</string>
+    <string name="framekit_chooser_photo_frame">最初の場面を写真として編集</string>
+    <string name="framekit_chooser_photo_frame_body">動きのない1枚の写真として保存します</string>
+    <string name="framekit_chooser_pdf">PDFにまとめる</string>
+    <string name="framekit_chooser_pdf_body">書類のようにまっすぐ整えて1つのPDFに保存します</string>
+    <string name="framekit_chooser_motion">動く画像を作る</string>
+    <string name="framekit_chooser_motion_body">ズーム・切り替え・音楽を入れて動画やGIFにします</string>
+    <string name="framekit_chooser_motion_edit">動く画像を編集</string>
+    <string name="framekit_chooser_motion_edit_body">範囲・速度・繰り返しを変えて文字を入れます</string>
+    <string name="framekit_chooser_video">動画を編集</string>
+    <string name="framekit_chooser_video_body">カット・結合し、音楽や音声を入れます</string>
+    <string name="framekit_chooser_send">編集せずに送る</string>
+    <string name="framekit_chooser_send_body">元のファイルのまま送ります</string>
+    <plurals name="framekit_chooser_count">
+        <item quantity="other">%d件選択</item>
+    </plurals>
+</resources>

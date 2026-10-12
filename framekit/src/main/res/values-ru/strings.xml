@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="framekit_chooser_title">Что сделать?</string>
+    <string name="framekit_chooser_mixed">Фото и видео нельзя редактировать вместе. Можно отправить оригиналы.</string>
+    <string name="framekit_chooser_photo">Редактировать фото</string>
+    <string name="framekit_chooser_photo_body">Обрезка, коррекция, фильтры и текст</string>
+    <string name="framekit_chooser_photo_each">Редактировать по одному</string>
+    <string name="framekit_chooser_photo_each_body">Редактировать каждое фото и сохранить отдельно</string>
+    <string name="framekit_chooser_photo_frame">Первый кадр как фото</string>
+    <string name="framekit_chooser_photo_frame_body">Сохранить одно статичное фото</string>
+    <string name="framekit_chooser_pdf">Объединить в PDF</string>
+    <string name="framekit_chooser_pdf_body">Выровнять страницы и сохранить одним PDF</string>
+    <string name="framekit_chooser_motion">Создать анимацию</string>
+    <string name="framekit_chooser_motion_body">Добавьте зум, переходы и музыку и сохраните как видео или GIF</string>
+    <string name="framekit_chooser_motion_edit">Редактировать анимацию</string>
+    <string name="framekit_chooser_motion_edit_body">Измените фрагмент, скорость, повтор и добавьте текст</string>
+    <string name="framekit_chooser_video">Редактировать видео</string>
+    <string name="framekit_chooser_video_body">Обрезка, склейка, музыка и голос</string>
+    <string name="framekit_chooser_send">Отправить без изменений</string>
+    <string name="framekit_chooser_send_body">Отправить оригиналы как есть</string>
+    <plurals name="framekit_chooser_count">
+        <item quantity="one">Выбран %d объект</item>
+        <item quantity="few">Выбрано %d объекта</item>
+        <item quantity="many">Выбрано %d объектов</item>
+        <item quantity="other">Выбрано объектов: %d</item>
+    </plurals>
+</resources>

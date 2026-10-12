@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="framekit_chooser_title">Mau melakukan apa?</string>
+    <string name="framekit_chooser_mixed">Foto dan video tidak bisa diedit bersama. Anda tetap bisa mengirim aslinya.</string>
+    <string name="framekit_chooser_photo">Edit foto</string>
+    <string name="framekit_chooser_photo_body">Pangkas, sesuaikan, tambahkan filter dan teks</string>
+    <string name="framekit_chooser_photo_each">Edit foto satu per satu</string>
+    <string name="framekit_chooser_photo_each_body">Edit setiap foto dan simpan terpisah</string>
+    <string name="framekit_chooser_photo_frame">Edit frame pertama sebagai foto</string>
+    <string name="framekit_chooser_photo_frame_body">Simpan sebagai satu foto diam</string>
+    <string name="framekit_chooser_pdf">Gabungkan jadi PDF</string>
+    <string name="framekit_chooser_pdf_body">Luruskan halaman dan simpan sebagai satu PDF</string>
+    <string name="framekit_chooser_motion">Buat gambar bergerak</string>
+    <string name="framekit_chooser_motion_body">Tambahkan zoom, transisi, dan musik, lalu simpan sebagai video atau GIF</string>
+    <string name="framekit_chooser_motion_edit">Edit animasi</string>
+    <string name="framekit_chooser_motion_edit_body">Ubah bagian, kecepatan, pengulangan, dan tambahkan teks</string>
+    <string name="framekit_chooser_video">Edit video</string>
+    <string name="framekit_chooser_video_body">Pangkas, gabungkan, dan tambahkan musik atau suara</string>
+    <string name="framekit_chooser_send">Kirim tanpa mengedit</string>
+    <string name="framekit_chooser_send_body">Kirim file asli apa adanya</string>
+    <plurals name="framekit_chooser_count">
+        <item quantity="other">%d item dipilih</item>
+    </plurals>
+</resources>

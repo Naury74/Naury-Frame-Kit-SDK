@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="framekit_chooser_title">要做什么？</string>
+    <string name="framekit_chooser_mixed">照片和视频不能一起编辑，但可以直接发送原件。</string>
+    <string name="framekit_chooser_photo">编辑照片</string>
+    <string name="framekit_chooser_photo_body">裁剪、调整、滤镜和文字</string>
+    <string name="framekit_chooser_photo_each">逐张编辑照片</string>
+    <string name="framekit_chooser_photo_each_body">逐张编辑并分别保存</string>
+    <string name="framekit_chooser_photo_frame">将第一帧编辑为照片</string>
+    <string name="framekit_chooser_photo_frame_body">保存为一张静态照片</string>
+    <string name="framekit_chooser_pdf">合并为 PDF</string>
+    <string name="framekit_chooser_pdf_body">像文档一样拉直并保存为一个 PDF</string>
+    <string name="framekit_chooser_motion">制作动图</string>
+    <string name="framekit_chooser_motion_body">加入缩放、转场和音乐，保存为视频或 GIF</string>
+    <string name="framekit_chooser_motion_edit">编辑动图</string>
+    <string name="framekit_chooser_motion_edit_body">调整片段、速度和循环，并添加文字</string>
+    <string name="framekit_chooser_video">编辑视频</string>
+    <string name="framekit_chooser_video_body">剪辑、拼接并添加音乐或语音</string>
+    <string name="framekit_chooser_send">不编辑直接发送</string>
+    <string name="framekit_chooser_send_body">按原样发送原件</string>
+    <plurals name="framekit_chooser_count">
+        <item quantity="other">已选择 %d 项</item>
+    </plurals>
+</resources>

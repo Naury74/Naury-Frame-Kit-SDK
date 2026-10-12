@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="framekit_chooser_title">Bạn muốn làm gì?</string>
+    <string name="framekit_chooser_mixed">Không thể chỉnh sửa ảnh và video cùng lúc. Bạn vẫn có thể gửi bản gốc.</string>
+    <string name="framekit_chooser_photo">Chỉnh sửa ảnh</string>
+    <string name="framekit_chooser_photo_body">Cắt, điều chỉnh, thêm bộ lọc và chữ</string>
+    <string name="framekit_chooser_photo_each">Chỉnh sửa từng ảnh</string>
+    <string name="framekit_chooser_photo_each_body">Chỉnh sửa từng ảnh và lưu riêng</string>
+    <string name="framekit_chooser_photo_frame">Chỉnh sửa khung đầu thành ảnh</string>
+    <string name="framekit_chooser_photo_frame_body">Lưu thành một ảnh tĩnh</string>
+    <string name="framekit_chooser_pdf">Gộp thành PDF</string>
+    <string name="framekit_chooser_pdf_body">Làm thẳng trang và lưu thành một PDF</string>
+    <string name="framekit_chooser_motion">Tạo ảnh động</string>
+    <string name="framekit_chooser_motion_body">Thêm thu phóng, chuyển cảnh và nhạc rồi lưu thành video hoặc GIF</string>
+    <string name="framekit_chooser_motion_edit">Chỉnh sửa ảnh động</string>
+    <string name="framekit_chooser_motion_edit_body">Đổi đoạn, tốc độ, lặp lại và thêm chữ</string>
+    <string name="framekit_chooser_video">Chỉnh sửa video</string>
+    <string name="framekit_chooser_video_body">Cắt, ghép và thêm nhạc hoặc giọng nói</string>
+    <string name="framekit_chooser_send">Gửi không chỉnh sửa</string>
+    <string name="framekit_chooser_send_body">Gửi bản gốc như hiện tại</string>
+    <plurals name="framekit_chooser_count">
+        <item quantity="other">Đã chọn %d mục</item>
+    </plurals>
+</resources>

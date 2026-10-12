@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="framekit_chooser_title">ต้องการทำอะไร</string>
+    <string name="framekit_chooser_mixed">แก้ไขรูปภาพและวิดีโอพร้อมกันไม่ได้ แต่ส่งต้นฉบับได้</string>
+    <string name="framekit_chooser_photo">แก้ไขรูปภาพ</string>
+    <string name="framekit_chooser_photo_body">ครอบตัด ปรับแต่ง ใส่ฟิลเตอร์และข้อความ</string>
+    <string name="framekit_chooser_photo_each">แก้ไขรูปทีละรูป</string>
+    <string name="framekit_chooser_photo_each_body">แก้ไขทีละรูปและบันทึกแยกกัน</string>
+    <string name="framekit_chooser_photo_frame">แก้ไขเฟรมแรกเป็นรูปภาพ</string>
+    <string name="framekit_chooser_photo_frame_body">บันทึกเป็นรูปนิ่งหนึ่งรูป</string>
+    <string name="framekit_chooser_pdf">รวมเป็น PDF</string>
+    <string name="framekit_chooser_pdf_body">จัดหน้าให้ตรงและบันทึกเป็น PDF ไฟล์เดียว</string>
+    <string name="framekit_chooser_motion">สร้างภาพเคลื่อนไหว</string>
+    <string name="framekit_chooser_motion_body">ใส่การซูม การเปลี่ยนภาพ และเพลง แล้วบันทึกเป็นวิดีโอหรือ GIF</string>
+    <string name="framekit_chooser_motion_edit">แก้ไขภาพเคลื่อนไหว</string>
+    <string name="framekit_chooser_motion_edit_body">ปรับช่วง ความเร็ว การวนซ้ำ และใส่ข้อความ</string>
+    <string name="framekit_chooser_video">แก้ไขวิดีโอ</string>
+    <string name="framekit_chooser_video_body">ตัด ต่อ และใส่เพลงหรือเสียงพูด</string>
+    <string name="framekit_chooser_send">ส่งโดยไม่แก้ไข</string>
+    <string name="framekit_chooser_send_body">ส่งต้นฉบับตามเดิม</string>
+    <plurals name="framekit_chooser_count">
+        <item quantity="other">เลือก %d รายการ</item>
+    </plurals>
+</resources>

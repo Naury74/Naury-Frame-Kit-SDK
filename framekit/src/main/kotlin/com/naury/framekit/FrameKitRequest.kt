@@ -10,6 +10,7 @@ import com.naury.framekit.android.output.OutputTarget
 import com.naury.framekit.core.validation.ValidationIssue
 import com.naury.framekit.core.validation.ValidationResult
 import com.naury.framekit.image.export.ImageExportConfig
+import com.naury.framekit.image.export.ImageFormat
 import com.naury.framekit.ui.config.EditorUiConfig
 import com.naury.framekit.ui.image.contract.ImageEditorConfig
 import com.naury.framekit.ui.image.contract.ImageEditorRequest
@@ -27,6 +28,8 @@ import com.naury.framekit.ui.motion.contract.MotionEditorRequest
  *
  * `EditorInput.Pick(MediaKind.ANY)`를 쓰면 사용자가 시스템 picker에서 사진이나 영상을 고를 수 있다.
  *
+ * @property chooser 원본을 받은 뒤 편집기를 자동으로 고를지([EditorChooser.AUTO]), 선택 시트로 물을지([EditorChooser.ASK]).
+ * @property chooserActions [EditorChooser.ASK]일 때 보여 줄 동작. 원본에 맞지 않는 동작은 빠진다. 비어 있으면 안 된다.
  * @property openAnimatedInMotionEditor 고른(또는 넘긴) 사진 하나가 움직이는 이미지(GIF·움직이는 WebP)면 사진 편집기 대신
  *   움직이는 이미지 편집기로 연다. `false`면 사진 편집기가 첫 프레임을 편집한다.
  */
@@ -43,6 +46,8 @@ public data class FrameKitRequest(
     val motion: MotionEditorConfig = MotionEditorConfig(),
     val motionExport: MotionExportConfig = MotionExportConfig(),
     val openAnimatedInMotionEditor: Boolean = true,
+    val chooser: EditorChooser = EditorChooser.AUTO,
+    val chooserActions: Set<EditorAction> = EditorAction.entries.toSet(),
 ) : Parcelable {
 
     /** 두 편집기 설정을 모두 검증한다. 검증에 실패하면 결과는 `INVALID_CONFIGURATION`이 된다. */
@@ -63,6 +68,7 @@ public data class FrameKitRequest(
             }
             is EditorInput.UriSource, is EditorInput.FileSource -> Unit
         }
+        if (chooserActions.isEmpty()) issues += ValidationIssue(ValidationCode.OUT_OF_RANGE, "chooserActions", "At least one action is required")
         if (ui.uiFontId != null && catalog.fonts.none { it.id == ui.uiFontId }) {
             issues += ValidationIssue(ValidationCode.UNKNOWN_REFERENCE, "ui.uiFontId", "Font is not in the catalog")
         }
@@ -76,11 +82,18 @@ public data class FrameKitRequest(
     internal fun forVideo(input: EditorInput): VideoEditorRequest =
         VideoEditorRequest(input.limitedTo(MediaKind.VIDEO, video.maxClipCount), video, videoExport, ui, output, catalog)
 
-    internal fun forMotion(input: EditorInput): MotionEditorRequest = MotionEditorRequest(input, motion, motionExport, ui, output, catalog)
+    internal fun forMotion(input: EditorInput): MotionEditorRequest =
+        MotionEditorRequest(input.limitedTo(MediaKind.IMAGE, motion.maxImageCount), motion, motionExport, ui, output, catalog)
+
+    /** 사진 편집기로 열고 PDF 하나로 저장한다. */
+    internal fun forPdf(input: EditorInput): ImageEditorRequest =
+        forImage(input).copy(export = imageExport.copy(format = ImageFormat.PDF))
 
     private fun EditorInput.limitedTo(kind: MediaKind, limit: Int): EditorInput = when (this) {
         is EditorInput.Pick -> EditorInput.Pick(kind, maxItems.coerceIn(1, limit))
         is EditorInput.Capture -> EditorInput.Capture(kind)
+        // 편집기마다 넣을 수 있는 개수가 달라, 넘치면 앞에서부터 그 수만큼만 연다.
+        is EditorInput.Multiple -> if (items.size > limit) EditorInput.Multiple(items.take(limit)) else this
         else -> this
     }
 }

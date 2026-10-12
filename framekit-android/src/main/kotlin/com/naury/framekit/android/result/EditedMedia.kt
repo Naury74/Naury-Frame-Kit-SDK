@@ -36,6 +36,8 @@ public enum class ExportWarning {
  * @property durationMs 영상 길이(밀리초). 이미지는 `null`이다.
  * @property fileSize 파일 크기(바이트).
  * @property pageCount PDF 문서의 쪽 수. 사진·영상은 `null`이다. PDF의 [width]·[height]는 첫 쪽 크기(pt, 1/72인치)다.
+ * @property isOriginal 편집하지 않고 보낸 원본이면 `true`. 이때 [uri]는 넘긴(또는 고른) 원본 그대로이며 FrameKit 결과 폴더의 파일이 아니다.
+ *   사진 선택기로 고른 원본의 읽기 권한은 앱 프로세스가 끝나면 사라질 수 있으므로, 오래 쓰려면 호스트가 복사해 둔다.
  * @property recognizedText PDF에 넣은 글자 레이어의 글자(줄은 줄바꿈, 쪽은 빈 줄로 구분). 글자 인식 모듈이 없거나 글자가
  *   없으면 `null`. 결과 전달 크기 한도 때문에 [MAX_RECOGNIZED_TEXT]자에서 자르며, 전체는 PDF에 들어 있다.
  */
@@ -51,6 +53,7 @@ public data class EditedMedia(
     val warnings: List<ExportWarning> = emptyList(),
     val pageCount: Int? = null,
     val recognizedText: String? = null,
+    val isOriginal: Boolean = false,
 ) : Parcelable {
     public companion object {
         /** [recognizedText]의 최대 글자 수. Activity 결과 Intent의 크기 한도 안에 들도록 정했다. */

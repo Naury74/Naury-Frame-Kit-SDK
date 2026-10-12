@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="framekit_chooser_title">어떻게 할까요?</string>
+    <string name="framekit_chooser_mixed">사진과 영상은 함께 편집할 수 없어요. 원본 그대로 보낼 수는 있어요.</string>
+    <string name="framekit_chooser_photo">사진 편집</string>
+    <string name="framekit_chooser_photo_body">자르기·보정·필터·텍스트로 꾸며요</string>
+    <string name="framekit_chooser_photo_each">사진 하나씩 편집</string>
+    <string name="framekit_chooser_photo_each_body">한 장씩 편집하고 사진마다 저장해요</string>
+    <string name="framekit_chooser_photo_frame">첫 장면만 사진으로 편집</string>
+    <string name="framekit_chooser_photo_frame_body">움직임 없이 한 장의 사진으로 저장해요</string>
+    <string name="framekit_chooser_pdf">PDF로 묶기</string>
+    <string name="framekit_chooser_pdf_body">문서처럼 반듯하게 펴고 PDF 하나로 저장해요</string>
+    <string name="framekit_chooser_motion">움직이는 이미지 만들기</string>
+    <string name="framekit_chooser_motion_body">확대·전환·음악을 넣어 영상이나 GIF로 만들어요</string>
+    <string name="framekit_chooser_motion_edit">움직이는 이미지 편집</string>
+    <string name="framekit_chooser_motion_edit_body">구간·속도·반복을 바꾸고 글자를 넣어요</string>
+    <string name="framekit_chooser_video">영상 편집</string>
+    <string name="framekit_chooser_video_body">자르고 이어 붙이고 음악·음성을 넣어요</string>
+    <string name="framekit_chooser_send">편집 없이 보내기</string>
+    <string name="framekit_chooser_send_body">원본 그대로 보내요</string>
+    <plurals name="framekit_chooser_count">
+        <item quantity="other">%d개 선택됨</item>
+    </plurals>
+</resources>

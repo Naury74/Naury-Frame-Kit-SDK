@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.parcelize)
+    alias(libs.plugins.kotlin.compose)
 }
 
 android {
@@ -11,6 +12,9 @@ android {
     defaultConfig {
         minSdk = libs.versions.minSdk.get().toInt()
         consumerProguardFiles("consumer-rules.pro")
+    }
+    buildFeatures {
+        compose = true
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -35,6 +39,11 @@ dependencies {
     api(project(":framekit-ui-video"))
     api(project(":framekit-ui-motion"))
     implementation(libs.androidx.activity.compose)
+    implementation(libs.androidx.exifinterface)
+    implementation(libs.androidx.core.ktx)
+    // 버전 없이 쓰는 Compose 의존성의 버전을 POM에서도 알 수 있게 BOM을 직접 선언한다(Maven Central 요구).
+    implementation(platform(libs.androidx.compose.bom))
+    implementation(libs.androidx.compose.material.icons.core)
 
     testImplementation(libs.junit4)
     testImplementation(libs.truth)

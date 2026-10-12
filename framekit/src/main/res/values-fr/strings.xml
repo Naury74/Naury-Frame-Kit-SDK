@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="framekit_chooser_title">Que voulez-vous faire ?</string>
+    <string name="framekit_chooser_mixed">Impossible de modifier photos et vidéos ensemble. Vous pouvez envoyer les originaux.</string>
+    <string name="framekit_chooser_photo">Modifier la photo</string>
+    <string name="framekit_chooser_photo_body">Recadrer, ajuster, ajouter filtres et texte</string>
+    <string name="framekit_chooser_photo_each">Modifier les photos une par une</string>
+    <string name="framekit_chooser_photo_each_body">Modifier chaque photo et les enregistrer séparément</string>
+    <string name="framekit_chooser_photo_frame">Modifier la première image en photo</string>
+    <string name="framekit_chooser_photo_frame_body">Enregistrer une seule photo fixe</string>
+    <string name="framekit_chooser_pdf">Regrouper en PDF</string>
+    <string name="framekit_chooser_pdf_body">Redresser les pages et enregistrer un seul PDF</string>
+    <string name="framekit_chooser_motion">Créer une image animée</string>
+    <string name="framekit_chooser_motion_body">Ajoutez zoom, transitions et musique, puis enregistrez en vidéo ou GIF</string>
+    <string name="framekit_chooser_motion_edit">Modifier l\'animation</string>
+    <string name="framekit_chooser_motion_edit_body">Changer la plage, la vitesse et la boucle, et ajouter du texte</string>
+    <string name="framekit_chooser_video">Modifier la vidéo</string>
+    <string name="framekit_chooser_video_body">Couper, assembler et ajouter musique ou voix</string>
+    <string name="framekit_chooser_send">Envoyer sans modifier</string>
+    <string name="framekit_chooser_send_body">Envoyer les originaux tels quels</string>
+    <plurals name="framekit_chooser_count">
+        <item quantity="one">%d élément sélectionné</item>
+        <item quantity="many">%d d\'éléments sélectionnés</item>
+        <item quantity="other">%d éléments sélectionnés</item>
+    </plurals>
+</resources>

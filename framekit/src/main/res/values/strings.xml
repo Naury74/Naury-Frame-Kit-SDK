@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="framekit_chooser_title">What would you like to do?</string>
+    <string name="framekit_chooser_mixed">Photos and videos can\'t be edited together. You can still send them as they are.</string>
+    <string name="framekit_chooser_photo">Edit photo</string>
+    <string name="framekit_chooser_photo_body">Crop, adjust, add filters and text</string>
+    <string name="framekit_chooser_photo_each">Edit photos one by one</string>
+    <string name="framekit_chooser_photo_each_body">Edit each photo and save them separately</string>
+    <string name="framekit_chooser_photo_frame">Edit the first frame as a photo</string>
+    <string name="framekit_chooser_photo_frame_body">Save a single still photo</string>
+    <string name="framekit_chooser_pdf">Combine into a PDF</string>
+    <string name="framekit_chooser_pdf_body">Straighten pages and save as one PDF</string>
+    <string name="framekit_chooser_motion">Make an animated image</string>
+    <string name="framekit_chooser_motion_body">Add zoom, transitions and music, then save as a video or GIF</string>
+    <string name="framekit_chooser_motion_edit">Edit animation</string>
+    <string name="framekit_chooser_motion_edit_body">Change the range, speed and loop, and add text</string>
+    <string name="framekit_chooser_video">Edit video</string>
+    <string name="framekit_chooser_video_body">Trim, join and add music or voice</string>
+    <string name="framekit_chooser_send">Send without editing</string>
+    <string name="framekit_chooser_send_body">Send the originals as they are</string>
+    <plurals name="framekit_chooser_count">
+        <item quantity="one">%d item selected</item>
+        <item quantity="other">%d items selected</item>
+    </plurals>
+</resources>
