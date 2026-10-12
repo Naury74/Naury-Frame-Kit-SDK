@@ -116,12 +116,12 @@ subprojects {
  * 키가 없으면 서명하지 않으므로 `publishToMavenLocal`은 그대로 동작한다. Central 묶음을 만들 때는 서명이 필수다.
  */
 fun Project.configureSigning() {
-    val inMemoryKey = providers.gradleProperty("signingInMemoryKey").orNull
+    val inMemoryKey = providers.gradleProperty("signingInMemoryKey").orNull?.trim()?.takeIf { it.isNotEmpty() }
     val useGpg = providers.gradleProperty("signing.gnupg.keyName").isPresent
     if (inMemoryKey == null && !useGpg) return
     extensions.configure<SigningExtension> {
         if (inMemoryKey != null) {
-            useInMemoryPgpKeys(inMemoryKey, providers.gradleProperty("signingInMemoryKeyPassword").orNull)
+            useInMemoryPgpKeys(inMemoryKey, providers.gradleProperty("signingInMemoryKeyPassword").orNull?.trim())
         } else {
             useGpgCmd()
         }
@@ -168,8 +168,9 @@ tasks.register("publishToCentral") {
     dependsOn(centralBundle)
     notCompatibleWithConfigurationCache("업로드는 네트워크 작업이다")
     doLast {
-        val user = providers.gradleProperty("centralPortalUsername").orNull
-        val password = providers.gradleProperty("centralPortalPassword").orNull
+        // 복사해 붙여 넣으며 생긴 앞뒤 공백이 토큰에 섞이면 인증이 실패하므로 잘라 낸다.
+        val user = providers.gradleProperty("centralPortalUsername").orNull?.trim()?.takeIf { it.isNotEmpty() }
+        val password = providers.gradleProperty("centralPortalPassword").orNull?.trim()?.takeIf { it.isNotEmpty() }
         check(user != null && password != null) { "centralPortalUsername / centralPortalPassword가 없습니다. docs/publishing.md를 참고하세요." }
         val bundle = layout.buildDirectory.file("central-bundle.zip").get().asFile
         val auto = providers.gradleProperty("centralAutoPublish").orNull == "true"
