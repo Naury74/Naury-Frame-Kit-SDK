@@ -185,4 +185,6 @@
     <string name="framekit_voice_failed">마이크를 쓸 수 없어요. 다른 앱이 쓰고 있을 수 있어요.</string>
     <string name="framekit_voice_too_short">녹음이 너무 짧아요.</string>
     <string name="framekit_track_sound_mp4_only">소리는 MP4로 저장할 때만 담겨요. GIF·WebP에는 소리를 넣을 수 없어요.</string>
+    <string name="framekit_scroll_more">도구 더 보기</string>
+    <string name="framekit_scroll_previous">이전 도구 보기</string>
 </resources>

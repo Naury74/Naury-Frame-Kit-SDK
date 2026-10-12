@@ -185,4 +185,6 @@
     <string name="framekit_voice_failed">Não foi possível usar o microfone. Outro app pode estar usando.</string>
     <string name="framekit_voice_too_short">A gravação ficou curta demais.</string>
     <string name="framekit_track_sound_mp4_only">O som só é salvo em MP4. GIF e WebP não podem ter som.</string>
+    <string name="framekit_scroll_more">Mais ferramentas</string>
+    <string name="framekit_scroll_previous">Ferramentas anteriores</string>
 </resources>

@@ -182,4 +182,6 @@
     <string name="framekit_voice_failed">Không dùng được micrô. Có thể ứng dụng khác đang dùng.</string>
     <string name="framekit_voice_too_short">Bản ghi quá ngắn.</string>
     <string name="framekit_track_sound_mp4_only">Âm thanh chỉ được lưu khi lưu dưới dạng MP4. GIF và WebP không chứa được âm thanh.</string>
+    <string name="framekit_scroll_more">Xem thêm công cụ</string>
+    <string name="framekit_scroll_previous">Xem công cụ trước</string>
 </resources>

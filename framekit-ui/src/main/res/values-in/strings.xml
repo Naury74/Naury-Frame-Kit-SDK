@@ -182,4 +182,6 @@
     <string name="framekit_voice_failed">Mikrofon tidak dapat digunakan. Mungkin sedang dipakai aplikasi lain.</string>
     <string name="framekit_voice_too_short">Rekaman terlalu pendek.</string>
     <string name="framekit_track_sound_mp4_only">Suara hanya disimpan dalam MP4. GIF dan WebP tidak bisa berisi suara.</string>
+    <string name="framekit_scroll_more">Lihat alat lainnya</string>
+    <string name="framekit_scroll_previous">Lihat alat sebelumnya</string>
 </resources>

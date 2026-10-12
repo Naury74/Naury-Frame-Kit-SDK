@@ -182,4 +182,6 @@
     <string name="framekit_voice_failed">ใช้ไมโครโฟนไม่ได้ แอปอื่นอาจกำลังใช้อยู่</string>
     <string name="framekit_voice_too_short">เสียงที่อัดสั้นเกินไป</string>
     <string name="framekit_track_sound_mp4_only">เสียงจะถูกบันทึกเฉพาะไฟล์ MP4 เท่านั้น GIF และ WebP ใส่เสียงไม่ได้</string>
+    <string name="framekit_scroll_more">ดูเครื่องมือเพิ่มเติม</string>
+    <string name="framekit_scroll_previous">ดูเครื่องมือก่อนหน้า</string>
 </resources>

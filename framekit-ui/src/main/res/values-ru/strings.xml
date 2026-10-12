@@ -185,4 +185,6 @@
     <string name="framekit_voice_failed">Не удалось использовать микрофон. Возможно, он занят другим приложением.</string>
     <string name="framekit_voice_too_short">Запись слишком короткая.</string>
     <string name="framekit_track_sound_mp4_only">Звук сохраняется только в MP4. GIF и WebP не могут содержать звук.</string>
+    <string name="framekit_scroll_more">Другие инструменты</string>
+    <string name="framekit_scroll_previous">Предыдущие инструменты</string>
 </resources>

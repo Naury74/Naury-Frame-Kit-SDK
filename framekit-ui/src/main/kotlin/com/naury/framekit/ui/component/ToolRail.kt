@@ -1,11 +1,13 @@
 package com.naury.framekit.ui.component
 
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -42,11 +44,20 @@ public fun <T> ToolRail(
     // 다섯 개까지는 폭을 고르게 나누고, 더 많으면 가로로 스크롤한다.
     val scrolling = items.size > EVEN_ITEMS
     val scroll = rememberScrollState()
+    Box(modifier.fillMaxWidth()) {
+        ToolRailRow(items, selected, onSelect, scrolling, scroll)
+        // 흐림만으로는 지나치기 쉬워, 가려진 도구가 있는 쪽에 화살표를 띄운다.
+        if (scrolling) HorizontalScrollHints(scroll)
+    }
+}
+
+@Composable
+private fun <T> ToolRailRow(items: List<ToolRailItem<T>>, selected: T?, onSelect: (T) -> Unit, scrolling: Boolean, scroll: ScrollState) {
     Row(
-        modifier = modifier
+        modifier = Modifier
             .fillMaxWidth()
             // 화면 밖에 도구가 더 있으면 끝을 흐리게 해 스크롤할 수 있다는 것을 알린다.
-            .then(if (scrolling) Modifier.horizontalFadingEdges(scroll).horizontalScroll(scroll) else Modifier)
+            .then(if (scrolling) Modifier.horizontalFadingEdges(scroll, width = 64.dp).horizontalScroll(scroll) else Modifier)
             .padding(vertical = 8.dp, horizontal = if (scrolling) 8.dp else 0.dp)
             .selectableGroup(),
         horizontalArrangement = if (scrolling) Arrangement.spacedBy(4.dp) else Arrangement.SpaceEvenly,

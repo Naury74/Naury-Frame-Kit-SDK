@@ -182,4 +182,6 @@
     <string name="framekit_voice_failed">无法使用麦克风，可能有其他应用正在使用。</string>
     <string name="framekit_voice_too_short">录音太短。</string>
     <string name="framekit_track_sound_mp4_only">只有保存为 MP4 时才包含声音，GIF 和 WebP 无法包含声音。</string>
+    <string name="framekit_scroll_more">查看更多工具</string>
+    <string name="framekit_scroll_previous">查看前面的工具</string>
 </resources>
