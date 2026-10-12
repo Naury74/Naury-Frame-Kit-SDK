@@ -6,6 +6,12 @@
         <meta-data
             android:name="com.naury.framekit.TEXT_RECOGNIZER"
             android:value="com.naury.framekit.ocr.MlKitTextRecognizer" />
+
+        <!-- 인식을 앱과 다른 프로세스에서 돌린다. 모델이 기기에서 프로세스를 죽여도 앱은 살아남는다. -->
+        <service
+            android:name="com.naury.framekit.ocr.TextRecognitionService"
+            android:exported="false"
+            android:process=":framekit_ocr" />
     </application>
 
 </manifest>

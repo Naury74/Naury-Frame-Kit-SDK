@@ -1,11 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <!-- 모델을 내려받기 전에 인터넷 연결을 확인한다. ML Kit도 같은 권한을 넣으므로 새로 늘어나는 권한은 없다. -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
     <application>
         <!-- FrameKit 편집기가 이 값으로 배경 제거 구현을 찾는다. -->
         <meta-data
             android:name="com.naury.framekit.BACKGROUND_REMOVER"
             android:value="com.naury.framekit.segmentation.MlKitBackgroundRemover" />
+
+        <!-- 모델을 앱과 다른 프로세스에서 돌린다. 모델이 기기에서 프로세스를 죽여도 앱은 살아남는다. -->
+        <service
+            android:name="com.naury.framekit.segmentation.SegmentationService"
+            android:exported="false"
+            android:process=":framekit_segmentation" />
     </application>
 
 </manifest>

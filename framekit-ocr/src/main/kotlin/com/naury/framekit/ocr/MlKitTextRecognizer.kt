@@ -2,18 +2,20 @@ package com.naury.framekit.ocr
 
 import android.content.Context
 import android.graphics.Bitmap
-import com.google.android.gms.tasks.Task
-import com.google.mlkit.common.MlKitException
-import com.google.mlkit.vision.common.InputImage
-import com.google.mlkit.vision.text.TextRecognition
-import com.google.mlkit.vision.text.korean.KoreanTextRecognizerOptions
+import android.os.Bundle
 import com.naury.framekit.android.result.EditorErrorCode
 import com.naury.framekit.android.result.FrameKitException
+import com.naury.framekit.image.isolation.IsolatedResult
+import com.naury.framekit.image.isolation.IsolatedServiceClient
+import com.naury.framekit.image.isolation.PixelFiles
+import com.naury.framekit.image.isolation.ProcessCrashGuard
 import com.naury.framekit.image.ocr.RecognizedLine
 import com.naury.framekit.image.ocr.TextRecognizer
-import kotlinx.coroutines.suspendCancellableCoroutine
-import kotlin.coroutines.resume
-import kotlin.coroutines.resumeWithException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.withContext
+import java.io.File
+import java.util.UUID
 
 /**
  * 기기에서 동작하는 ML Kit 글자 인식 기반 [TextRecognizer]다. 한국어 모델은 영어·숫자도 함께 인식한다.
@@ -22,33 +24,59 @@ import kotlin.coroutines.resumeWithException
  * 첫 사용 전에 모델을 받아 두려면 호스트 manifest에 `com.google.mlkit.vision.DEPENDENCIES` meta-data를 넣는다
  * (integration 문서 참고). 사진을 서버로 보내지 않는다.
  * Play 서비스가 없는 기기에서는 이 모듈을 사용할 수 없다.
+ *
+ * 인식은 앱과 다른 프로세스(`:framekit_ocr`)에서 돈다. 모델이 이 기기에서 프로세스를 강제 종료시키면 앱은 그대로 두고
+ * `UNSUPPORTED_OPERATION`으로 실패하며, 그 뒤로는 [isAvailable]이 `false`가 되어 인식을 건너뛴다(PDF는 이미지만 담고
+ * `TEXT_RECOGNITION_SKIPPED` 경고). 앱이나 OS가 업데이트되면 다시 시도한다.
  */
-public class MlKitTextRecognizer(@Suppress("UNUSED_PARAMETER") context: Context) : TextRecognizer {
+public class MlKitTextRecognizer(context: Context) : TextRecognizer {
+
+    private val appContext = context.applicationContext
+    private val client = IsolatedServiceClient(appContext, TextRecognitionService::class.java)
+    private val guard = ProcessCrashGuard(appContext, CRASH_FEATURE)
+
+    override val isAvailable: Boolean get() = !guard.isBlocked
 
     override suspend fun recognize(image: Bitmap): List<RecognizedLine> {
-        val client = TextRecognition.getClient(KoreanTextRecognizerOptions.Builder().build())
+        if (!isAvailable) throw FrameKitException(EditorErrorCode.UNSUPPORTED_OPERATION, "Text recognition is not supported on this device")
+        val directory = File(appContext.cacheDir, WORK_DIRECTORY)
+        val input = File(directory, "${UUID.randomUUID()}.in")
         try {
-            val text = client.process(InputImage.fromBitmap(image, 0)).await()
-            // 블록 안의 줄 단위로 넘긴다. 줄이 PDF에서 선택·검색하기에 가장 자연스러운 단위다.
-            return text.textBlocks.flatMap { block -> block.lines }.mapNotNull { line ->
-                val box = line.boundingBox ?: return@mapNotNull null
-                RecognizedLine(line.text, box.left.toFloat(), box.top.toFloat(), box.right.toFloat(), box.bottom.toFloat())
+            withContext(Dispatchers.IO) {
+                directory.mkdirs()
+                PixelFiles.writePixels(image, input)
+            }
+            val request = Bundle().apply {
+                putString(TextRecognitionContract.KEY_INPUT, input.absolutePath)
+                putInt(TextRecognitionContract.KEY_WIDTH, image.width)
+                putInt(TextRecognitionContract.KEY_HEIGHT, image.height)
+            }
+            val data = when (val result = client.call(request)) {
+                is IsolatedResult.Success -> result.data
+                IsolatedResult.Crashed -> {
+                    guard.block()
+                    throw FrameKitException(EditorErrorCode.UNSUPPORTED_OPERATION, "Text recognition process stopped; disabled on this device")
+                }
+                else -> throw FrameKitException(EditorErrorCode.UNKNOWN, "Text recognition failed")
+            }
+            when (data.getInt(TextRecognitionContract.KEY_RESULT, TextRecognitionContract.RESULT_FAILED)) {
+                TextRecognitionContract.RESULT_OK -> Unit
+                TextRecognitionContract.RESULT_UNAVAILABLE -> throw FrameKitException(EditorErrorCode.UNSUPPORTED_OPERATION, "Text recognition model is not available yet")
+                else -> throw FrameKitException(EditorErrorCode.UNKNOWN, "Text recognition failed")
+            }
+            val texts = data.getStringArray(TextRecognitionContract.KEY_TEXTS).orEmpty()
+            val boxes = data.getFloatArray(TextRecognitionContract.KEY_BOXES) ?: FloatArray(0)
+            return texts.indices.filter { it * 4 + 3 < boxes.size }.map { index ->
+                RecognizedLine(texts[index], boxes[index * 4], boxes[index * 4 + 1], boxes[index * 4 + 2], boxes[index * 4 + 3])
             }.sortedWith(compareBy({ it.top }, { it.left }))
         } finally {
-            client.close()
+            // 취소돼도 임시 파일은 지운다.
+            withContext(NonCancellable + Dispatchers.IO) { input.delete() }
         }
     }
 
-    private suspend fun <T> Task<T>.await(): T = suspendCancellableCoroutine { continuation ->
-        addOnSuccessListener { continuation.resume(it) }
-        addOnFailureListener { error ->
-            val code = if (error is MlKitException && error.errorCode == MlKitException.UNAVAILABLE) {
-                EditorErrorCode.UNSUPPORTED_OPERATION
-            } else {
-                EditorErrorCode.UNKNOWN
-            }
-            continuation.resumeWithException(FrameKitException(code, "Text recognition failed", error))
-        }
-        addOnCanceledListener { continuation.cancel() }
+    private companion object {
+        const val WORK_DIRECTORY = "framekit_ocr"
+        const val CRASH_FEATURE = "ocr"
     }
 }

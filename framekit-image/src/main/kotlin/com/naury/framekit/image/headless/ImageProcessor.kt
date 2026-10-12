@@ -104,8 +104,8 @@ public class ImageProcessor(
     private val assets = ProjectAssetStore(File(appContext.cacheDir, "$ASSET_DIRECTORY/${UUID.randomUUID()}"))
     private val remover: BackgroundRemover? = backgroundRemover ?: BackgroundRemovers.find(appContext)
 
-    /** 선택 artifact인 `framekit-segmentation`이 설치되어 있으면 `true`. */
-    public val canRemoveBackground: Boolean get() = remover != null
+    /** 선택 artifact인 `framekit-segmentation`이 설치되어 있고 이 기기에서 배경 제거를 쓸 수 있으면 `true`. */
+    public val canRemoveBackground: Boolean get() = remover?.isAvailable == true
     private val imports = mutableListOf<File>()
 
     /**

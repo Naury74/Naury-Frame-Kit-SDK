@@ -8,6 +8,9 @@ import android.os.Build
 import androidx.core.graphics.createBitmap
 import com.naury.framekit.android.result.FrameKitException
 import com.naury.framekit.android.session.ProjectAssetStore
+import com.naury.framekit.image.ml.OnDeviceModelState
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
 import java.io.IOException
 
 /**
@@ -18,6 +21,26 @@ import java.io.IOException
  * 도구를 숨긴다.
  */
 public interface BackgroundRemover {
+
+    /**
+     * 이 기기에서 배경 제거를 쓸 수 있으면 `true`. 이전에 모델이 이 기기에서 동작하지 못한 것을 알게 되면 `false`가 되고,
+     * 에디터는 배경 제거 도구를 숨긴다. 기본값은 `true`.
+     */
+    public val isAvailable: Boolean get() = true
+
+    /**
+     * 모델 준비 상태. 기본 구현은 [isAvailable]만 본다. 모델을 내려받아야 하는 구현은
+     * [OnDeviceModelState.NeedsDownload]나, 이전에 시작한 내려받기가 끝나지 않았으면 [OnDeviceModelState.Downloading]을 돌려준다.
+     */
+    public suspend fun modelState(): OnDeviceModelState =
+        if (isAvailable) OnDeviceModelState.Ready else OnDeviceModelState.Unavailable(OnDeviceModelState.Unsupported.DEVICE)
+
+    /**
+     * 모델을 내려받고 진행 상황을 내보낸다. 마지막 값은 [OnDeviceModelState.Ready], [OnDeviceModelState.DownloadFailed],
+     * [OnDeviceModelState.Unavailable] 중 하나다. 이미 받는 중이면 그 진행을 이어서 따라간다. 수집을 취소해도
+     * 시스템(Play 서비스)의 내려받기는 계속될 수 있다. 데이터를 쓰므로 사용자에게 알린 뒤 부른다.
+     */
+    public fun downloadModel(): Flow<OnDeviceModelState> = flow { emit(modelState()) }
 
     /**
      * @param image 정방향 원본. 보통 미리보기 크기로 디코딩한 이미지다.
@@ -35,8 +58,8 @@ public object BackgroundRemovers {
     public const val META_DATA_KEY: String = "com.naury.framekit.BACKGROUND_REMOVER"
 
     /**
-     * 등록된 remover를 `(Context)` 생성자로 인스턴스화한다. 모듈이 설치되지 않았거나 생성할 수 없으면
-     * `null`을 반환한다.
+     * 등록된 remover를 `(Context)` 생성자로 인스턴스화한다. 모듈이 설치되지 않았거나 생성할 수 없거나,
+     * 이 기기에서 쓸 수 없다고 알려진 경우([BackgroundRemover.isAvailable]가 `false`) `null`을 반환한다.
      */
     public fun find(context: Context): BackgroundRemover? {
         val appContext = context.applicationContext
@@ -53,7 +76,7 @@ public object BackgroundRemovers {
         } ?: return null
         return runCatching {
             Class.forName(className).getConstructor(Context::class.java).newInstance(appContext) as BackgroundRemover
-        }.getOrNull()
+        }.getOrNull()?.takeIf { it.isAvailable }
     }
 }
 

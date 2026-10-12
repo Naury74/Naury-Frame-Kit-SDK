@@ -25,6 +25,9 @@ public data class RecognizedLine(val text: String, val left: Float, val top: Flo
  */
 public interface TextRecognizer {
 
+    /** 이 기기에서 글자 인식을 쓸 수 있으면 `true`. 모델이 이 기기에서 동작하지 못한 것을 알게 되면 `false`. 기본값은 `true`. */
+    public val isAvailable: Boolean get() = true
+
     /**
      * @param image 인식할 이미지. 호출이 끝날 때까지 recycle하지 않는다.
      * @return 위에서 아래 순서의 줄 목록. 글자가 없으면 빈 목록.
@@ -39,7 +42,7 @@ public object TextRecognizers {
     /** 값이 구현 클래스 이름인 application meta-data 키. */
     public const val META_DATA_KEY: String = "com.naury.framekit.TEXT_RECOGNIZER"
 
-    /** 등록된 구현을 `(Context)` 생성자로 만든다. 모듈이 없거나 만들 수 없으면 `null`. */
+    /** 등록된 구현을 `(Context)` 생성자로 만든다. 모듈이 없거나 만들 수 없거나 이 기기에서 쓸 수 없다고 알려졌으면 `null`. */
     public fun find(context: Context): TextRecognizer? {
         val appContext = context.applicationContext
         val className = try {
@@ -55,6 +58,6 @@ public object TextRecognizers {
         } ?: return null
         return runCatching {
             Class.forName(className).getConstructor(Context::class.java).newInstance(appContext) as TextRecognizer
-        }.getOrNull()
+        }.getOrNull()?.takeIf { it.isAvailable }
     }
 }
