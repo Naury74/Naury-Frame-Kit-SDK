@@ -50,6 +50,8 @@ dependencies {
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.ui.tooling.preview)
     debugImplementation(libs.androidx.compose.ui.tooling)
+    // debug 빌드에서 배경 제거 모델 상태를 보거나 해제를 요청하는 adb용 receiver(app/src/debug)에만 쓴다.
+    debugImplementation(libs.mlkit.subject.segmentation)
 
     testImplementation(libs.junit4)
 }
