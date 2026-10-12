@@ -49,6 +49,7 @@ public object VideoProjectValidator {
             }
         }
         OverlayValidator.validate(timeline.overlays.map { it.overlay }, emptyList(), issues)
+        OverlayValidator.validateWatermark(timeline.watermark, "timeline.watermark", issues)
         OverlayValidator.validatePrivacy(timeline.privacyMasks.map { it.mask }, issues)
         if (timeline.privacyMasks.size > Timeline.MAX_PRIVACY_MASKS) {
             issues += ValidationIssue(ValidationCode.OUT_OF_RANGE, "timeline.privacyMasks", "At most ${Timeline.MAX_PRIVACY_MASKS} masks")

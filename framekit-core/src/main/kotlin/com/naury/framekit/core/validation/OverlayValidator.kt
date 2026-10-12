@@ -1,5 +1,6 @@
 package com.naury.framekit.core.validation
 
+import com.naury.framekit.core.overlay.Watermark
 import com.naury.framekit.core.overlay.DrawingStroke
 import com.naury.framekit.core.overlay.StickerCatalog
 import com.naury.framekit.core.overlay.FontCatalog
@@ -87,6 +88,25 @@ internal object OverlayValidator {
         }
         if (transform.scale !in OverlayTransform.MIN_SCALE..OverlayTransform.MAX_SCALE || transform.opacity !in 0.0..1.0) {
             issues += ValidationIssue(ValidationCode.OUT_OF_RANGE, "$path.transform", "Scale or opacity out of range")
+        }
+    }
+
+    /** 워터마크 글자와 숫자 범위를 검사한다. `null`이면 검사하지 않는다. */
+    fun validateWatermark(watermark: Watermark?, path: String, issues: MutableList<ValidationIssue>) {
+        if (watermark == null) return
+        if (watermark.text.isBlank() || watermark.text.trim().length > Watermark.MAX_TEXT_LENGTH || '\n' in watermark.text) {
+            issues += ValidationIssue(ValidationCode.OUT_OF_RANGE, "$path.text", "Expected 1..${Watermark.MAX_TEXT_LENGTH} characters on one line")
+        }
+        listOf(
+            Triple("sizeRatio", watermark.sizeRatio, Watermark.MIN_SIZE..Watermark.MAX_SIZE),
+            Triple("opacity", watermark.opacity, Watermark.MIN_OPACITY..1.0),
+            Triple("rotationDegrees", watermark.rotationDegrees, -90.0..90.0),
+            Triple("density", watermark.density, Watermark.MIN_DENSITY..Watermark.MAX_DENSITY),
+        ).forEach { (name, value, range) ->
+            when {
+                !value.isFinite() -> issues += ValidationIssue(ValidationCode.NOT_FINITE, "$path.$name", "Must be finite")
+                value !in range -> issues += ValidationIssue(ValidationCode.OUT_OF_RANGE, "$path.$name", "Expected $range")
+            }
         }
     }
 

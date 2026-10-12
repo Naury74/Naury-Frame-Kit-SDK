@@ -28,6 +28,7 @@ public object ImageProjectValidator {
         validateGeometry(project.geometry, issues)
         validateEffects(project.adjustments, project.filter, "", issues)
         OverlayValidator.validate(project.overlays, project.drawing, issues)
+        OverlayValidator.validateWatermark(project.watermark, "watermark", issues)
         OverlayValidator.validatePrivacy(project.privacyMasks, issues)
         project.cutout?.let { cutout ->
             if (!SubjectCutout.isValidAssetId(cutout.maskAssetId)) {

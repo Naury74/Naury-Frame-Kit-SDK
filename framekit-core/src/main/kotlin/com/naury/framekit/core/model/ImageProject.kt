@@ -8,6 +8,7 @@ import com.naury.framekit.core.overlay.DrawingStroke
 import com.naury.framekit.core.overlay.ImageOverlay
 import com.naury.framekit.core.overlay.PrivacyMask
 import com.naury.framekit.core.overlay.SubjectCutout
+import com.naury.framekit.core.overlay.Watermark
 
 /**
  * 이미지 하나의 최종 편집 상태.
@@ -24,6 +25,7 @@ import com.naury.framekit.core.overlay.SubjectCutout
  * @property overlays z-order 순(마지막이 맨 위)의 텍스트와 스티커. 출력 캔버스 기준으로 배치한다.
  * @property drawing 그리기 레이어의 획. [overlays] 아래에 그린다. 지우개는 이 레이어에만
  *   영향을 준다.
+ * @property watermark 모든 것 위에 얹는 글자 워터마크. 없으면 `null`.
  * @property grainSeed 다시 그릴 때나 미리보기와 내보내기 사이에서 grain 패턴이 바뀌지 않도록
  *   고정한다.
  */
@@ -37,6 +39,7 @@ public data class ImageProject(
     val privacyMasks: List<PrivacyMask> = emptyList(),
     val overlays: List<ImageOverlay> = emptyList(),
     val drawing: List<DrawingStroke> = emptyList(),
+    val watermark: Watermark? = null,
     val grainSeed: Long = 0L,
     override val revision: Long = 0L,
 ) : ProjectSnapshot<ImageProject> {
@@ -49,5 +52,5 @@ public data class ImageProject(
     override fun sameContentAs(other: ImageProject): Boolean =
         id == other.id && source == other.source && geometry == other.geometry && cutout == other.cutout &&
             adjustments == other.adjustments && filter == other.filter && privacyMasks == other.privacyMasks && overlays == other.overlays &&
-            drawing == other.drawing && grainSeed == other.grainSeed
+            drawing == other.drawing && watermark == other.watermark && grainSeed == other.grainSeed
 }

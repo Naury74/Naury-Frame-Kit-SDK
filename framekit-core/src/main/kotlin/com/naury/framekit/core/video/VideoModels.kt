@@ -1,5 +1,6 @@
 package com.naury.framekit.core.video
 
+import com.naury.framekit.core.overlay.Watermark
 import com.naury.framekit.core.effect.Adjustments
 import com.naury.framekit.core.effect.ColorEffectSpec
 import com.naury.framekit.core.effect.FilterSelection
@@ -179,12 +180,14 @@ public data class CanvasSpec(
 /**
  * @property privacyMasks 최대 [MAX_PRIVACY_MASKS]개의 사각형 또는 타원 마스크. 브러시 마스크는
  *   이미지 전용이다.
+ * @property watermark 영상 처음부터 끝까지 모든 것 위에 얹는 글자 워터마크. 없으면 `null`.
  */
 public data class Timeline(
     val videoClips: List<VideoClip>,
     val audioClips: List<AudioClip> = emptyList(),
     val overlays: List<TimedOverlay> = emptyList(),
     val privacyMasks: List<TimedPrivacyMask> = emptyList(),
+    val watermark: Watermark? = null,
 ) {
     public companion object {
         public const val MAX_PRIVACY_MASKS: Int = 8
