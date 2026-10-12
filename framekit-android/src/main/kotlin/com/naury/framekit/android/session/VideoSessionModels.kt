@@ -7,6 +7,7 @@ import com.naury.framekit.core.geometry.RectN
 import com.naury.framekit.core.model.ProjectId
 import com.naury.framekit.core.model.SourceId
 import com.naury.framekit.core.video.AudioClip
+import com.naury.framekit.core.video.AudioRole
 import com.naury.framekit.core.video.CanvasFit
 import com.naury.framekit.core.video.TimedOverlay
 import com.naury.framekit.core.video.CanvasSpec
@@ -92,6 +93,8 @@ public data class VideoClipSnapshot(
     val adjustments: AdjustmentsSnapshot = AdjustmentsSnapshot(),
     val filterPresetId: String = FilterCatalog.ORIGINAL_ID,
     val filterIntensity: Double = 0.0,
+    /** 소리를 끈 원본 구간. start, end를 차례로 담는다. */
+    val mutedRanges: List<Long> = emptyList(),
 ) {
     public fun toModel(sources: List<SourceId>): VideoClip {
         require(sourceIndex in sources.indices) { "Unknown clip source" }
@@ -103,6 +106,7 @@ public data class VideoClipSnapshot(
             effects = ClipEffects(geometry.toModel(), adjustments.toModel(), FilterSelection(filterPresetId, filterIntensity)),
             muted = muted,
             volume = volume,
+            mutedRanges = mutedRanges.chunked(2).filter { it.size == 2 }.map { TimeRangeUs(it[0], it[1]) },
         )
     }
 
@@ -119,6 +123,7 @@ public data class VideoClipSnapshot(
             adjustments = AdjustmentsSnapshot.of(clip.effects.adjustments),
             filterPresetId = clip.effects.filter.presetId,
             filterIntensity = clip.effects.filter.intensity,
+            mutedRanges = clip.mutedRanges.flatMap { listOf(it.startUs, it.endExclusiveUs) },
         )
     }
 }
@@ -157,7 +162,7 @@ public data class TimedMaskSnapshot(val mask: PrivacyMaskSnapshot, val startUs: 
     }
 }
 
-/** 저장 형식의 [AudioClip]. [sourceIndex]는 배경 음악 원본 목록에서의 위치다. */
+/** 저장 형식의 [AudioClip]. [sourceIndex]는 오디오 원본(배경 음악·음성) 목록에서의 위치다. */
 @Serializable
 public data class AudioClipSnapshot(
     val id: String,
@@ -167,10 +172,15 @@ public data class AudioClipSnapshot(
     val timelineStartUs: Long,
     val volume: Double = 1.0,
     val loop: Boolean = false,
+    val role: AudioRole = AudioRole.MUSIC,
+    val timelineEndUs: Long? = null,
+    val fadeInUs: Long = 0,
+    val fadeOutUs: Long = 0,
+    val startOffsetUs: Long = 0,
 ) {
     public fun toModel(sources: List<SourceId>): AudioClip {
         require(sourceIndex in sources.indices) { "Unknown audio source" }
-        return AudioClip(id, sources[sourceIndex], TimeRangeUs(startUs, endUs), timelineStartUs, volume, loop)
+        return AudioClip(id, sources[sourceIndex], TimeRangeUs(startUs, endUs), timelineStartUs, volume, loop, role, timelineEndUs, fadeInUs, fadeOutUs, startOffsetUs)
     }
 
     public companion object {
@@ -182,6 +192,11 @@ public data class AudioClipSnapshot(
             timelineStartUs = clip.timelineStartUs,
             volume = clip.volume,
             loop = clip.loop,
+            role = clip.role,
+            timelineEndUs = clip.timelineEndUs,
+            fadeInUs = clip.fadeInUs,
+            fadeOutUs = clip.fadeOutUs,
+            startOffsetUs = clip.startOffsetUs,
         )
     }
 }

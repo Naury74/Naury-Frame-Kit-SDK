@@ -43,6 +43,8 @@ public data class ClipEffects(
  * @property sourceRange 소스 시간 기준으로 사용하는 소스 구간.
  * @property speed 일정한 재생 속도, `0.25..4`. 출력 길이는 `sourceRange / speed`이다.
  * @property volume 오디오 게인 `0..2`. `muted`는 clip 오디오를 완전히 제거한다.
+ * @property mutedRanges 소리를 끈 원본 구간들(원본 시간 µs). 겹치지 않게 정리해 둔다([TimeRanges.normalize]).
+ *   클립을 옮기거나 잘라도 같은 장면의 소리가 꺼진 채로 남는다.
  */
 public data class VideoClip(
     val id: String,
@@ -52,6 +54,7 @@ public data class VideoClip(
     val effects: ClipEffects = ClipEffects(),
     val muted: Boolean = false,
     val volume: Double = 1.0,
+    val mutedRanges: List<TimeRangeUs> = emptyList(),
 ) {
     /** 출력 길이. 가장 가까운 마이크로초로 한 번만 반올림한다. */
     public val outputDurationUs: Long get() = (sourceRange.durationUs / speed).roundToLong()
@@ -66,11 +69,26 @@ public data class VideoClip(
     }
 }
 
+/** 별도 오디오 트랙의 쓰임새. 트랙마다 하나씩 둘 수 있다. */
+public enum class AudioRole {
+    /** 배경 음악. */
+    MUSIC,
+
+    /** 내레이션 같은 음성(녹음하거나 파일로 넣음). */
+    VOICE,
+}
+
 /**
- * 별도 트랙에 놓이고 출력 타임라인 기준으로 배치되는 배경 오디오.
+ * 별도 트랙에 놓이고 출력 타임라인 기준으로 배치되는 오디오 조각(배경 음악이나 음성). 한 트랙에 여러 조각을 둘 수 있다.
  *
- * @property loop 영상이 끝날 때까지 구간을 반복한다. 오디오가 출력을 영상보다 길게 만들지는
- *   않는다.
+ * @property loop [timelineEndUs](없으면 영상 끝)까지 구간을 반복한다. 오디오가 출력을 영상보다 길게 만들지는 않는다.
+ * @property role 배경 음악인지 음성인지. 같은 쓰임새의 조각은 같은 트랙(줄)에 놓인다.
+ * @property timelineEndUs 출력 시간에서 이 조각이 끝나는 위치(µs, 그 시각은 포함하지 않음). `null`이면 원본 구간이나 영상 끝에서 끝난다.
+ *   타임라인에서 오른쪽 끝을 잘랐거나 나눈 조각에 쓴다.
+ * @property fadeInUs 시작에서 소리를 서서히 키우는 시간(µs).
+ * @property fadeOutUs 끝에서 소리를 서서히 줄이는 시간(µs).
+ * @property startOffsetUs [sourceRange] 안에서 처음 재생을 시작하는 위치(µs, `0..sourceRange 길이`). 반복하면 두 번째부터는
+ *   [sourceRange] 처음부터 재생한다. 조각을 나누거나 왼쪽 끝을 잘라도 같은 소리가 같은 시각에 들리게 한다.
  */
 public data class AudioClip(
     val id: String,
@@ -79,7 +97,57 @@ public data class AudioClip(
     val timelineStartUs: Long,
     val volume: Double = 1.0,
     val loop: Boolean = false,
-)
+    val role: AudioRole = AudioRole.MUSIC,
+    val timelineEndUs: Long? = null,
+    val fadeInUs: Long = 0,
+    val fadeOutUs: Long = 0,
+    val startOffsetUs: Long = 0,
+) {
+    /**
+     * 영상 길이가 [videoDurationUs]일 때 이 조각이 실제로 들리는 출력 구간. 들리지 않으면 비어 있다.
+     */
+    public fun outputRange(videoDurationUs: Long): TimeRangeUs {
+        val start = timelineStartUs.coerceAtLeast(0)
+        val natural = if (loop) Long.MAX_VALUE else start + (sourceRange.durationUs - startOffsetUs).coerceAtLeast(0)
+        val end = minOf(natural, timelineEndUs ?: Long.MAX_VALUE, videoDurationUs)
+        return TimeRangeUs(start, end.coerceAtLeast(start))
+    }
+}
+
+/** 시간 범위 목록 계산. */
+public object TimeRanges {
+
+    /** 비었거나 겹치거나 맞닿은 범위를 합쳐 시작 순서로 돌려준다. */
+    public fun normalize(ranges: List<TimeRangeUs>): List<TimeRangeUs> {
+        val sorted = ranges.filter { !it.isEmpty }.sortedBy { it.startUs }
+        val merged = mutableListOf<TimeRangeUs>()
+        sorted.forEach { range ->
+            val last = merged.lastOrNull()
+            if (last != null && range.startUs <= last.endExclusiveUs) {
+                merged[merged.lastIndex] = TimeRangeUs(last.startUs, maxOf(last.endExclusiveUs, range.endExclusiveUs))
+            } else {
+                merged += range
+            }
+        }
+        return merged
+    }
+
+    /** [ranges]에서 [cut]과 겹치는 부분을 뺀다. */
+    public fun subtract(ranges: List<TimeRangeUs>, cut: TimeRangeUs): List<TimeRangeUs> = normalize(
+        ranges.flatMap { range ->
+            if (cut.endExclusiveUs <= range.startUs || cut.startUs >= range.endExclusiveUs) {
+                listOf(range)
+            } else {
+                listOf(TimeRangeUs(range.startUs, cut.startUs), TimeRangeUs(cut.endExclusiveUs, range.endExclusiveUs)).filter { !it.isEmpty }
+            }
+        },
+    )
+
+    /** [ranges]를 [window] 안으로 자른다. */
+    public fun clip(ranges: List<TimeRangeUs>, window: TimeRangeUs): List<TimeRangeUs> = normalize(
+        ranges.map { TimeRangeUs(maxOf(it.startUs, window.startUs), minOf(it.endExclusiveUs, window.endExclusiveUs)) },
+    )
+}
 
 /** 출력 타임라인의 [range] 동안 보이는 텍스트나 스티커. 출력 캔버스 기준으로 배치한다. */
 public data class TimedOverlay(val overlay: ImageOverlay, val range: TimeRangeUs)

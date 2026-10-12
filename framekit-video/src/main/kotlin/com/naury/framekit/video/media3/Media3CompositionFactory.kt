@@ -25,6 +25,8 @@ import com.naury.framekit.video.ResolvedAudio
 import com.naury.framekit.video.ResolvedClip
 import com.naury.framekit.core.video.AudioPlacement
 import com.naury.framekit.core.video.AudioSegment
+import com.naury.framekit.core.video.TimeRangeUs
+import com.naury.framekit.core.video.TimeRanges
 import com.naury.framekit.core.video.TimelineTimeMapper
 import androidx.media3.common.C
 import androidx.media3.effect.OverlayEffect
@@ -41,7 +43,7 @@ import com.naury.framekit.video.VideoRenderPlan
 internal object Media3CompositionFactory {
 
     fun create(plan: VideoRenderPlan, maxFrameRate: Int?): Composition {
-        val items = plan.clips.map { item(it, plan, maxFrameRate) }
+        val items = plan.clips.flatMap { items(it, plan, maxFrameRate) }
         val timeline = plan.project.timeline
         val clipAudio = plan.clips.any { !it.clip.muted && it.source.metadata.hasAudio }
         // 소리가 있는 클립과 없는 클립이 섞이거나 배경 음악만 있으면 무음 트랙을 만들어 트랙 구성을 맞춘다.
@@ -65,10 +67,15 @@ internal object Media3CompositionFactory {
         if (segments.none { it is AudioSegment.Play }) return null
         val builder = EditedMediaItemSequence.Builder(setOf(C.TRACK_TYPE_AUDIO))
         val volume = resolved.clip.volume.toFloat()
+        val clipDuration = resolved.clip.outputRange(videoDurationUs).durationUs
+        val fades = resolved.clip.fadeInUs > 0 || resolved.clip.fadeOutUs > 0
+        var played = 0L
         segments.forEach { segment ->
             when (segment) {
                 is AudioSegment.Silence -> builder.addGap(segment.durationUs)
                 is AudioSegment.Play -> {
+                    val segmentStart = played
+                    played += segment.sourceRange.durationUs
                     val mediaItem = MediaItem.Builder()
                         .setUri(uriOf(resolved.location))
                         .setClippingConfiguration(
@@ -78,7 +85,11 @@ internal object Media3CompositionFactory {
                                 .build(),
                         )
                         .build()
-                    val audio = if (volume != 1f) listOf<AudioProcessor>(AudioEffects.volume(volume)) else emptyList()
+                    val audio = when {
+                        fades -> listOf<AudioProcessor>(FadeAudioProcessor(segmentStart, clipDuration, resolved.clip.fadeInUs, resolved.clip.fadeOutUs, volume))
+                        volume != 1f -> listOf<AudioProcessor>(AudioEffects.volume(volume))
+                        else -> emptyList()
+                    }
                     builder.addItem(
                         EditedMediaItem.Builder(mediaItem)
                             .setRemoveVideo(true)
@@ -92,14 +103,30 @@ internal object Media3CompositionFactory {
         return builder.build()
     }
 
-    private fun item(resolved: ResolvedClip, plan: VideoRenderPlan, maxFrameRate: Int?): EditedMediaItem {
+    // 소리를 끈 구간이 있으면 그 경계에서 클립을 이어진 조각들로 나눠, 꺼진 조각만 볼륨 0으로 만든다. 영상은 끊김 없이 이어진다.
+    private fun items(resolved: ResolvedClip, plan: VideoRenderPlan, maxFrameRate: Int?): List<EditedMediaItem> {
+        val clip = resolved.clip
+        val muted = TimeRanges.clip(clip.mutedRanges, clip.sourceRange)
+        if (clip.muted || muted.isEmpty() || !resolved.source.metadata.hasAudio) return listOf(item(resolved, plan, maxFrameRate, clip.sourceRange, silent = false))
+        val pieces = mutableListOf<Pair<TimeRangeUs, Boolean>>()
+        var cursor = clip.sourceRange.startUs
+        muted.forEach { range ->
+            if (range.startUs > cursor) pieces += TimeRangeUs(cursor, range.startUs) to false
+            pieces += range to true
+            cursor = range.endExclusiveUs
+        }
+        if (cursor < clip.sourceRange.endExclusiveUs) pieces += TimeRangeUs(cursor, clip.sourceRange.endExclusiveUs) to false
+        return pieces.map { (range, silent) -> item(resolved, plan, maxFrameRate, range, silent) }
+    }
+
+    private fun item(resolved: ResolvedClip, plan: VideoRenderPlan, maxFrameRate: Int?, range: TimeRangeUs, silent: Boolean): EditedMediaItem {
         val clip = resolved.clip
         val mediaItem = MediaItem.Builder()
             .setUri(uriOf(resolved.location))
             .setClippingConfiguration(
                 MediaItem.ClippingConfiguration.Builder()
-                    .setStartPositionUs(clip.sourceRange.startUs)
-                    .setEndPositionUs(clip.sourceRange.endExclusiveUs)
+                    .setStartPositionUs(range.startUs)
+                    .setEndPositionUs(range.endExclusiveUs)
                     .build(),
             )
             .build()
@@ -114,7 +141,11 @@ internal object Media3CompositionFactory {
                 add(FrameDropEffect.createDefaultFrameDropEffect(maxFrameRate.toFloat()))
             }
         }
-        val audio = if (!clip.muted && clip.volume != 1.0) listOf<AudioProcessor>(AudioEffects.volume(clip.volume.toFloat())) else emptyList()
+        val audio = when {
+            silent -> listOf<AudioProcessor>(AudioEffects.volume(0f))
+            !clip.muted && clip.volume != 1.0 -> listOf<AudioProcessor>(AudioEffects.volume(clip.volume.toFloat()))
+            else -> emptyList()
+        }
         return EditedMediaItem.Builder(mediaItem)
             // CompositionPlayer는 클립 길이를 미리 알아야 timeline을 만든다. 원본 전체 길이를 넘긴다.
             .apply { resolved.source.metadata.durationUs?.let(::setDurationUs) }

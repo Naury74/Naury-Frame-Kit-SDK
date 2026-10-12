@@ -24,15 +24,21 @@ public object AudioPlacement {
     public fun segments(clip: AudioClip, videoDurationUs: Long): List<AudioSegment> {
         val start = clip.timelineStartUs.coerceAtLeast(0)
         val length = clip.sourceRange.durationUs
-        if (start >= videoDurationUs || length <= 0) return emptyList()
+        // 조각의 끝([AudioClip.timelineEndUs])이 있으면 영상 끝보다 먼저 멈춘다.
+        val end = minOf(videoDurationUs, clip.timelineEndUs ?: Long.MAX_VALUE)
+        if (start >= end || length <= 0) return emptyList()
         val segments = mutableListOf<AudioSegment>()
         if (start > 0) segments += AudioSegment.Silence(start)
         var cursor = start
+        // 첫 재생은 startOffsetUs부터, 반복은 구간 처음부터 한다.
+        var from = clip.sourceRange.startUs + clip.startOffsetUs.coerceIn(0, length - 1)
         do {
-            val playable = minOf(length, videoDurationUs - cursor)
-            segments += AudioSegment.Play(TimeRangeUs(clip.sourceRange.startUs, clip.sourceRange.startUs + playable))
+            val playable = minOf(clip.sourceRange.endExclusiveUs - from, end - cursor)
+            if (playable <= 0) break
+            segments += AudioSegment.Play(TimeRangeUs(from, from + playable))
             cursor += playable
-        } while (clip.loop && cursor < videoDurationUs)
+            from = clip.sourceRange.startUs
+        } while (clip.loop && cursor < end)
         return segments
     }
 }

@@ -10,4 +10,7 @@ public enum class MediaType {
 
     /** 사진을 쪽으로 묶은 PDF 문서. */
     DOCUMENT,
+
+    /** 움직이는 이미지(GIF·움직이는 WebP). MP4로 만든 움직이는 이미지는 [VIDEO]다. */
+    ANIMATED_IMAGE,
 }
