@@ -8,7 +8,12 @@ import kotlinx.parcelize.Parcelize
 public enum class MediaKind {
     IMAGE,
     VIDEO,
+
+    /** 사진 또는 영상. 소리 파일은 들어가지 않는다. */
     ANY,
+
+    /** 소리 파일(음성·음악). `Pick`이면 시스템 파일 선택기, `Capture`면 바로 녹음을 연다. */
+    AUDIO,
 }
 
 /**
