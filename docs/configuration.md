@@ -20,7 +20,7 @@ ImageEditorRequest(
 | `FileSource(absolutePath)` | 호스트 앱 내부 파일 |
 | `Multiple(items)` | 여러 원본. 항목은 `UriSource`/`FileSource`만, 1개 이상 |
 | `Pick(kind = MediaKind.IMAGE, maxItems = 1)` | 시스템 Photo Picker. 이미지 편집기는 `IMAGE`만 허용. `maxItems` 1..100 |
-| `Capture(kind)` | 카메라 앱으로 촬영 후 편집. `IMAGE`·`VIDEO`만(`ANY` 불가) |
+| `Capture(kind)` | 카메라 앱으로 촬영 후 편집. `IMAGE`·`VIDEO`만(`ANY` 불가). 통합 계약·음성 편집기는 `AUDIO`(SDK 녹음 화면) |
 
 진입점별 예시와 카메라 권한 규칙은 [integration](integration.md#입력)을 보세요.
 
@@ -32,6 +32,7 @@ ImageEditorRequest(
 | `allowUndo` | `true` | |
 | `allowRedo` | `true` | `allowUndo = false`이면서 `true`이면 오류 |
 | `maxImageCount` | `20` | 한 번에 편집하는 사진 수, 1..100. 2 이상이면 쪽 목록(추가·순서 변경·삭제)이 나타남 |
+| `watermark` | `null` | 호스트 워터마크(`WatermarkConfig`). 미리 채울 문구·추천 문구, 열 때 바로 얹기, 잠금. [integration](integration.md#워터마크) 참고 |
 
 도구:
 
@@ -179,6 +180,7 @@ VideoEditorRequest(
 | `minClipDurationUs` | `1_000_000` (1초) | 출력 시간 기준 최소 길이(µs). 100_000 이상 |
 | `maxTimelineDurationUs` | `600_000_000` (10분) | 출력 시간 기준 전체 최대 길이(µs). `minClipDurationUs` 이상, 1시간 이하. 더 긴 원본은 앞부분만 남긴 채로 열림 |
 | `maxClipCount` | `10` | 클립 수 상한, 1..20. 2 이상이면 타임라인 아래에 클립 추가·나누기·이동·삭제 버튼이 나타남. 1이면 숨김 |
+| `watermark` | `null` | 호스트 워터마크(`WatermarkConfig`). 영상 처음부터 끝까지 들어감 |
 
 | 도구 | 포함 기능 |
 | --- | --- |
@@ -212,12 +214,14 @@ FrameKitRequest(
     imageExport = ImageExportConfig(),
     video = VideoEditorConfig(),
     videoExport = VideoExportConfig(),
+    audio = AudioEditorConfig(),
+    audioExport = AudioExportConfig(),
     ui = EditorUiConfig(),
     output = OutputTarget.AppFile,
 )
 ```
 
-열리는 편집기와 상관없이 다섯 설정을 모두 검증합니다. 사진이면 `image`·`imageExport`, 영상이면 `video`·`videoExport`가 쓰이고 `ui`·`output`은 공통입니다.
+열리는 편집기와 상관없이 모든 설정을 검증합니다. 사진이면 `image`·`imageExport`, 영상이면 `video`·`videoExport`, 소리면 `audio`·`audioExport`(설정 표는 [integration](integration.md#음성-편집기))가 쓰이고 `ui`·`output`은 공통입니다.
 
 ## output: OutputTarget
 

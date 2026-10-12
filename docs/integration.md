@@ -58,8 +58,8 @@ Button(onClick = { editor.launch(FrameKitRequest(EditorInput.Pick(MediaKind.ANY)
 | `EditorInput.UriSource(uri)` | 호스트가 이미 가진 Uri 한 개 | 호스트가 읽기 권한을 가지고 있어야 함 |
 | `EditorInput.FileSource(path)` | 호스트 앱 내부 저장소의 파일 절대 경로 | 같은 프로세스이므로 별도 권한 없음 |
 | `EditorInput.Multiple(items)` | 이미 가진 사진 여러 장 또는 영상 여러 개. 각 항목은 `UriSource`/`FileSource` | 각 Uri의 읽기 권한 |
-| `EditorInput.Pick(kind, maxItems = 1)` | 시스템 Photo Picker를 먼저 띄움. `IMAGE`·`VIDEO`·`ANY`(통합 계약만). `maxItems`가 2 이상이면 여러 개 선택. 닫으면 `Cancelled` | Picker가 선택한 항목만 읽기 권한 부여 |
-| `EditorInput.Capture(kind)` | 기기 카메라 앱으로 사진을 찍거나 영상을 녹화한 뒤 바로 편집. `IMAGE`·`VIDEO` | 아래 [카메라](#카메라) 참고 |
+| `EditorInput.Pick(kind, maxItems = 1)` | 시스템 Photo Picker를 먼저 띄움. `IMAGE`·`VIDEO`·`ANY`(통합 계약만). `AUDIO`는 시스템 파일 선택기로 소리 파일을 고름. `maxItems`가 2 이상이면 여러 개 선택. 닫으면 `Cancelled` | Picker가 선택한 항목만 읽기 권한 부여 |
+| `EditorInput.Capture(kind)` | 기기 카메라 앱으로 사진을 찍거나 영상을 녹화한 뒤 바로 편집. `IMAGE`·`VIDEO`. `AUDIO`는 SDK 녹음 화면으로 바로 녹음 | 아래 [카메라](#카메라)·[음성 편집기](#음성-편집기) 참고 |
 
 ### 진입점 조합
 
@@ -74,6 +74,10 @@ Button(onClick = { editor.launch(FrameKitRequest(EditorInput.Pick(MediaKind.ANY)
 | 방금 찍은 사진 편집 | `EditorInput.Capture(MediaKind.IMAGE)`, 또는 호스트가 찍은 파일을 `UriSource`/`FileSource`로 |
 | 방금 녹화한 영상 편집 | `EditorInput.Capture(MediaKind.VIDEO)` |
 | 여러 장을 PDF 한 개로 | 위 입력 + `imageExport = ImageExportConfig(format = ImageFormat.PDF)` |
+| 새로 녹음하고 편집 | `EditorInput.Capture(MediaKind.AUDIO)` |
+| 녹음만 하고 바로 받기 | `Capture(MediaKind.AUDIO)` + `audio = AudioEditorConfig(editAfterRecording = false)` |
+| 소리 파일 고르게 해서 편집 | `EditorInput.Pick(MediaKind.AUDIO, maxItems = 5)` |
+| 가진 소리 파일 편집 | `FrameKitRequest(EditorInput.UriSource(audioUri))` — MIME이 `audio/`면 음성 편집기가 열림 |
 
 - 여러 개를 넘기면 사진 편집기는 아래쪽 쪽 목록에서 한 장씩 골라 편집하고, 영상 편집기는 고른 순서대로 클립을 이어 붙입니다.
 - 개수 상한은 `ImageEditorConfig.maxImageCount`(기본 20, 최대 100), `VideoEditorConfig.maxClipCount`(기본 10, 최대 20)입니다. `Multiple`이 상한보다 많으면 앞에서부터 상한까지만 엽니다. `Pick`의 `maxItems`도 편집기 상한으로 줄어듭니다.
@@ -120,7 +124,8 @@ editor.launch(FrameKitRequest(input, chooser = EditorChooser.ASK, chooserActions
 | 사진 한 장·여러 장 | 사진 편집(여러 장이면 한 장씩) · PDF로 묶기 · 움직이는 이미지 만들기 · 편집 없이 보내기 |
 | 움직이는 GIF·WebP 하나 | 움직이는 이미지 편집 · 첫 장면만 사진으로 편집 · 편집 없이 보내기 |
 | 영상 | 영상 편집 · 편집 없이 보내기 |
-| 사진과 영상이 섞임 | 편집 없이 보내기(함께 편집할 수 없다는 안내) |
+| 소리 파일 | 소리 편집 · 편집 없이 보내기 |
+| 종류가 섞임(사진·영상·소리) | 편집 없이 보내기(함께 편집할 수 없다는 안내) |
 
 - 선택지가 하나만 남으면 묻지 않고 바로 실행합니다.
 - 시트를 닫으면 `Cancelled`입니다. 카메라 촬영(`Capture`)은 시트 없이 바로 엽니다.
@@ -262,6 +267,51 @@ motion.launch(MotionEditorRequest(EditorInput.UriSource(gifUri), export = Motion
 - 소리 도구로 배경 음악과 음성(파일 또는 녹음)을 넣습니다. 넣은 소리는 재생 줄 아래 줄에 조각으로 나타나고, 조각을 눌러 나누기·옮기기·양 끝 자르기·반복·볼륨·페이드를 합니다. 소리는 MP4로 저장할 때만 담기며, 소리를 넣고 GIF·WebP를 고르면 저장 화면에서 알려 줍니다.
 - 편집할 때마다 편집 내용을 저장해, 프로세스가 끝났다가 돌아와도 이어서 편집합니다("이전 편집을 이어서 불러왔어요").
 
+## 워터마크
+
+사진·영상 편집기의 **워터마크** 도구로 글자 워터마크를 넣습니다. 무늬는 네 가지입니다.
+
+| 무늬(`WatermarkPattern`) | 모양 | 조절 |
+| --- | --- | --- |
+| `SINGLE` 한 곳 | 아홉 자리 중 한 곳에 하나 | 자리, 크기, 상자 |
+| `TILE` 반복 | 화면 전체에 벽돌처럼 엇갈려 반복 | 기울기(−90°..90°), 촘촘함, 크기, 상자 |
+| `DIAGONAL` 대각선 | 왼쪽 아래→오른쪽 위로 크게 하나(대각선 길이에 맞춤) | — |
+| `BAND` 띠 | 위나 아래에 반투명 띠, 그 위에 글자 | 위·아래, 왼쪽·가운데·오른쪽, 크기 |
+
+공통으로 불투명도, 색, 그림자를 고릅니다. 크기는 출력의 짧은 변에 대한 비율이라 어떤 해상도로 저장해도 같아 보이고, 텍스트·스티커보다 위에 놓입니다. 여러 장 사진은 한 장에서 정하면 모든 사진에 들어가고, 영상은 처음부터 끝까지 들어갑니다. 도구 세션 하나가 실행 취소 한 단계이며, 문구를 비우고 적용하거나 "없애기"를 누르면 워터마크가 빠집니다.
+
+호스트는 `ImageEditorConfig.watermark`·`VideoEditorConfig.watermark`에 `WatermarkConfig`를 넘겨 정합니다.
+
+```kotlin
+// 문구와 추천 문구만 주고 사용자가 고르고 꾸미게 하기(도구를 열면 채워져 있음)
+val suggested = WatermarkConfig(text = "© MyShop", suggestions = listOf("© MyShop", "@myshop"))
+
+// 열자마자 얹고 사용자가 바꾸거나 지울 수 있게 하기
+val applied = WatermarkConfig(text = "@myshop", pattern = WatermarkPattern.SINGLE, position = WatermarkPosition.BOTTOM_END, applyOnOpen = true)
+
+// 바꿀 수 없는 반복 워터마크(도구가 숨겨지고 저장할 때 항상 들어감)
+val locked = WatermarkConfig(text = "SAMPLE", pattern = WatermarkPattern.TILE, opacity = 0.35, applyOnOpen = true, locked = true)
+
+editor.launch(FrameKitRequest(EditorInput.Pick(MediaKind.ANY), image = ImageEditorConfig(watermark = locked), video = VideoEditorConfig(watermark = locked)))
+```
+
+| `WatermarkConfig` | 기본값 | 내용 |
+| --- | --- | --- |
+| `text` | `""` | 문구, 한 줄 최대 60자. `applyOnOpen`·`locked`면 필수 |
+| `pattern`·`position` | `SINGLE`·`BOTTOM_END` | 무늬와 자리 |
+| `sizeRatio` | `0.04` | 글자 높이/짧은 변(0.015..0.2) |
+| `opacity` | `0.7` | 0.05..1 |
+| `colorArgb` | 흰색 | 글자 색. 밝은 글자는 어두운 그림자·상자, 어두운 글자는 밝은 그림자·상자가 자동으로 붙음 |
+| `rotationDegrees`·`density` | `-30`·`1` | 반복 무늬의 기울기(−90..90)와 촘촘함(0.5..2) |
+| `background` | `false` | 글자 뒤 둥근 반투명 상자 |
+| `applyOnOpen` | `false` | 편집기를 열 때 바로 얹기 |
+| `locked` | `false` | 바꾸거나 지울 수 없음. `applyOnOpen = true`가 필요 |
+| `suggestions` | 없음 | 도구에 보여 줄 추천 문구(최대 8개) |
+
+- 잠긴 워터마크는 이어 편집(세션 복원)과 상관없이 저장할 때 항상 설정값으로 들어갑니다.
+- headless로 저장할 때는 `ImageProject.watermark`·`Timeline.watermark`에 `Watermark`를 넣습니다.
+- 움직이는 이미지 편집기는 아직 워터마크를 지원하지 않습니다.
+
 ## 영상 타임라인
 
 영상 편집기의 타임라인은 영상·원본 소리·배경 음악·음성·텍스트·가리기를 줄로 나눠 보여 줍니다.
@@ -271,9 +321,48 @@ motion.launch(MotionEditorRequest(EditorInput.UriSource(gifUri), export = Motion
 - 배경 음악·음성은 한 줄에 여러 조각을 둡니다. 빈 줄을 누르면 추가하고, 조각을 고르면 끌어서 옮기거나 양 끝을 끌어 자릅니다. 나누기·반복·삭제·볼륨·페이드인/아웃이 아래에 나옵니다.
 - 소리가 있는 줄에는 파형이 그려집니다.
 
+## 음성 편집기
+
+소리 파일을 편집하거나 새로 녹음합니다. `framekit`에 포함되어 있고(`FrameKitContract`에 `MediaKind.AUDIO`), 따로 쓰려면 `framekit-ui-audio`의 `AudioEditorContract`를 씁니다. 녹음하려면 호스트 manifest에 `RECORD_AUDIO`를 선언해야 합니다(아래 [음성 녹음](#음성-녹음)).
+
+```kotlin
+// 통합 계약: 녹음하고 편집
+editor.launch(FrameKitRequest(EditorInput.Capture(MediaKind.AUDIO)))
+
+// 누르고 말하기 녹음기로만 쓰기(편집 없이 바로 결과)
+editor.launch(
+    FrameKitRequest(
+        EditorInput.Capture(MediaKind.AUDIO),
+        audio = AudioEditorConfig(recordMode = RecordMode.HOLD, editAfterRecording = false),
+    ),
+)
+
+// 소리 파일 최대 5개를 골라 이어 붙여 편집
+editor.launch(FrameKitRequest(EditorInput.Pick(MediaKind.AUDIO, maxItems = 5)))
+
+// 음성 편집기만 쓰기
+val audio = registerForActivityResult(AudioEditorContract()) { result -> /* result.output.mediaType == MediaType.AUDIO */ }
+audio.launch(AudioEditorRequest(EditorInput.UriSource(audioUri), export = AudioExportConfig(bitrate = 96_000)))
+```
+
+| 설정 | 기본값 | 내용 |
+| --- | --- | --- |
+| `recordMode` | `BOTH` | `TAP`(눌러 시작·다시 눌러 끝, 잠시 멈춤·이어 녹음), `HOLD`(누르는 동안 녹음, 위로 밀면 고정·왼쪽으로 밀면 취소), `BOTH`(사용자가 고름) |
+| `maxRecordingMs` | 10분 | 한 번 녹음 최대 길이(1초..60분). 닿으면 저절로 멈춤 |
+| `editAfterRecording` | `true` | `Capture`로 시작했을 때 녹음 후 편집 화면으로 갈지. `false`면 녹음 파일을 바로 돌려줌 |
+| `enabledTools` | 전부 | `RECORD`(재생 위치에 끼워 넣기·겹쳐 넣기), `IMPORT`(파일 더하기), `SPLIT`, `RANGE`(구간 잘라 내기·그 구간만 남기기), `VOLUME`(볼륨·페이드) |
+| `maxSourceCount` | 10 | `Pick`·`Multiple`로 한 번에 여는 파일 수(1..20) |
+| `allowUndo`/`allowRedo` | `true` | 실행 취소·다시 실행 버튼 |
+| `AudioExportConfig.bitrate` | 128 000 | AAC 비트레이트(32 000..320 000 bps) |
+
+- 편집 화면은 위 줄(본 줄)과 아래 줄(겹친 소리)로 나뉩니다. 본 줄은 빈틈 없이 이어지고, 녹음·파일을 끼워 넣으면 뒤가 밀리고 지우면 당겨집니다. 겹친 소리는 끌어서 옮길 수 있습니다.
+- 조각을 누르면 양 끝 손잡이로 자르고, 나누기·반복·삭제·볼륨(0~200%)·페이드인/아웃을 합니다. 모든 편집은 실행 취소 한 단계입니다.
+- 결과는 AAC(M4A, `audio/mp4`), `MediaType.AUDIO`이며 `width`·`height`는 0입니다.
+- 편집할 때마다 편집 내용을 저장해 프로세스가 끝났다가 돌아와도 이어서 편집합니다.
+
 ## 음성 녹음
 
-영상 편집기와 움직이는 이미지 편집기의 소리 도구에서 마이크로 음성을 녹음해 넣을 수 있습니다. SDK는 녹음 권한을 직접 추가하지 않으므로, 녹음을 쓰려면 호스트 manifest에 선언합니다. 선언하지 않으면 녹음 버튼이 숨겨지고 음성은 파일로만 넣습니다.
+음성 편집기와 영상·움직이는 이미지 편집기의 소리 도구에서 마이크로 음성을 녹음해 넣을 수 있습니다. SDK는 녹음 권한을 직접 추가하지 않으므로, 녹음을 쓰려면 호스트 manifest에 선언합니다. 선언하지 않으면 녹음 버튼이 숨겨지고 음성은 파일로만 넣습니다.
 
 ```xml
 <uses-permission android:name="android.permission.RECORD_AUDIO" />

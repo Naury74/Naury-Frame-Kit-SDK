@@ -26,6 +26,8 @@ Android 앱에 넣어 쓰는 **비파괴 이미지·영상 편집 SDK**입니다
 | 문서 스캔 | 문서 사진을 열면 자동 감지·제안, 네 모서리 자동 감지와 끌기(돋보기), 반듯하게 펴기, 스캔 보정(그림자 제거·흰 배경·흑백), 인식한 글자 보기·복사, 원본으로 되돌리기 | v1.0 지원 |
 | PDF 글자 검색(OCR) | 선택 모듈 `framekit-ocr`로 쪽마다 글자를 인식해 보이지 않는 글자 레이어 추가(검색·복사), 한국어·영어, 기기 안에서 처리 | v1.0 지원 |
 | 움직이는 이미지 | 사진 여러 장을 카메라 움직임(확대·이동)·전환(페이드·밀기·줌)·움직이는 텍스트·스티커와 함께 이어 붙이기, GIF·움직이는 WebP 열어서 구간·속도·부메랑·보정·필터·텍스트 편집, MP4·GIF·움직이는 WebP로 저장(`MotionEditorContract`) | 다음 버전 |
+| 음성 편집 | 새로 녹음(탭·누르고 말하기·잠시 멈춤), 소리 파일 이어 붙이기, 녹음 끼워 넣기·겹쳐 넣기, 나누기·구간 자르기·볼륨·페이드, 파형 타임라인, M4A 저장, 녹음기로만 쓰기(`AudioEditorContract`, `MediaKind.AUDIO`) | 다음 버전 |
+| 워터마크 | 사진·영상에 글자 워터마크(한 곳·반복·대각선·띠), 자리·크기·불투명도·색·기울기·촘촘함·상자·그림자, 여러 장이면 모든 사진에. 호스트가 문구·추천 문구를 주거나 열 때 바로 얹기·잠금(`WatermarkConfig`) | 다음 버전 |
 | Headless | `ImageProcessor`로 UI 없이 편집·저장, `ExportHandle` 상태·취소 | v0.2 지원 |
 | 큰 사진 | 250MP까지 열기, 자른 영역·띠 단위 디코딩으로 메모리 제한, 실패 시 앱 종료 없이 오류 반환 | v0.2 지원 |
 | 폴드·태블릿 | 화면 크기·폴드 자세(탁상·책)에 맞춘 배치, 접고 펴도 편집 유지 | v0.2 지원 |
@@ -75,6 +77,7 @@ SDK 확장(v1.0)
 | `framekit-ui-image` | 사진 편집 화면만. Media3가 포함되지 않음 |
 | `framekit-ui-video` | 영상 편집 화면만 |
 | `framekit-ui-motion` | 움직이는 이미지 편집 화면만(`MotionEditorContract`) |
+| `framekit-ui-audio` | 음성 녹음·편집 화면만(`AudioEditorContract`) |
 | `framekit-image` / `framekit-video` | UI 없는 처리(headless)와 엔진 |
 
 Maven Central 공개 전에는 이 저장소에서 로컬 Maven에 올린 뒤 씁니다. Maven Central 배포 방법은 [docs/publishing.md](docs/publishing.md)에 있습니다.
@@ -240,6 +243,7 @@ framekit-video      Media3 어댑터: 미리보기 플레이어, Transformer 저
 framekit-ui-video   영상 편집 화면(타임라인), VideoEditorContract
 framekit-motion     움직이는 이미지: 프레임 렌더러, GIF·움직이는 WebP 인코더/디코더, MP4 인코더, 저장
 framekit-ui-motion  움직이는 이미지 편집 화면, MotionEditorContract
+framekit-ui-audio   음성 녹음·편집 화면, AudioEditorContract
 framekit            통합 모듈: FrameKitContract가 원본 종류에 맞는 편집기를 연다
 framekit-segmentation  (선택) ML Kit 배경 제거
 framekit-ocr        (선택) ML Kit 글자 인식, PDF 글자 레이어
@@ -262,6 +266,11 @@ app                 Showcase 앱
 | 앱 앨범에서 고른 파일 넘기기 | 호스트가 먼저 고른 파일을 `Multiple`로 넘기고 고르기 시트로 묻기 |
 | 움직이는 이미지 만들기 | `MotionEditorContract`, 사진 최대 20장으로 슬라이드쇼를 만들어 MP4·GIF·WebP로 저장 |
 | GIF·WebP 편집 | `MotionEditorContract`, 움직이는 GIF·WebP 하나를 열어 편집(처음 저장 형식 GIF) |
+| 녹음하고 편집 | `Capture(AUDIO)`, 탭·누르고 말하기 녹음 후 자르기·나누기·추가 녹음 |
+| 누르고 말하기 녹음기 | `recordMode = HOLD`, `editAfterRecording = false`, 편집 없이 바로 결과 |
+| 소리 파일 편집 | `Pick(AUDIO, maxItems = 5)`, 이어 붙이고 자르거나 녹음 추가 |
+| 워터마크 넣기 | `WatermarkConfig(text, suggestions)`, 추천 문구를 골라 한 곳·반복·대각선·띠로 |
+| 잠긴 워터마크 | `applyOnOpen`·`locked`, 바꿀 수 없는 반복 SAMPLE 워터마크 |
 | 여러 장 사진 | 최대 10장을 골라 한 장씩 편집하고 사진마다 저장 |
 | 사진을 PDF로 | 최대 20쪽, 문서 보정·문서 필터, 글자 검색이 되는 A4 PDF 하나로 저장 |
 | 카메라로 찍기 / 녹화 | `Capture(IMAGE)` / `Capture(VIDEO)` |

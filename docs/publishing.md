@@ -1,6 +1,6 @@
 # Maven Central 배포
 
-FrameKit SDK 12개 모듈을 `com.naurylab:<모듈>:<버전>`으로 Maven Central에 올리는 방법입니다. 저장소의 `app`(Showcase)은 배포하지 않습니다.
+FrameKit SDK 13개 모듈을 `com.naurylab:<모듈>:<버전>`으로 Maven Central에 올리는 방법입니다. 저장소의 `app`(Showcase)은 배포하지 않습니다.
 
 빌드 설정은 이미 들어 있습니다. 아래 **처음 한 번 준비**만 끝내면, 이후 배포는 [배포하기](#배포하기)의 명령 두 줄입니다.
 
@@ -72,7 +72,7 @@ CI에서는 같은 이름에 `ORG_GRADLE_PROJECT_`를 붙인 환경 변수(예: 
 ./gradlew cleanCentralStaging publishToCentral --no-configuration-cache
 ```
 
-- `publishToCentral`은 12개 모듈을 서명해 `build/central-bundle.zip`으로 묶고 Central Portal에 올립니다. 서명되지 않은 파일이 하나라도 있으면 올리지 않고 멈춥니다.
+- `publishToCentral`은 13개 모듈을 서명해 `build/central-bundle.zip`으로 묶고 Central Portal에 올립니다. 서명되지 않은 파일이 하나라도 있으면 올리지 않고 멈춥니다.
 - 기본은 **검증 후 대기**입니다. https://central.sonatype.com/publishing/deployments 에서 검증 결과(Validated)를 확인한 뒤 **Publish**를 누르면 공개됩니다. 문제가 있으면 **Drop**으로 버리고 고쳐서 다시 올립니다.
 - 확인 없이 바로 공개하려면 `-PcentralAutoPublish=true`를 붙입니다.
 - 공개 후 검색(search.maven.org)에 보이기까지 보통 10~30분 걸립니다.
@@ -98,7 +98,7 @@ git push origin v1.0.0-alpha01
 
 - 정식 전에는 `-alpha01`, `-beta01`, `-rc01`을 붙입니다.
 - Maven Central에 한 번 올린 버전은 **지우거나 덮어쓸 수 없습니다.** 잘못 올렸으면 다음 번호로 고쳐서 다시 올립니다.
-- 12개 모듈은 항상 같은 버전으로 함께 배포합니다(`FRAMEKIT_VERSION` 하나).
+- 13개 모듈은 항상 같은 버전으로 함께 배포합니다(`FRAMEKIT_VERSION` 하나).
 - 바뀐 내용은 [release-notes.md](release-notes.md)에 적습니다.
 
 ## 문제 해결

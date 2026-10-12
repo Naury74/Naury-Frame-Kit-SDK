@@ -29,7 +29,8 @@
 | `framekit-ui-video` | Compose library | `VideoEditorContract`, 영상 편집 Activity·ViewModel·타임라인 |
 | `framekit-motion` | Android library | 움직이는 이미지: `MotionProject`, `MotionTimeline`, `MotionRenderer`(사진 렌더러·색 보정·오버레이 재사용), GIF·움직이는 WebP 인코더/디코더, MP4 인코더(MediaCodec+EGL), `MotionExporter` |
 | `framekit-ui-motion` | Compose library | `MotionEditorContract`, 움직이는 이미지 편집 Activity·ViewModel·도구 |
-| `framekit` | Android library | `FrameKitContract`, 원본 종류에 따라 편집기를 고르는 라우터 Activity(움직이는 GIF·WebP는 움직이는 이미지 편집기로) |
+| `framekit-ui-audio` | Compose library | `AudioEditorContract`, 음성 편집 Activity·ViewModel·녹음 패널·타임라인. 편집 모델은 core의 `AudioProject`(빈틈 없는 본 줄과 겹친 줄)·`AudioProjectEditing`, 미리듣기는 조각마다 `MediaPlayer`, 저장은 `framekit-video`의 `AudioTrackMixer.mixAudioOnly` |
+| `framekit` | Android library | `FrameKitContract`, 원본 종류에 따라 편집기를 고르는 라우터 Activity(움직이는 GIF·WebP는 움직이는 이미지 편집기로, 소리는 음성 편집기로) |
 
 의존 규칙:
 
@@ -85,6 +86,7 @@ M_sourceToOutput = scaleOutput × cropTranslate × flip × straighten × quarter
 | 보정·필터 | `ColorEffectSpec` → `GlColorEffectRenderer`(ES 3.0) / `CpuColorEffectRenderer` | 출력 캔버스 |
 | 가리기 | `PrivacyRenderer` | 출력 캔버스(C), 보정 결과에만 적용 |
 | 그리기·텍스트·스티커 | `OverlayRenderer` | 출력 캔버스(C), 목록 순서가 z-order |
+| 워터마크 | `WatermarkRenderer`(한 곳·반복·대각선·띠), 영상은 `TimedBitmapOverlay`가 같은 렌더러로 매 프레임 맨 위에 | 출력 캔버스(C), 모든 것 위 |
 
 - `ColorEffectSpec`이 보정 순서·색공간·상수를 고정합니다. GL 셰이더와 CPU 기준 구현은 같은 상수와 정수 해시를 쓰고, 실기기 계측 테스트로 두 결과를 비교합니다.
 - GL 컨텍스트는 전용 스레드 하나가 소유하고, 미리보기·썸네일·저장이 같은 렌더러를 공유합니다.

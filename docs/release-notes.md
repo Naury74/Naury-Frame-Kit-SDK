@@ -11,12 +11,17 @@
 - Showcase 앱 아이콘
 - 도구 화면의 상단 바: 닫기(X) 대신 뒤로 가기 화살표와 도구 이름(`EditorTopBar(toolTitle = …)`). 뒤로 가기는 시스템 뒤로 가기와 같아 바뀐 내용이 있으면 적용할지 묻는다.
 - 도구 하단 바를 `ToolActionBar`로 교체: 왼쪽 초기화, 오른쪽 적용(아이콘과 글자). 넓은 화면에서는 패널 맨 아래에 고정. `ApplyCancelBar`는 deprecated.
+- 도구 줄(`ToolRail`)이 가로로 넘칠 때 가려진 도구가 있는 쪽에 둥근 화살표(누르면 넘김)와 넓은 흐림을 보이고, 처음 한 번 살짝 밀었다 되돌려 옆으로 넘길 수 있음을 알림(`HorizontalScrollHints`)
 - 텍스트 글꼴 이름 "손글씨" → "필기체"(13개 언어). 저장되는 글꼴 id `handwriting`은 그대로.
 - 배경 제거 모델을 분리 프로세스(`:framekit_segmentation`)에서 실행. 모델이 기기에서 동작하지 못하면(SIGILL 등) 앱은 살아 있고 도구를 숨긴다(`BackgroundRemover.isAvailable`).
 - 글자 인식도 분리 프로세스(`:framekit_ocr`)에서 실행(`TextRecognizer.isAvailable`). 사진을 열 때 도는 문서 판별·PDF 저장이 앱을 종료시키지 않는다.
 
 ### 추가
 
+- 워터마크: 사진·영상 편집기 `WATERMARK` 도구(한 곳·반복·대각선·띠, 자리·크기·불투명도·색·기울기·촘촘함·상자·그림자, 무늬 그림 카드와 자리 고르기), 여러 장이면 모든 사진에 적용. 호스트 설정 `WatermarkConfig`(미리 채울 문구·추천 문구·열 때 바로 얹기·잠금), 모델 `Watermark`(`ImageProject.watermark`, `Timeline.watermark`), `WatermarkRenderer`, 세션 저장
+- 음성 편집기 `AudioEditorContract`(`framekit-ui-audio`): 새로 녹음(탭·누르고 말하기, 잠시 멈춤·이어 녹음, 위로 밀어 고정·왼쪽으로 밀어 취소), 소리 파일 불러와 이어 붙이기, 재생 위치에 녹음 끼워 넣기·겹쳐 넣기, 나누기·구간 잘라 내기·구간만 남기기·양 끝 자르기·볼륨·페이드, 파형 타임라인, AAC(M4A) 저장, 프로세스 종료 후 이어 편집. 설정 `AudioEditorConfig`(녹음 방식·최대 길이·녹음 후 편집 여부·도구), `AudioExportConfig`
+- `MediaKind.AUDIO`: `FrameKitContract`에서 `Capture(AUDIO)`(녹음)·`Pick(AUDIO)`(소리 파일 고르기), `audio/` MIME 원본은 음성 편집기로. 고르기 시트에 소리 편집(`EditorAction.EDIT_AUDIO`)
+- `AudioTrackMixer.mixAudioOnly`(소리만 섞어 M4A로), `VoiceRecorder` 잠시 멈춤·이어 녹음
 - 고르기 시트(`FrameKitRequest.chooser = EditorChooser.ASK`, `chooserActions`): 원본 미리보기와 함께 사진 편집·PDF·움직이는 이미지·영상 편집·편집 없이 보내기 중에서 선택. 기본은 이전처럼 자동(`AUTO`)
 - 편집 없이 보내기 결과 `EditedMedia.isOriginal`
 - 배경 음악과 음성 트랙(`AudioRole.MUSIC`/`VOICE`): 영상 편집기와 움직이는 이미지 편집기에서 음성 파일 불러오기·마이크 녹음(`VoiceRecorder`, `VoiceRecordDialog`, 호스트가 `RECORD_AUDIO`를 선언했을 때만), 트랙마다 볼륨·시작 위치·반복
