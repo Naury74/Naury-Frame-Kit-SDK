@@ -32,6 +32,7 @@ import com.naury.framekit.ui.design.FrameKitTheme
 import com.naury.framekit.ui.design.ProvideEditorLocale
 import com.naury.framekit.ui.image.contract.ImageEditorContract
 import com.naury.framekit.ui.motion.contract.MotionEditorContract
+import com.naury.framekit.ui.audioeditor.contract.AudioEditorContract
 import com.naury.framekit.ui.video.contract.VideoEditorContract
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -60,6 +61,15 @@ internal class FrameKitActivity : ComponentActivity() {
     private val imageEditor = registerForActivityResult(ImageEditorContract(), ::deliver)
     private val videoEditor = registerForActivityResult(VideoEditorContract(), ::deliver)
     private val motionEditor = registerForActivityResult(MotionEditorContract(), ::deliver)
+    private val audioEditor = registerForActivityResult(AudioEditorContract(), ::deliver)
+    private val audioPicker = registerForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris: List<Uri> ->
+        val picked = uris.take(pickLimit)
+        when {
+            picked.isEmpty() -> deliver(FrameKitResult.Cancelled)
+            picked.size == 1 -> open(EditorInput.UriSource(picked.single()))
+            else -> open(EditorInput.Multiple(picked.map(EditorInput::UriSource)))
+        }
+    }
     private val picker = registerForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri: Uri? ->
         if (uri == null) deliver(FrameKitResult.Cancelled) else open(EditorInput.UriSource(uri))
     }
@@ -115,6 +125,8 @@ internal class FrameKitActivity : ComponentActivity() {
     }
 
     private fun open(input: EditorInput) {
+        // 녹음은 음성 편집기가 바로 연다.
+        if (input is EditorInput.Capture && input.kind == MediaKind.AUDIO) return launchEditor(MediaKind.AUDIO, input)
         if (request.chooser == EditorChooser.ASK && input !is EditorInput.Capture) {
             // 고르기 시트를 쓰면 원본을 이 라우터가 먼저 받아야 하므로 picker도 여기서 띄운다.
             if (input is EditorInput.Pick) return launchPicker(input.kind, input.maxItems)
@@ -130,10 +142,11 @@ internal class FrameKitActivity : ComponentActivity() {
 
     private fun launchPicker(kind: MediaKind, maxItems: Int) {
         pickLimit = maxItems
+        if (kind == MediaKind.AUDIO) return audioPicker.launch(arrayOf("audio/*"))
         val type = when (kind) {
             MediaKind.IMAGE -> ActivityResultContracts.PickVisualMedia.ImageOnly
             MediaKind.VIDEO -> ActivityResultContracts.PickVisualMedia.VideoOnly
-            MediaKind.ANY -> ActivityResultContracts.PickVisualMedia.ImageAndVideo
+            MediaKind.ANY, MediaKind.AUDIO -> ActivityResultContracts.PickVisualMedia.ImageAndVideo
         }
         val pick = PickVisualMediaRequest(type)
         if (maxItems > 1) multiPicker.launch(pick) else picker.launch(pick)
@@ -188,6 +201,7 @@ internal class FrameKitActivity : ComponentActivity() {
                 EditorAction.MAKE_PDF -> imageEditor.launch(request.forPdf(input))
                 EditorAction.MOTION -> motionEditor.launch(request.forMotion(input))
                 EditorAction.EDIT_VIDEO -> videoEditor.launch(request.forVideo(input))
+                EditorAction.EDIT_AUDIO -> audioEditor.launch(request.forAudio(input))
                 EditorAction.SEND_ORIGINAL -> sendOriginals(input, kinds)
             }
         } catch (_: RuntimeException) {
@@ -222,6 +236,7 @@ internal class FrameKitActivity : ComponentActivity() {
             }
             when (kind) {
                 MediaKind.IMAGE -> imageEditor.launch(request.forImage(input))
+                MediaKind.AUDIO -> audioEditor.launch(request.forAudio(input))
                 else -> videoEditor.launch(request.forVideo(input))
             }
         } catch (_: RuntimeException) {

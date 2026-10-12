@@ -18,6 +18,8 @@
     <string name="framekit_chooser_video_body">ตัด ต่อ และใส่เพลงหรือเสียงพูด</string>
     <string name="framekit_chooser_send">ส่งโดยไม่แก้ไข</string>
     <string name="framekit_chooser_send_body">ส่งต้นฉบับตามเดิม</string>
+    <string name="framekit_chooser_audio">แก้ไขเสียง</string>
+    <string name="framekit_chooser_audio_body">ตัด แยก และเพิ่มเสียงที่อัด</string>
     <plurals name="framekit_chooser_count">
         <item quantity="other">เลือก %d รายการ</item>
     </plurals>

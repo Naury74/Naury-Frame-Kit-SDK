@@ -18,6 +18,8 @@
     <string name="framekit_chooser_video_body">剪輯、拼接並加入音樂或語音</string>
     <string name="framekit_chooser_send">不編輯直接傳送</string>
     <string name="framekit_chooser_send_body">以原始檔案傳送</string>
+    <string name="framekit_chooser_audio">編輯音訊</string>
+    <string name="framekit_chooser_audio_body">剪輯、分割並加入錄音</string>
     <plurals name="framekit_chooser_count">
         <item quantity="other">已選取 %d 項</item>
     </plurals>

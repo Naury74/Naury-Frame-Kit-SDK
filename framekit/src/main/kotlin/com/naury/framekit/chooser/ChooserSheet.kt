@@ -186,6 +186,7 @@ private fun labels(action: EditorAction, count: Int, singleAnimated: Boolean): P
         stringResource(R.string.framekit_chooser_motion) to stringResource(R.string.framekit_chooser_motion_body)
     }
     EditorAction.EDIT_VIDEO -> stringResource(R.string.framekit_chooser_video) to stringResource(R.string.framekit_chooser_video_body)
+    EditorAction.EDIT_AUDIO -> stringResource(R.string.framekit_chooser_audio) to stringResource(R.string.framekit_chooser_audio_body)
     EditorAction.SEND_ORIGINAL -> stringResource(R.string.framekit_chooser_send) to stringResource(R.string.framekit_chooser_send_body)
 }
 
@@ -195,6 +196,7 @@ private fun iconOf(action: EditorAction): Painter = when (action) {
     EditorAction.MAKE_PDF -> painterResource(UiR.drawable.framekit_ic_document)
     EditorAction.MOTION -> painterResource(MotionR.drawable.framekit_ic_motion)
     EditorAction.EDIT_VIDEO -> painterResource(UiR.drawable.framekit_ic_trim)
+    EditorAction.EDIT_AUDIO -> painterResource(UiR.drawable.framekit_ic_mic)
     EditorAction.SEND_ORIGINAL -> rememberVectorPainter(Icons.AutoMirrored.Filled.Send)
 }
 
@@ -205,6 +207,7 @@ private fun accentOf(action: EditorAction): Color = when (action) {
     EditorAction.MAKE_PDF -> Color(0xFF3B9CFF)
     EditorAction.MOTION -> Color(0xFFFF6B9A)
     EditorAction.EDIT_VIDEO -> Color(0xFF2EB67D)
+    EditorAction.EDIT_AUDIO -> Color(0xFFF59F00)
     EditorAction.SEND_ORIGINAL -> FrameKitTheme.colors.foreground
 }
 

@@ -25,6 +25,7 @@ internal object MediaKindResolver {
         mime == null -> null
         mime.startsWith("image/") -> MediaKind.IMAGE
         mime.startsWith("video/") -> MediaKind.VIDEO
+        mime.startsWith("audio/") -> MediaKind.AUDIO
         else -> null
     }
 

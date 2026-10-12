@@ -18,6 +18,8 @@
     <string name="framekit_chooser_video_body">자르고 이어 붙이고 음악·음성을 넣어요</string>
     <string name="framekit_chooser_send">편집 없이 보내기</string>
     <string name="framekit_chooser_send_body">원본 그대로 보내요</string>
+    <string name="framekit_chooser_audio">음성 편집</string>
+    <string name="framekit_chooser_audio_body">자르고 나누고 녹음을 더해요</string>
     <plurals name="framekit_chooser_count">
         <item quantity="other">%d개 선택됨</item>
     </plurals>

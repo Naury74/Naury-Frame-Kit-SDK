@@ -25,6 +25,9 @@ public enum class EditorAction {
     /** 영상 편집. */
     EDIT_VIDEO,
 
+    /** 음성 편집(소리 파일 자르기·나누기·녹음 끼워 넣기). */
+    EDIT_AUDIO,
+
     /** 편집하지 않고 원본을 그대로 돌려준다. 결과의 [com.naury.framekit.android.result.EditedMedia.isOriginal]이 `true`다. */
     SEND_ORIGINAL,
 }

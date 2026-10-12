@@ -18,6 +18,8 @@
     <string name="framekit_chooser_video_body">カット・結合し、音楽や音声を入れます</string>
     <string name="framekit_chooser_send">編集せずに送る</string>
     <string name="framekit_chooser_send_body">元のファイルのまま送ります</string>
+    <string name="framekit_chooser_audio">音声を編集</string>
+    <string name="framekit_chooser_audio_body">カット・分割・録音の追加ができます</string>
     <plurals name="framekit_chooser_count">
         <item quantity="other">%d件選択</item>
     </plurals>

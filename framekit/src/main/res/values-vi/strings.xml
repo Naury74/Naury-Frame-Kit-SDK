@@ -18,6 +18,8 @@
     <string name="framekit_chooser_video_body">Cắt, ghép và thêm nhạc hoặc giọng nói</string>
     <string name="framekit_chooser_send">Gửi không chỉnh sửa</string>
     <string name="framekit_chooser_send_body">Gửi bản gốc như hiện tại</string>
+    <string name="framekit_chooser_audio">Chỉnh sửa âm thanh</string>
+    <string name="framekit_chooser_audio_body">Cắt, tách và thêm bản ghi âm</string>
     <plurals name="framekit_chooser_count">
         <item quantity="other">Đã chọn %d mục</item>
     </plurals>

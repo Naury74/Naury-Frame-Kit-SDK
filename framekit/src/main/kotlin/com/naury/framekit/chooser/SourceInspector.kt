@@ -32,6 +32,7 @@ internal class SourceInspector(private val context: Context) {
         val mime = mimeOf(input) ?: return null
         return when {
             mime.startsWith("video/") -> SourceKind.VIDEO
+            mime.startsWith("audio/") -> SourceKind.AUDIO
             mime.startsWith("image/") -> if (open(input)?.let(AnimatedImageProbe::isAnimated) == true) SourceKind.ANIMATED else SourceKind.IMAGE
             else -> null
         }
@@ -43,6 +44,7 @@ internal class SourceInspector(private val context: Context) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && input is EditorInput.UriSource) {
             runCatching { return resolver.loadThumbnail(uri, Size(px, px), null) }
         }
+        if (mimeOf(input)?.startsWith("audio/") == true) return null
         if (mimeOf(input)?.startsWith("video/") == true) {
             val retriever = MediaMetadataRetriever()
             try {
@@ -68,7 +70,7 @@ internal class SourceInspector(private val context: Context) {
         var width = 0
         var height = 0
         var duration: Long? = null
-        if (kind == SourceKind.VIDEO) {
+        if (kind == SourceKind.VIDEO || kind == SourceKind.AUDIO) {
             val retriever = MediaMetadataRetriever()
             try {
                 retriever.setDataSource(context, uri)
@@ -98,6 +100,7 @@ internal class SourceInspector(private val context: Context) {
         }
         val type = when (kind) {
             SourceKind.VIDEO -> MediaType.VIDEO
+            SourceKind.AUDIO -> MediaType.AUDIO
             SourceKind.ANIMATED -> MediaType.ANIMATED_IMAGE
             SourceKind.IMAGE -> MediaType.IMAGE
         }

@@ -18,6 +18,8 @@
     <string name="framekit_chooser_video_body">Обрезка, склейка, музыка и голос</string>
     <string name="framekit_chooser_send">Отправить без изменений</string>
     <string name="framekit_chooser_send_body">Отправить оригиналы как есть</string>
+    <string name="framekit_chooser_audio">Редактировать аудио</string>
+    <string name="framekit_chooser_audio_body">Обрезка, разделение и добавление записей</string>
     <plurals name="framekit_chooser_count">
         <item quantity="one">Выбран %d объект</item>
         <item quantity="few">Выбрано %d объекта</item>

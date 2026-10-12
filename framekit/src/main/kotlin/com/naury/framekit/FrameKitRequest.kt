@@ -18,6 +18,9 @@ import com.naury.framekit.ui.video.contract.VideoEditorConfig
 import com.naury.framekit.ui.video.contract.VideoEditorRequest
 import com.naury.framekit.video.export.VideoExportConfig
 import kotlinx.parcelize.Parcelize
+import com.naury.framekit.ui.audioeditor.contract.AudioEditorConfig
+import com.naury.framekit.ui.audioeditor.contract.AudioEditorRequest
+import com.naury.framekit.ui.audioeditor.contract.AudioExportConfig
 import com.naury.framekit.motion.export.MotionExportConfig
 import com.naury.framekit.ui.motion.contract.MotionEditorConfig
 import com.naury.framekit.ui.motion.contract.MotionEditorRequest
@@ -48,12 +51,14 @@ public data class FrameKitRequest(
     val openAnimatedInMotionEditor: Boolean = true,
     val chooser: EditorChooser = EditorChooser.AUTO,
     val chooserActions: Set<EditorAction> = EditorAction.entries.toSet(),
+    val audio: AudioEditorConfig = AudioEditorConfig(),
+    val audioExport: AudioExportConfig = AudioExportConfig(),
 ) : Parcelable {
 
     /** 두 편집기 설정을 모두 검증한다. 검증에 실패하면 결과는 `INVALID_CONFIGURATION`이 된다. */
     public fun validate(): ValidationResult {
         val issues = mutableListOf<ValidationIssue>()
-        listOf(image.validate(), imageExport.validate(), video.validate(), videoExport.validate(), motion.validate(), motionExport.validate(), ui.validate(), catalog.validate()).forEach { result ->
+        listOf(image.validate(), imageExport.validate(), video.validate(), videoExport.validate(), motion.validate(), motionExport.validate(), audio.validate(), audioExport.validate(), ui.validate(), catalog.validate()).forEach { result ->
             if (result is ValidationResult.Invalid) issues += result.issues
         }
         when (input) {
@@ -84,6 +89,9 @@ public data class FrameKitRequest(
 
     internal fun forMotion(input: EditorInput): MotionEditorRequest =
         MotionEditorRequest(input.limitedTo(MediaKind.IMAGE, motion.maxImageCount), motion, motionExport, ui, output, catalog)
+
+    internal fun forAudio(input: EditorInput): AudioEditorRequest =
+        AudioEditorRequest(input.limitedTo(MediaKind.AUDIO, audio.maxSourceCount), audio, audioExport, ui, output)
 
     /** 사진 편집기로 열고 PDF 하나로 저장한다. */
     internal fun forPdf(input: EditorInput): ImageEditorRequest =

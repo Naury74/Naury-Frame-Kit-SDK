@@ -20,10 +20,11 @@ class FrameKitRoutingTest {
     private val resolver = ApplicationProvider.getApplicationContext<Application>().contentResolver
 
     @Test
-    fun `mime types decide between the photo and the video editor`() {
+    fun `mime types decide between the photo, video and audio editor`() {
         assertThat(MediaKindResolver.fromMime("image/heic")).isEqualTo(MediaKind.IMAGE)
         assertThat(MediaKindResolver.fromMime("video/mp4")).isEqualTo(MediaKind.VIDEO)
-        assertThat(MediaKindResolver.fromMime("audio/mpeg")).isNull()
+        assertThat(MediaKindResolver.fromMime("audio/mpeg")).isEqualTo(MediaKind.AUDIO)
+        assertThat(MediaKindResolver.fromMime("application/pdf")).isNull()
         assertThat(MediaKindResolver.fromMime(null)).isNull()
     }
 

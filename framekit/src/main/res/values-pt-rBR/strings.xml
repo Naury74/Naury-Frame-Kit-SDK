@@ -18,6 +18,8 @@
     <string name="framekit_chooser_video_body">Corte, junte e adicione música ou voz</string>
     <string name="framekit_chooser_send">Enviar sem editar</string>
     <string name="framekit_chooser_send_body">Enviar os originais como estão</string>
+    <string name="framekit_chooser_audio">Editar áudio</string>
+    <string name="framekit_chooser_audio_body">Corte, divida e adicione gravações</string>
     <plurals name="framekit_chooser_count">
         <item quantity="one">%d item selecionado</item>
         <item quantity="many">%d de itens selecionados</item>
