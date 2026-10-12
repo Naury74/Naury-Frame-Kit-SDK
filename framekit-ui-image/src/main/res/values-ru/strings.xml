@@ -13,6 +13,7 @@
     <string name="framekit_cutout_processing">Поиск объекта…</string>
     <string name="framekit_cutout_description">Оставляет объект и делает фон прозрачным. В JPEG фон заливается сплошным цветом — чтобы сохранить прозрачность, выберите PNG или WEBP.</string>
     <string name="framekit_cutout_unavailable">Модель удаления фона ещё готовится. Повторите попытку чуть позже.</string>
+    <string name="framekit_cutout_device_unsupported">Удаление фона не поддерживается на этом устройстве.</string>
     <string name="framekit_cutout_failed">Не удалось удалить фон. Повторите попытку.</string>
     <string name="framekit_page_limit">Больше фото добавить нельзя.</string>
     <string name="framekit_page_position">Фото %1$d из %2$d</string>
@@ -41,4 +42,23 @@
     <string name="framekit_document_text_copy">Копировать текст</string>
     <string name="framekit_document_text_copied">Текст скопирован</string>
     <string name="framekit_action_close_dialog">Закрыть</string>
+    <string name="framekit_cutout_checking">Подготовка удаления фона…</string>
+    <string name="framekit_cutout_model_title">Для удаления фона нужна модель</string>
+    <string name="framekit_cutout_model_body">ИИ-модель для поиска объекта загружается один раз через сервисы Google Play.</string>
+    <string name="framekit_cutout_model_download">Скачать модель</string>
+    <string name="framekit_cutout_model_dialog_title">Скачать модель для удаления фона?</string>
+    <string name="framekit_cutout_model_dialog_body">Загрузка нужна только один раз. После этого фон удаляется прямо на устройстве, даже без интернета.</string>
+    <string name="framekit_cutout_model_privacy">Ваши фото не покидают устройство.</string>
+    <string name="framekit_cutout_model_data_warning">Если вы не подключены к Wi-Fi, будет использован мобильный интернет, и может взиматься плата.</string>
+    <string name="framekit_cutout_model_metered_warning">Вы используете мобильный интернет. В зависимости от тарифа может взиматься плата, поэтому рекомендуем Wi-Fi.</string>
+    <string name="framekit_cutout_model_downloading">Скачивание модели</string>
+    <string name="framekit_cutout_model_installing">Завершение установки</string>
+    <string name="framekit_cutout_model_progress">%1$s / %2$s</string>
+    <string name="framekit_cutout_model_note">Можно продолжать редактирование. Если закрыть приложение, загрузка продолжится в следующий раз.</string>
+    <string name="framekit_cutout_model_failed_network">Не удалось скачать: нет подключения к интернету. Проверьте подключение и повторите попытку.</string>
+    <string name="framekit_cutout_model_failed">Не удалось скачать модель. Повторите попытку позже.</string>
+    <string name="framekit_cutout_no_play_services">Удаление фона недоступно: на этом устройстве нет сервисов Google Play.</string>
+    <string name="framekit_cutout_model_ready">Удаление фона готово к работе</string>
+    <string name="framekit_action_download">Скачать</string>
+    <string name="framekit_action_later">Позже</string>
 </resources>

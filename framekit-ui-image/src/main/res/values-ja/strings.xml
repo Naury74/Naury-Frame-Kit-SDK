@@ -13,6 +13,7 @@
     <string name="framekit_cutout_processing">被写体を検出中…</string>
     <string name="framekit_cutout_description">被写体だけを残して背景を透明にします。JPEG で保存すると背景は単色で塗りつぶされます。透明のまま残すには PNG または WEBP を選んでください。</string>
     <string name="framekit_cutout_unavailable">背景削除モデルを準備中です。しばらくしてからもう一度お試しください。</string>
+    <string name="framekit_cutout_device_unsupported">この端末では背景の削除を使用できません。</string>
     <string name="framekit_cutout_failed">背景を削除できませんでした。もう一度お試しください。</string>
     <string name="framekit_page_limit">これ以上写真を追加できません。</string>
     <string name="framekit_page_position">%2$d枚中%1$d枚目</string>
@@ -41,4 +42,23 @@
     <string name="framekit_document_text_copy">文字をコピー</string>
     <string name="framekit_document_text_copied">文字をコピーしました</string>
     <string name="framekit_action_close_dialog">閉じる</string>
+    <string name="framekit_cutout_checking">背景の削除を準備しています…</string>
+    <string name="framekit_cutout_model_title">背景の削除にはモデルが必要です</string>
+    <string name="framekit_cutout_model_body">被写体を見つける AI モデルを Google Play 開発者サービスから一度だけダウンロードします。</string>
+    <string name="framekit_cutout_model_download">モデルをダウンロード</string>
+    <string name="framekit_cutout_model_dialog_title">背景削除モデルをダウンロードしますか？</string>
+    <string name="framekit_cutout_model_dialog_body">ダウンロードは最初の一度だけです。その後はオフラインでも端末内で背景を削除できます。</string>
+    <string name="framekit_cutout_model_privacy">写真が端末の外に送信されることはありません。</string>
+    <string name="framekit_cutout_model_data_warning">Wi-Fi に接続していない場合はモバイルデータを使用し、料金が発生することがあります。</string>
+    <string name="framekit_cutout_model_metered_warning">現在モバイルデータを使用しています。ご契約のプランによっては料金が発生するため、Wi-Fi でのダウンロードをおすすめします。</string>
+    <string name="framekit_cutout_model_downloading">モデルをダウンロード中</string>
+    <string name="framekit_cutout_model_installing">インストールを完了しています</string>
+    <string name="framekit_cutout_model_progress">%1$s / %2$s</string>
+    <string name="framekit_cutout_model_note">編集を続けても大丈夫です。アプリを閉じても次回に続きからダウンロードします。</string>
+    <string name="framekit_cutout_model_failed_network">インターネットに接続されていないためダウンロードできませんでした。接続を確認してもう一度お試しください。</string>
+    <string name="framekit_cutout_model_failed">モデルをダウンロードできませんでした。しばらくしてからもう一度お試しください。</string>
+    <string name="framekit_cutout_no_play_services">この端末には Google Play 開発者サービスがないため、背景の削除は使用できません。</string>
+    <string name="framekit_cutout_model_ready">背景の削除を使用できるようになりました</string>
+    <string name="framekit_action_download">ダウンロード</string>
+    <string name="framekit_action_later">後で</string>
 </resources>

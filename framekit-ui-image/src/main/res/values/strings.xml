@@ -13,6 +13,7 @@
     <string name="framekit_cutout_processing">Finding the subject…</string>
     <string name="framekit_cutout_description">Keeps the subject and makes the background transparent. JPEG output fills it with a solid color; choose PNG or WEBP to keep transparency.</string>
     <string name="framekit_cutout_unavailable">The background removal model is still being prepared. Try again in a moment.</string>
+    <string name="framekit_cutout_device_unsupported">Background removal isn\'t supported on this device.</string>
     <string name="framekit_cutout_failed">The background could not be removed. Try again.</string>
     <string name="framekit_page_limit">No more photos can be added.</string>
     <string name="framekit_page_position">Photo %1$d of %2$d</string>
@@ -41,4 +42,23 @@
     <string name="framekit_document_text_copy">Copy text</string>
     <string name="framekit_document_text_copied">Text copied</string>
     <string name="framekit_action_close_dialog">Close</string>
+    <string name="framekit_cutout_checking">Getting background removal ready…</string>
+    <string name="framekit_cutout_model_title">Background removal needs a model</string>
+    <string name="framekit_cutout_model_body">The AI model that finds the subject is downloaded once through Google Play services.</string>
+    <string name="framekit_cutout_model_download">Download model</string>
+    <string name="framekit_cutout_model_dialog_title">Download the background removal model?</string>
+    <string name="framekit_cutout_model_dialog_body">You only need to download it once. After that, backgrounds are removed on your device, even offline.</string>
+    <string name="framekit_cutout_model_privacy">Your photos never leave your device.</string>
+    <string name="framekit_cutout_model_data_warning">If you\'re not on Wi-Fi, mobile data will be used and charges may apply.</string>
+    <string name="framekit_cutout_model_metered_warning">You\'re on mobile data. Charges may apply depending on your plan, so Wi-Fi is recommended.</string>
+    <string name="framekit_cutout_model_downloading">Downloading model</string>
+    <string name="framekit_cutout_model_installing">Finishing installation</string>
+    <string name="framekit_cutout_model_progress">%1$s / %2$s</string>
+    <string name="framekit_cutout_model_note">You can keep editing. If you close the app, the download continues next time.</string>
+    <string name="framekit_cutout_model_failed_network">Couldn\'t download because you\'re offline. Check your connection and try again.</string>
+    <string name="framekit_cutout_model_failed">Couldn\'t download the model. Please try again later.</string>
+    <string name="framekit_cutout_no_play_services">Background removal isn\'t available because this device doesn\'t have Google Play services.</string>
+    <string name="framekit_cutout_model_ready">Background removal is ready to use</string>
+    <string name="framekit_action_download">Download</string>
+    <string name="framekit_action_later">Later</string>
 </resources>

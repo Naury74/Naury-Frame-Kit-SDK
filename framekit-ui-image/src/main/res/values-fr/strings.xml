@@ -13,6 +13,7 @@
     <string name="framekit_cutout_processing">Détection du sujet…</string>
     <string name="framekit_cutout_description">Conserve le sujet et rend l\'arrière-plan transparent. En JPEG, il est rempli d\'une couleur unie ; choisissez PNG ou WEBP pour garder la transparence.</string>
     <string name="framekit_cutout_unavailable">Le modèle de suppression d\'arrière-plan est en cours de préparation. Réessayez dans un instant.</string>
+    <string name="framekit_cutout_device_unsupported">La suppression de l\'arrière-plan n\'est pas prise en charge sur cet appareil.</string>
     <string name="framekit_cutout_failed">Impossible de supprimer l\'arrière-plan. Réessayez.</string>
     <string name="framekit_page_limit">Impossible d\'ajouter d\'autres photos.</string>
     <string name="framekit_page_position">Photo %1$d sur %2$d</string>
@@ -41,4 +42,23 @@
     <string name="framekit_document_text_copy">Copier le texte</string>
     <string name="framekit_document_text_copied">Texte copié</string>
     <string name="framekit_action_close_dialog">Fermer</string>
+    <string name="framekit_cutout_checking">Préparation de la suppression de l\'arrière-plan…</string>
+    <string name="framekit_cutout_model_title">La suppression de l\'arrière-plan nécessite un modèle</string>
+    <string name="framekit_cutout_model_body">Le modèle d\'IA qui détecte le sujet est téléchargé une seule fois via les services Google Play.</string>
+    <string name="framekit_cutout_model_download">Télécharger le modèle</string>
+    <string name="framekit_cutout_model_dialog_title">Télécharger le modèle de suppression de l\'arrière-plan ?</string>
+    <string name="framekit_cutout_model_dialog_body">Un seul téléchargement suffit. Ensuite, l\'arrière-plan est supprimé sur votre appareil, même hors connexion.</string>
+    <string name="framekit_cutout_model_privacy">Vos photos ne quittent jamais votre appareil.</string>
+    <string name="framekit_cutout_model_data_warning">Si vous n\'êtes pas connecté au Wi-Fi, les données mobiles seront utilisées et des frais peuvent s\'appliquer.</string>
+    <string name="framekit_cutout_model_metered_warning">Vous utilisez les données mobiles. Des frais peuvent s\'appliquer selon votre forfait : nous vous conseillons le Wi-Fi.</string>
+    <string name="framekit_cutout_model_downloading">Téléchargement du modèle</string>
+    <string name="framekit_cutout_model_installing">Finalisation de l\'installation</string>
+    <string name="framekit_cutout_model_progress">%1$s / %2$s</string>
+    <string name="framekit_cutout_model_note">Vous pouvez continuer à modifier. Si vous fermez l\'application, le téléchargement reprendra la prochaine fois.</string>
+    <string name="framekit_cutout_model_failed_network">Téléchargement impossible : aucune connexion Internet. Vérifiez votre connexion et réessayez.</string>
+    <string name="framekit_cutout_model_failed">Impossible de télécharger le modèle. Réessayez plus tard.</string>
+    <string name="framekit_cutout_no_play_services">La suppression de l\'arrière-plan n\'est pas disponible, car cet appareil n\'a pas les services Google Play.</string>
+    <string name="framekit_cutout_model_ready">La suppression de l\'arrière-plan est prête</string>
+    <string name="framekit_action_download">Télécharger</string>
+    <string name="framekit_action_later">Plus tard</string>
 </resources>

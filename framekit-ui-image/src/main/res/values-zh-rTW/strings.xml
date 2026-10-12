@@ -13,6 +13,7 @@
     <string name="framekit_cutout_processing">正在辨識主體…</string>
     <string name="framekit_cutout_description">保留主體並將背景變為透明。儲存為 JPEG 時背景會以純色填滿；如需保留透明，請選擇 PNG 或 WEBP。</string>
     <string name="framekit_cutout_unavailable">背景移除模型仍在準備中。請稍後再試。</string>
+    <string name="framekit_cutout_device_unsupported">此裝置不支援移除背景。</string>
     <string name="framekit_cutout_failed">無法移除背景。請再試一次。</string>
     <string name="framekit_page_limit">無法再新增更多照片。</string>
     <string name="framekit_page_position">第 %1$d 張，共 %2$d 張</string>
@@ -41,4 +42,23 @@
     <string name="framekit_document_text_copy">複製文字</string>
     <string name="framekit_document_text_copied">已複製文字</string>
     <string name="framekit_action_close_dialog">關閉</string>
+    <string name="framekit_cutout_checking">正在準備移除背景…</string>
+    <string name="framekit_cutout_model_title">移除背景需要模型</string>
+    <string name="framekit_cutout_model_body">用來辨識主體的 AI 模型會透過 Google Play 服務下載，只需下載一次。</string>
+    <string name="framekit_cutout_model_download">下載模型</string>
+    <string name="framekit_cutout_model_dialog_title">要下載移除背景模型嗎？</string>
+    <string name="framekit_cutout_model_dialog_body">只需下載一次，之後即使沒有網路也能在裝置上移除背景。</string>
+    <string name="framekit_cutout_model_privacy">相片不會離開你的裝置。</string>
+    <string name="framekit_cutout_model_data_warning">如果未連上 Wi-Fi，將使用行動數據，可能會產生費用。</string>
+    <string name="framekit_cutout_model_metered_warning">你目前正在使用行動數據。依你的資費方案可能會產生數據費用，建議使用 Wi-Fi 下載。</string>
+    <string name="framekit_cutout_model_downloading">正在下載模型</string>
+    <string name="framekit_cutout_model_installing">正在完成安裝</string>
+    <string name="framekit_cutout_model_progress">%1$s / %2$s</string>
+    <string name="framekit_cutout_model_note">你可以繼續編輯。即使關閉應用程式，下次也會繼續下載。</string>
+    <string name="framekit_cutout_model_failed_network">未連上網際網路，無法下載。請檢查連線後再試一次。</string>
+    <string name="framekit_cutout_model_failed">無法下載模型，請稍後再試。</string>
+    <string name="framekit_cutout_no_play_services">這部裝置沒有 Google Play 服務，無法使用移除背景功能。</string>
+    <string name="framekit_cutout_model_ready">現在可以使用移除背景了</string>
+    <string name="framekit_action_download">下載</string>
+    <string name="framekit_action_later">稍後</string>
 </resources>

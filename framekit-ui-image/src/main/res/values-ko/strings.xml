@@ -13,6 +13,7 @@
     <string name="framekit_cutout_processing">피사체를 찾는 중…</string>
     <string name="framekit_cutout_description">피사체만 남기고 배경을 투명하게 만듭니다. JPEG로 저장하면 배경은 단색으로 채워지니 투명하게 남기려면 PNG나 WEBP를 쓰세요.</string>
     <string name="framekit_cutout_unavailable">배경 제거 모델을 준비하고 있습니다. 잠시 후 다시 시도해 주세요.</string>
+    <string name="framekit_cutout_device_unsupported">이 기기에서는 배경 제거를 사용할 수 없습니다.</string>
     <string name="framekit_cutout_failed">배경을 제거하지 못했습니다. 다시 시도해 주세요.</string>
     <string name="framekit_page_limit">더는 사진을 추가할 수 없어요.</string>
     <string name="framekit_page_position">%2$d장 중 %1$d번째</string>
@@ -41,4 +42,23 @@
     <string name="framekit_document_text_copy">글자 복사</string>
     <string name="framekit_document_text_copied">글자를 복사했어요</string>
     <string name="framekit_action_close_dialog">닫기</string>
+    <string name="framekit_cutout_checking">배경 제거를 준비하고 있어요…</string>
+    <string name="framekit_cutout_model_title">배경 제거 모델이 필요해요</string>
+    <string name="framekit_cutout_model_body">피사체를 찾는 AI 모델을 Google Play 서비스에서 한 번만 내려받아요.</string>
+    <string name="framekit_cutout_model_download">모델 내려받기</string>
+    <string name="framekit_cutout_model_dialog_title">배경 제거 모델을 내려받을까요?</string>
+    <string name="framekit_cutout_model_dialog_body">처음 한 번만 받으면 그다음부터는 인터넷 없이도 기기 안에서 배경을 지울 수 있어요.</string>
+    <string name="framekit_cutout_model_privacy">사진은 기기 밖으로 보내지 않아요.</string>
+    <string name="framekit_cutout_model_data_warning">Wi-Fi에 연결되어 있지 않으면 모바일 데이터가 사용되어 요금이 발생할 수 있어요.</string>
+    <string name="framekit_cutout_model_metered_warning">지금 모바일 데이터를 사용 중이에요. 요금제에 따라 데이터 요금이 발생할 수 있으니 Wi-Fi에서 받는 것을 권장해요.</string>
+    <string name="framekit_cutout_model_downloading">모델을 내려받는 중</string>
+    <string name="framekit_cutout_model_installing">설치를 마무리하는 중</string>
+    <string name="framekit_cutout_model_progress">%1$s / %2$s</string>
+    <string name="framekit_cutout_model_note">다른 편집을 계속해도 돼요. 앱을 닫아도 다음에 이어서 받아요.</string>
+    <string name="framekit_cutout_model_failed_network">인터넷에 연결되어 있지 않아 내려받지 못했어요. 연결을 확인한 뒤 다시 시도해 주세요.</string>
+    <string name="framekit_cutout_model_failed">모델을 내려받지 못했어요. 잠시 후 다시 시도해 주세요.</string>
+    <string name="framekit_cutout_no_play_services">이 기기에는 Google Play 서비스가 없어 배경 제거를 사용할 수 없습니다.</string>
+    <string name="framekit_cutout_model_ready">배경 제거를 사용할 수 있어요</string>
+    <string name="framekit_action_download">내려받기</string>
+    <string name="framekit_action_later">나중에</string>
 </resources>

@@ -13,6 +13,7 @@
     <string name="framekit_cutout_processing">Đang tìm chủ thể…</string>
     <string name="framekit_cutout_description">Giữ lại chủ thể và làm nền trong suốt. Khi lưu JPEG, nền sẽ được tô một màu; hãy chọn PNG hoặc WEBP để giữ độ trong suốt.</string>
     <string name="framekit_cutout_unavailable">Mô hình xóa nền vẫn đang được chuẩn bị. Hãy thử lại sau giây lát.</string>
+    <string name="framekit_cutout_device_unsupported">Thiết bị này không hỗ trợ xóa nền.</string>
     <string name="framekit_cutout_failed">Không xóa được nền. Hãy thử lại.</string>
     <string name="framekit_page_limit">Không thể thêm ảnh nữa.</string>
     <string name="framekit_page_position">Ảnh %1$d/%2$d</string>
@@ -41,4 +42,23 @@
     <string name="framekit_document_text_copy">Sao chép chữ</string>
     <string name="framekit_document_text_copied">Đã sao chép chữ</string>
     <string name="framekit_action_close_dialog">Đóng</string>
+    <string name="framekit_cutout_checking">Đang chuẩn bị xóa nền…</string>
+    <string name="framekit_cutout_model_title">Cần tải mô hình để xóa nền</string>
+    <string name="framekit_cutout_model_body">Mô hình AI tìm chủ thể sẽ được tải một lần qua Dịch vụ Google Play.</string>
+    <string name="framekit_cutout_model_download">Tải mô hình</string>
+    <string name="framekit_cutout_model_dialog_title">Tải mô hình xóa nền?</string>
+    <string name="framekit_cutout_model_dialog_body">Chỉ cần tải một lần. Sau đó bạn có thể xóa nền ngay trên thiết bị, kể cả khi không có mạng.</string>
+    <string name="framekit_cutout_model_privacy">Ảnh của bạn không bao giờ rời khỏi thiết bị.</string>
+    <string name="framekit_cutout_model_data_warning">Nếu không dùng Wi-Fi, dữ liệu di động sẽ được sử dụng và có thể phát sinh phí.</string>
+    <string name="framekit_cutout_model_metered_warning">Bạn đang dùng dữ liệu di động. Có thể phát sinh phí tùy gói cước, nên tải qua Wi-Fi.</string>
+    <string name="framekit_cutout_model_downloading">Đang tải mô hình</string>
+    <string name="framekit_cutout_model_installing">Đang hoàn tất cài đặt</string>
+    <string name="framekit_cutout_model_progress">%1$s / %2$s</string>
+    <string name="framekit_cutout_model_note">Bạn có thể tiếp tục chỉnh sửa. Nếu đóng ứng dụng, lần sau sẽ tải tiếp.</string>
+    <string name="framekit_cutout_model_failed_network">Không tải được vì chưa kết nối Internet. Hãy kiểm tra kết nối rồi thử lại.</string>
+    <string name="framekit_cutout_model_failed">Không tải được mô hình. Vui lòng thử lại sau.</string>
+    <string name="framekit_cutout_no_play_services">Không thể xóa nền vì thiết bị này không có Dịch vụ Google Play.</string>
+    <string name="framekit_cutout_model_ready">Đã có thể dùng tính năng xóa nền</string>
+    <string name="framekit_action_download">Tải xuống</string>
+    <string name="framekit_action_later">Để sau</string>
 </resources>

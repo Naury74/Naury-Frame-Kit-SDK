@@ -21,6 +21,9 @@ import com.naury.framekit.android.result.FrameKitException
 import com.naury.framekit.android.session.EditorSessionStore
 import com.naury.framekit.android.session.ProjectAssetStore
 import com.naury.framekit.image.cutout.BackgroundRemover
+import com.naury.framekit.image.ml.OnDeviceModelState
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
 import com.naury.framekit.image.export.ImageFormat
 import com.naury.framekit.android.source.SessionSourceRegistry
 import com.naury.framekit.core.effect.AdjustmentKind
@@ -717,6 +720,75 @@ class ImageEditorViewModelTest {
 
         val missing = viewModel(EditorInput.FileSource(sourceFile.absolutePath))
         assertThat(missing.cutoutAvailable).isFalse()
+    }
+
+    @Test
+    fun `missing model asks before downloading and removes background once ready`() {
+        val remover = DownloadingRemover()
+        val viewModel = viewModel(EditorInput.FileSource(sourceFile.absolutePath), remover = remover)
+        viewModel.selectTool(ImageTool.CUTOUT)
+        assertThat(ready(viewModel).cutoutStatus).isEqualTo(CutoutStatus.ModelNeedsDownload)
+        // 데이터 사용을 묻기 전에는 받지 않는다.
+        viewModel.requestModelDownload()
+        assertThat(ready(viewModel).showModelDownloadDialog).isTrue()
+        assertThat(remover.downloads).isEqualTo(0)
+
+        viewModel.confirmModelDownload()
+        assertThat(ready(viewModel).showModelDownloadDialog).isFalse()
+        assertThat(remover.downloads).isEqualTo(1)
+        // 다 받으면 따로 누르지 않아도 배경을 지운다.
+        assertThat(ready(viewModel).displayed.cutout).isNotNull()
+        assertThat(ready(viewModel).cutoutStatus).isNull()
+    }
+
+    @Test
+    fun `unfinished download resumes when the tool opens again`() {
+        val remover = DownloadingRemover(initial = OnDeviceModelState.Downloading(10, 100))
+        val viewModel = viewModel(EditorInput.FileSource(sourceFile.absolutePath), remover = remover)
+        viewModel.selectTool(ImageTool.CUTOUT)
+        // 앱이 중간에 끝났던 내려받기는 다시 묻지 않고 이어서 따라간다. 이때는 저절로 배경을 지우지 않는다.
+        assertThat(remover.downloads).isEqualTo(1)
+        assertThat(ready(viewModel).cutoutStatus).isNull()
+        assertThat(ready(viewModel).displayed.cutout).isNull()
+    }
+
+    @Test
+    fun `failed download can be retried and devices without play services explain why`() {
+        val offline = DownloadingRemover(result = OnDeviceModelState.DownloadFailed(OnDeviceModelState.Failure.NO_NETWORK))
+        val viewModel = viewModel(EditorInput.FileSource(sourceFile.absolutePath), remover = offline)
+        viewModel.selectTool(ImageTool.CUTOUT)
+        viewModel.confirmModelDownload()
+        assertThat(ready(viewModel).cutoutStatus).isEqualTo(CutoutStatus.ModelDownloadFailed(noNetwork = true))
+        viewModel.retryModelDownload()
+        assertThat(offline.downloads).isEqualTo(2)
+
+        val noGms = viewModel(
+            EditorInput.FileSource(sourceFile.absolutePath),
+            remover = DownloadingRemover(initial = OnDeviceModelState.Unavailable(OnDeviceModelState.Unsupported.NO_PLAY_SERVICES)),
+        )
+        noGms.selectTool(ImageTool.CUTOUT)
+        assertThat(ready(noGms).cutoutStatus).isEqualTo(CutoutStatus.NoPlayServices)
+        noGms.removeBackground()
+        assertThat(ready(noGms).displayed.cutout).isNull()
+    }
+
+    /** 처음에는 [initial] 상태이고, 내려받기를 부르면 진행 상황을 낸 뒤 [result]로 끝나는 가짜 배경 제거기. */
+    private class DownloadingRemover(
+        private var initial: OnDeviceModelState = OnDeviceModelState.NeedsDownload,
+        private val result: OnDeviceModelState = OnDeviceModelState.Ready,
+    ) : BackgroundRemover {
+        var downloads = 0
+
+        override suspend fun modelState(): OnDeviceModelState = initial
+
+        override fun downloadModel(): Flow<OnDeviceModelState> = flow {
+            downloads++
+            emit(OnDeviceModelState.Downloading(50, 100))
+            if (result == OnDeviceModelState.Ready) initial = OnDeviceModelState.Ready
+            emit(result)
+        }
+
+        override suspend fun subjectMask(image: Bitmap): Bitmap = LeftHalfRemover().subjectMask(image)
     }
 
     private class LeftHalfRemover : BackgroundRemover {

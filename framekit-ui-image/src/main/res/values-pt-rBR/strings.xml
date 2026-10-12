@@ -13,6 +13,7 @@
     <string name="framekit_cutout_processing">Encontrando o objeto…</string>
     <string name="framekit_cutout_description">Mantém o objeto principal e deixa o fundo transparente. Em JPEG, o fundo é preenchido com uma cor sólida; escolha PNG ou WEBP para manter a transparência.</string>
     <string name="framekit_cutout_unavailable">O modelo de remoção de fundo ainda está sendo preparado. Tente de novo em instantes.</string>
+    <string name="framekit_cutout_device_unsupported">Este dispositivo não é compatível com a remoção de fundo.</string>
     <string name="framekit_cutout_failed">Não foi possível remover o fundo. Tente de novo.</string>
     <string name="framekit_page_limit">Não é possível adicionar mais fotos.</string>
     <string name="framekit_page_position">Foto %1$d de %2$d</string>
@@ -41,4 +42,23 @@
     <string name="framekit_document_text_copy">Copiar texto</string>
     <string name="framekit_document_text_copied">Texto copiado</string>
     <string name="framekit_action_close_dialog">Fechar</string>
+    <string name="framekit_cutout_checking">Preparando a remoção de fundo…</string>
+    <string name="framekit_cutout_model_title">A remoção de fundo precisa de um modelo</string>
+    <string name="framekit_cutout_model_body">O modelo de IA que encontra o objeto principal é baixado uma única vez pelo Google Play Services.</string>
+    <string name="framekit_cutout_model_download">Baixar modelo</string>
+    <string name="framekit_cutout_model_dialog_title">Baixar o modelo de remoção de fundo?</string>
+    <string name="framekit_cutout_model_dialog_body">Só é preciso baixar uma vez. Depois disso, o fundo é removido no próprio dispositivo, mesmo off-line.</string>
+    <string name="framekit_cutout_model_privacy">Suas fotos nunca saem do dispositivo.</string>
+    <string name="framekit_cutout_model_data_warning">Se você não estiver no Wi-Fi, os dados móveis serão usados e poderá haver cobrança.</string>
+    <string name="framekit_cutout_model_metered_warning">Você está usando dados móveis. Pode haver cobrança conforme seu plano, por isso recomendamos o Wi-Fi.</string>
+    <string name="framekit_cutout_model_downloading">Baixando modelo</string>
+    <string name="framekit_cutout_model_installing">Concluindo a instalação</string>
+    <string name="framekit_cutout_model_progress">%1$s / %2$s</string>
+    <string name="framekit_cutout_model_note">Você pode continuar editando. Se fechar o app, o download continua na próxima vez.</string>
+    <string name="framekit_cutout_model_failed_network">Não foi possível baixar porque não há conexão com a internet. Verifique a conexão e tente de novo.</string>
+    <string name="framekit_cutout_model_failed">Não foi possível baixar o modelo. Tente de novo mais tarde.</string>
+    <string name="framekit_cutout_no_play_services">A remoção de fundo não está disponível porque este dispositivo não tem o Google Play Services.</string>
+    <string name="framekit_cutout_model_ready">A remoção de fundo está pronta para uso</string>
+    <string name="framekit_action_download">Baixar</string>
+    <string name="framekit_action_later">Depois</string>
 </resources>

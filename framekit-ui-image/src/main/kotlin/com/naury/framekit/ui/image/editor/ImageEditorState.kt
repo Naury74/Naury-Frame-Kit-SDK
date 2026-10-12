@@ -33,6 +33,7 @@ internal sealed interface ImageEditorUiState {
         val export: ExportUiState? = null,
         val showDiscardDialog: Boolean = false,
         val showDraftDialog: Boolean = false,
+        val showModelDownloadDialog: Boolean = false,
         /** 문서 보정 도구에서 맞추는 네 모서리. 도구가 열려 있지 않으면 `null`. */
         val documentQuad: DocumentQuad? = null,
         /** 문서를 펴는 중이면 `true`. */
@@ -91,7 +92,32 @@ internal data class BrushSettings(
 internal sealed interface CutoutStatus {
     data object Processing : CutoutStatus
     data class Failed(val code: EditorErrorCode) : CutoutStatus
+
+    /** 모델이 이 기기에서 동작하지 못했다. 다시 시도해도 소용없으므로 버튼을 숨기고, 도구 목록에서도 뺀다. */
+    data object DeviceUnsupported : CutoutStatus
+
+    /** 모델이 준비됐는지 확인하는 중. */
+    data object ModelChecking : CutoutStatus
+
+    /** 모델을 내려받아야 한다. 사용자가 데이터 사용 안내를 보고 받기로 해야 받는다. */
+    data object ModelNeedsDownload : CutoutStatus
+
+    /** 모델을 내려받는 중. 크기를 아직 모르면 [total]이 `0`. */
+    data class ModelDownloading(val bytes: Long, val total: Long, val installing: Boolean) : CutoutStatus {
+        val fraction: Float? get() = if (total > 0) (bytes.toFloat() / total).coerceIn(0f, 1f) else null
+    }
+
+    /** 내려받지 못했다. 다시 시도할 수 있다. */
+    data class ModelDownloadFailed(val noNetwork: Boolean) : CutoutStatus
+
+    /** Google Play 서비스가 없어 쓸 수 없다. */
+    data object NoPlayServices : CutoutStatus
 }
+
+/** 배경 제거를 바로 실행할 수 없게 막는 상태(모델 확인·내려받기·사용 불가). */
+internal val CutoutStatus?.blocksRemoval: Boolean
+    get() = this is CutoutStatus.ModelChecking || this is CutoutStatus.ModelNeedsDownload || this is CutoutStatus.ModelDownloading ||
+        this is CutoutStatus.ModelDownloadFailed || this is CutoutStatus.NoPlayServices || this is CutoutStatus.DeviceUnsupported
 
 /** 디스크에서 세션을 복원한 뒤 한 번 보여주는 메시지. */
 internal enum class SessionNotice {
@@ -109,6 +135,9 @@ internal enum class SessionNotice {
 
     /** 문서를 펴지 못했다(메모리·저장 공간 부족 등). 편집은 그대로다. */
     DOCUMENT_FAILED,
+
+    /** 배경 제거 도구를 닫은 사이에 모델을 다 받았다. */
+    CUTOUT_MODEL_READY,
 }
 
 internal sealed interface ExportUiState {

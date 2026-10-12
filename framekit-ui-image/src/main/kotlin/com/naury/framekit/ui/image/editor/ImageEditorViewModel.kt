@@ -1,6 +1,16 @@
 package com.naury.framekit.ui.image.editor
 
+import android.graphics.Canvas
+import com.naury.framekit.core.model.PixelSize
+import com.naury.framekit.core.model.SourceMetadata
+import com.naury.framekit.image.render.ImagePreviewRenderer
+import com.naury.framekit.image.overlay.OverlayRenderer
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.delay
 import com.naury.framekit.image.ocr.TextRecognizer
+import com.naury.framekit.image.ml.OnDeviceModelState
 import com.naury.framekit.core.document.ScanMode
 import com.naury.framekit.image.document.DocumentRectifier
 import com.naury.framekit.core.document.DocumentQuad
@@ -136,8 +146,13 @@ internal class ImageEditorViewModel(
 
     private val _pageThumbnails = MutableStateFlow<Map<String, Bitmap>>(emptyMap())
 
-    /** 여러 장 편집에서 쪽 id별 작은 미리보기. */
+    /** 여러 장 편집에서 쪽 id별 작은 미리보기. 지금 쪽은 편집 내용(적용 전 초안 포함)을 반영해 다시 그린다. */
     val pageThumbnails: StateFlow<Map<String, Bitmap>> = _pageThumbnails.asStateFlow()
+
+    // 지금 쪽 미리보기를 다시 그릴 요청. 최신 것만 그리고, 슬라이더를 끄는 동안에는 잠깐 기다렸다가 그린다.
+    private val pageThumbnailRequests = MutableStateFlow<PageThumbnailRequest?>(null)
+    private val pageThumbnailRenderer by lazy { ImagePreviewRenderer(colorRenderer) }
+    private val pageOverlayRenderer by lazy { OverlayRenderer() }
 
     /** 화면 쪽 목록에 보일 순서대로의 쪽 id. */
     val pageIds: List<String> get() = pages.map { it.id }
@@ -163,8 +178,16 @@ internal class ImageEditorViewModel(
     /** 에셋 id별로 로드된 배경 제거 마스크. */
     val cutoutMasks: StateFlow<Map<String, Bitmap>> = _cutoutMasks.asStateFlow()
 
-    /** 선택적 배경 제거기가 설치되어 있고 도구가 활성화되어 있으면 `true`. */
-    val cutoutAvailable: Boolean get() = backgroundRemover != null && ImageTool.CUTOUT in config.enabledTools
+    /**
+     * 선택적 배경 제거기가 설치되어 있고 이 기기에서 쓸 수 있으며 도구가 활성화되어 있으면 `true`.
+     * 배경 제거 중에 모델이 이 기기에서 동작하지 못한 것을 알게 되면 `false`가 되어 도구 목록에서 빠진다.
+     */
+    val cutoutAvailable: Boolean get() = backgroundRemover?.isAvailable == true && ImageTool.CUTOUT in config.enabledTools
+
+    // 배경 제거 모델 확인·내려받기. 내려받기는 도구를 닫아도 계속한다.
+    private var cutoutModelJob: Job? = null
+    private var cutoutModelChecked = false
+    private var removeAfterDownload = false
 
     // 권한을 잃은 원본을 다시 고를 때까지 이전 세션을 들고 있다가, 같은 이미지인지 확인한 뒤에만 복원한다.
     private var pendingRestore: SessionRecord? = null
@@ -188,7 +211,16 @@ internal class ImageEditorViewModel(
                 if (current is ImageEditorUiState.Ready) {
                     ensureCutoutMask(current.displayed.cutout?.maskAssetId)
                     requestPreview(current)
+                    requestPageThumbnail(current)
+                    ensureCutoutModelChecked(current)
                 }
+            }
+        }
+        viewModelScope.launch {
+            pageThumbnailRequests.filterNotNull().distinctUntilChanged().collectLatest { request ->
+                delay(PAGE_THUMBNAIL_DEBOUNCE_MILLIS)
+                val thumbnail = withContext(renderDispatcher) { renderPageThumbnail(request) } ?: return@collectLatest
+                if (pages.any { it.id == request.pageId }) _pageThumbnails.update { it + (request.pageId to thumbnail) }
             }
         }
         viewModelScope.launch { cutoutMasks.collect { (state.value as? ImageEditorUiState.Ready)?.let(::requestPreview) } }
@@ -204,6 +236,31 @@ internal class ImageEditorViewModel(
         val mask = project.cutout?.let { _cutoutMasks.value[it.maskAssetId] }
         previewController.request(ready.preview, project, ready.source.metadata, mode, mask)
         if (ready.activeTool == ImageTool.FILTER) previewController.ensureThumbnails(ready.preview)
+    }
+
+    private fun requestPageThumbnail(ready: ImageEditorUiState.Ready) {
+        if (pageLimit <= 1) return
+        val page = pages.getOrNull(pageIndex) ?: return
+        // 쪽을 옮기는 사이에는 상태가 아직 이전 쪽일 수 있다. 원본이 같을 때만 지금 쪽 미리보기로 쓴다.
+        if (page.sourceId != ready.displayed.source) return
+        val project = ready.displayed
+        pageThumbnailRequests.value = PageThumbnailRequest(page.id, ready.preview, project, ready.source.metadata, project.cutout?.let { _cutoutMasks.value[it.maskAssetId] })
+    }
+
+    // 미리보기와 같은 렌더러로 결과 화면을 작게 그리고, 텍스트·스티커·그리기를 그 위에 얹는다. 실패하면 이전 미리보기를 둔다.
+    private fun renderPageThumbnail(request: PageThumbnailRequest): Bitmap? = try {
+        pageThumbnailRenderer.render(request.source, request.project, request.metadata, PreviewMode.RESULT, PAGE_THUMBNAIL_PX, PAGE_THUMBNAIL_PX, request.cutoutMask).also { bitmap ->
+            val project = request.project
+            if (project.overlays.isNotEmpty() || project.drawing.isNotEmpty()) {
+                pageOverlayRenderer.draw(Canvas(bitmap), PixelSize(bitmap.width, bitmap.height), project.overlays, project.drawing)
+            }
+        }
+    } catch (cancelled: CancellationException) {
+        throw cancelled
+    } catch (_: Exception) {
+        null
+    } catch (_: OutOfMemoryError) {
+        null
     }
 
     /** 캔버스가 픽셀 단위 크기와 함께 호출한다. 미리보기는 이 크기로 렌더링된다. */
@@ -481,7 +538,8 @@ internal class ImageEditorViewModel(
                         BitmapDecoder(registry, contentResolver).decode(info, SampleSize.forMinimumLongEdge(info.encodedSize, PAGE_THUMBNAIL_PX)).bitmap
                     }.getOrNull()
                 } ?: return@forEach
-                _pageThumbnails.update { it + (page.id to thumbnail) }
+                // 그사이 편집 내용으로 다시 그린 미리보기가 있으면 원본으로 덮지 않는다.
+                _pageThumbnails.update { if (page.id in it) it else it + (page.id to thumbnail) }
             }
         }
     }
@@ -919,7 +977,7 @@ internal class ImageEditorViewModel(
     fun removeBackground() {
         val ready = _state.value as? ImageEditorUiState.Ready ?: return
         val remover = backgroundRemover ?: return
-        if (ready.cutoutStatus == CutoutStatus.Processing || ready.transaction.isActive) return
+        if (ready.cutoutStatus == CutoutStatus.Processing || ready.cutoutStatus.blocksRemoval || ready.transaction.isActive) return
         val assets = assets() ?: return
         updateReady { it.copy(cutoutStatus = CutoutStatus.Processing) }
         viewModelScope.launch {
@@ -933,11 +991,109 @@ internal class ImageEditorViewModel(
                 throw cancelled
             } catch (error: FrameKitException) {
                 logFailure("cutout", error)
-                updateReady { it.copy(cutoutStatus = CutoutStatus.Failed(error.code)) }
+                when {
+                    !remover.isAvailable -> updateReady { it.copy(cutoutStatus = CutoutStatus.DeviceUnsupported) }
+                    // 모델이 없어졌거나(Play 서비스가 지운 경우 등) 아직이면 상태를 다시 확인해 내려받기 안내로 이어 간다.
+                    error.code == EditorErrorCode.UNSUPPORTED_OPERATION -> recheckCutoutModel(fallback = CutoutStatus.Failed(error.code))
+                    else -> updateReady { it.copy(cutoutStatus = CutoutStatus.Failed(error.code)) }
+                }
             } catch (error: Exception) {
                 logFailure("cutout", FrameKitException(EditorErrorCode.UNKNOWN, cause = error))
                 updateReady { it.copy(cutoutStatus = CutoutStatus.Failed(EditorErrorCode.UNKNOWN)) }
             }
+        }
+    }
+
+    // ---- 배경 제거 모델 ----
+
+    /** 배경 제거 도구가 열려 있으면 한 번 모델 상태를 확인한다. 세션을 복원해 도구가 열린 채 시작할 때도 여기로 온다. */
+    private fun ensureCutoutModelChecked(ready: ImageEditorUiState.Ready) {
+        if (ready.activeTool != ImageTool.CUTOUT || cutoutModelChecked || cutoutModelJob?.isActive == true) return
+        val remover = backgroundRemover ?: return
+        cutoutModelChecked = true
+        if (ready.cutoutStatus == null) updateReady { it.copy(cutoutStatus = CutoutStatus.ModelChecking) }
+        cutoutModelJob = viewModelScope.launch {
+            val state = queryModelState(remover)
+            applyModelState(state)
+            // 전에 받기 시작한 것이 끝나지 않았으면(앱이 중간에 끝난 경우 등) 이어서 따라간다.
+            if (state is OnDeviceModelState.Downloading) collectDownload(remover)
+        }
+    }
+
+    private fun recheckCutoutModel(fallback: CutoutStatus) {
+        val remover = backgroundRemover ?: return
+        cutoutModelJob = viewModelScope.launch {
+            val state = queryModelState(remover)
+            if (state is OnDeviceModelState.Ready) updateReady { it.copy(cutoutStatus = fallback) } else applyModelState(state)
+        }
+    }
+
+    private suspend fun queryModelState(remover: BackgroundRemover): OnDeviceModelState = try {
+        remover.modelState()
+    } catch (cancelled: CancellationException) {
+        throw cancelled
+    } catch (_: Exception) {
+        // 확인이 실패하면 막지 않는다. 실행해 보고 모델이 없으면 그때 다시 안내한다.
+        OnDeviceModelState.Ready
+    }
+
+    /** 패널의 "모델 내려받기". 데이터 사용 안내를 먼저 보여 준다. */
+    fun requestModelDownload() = updateReady { it.copy(showModelDownloadDialog = true) }
+
+    fun dismissModelDownloadDialog() = updateReady { it.copy(showModelDownloadDialog = false) }
+
+    /** 안내를 보고 받기로 했다. 다 받으면 도구가 열려 있을 때 바로 배경을 지운다. */
+    fun confirmModelDownload() {
+        updateReady { it.copy(showModelDownloadDialog = false) }
+        startModelDownload()
+    }
+
+    /** 내려받기 실패 후 다시 시도. 이미 데이터 사용에 동의했으므로 다시 묻지 않는다. */
+    fun retryModelDownload() = startModelDownload()
+
+    private fun startModelDownload() {
+        val remover = backgroundRemover ?: return
+        removeAfterDownload = true
+        cutoutModelJob?.cancel()
+        cutoutModelJob = viewModelScope.launch { collectDownload(remover) }
+    }
+
+    private suspend fun collectDownload(remover: BackgroundRemover) {
+        try {
+            remover.downloadModel().collect { state ->
+                applyModelState(state)
+                if (state is OnDeviceModelState.Ready) onCutoutModelReady()
+            }
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (_: Exception) {
+            applyModelState(OnDeviceModelState.DownloadFailed(OnDeviceModelState.Failure.OTHER))
+        }
+    }
+
+    private fun applyModelState(state: OnDeviceModelState) {
+        val status = when (state) {
+            OnDeviceModelState.Ready -> null
+            OnDeviceModelState.NeedsDownload -> CutoutStatus.ModelNeedsDownload
+            is OnDeviceModelState.Downloading -> CutoutStatus.ModelDownloading(state.bytesDownloaded, state.totalBytes, state.installing)
+            is OnDeviceModelState.DownloadFailed -> CutoutStatus.ModelDownloadFailed(state.reason == OnDeviceModelState.Failure.NO_NETWORK)
+            is OnDeviceModelState.Unavailable -> when (state.reason) {
+                OnDeviceModelState.Unsupported.NO_PLAY_SERVICES -> CutoutStatus.NoPlayServices
+                OnDeviceModelState.Unsupported.DEVICE -> CutoutStatus.DeviceUnsupported
+            }
+        }
+        // 배경을 지우는 중이면 그 표시를 덮지 않는다.
+        updateReady { if (it.cutoutStatus == CutoutStatus.Processing) it else it.copy(cutoutStatus = status) }
+    }
+
+    // 다 받으면 따로 누르지 않아도 이어서 쓸 수 있게 한다. 도구를 닫았으면 알림만 띄운다.
+    private fun onCutoutModelReady() {
+        val ready = _state.value as? ImageEditorUiState.Ready ?: return
+        val autoRun = removeAfterDownload
+        removeAfterDownload = false
+        when {
+            ready.activeTool != ImageTool.CUTOUT -> if (autoRun) updateReady { it.copy(notice = SessionNotice.CUTOUT_MODEL_READY) }
+            autoRun && ready.displayed.cutout == null -> removeBackground()
         }
     }
 
@@ -1299,10 +1455,20 @@ internal class ImageEditorViewModel(
         const val DOCUMENT_STALE_MILLIS = 7L * 24 * 60 * 60 * 1000
         const val MAIN_PAGE_ID = "main"
         const val PAGE_THUMBNAIL_PX = 200
+        const val PAGE_THUMBNAIL_DEBOUNCE_MILLIS = 150L
         const val SNAPSHOT_DEBOUNCE_MILLIS = 300L
         const val MIN_MASK_SIZE = 0.01
     }
 }
+
+/** 지금 쪽 미리보기를 편집 내용대로 다시 그릴 때 필요한 것. */
+private data class PageThumbnailRequest(
+    val pageId: String,
+    val source: DecodedImage,
+    val project: ImageProject,
+    val metadata: SourceMetadata,
+    val cutoutMask: Bitmap?,
+)
 
 /** 여러 장 편집의 한 쪽. 아직 열지 않은 쪽은 [transaction]이 `null`이다. */
 private class Page(val id: String, val input: EditorInput, val original: EditorInput? = null) {
