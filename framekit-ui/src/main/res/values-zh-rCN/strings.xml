@@ -163,4 +163,23 @@
     <string name="framekit_filter_hint">选择滤镜即可调整强度</string>
     <string name="framekit_draft_apply">应用%1$s</string>
     <string name="framekit_draft_discard">放弃%1$s</string>
+    <string name="framekit_track_music">背景音乐</string>
+    <string name="framekit_track_music_add">添加音乐</string>
+    <string name="framekit_track_voice">语音</string>
+    <string name="framekit_track_voice_add">添加语音文件</string>
+    <string name="framekit_track_replace">更换</string>
+    <string name="framekit_track_remove">删除</string>
+    <string name="framekit_track_volume">音量</string>
+    <string name="framekit_track_offset">音频起始位置</string>
+    <string name="framekit_track_loop">循环</string>
+    <string name="framekit_track_start_here">从播放位置开始</string>
+    <string name="framekit_track_untitled">音频</string>
+    <string name="framekit_voice_record">录音</string>
+    <string name="framekit_voice_recording">正在录音…</string>
+    <string name="framekit_voice_waiting">正在准备麦克风…</string>
+    <string name="framekit_voice_stop">完成</string>
+    <string name="framekit_voice_permission_denied">录音需要麦克风权限，可在设置中允许。</string>
+    <string name="framekit_voice_failed">无法使用麦克风，可能有其他应用正在使用。</string>
+    <string name="framekit_voice_too_short">录音太短。</string>
+    <string name="framekit_track_sound_mp4_only">只有保存为 MP4 时才包含声音，GIF 和 WebP 无法包含声音。</string>
 </resources>

@@ -166,4 +166,23 @@
     <string name="framekit_filter_hint">Выберите фильтр, чтобы настроить его силу</string>
     <string name="framekit_draft_apply">Применить: %1$s</string>
     <string name="framekit_draft_discard">Отменить: %1$s</string>
+    <string name="framekit_track_music">Фоновая музыка</string>
+    <string name="framekit_track_music_add">Добавить музыку</string>
+    <string name="framekit_track_voice">Голос</string>
+    <string name="framekit_track_voice_add">Добавить файл с голосом</string>
+    <string name="framekit_track_replace">Заменить</string>
+    <string name="framekit_track_remove">Удалить</string>
+    <string name="framekit_track_volume">Громкость</string>
+    <string name="framekit_track_offset">Начало аудио</string>
+    <string name="framekit_track_loop">Повтор</string>
+    <string name="framekit_track_start_here">Начать с позиции</string>
+    <string name="framekit_track_untitled">Аудио</string>
+    <string name="framekit_voice_record">Записать</string>
+    <string name="framekit_voice_recording">Идёт запись…</string>
+    <string name="framekit_voice_waiting">Подготовка микрофона…</string>
+    <string name="framekit_voice_stop">Готово</string>
+    <string name="framekit_voice_permission_denied">Для записи нужно разрешение на микрофон. Его можно дать в настройках.</string>
+    <string name="framekit_voice_failed">Не удалось использовать микрофон. Возможно, он занят другим приложением.</string>
+    <string name="framekit_voice_too_short">Запись слишком короткая.</string>
+    <string name="framekit_track_sound_mp4_only">Звук сохраняется только в MP4. GIF и WebP не могут содержать звук.</string>
 </resources>

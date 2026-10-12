@@ -163,4 +163,23 @@
     <string name="framekit_filter_hint">เลือกฟิลเตอร์เพื่อปรับความเข้ม</string>
     <string name="framekit_draft_apply">ใช้ %1$s</string>
     <string name="framekit_draft_discard">ละทิ้ง %1$s</string>
+    <string name="framekit_track_music">เพลงประกอบ</string>
+    <string name="framekit_track_music_add">เพิ่มเพลง</string>
+    <string name="framekit_track_voice">เสียงพูด</string>
+    <string name="framekit_track_voice_add">เพิ่มไฟล์เสียงพูด</string>
+    <string name="framekit_track_replace">เปลี่ยน</string>
+    <string name="framekit_track_remove">ลบ</string>
+    <string name="framekit_track_volume">ระดับเสียง</string>
+    <string name="framekit_track_offset">จุดเริ่มเสียง</string>
+    <string name="framekit_track_loop">วนซ้ำ</string>
+    <string name="framekit_track_start_here">เริ่มที่ตำแหน่งเล่น</string>
+    <string name="framekit_track_untitled">เสียง</string>
+    <string name="framekit_voice_record">อัดเสียง</string>
+    <string name="framekit_voice_recording">กำลังอัดเสียง…</string>
+    <string name="framekit_voice_waiting">กำลังเตรียมไมโครโฟน…</string>
+    <string name="framekit_voice_stop">เสร็จ</string>
+    <string name="framekit_voice_permission_denied">ต้องใช้สิทธิ์ไมโครโฟนเพื่ออัดเสียง อนุญาตได้ในการตั้งค่า</string>
+    <string name="framekit_voice_failed">ใช้ไมโครโฟนไม่ได้ แอปอื่นอาจกำลังใช้อยู่</string>
+    <string name="framekit_voice_too_short">เสียงที่อัดสั้นเกินไป</string>
+    <string name="framekit_track_sound_mp4_only">เสียงจะถูกบันทึกเฉพาะไฟล์ MP4 เท่านั้น GIF และ WebP ใส่เสียงไม่ได้</string>
 </resources>

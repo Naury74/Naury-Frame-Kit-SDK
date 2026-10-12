@@ -166,4 +166,23 @@
     <string name="framekit_filter_hint">Choisissez un filtre pour régler son intensité</string>
     <string name="framekit_draft_apply">Appliquer %1$s</string>
     <string name="framekit_draft_discard">Annuler %1$s</string>
+    <string name="framekit_track_music">Musique de fond</string>
+    <string name="framekit_track_music_add">Ajouter une musique</string>
+    <string name="framekit_track_voice">Voix</string>
+    <string name="framekit_track_voice_add">Ajouter un fichier vocal</string>
+    <string name="framekit_track_replace">Remplacer</string>
+    <string name="framekit_track_remove">Supprimer</string>
+    <string name="framekit_track_volume">Volume</string>
+    <string name="framekit_track_offset">Début de l\'audio</string>
+    <string name="framekit_track_loop">Répéter</string>
+    <string name="framekit_track_start_here">Commencer à la tête de lecture</string>
+    <string name="framekit_track_untitled">Audio</string>
+    <string name="framekit_voice_record">Enregistrer</string>
+    <string name="framekit_voice_recording">Enregistrement…</string>
+    <string name="framekit_voice_waiting">Préparation du micro…</string>
+    <string name="framekit_voice_stop">Terminé</string>
+    <string name="framekit_voice_permission_denied">L\'autorisation du micro est nécessaire pour enregistrer. Vous pouvez l\'accorder dans les paramètres.</string>
+    <string name="framekit_voice_failed">Impossible d\'utiliser le micro. Une autre appli l\'utilise peut-être.</string>
+    <string name="framekit_voice_too_short">L\'enregistrement est trop court.</string>
+    <string name="framekit_track_sound_mp4_only">Le son n\'est enregistré qu\'en MP4. Les GIF et WebP ne peuvent pas contenir de son.</string>
 </resources>

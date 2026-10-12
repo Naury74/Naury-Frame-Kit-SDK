@@ -166,4 +166,23 @@
     <string name="framekit_filter_hint">Escolha um filtro para ajustar a intensidade</string>
     <string name="framekit_draft_apply">Aplicar %1$s</string>
     <string name="framekit_draft_discard">Descartar %1$s</string>
+    <string name="framekit_track_music">Música de fundo</string>
+    <string name="framekit_track_music_add">Adicionar música</string>
+    <string name="framekit_track_voice">Voz</string>
+    <string name="framekit_track_voice_add">Adicionar arquivo de voz</string>
+    <string name="framekit_track_replace">Trocar</string>
+    <string name="framekit_track_remove">Remover</string>
+    <string name="framekit_track_volume">Volume</string>
+    <string name="framekit_track_offset">Início do áudio</string>
+    <string name="framekit_track_loop">Repetir</string>
+    <string name="framekit_track_start_here">Começar na posição</string>
+    <string name="framekit_track_untitled">Áudio</string>
+    <string name="framekit_voice_record">Gravar</string>
+    <string name="framekit_voice_recording">Gravando…</string>
+    <string name="framekit_voice_waiting">Preparando o microfone…</string>
+    <string name="framekit_voice_stop">Concluir</string>
+    <string name="framekit_voice_permission_denied">É preciso permitir o microfone para gravar. Você pode permitir nas Configurações.</string>
+    <string name="framekit_voice_failed">Não foi possível usar o microfone. Outro app pode estar usando.</string>
+    <string name="framekit_voice_too_short">A gravação ficou curta demais.</string>
+    <string name="framekit_track_sound_mp4_only">O som só é salvo em MP4. GIF e WebP não podem ter som.</string>
 </resources>

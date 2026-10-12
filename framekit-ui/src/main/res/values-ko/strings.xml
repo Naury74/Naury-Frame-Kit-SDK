@@ -166,4 +166,23 @@
     <string name="framekit_filter_hint">필터를 고르면 강도를 조절할 수 있어요</string>
     <string name="framekit_draft_apply">%1$s 적용</string>
     <string name="framekit_draft_discard">%1$s 취소</string>
+    <string name="framekit_track_music">배경 음악</string>
+    <string name="framekit_track_music_add">음악 추가</string>
+    <string name="framekit_track_voice">음성</string>
+    <string name="framekit_track_voice_add">음성 파일 추가</string>
+    <string name="framekit_track_replace">바꾸기</string>
+    <string name="framekit_track_remove">삭제</string>
+    <string name="framekit_track_volume">볼륨</string>
+    <string name="framekit_track_offset">소리 시작 위치</string>
+    <string name="framekit_track_loop">반복</string>
+    <string name="framekit_track_start_here">재생 위치에서 시작</string>
+    <string name="framekit_track_untitled">소리</string>
+    <string name="framekit_voice_record">녹음</string>
+    <string name="framekit_voice_recording">녹음하는 중…</string>
+    <string name="framekit_voice_waiting">마이크를 준비하고 있어요…</string>
+    <string name="framekit_voice_stop">완료</string>
+    <string name="framekit_voice_permission_denied">녹음하려면 마이크 권한이 필요해요. 설정에서 허용할 수 있어요.</string>
+    <string name="framekit_voice_failed">마이크를 쓸 수 없어요. 다른 앱이 쓰고 있을 수 있어요.</string>
+    <string name="framekit_voice_too_short">녹음이 너무 짧아요.</string>
+    <string name="framekit_track_sound_mp4_only">소리는 MP4로 저장할 때만 담겨요. GIF·WebP에는 소리를 넣을 수 없어요.</string>
 </resources>

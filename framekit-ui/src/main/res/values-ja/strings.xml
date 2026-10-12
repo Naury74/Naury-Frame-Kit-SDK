@@ -163,4 +163,23 @@
     <string name="framekit_filter_hint">フィルタを選ぶと強さを調整できます</string>
     <string name="framekit_draft_apply">%1$sを適用</string>
     <string name="framekit_draft_discard">%1$sを破棄</string>
+    <string name="framekit_track_music">BGM</string>
+    <string name="framekit_track_music_add">音楽を追加</string>
+    <string name="framekit_track_voice">音声</string>
+    <string name="framekit_track_voice_add">音声ファイルを追加</string>
+    <string name="framekit_track_replace">変更</string>
+    <string name="framekit_track_remove">削除</string>
+    <string name="framekit_track_volume">音量</string>
+    <string name="framekit_track_offset">音声の開始位置</string>
+    <string name="framekit_track_loop">繰り返し</string>
+    <string name="framekit_track_start_here">再生位置から開始</string>
+    <string name="framekit_track_untitled">音声</string>
+    <string name="framekit_voice_record">録音</string>
+    <string name="framekit_voice_recording">録音中…</string>
+    <string name="framekit_voice_waiting">マイクを準備しています…</string>
+    <string name="framekit_voice_stop">完了</string>
+    <string name="framekit_voice_permission_denied">録音にはマイクの許可が必要です。設定で許可できます。</string>
+    <string name="framekit_voice_failed">マイクを使用できません。他のアプリが使用中の可能性があります。</string>
+    <string name="framekit_voice_too_short">録音が短すぎます。</string>
+    <string name="framekit_track_sound_mp4_only">音声はMP4で保存したときだけ含まれます。GIF・WebPには音声を入れられません。</string>
 </resources>

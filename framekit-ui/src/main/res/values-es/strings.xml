@@ -166,4 +166,23 @@
     <string name="framekit_filter_hint">Elige un filtro para ajustar su intensidad</string>
     <string name="framekit_draft_apply">Aplicar %1$s</string>
     <string name="framekit_draft_discard">Descartar %1$s</string>
+    <string name="framekit_track_music">Música de fondo</string>
+    <string name="framekit_track_music_add">Añadir música</string>
+    <string name="framekit_track_voice">Voz</string>
+    <string name="framekit_track_voice_add">Añadir archivo de voz</string>
+    <string name="framekit_track_replace">Cambiar</string>
+    <string name="framekit_track_remove">Quitar</string>
+    <string name="framekit_track_volume">Volumen</string>
+    <string name="framekit_track_offset">Inicio del audio</string>
+    <string name="framekit_track_loop">Repetir</string>
+    <string name="framekit_track_start_here">Empezar en la posición</string>
+    <string name="framekit_track_untitled">Audio</string>
+    <string name="framekit_voice_record">Grabar</string>
+    <string name="framekit_voice_recording">Grabando…</string>
+    <string name="framekit_voice_waiting">Preparando el micrófono…</string>
+    <string name="framekit_voice_stop">Listo</string>
+    <string name="framekit_voice_permission_denied">Se necesita permiso del micrófono para grabar. Puedes darlo en Ajustes.</string>
+    <string name="framekit_voice_failed">No se pudo usar el micrófono. Puede que otra app lo esté usando.</string>
+    <string name="framekit_voice_too_short">La grabación es demasiado corta.</string>
+    <string name="framekit_track_sound_mp4_only">El sonido solo se guarda en MP4. GIF y WebP no pueden contener sonido.</string>
 </resources>

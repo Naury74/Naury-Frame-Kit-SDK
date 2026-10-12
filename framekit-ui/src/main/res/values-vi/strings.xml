@@ -163,4 +163,23 @@
     <string name="framekit_filter_hint">Chọn bộ lọc để chỉnh cường độ</string>
     <string name="framekit_draft_apply">Áp dụng %1$s</string>
     <string name="framekit_draft_discard">Bỏ %1$s</string>
+    <string name="framekit_track_music">Nhạc nền</string>
+    <string name="framekit_track_music_add">Thêm nhạc</string>
+    <string name="framekit_track_voice">Giọng nói</string>
+    <string name="framekit_track_voice_add">Thêm tệp giọng nói</string>
+    <string name="framekit_track_replace">Thay</string>
+    <string name="framekit_track_remove">Xóa</string>
+    <string name="framekit_track_volume">Âm lượng</string>
+    <string name="framekit_track_offset">Vị trí bắt đầu âm thanh</string>
+    <string name="framekit_track_loop">Lặp lại</string>
+    <string name="framekit_track_start_here">Bắt đầu tại vị trí phát</string>
+    <string name="framekit_track_untitled">Âm thanh</string>
+    <string name="framekit_voice_record">Ghi âm</string>
+    <string name="framekit_voice_recording">Đang ghi âm…</string>
+    <string name="framekit_voice_waiting">Đang chuẩn bị micrô…</string>
+    <string name="framekit_voice_stop">Xong</string>
+    <string name="framekit_voice_permission_denied">Cần quyền micrô để ghi âm. Bạn có thể cho phép trong Cài đặt.</string>
+    <string name="framekit_voice_failed">Không dùng được micrô. Có thể ứng dụng khác đang dùng.</string>
+    <string name="framekit_voice_too_short">Bản ghi quá ngắn.</string>
+    <string name="framekit_track_sound_mp4_only">Âm thanh chỉ được lưu khi lưu dưới dạng MP4. GIF và WebP không chứa được âm thanh.</string>
 </resources>

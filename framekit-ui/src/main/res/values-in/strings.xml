@@ -163,4 +163,23 @@
     <string name="framekit_filter_hint">Pilih filter untuk mengatur kekuatannya</string>
     <string name="framekit_draft_apply">Terapkan %1$s</string>
     <string name="framekit_draft_discard">Buang %1$s</string>
+    <string name="framekit_track_music">Musik latar</string>
+    <string name="framekit_track_music_add">Tambah musik</string>
+    <string name="framekit_track_voice">Suara</string>
+    <string name="framekit_track_voice_add">Tambah file suara</string>
+    <string name="framekit_track_replace">Ganti</string>
+    <string name="framekit_track_remove">Hapus</string>
+    <string name="framekit_track_volume">Volume</string>
+    <string name="framekit_track_offset">Mulai audio dari</string>
+    <string name="framekit_track_loop">Ulangi</string>
+    <string name="framekit_track_start_here">Mulai di posisi putar</string>
+    <string name="framekit_track_untitled">Audio</string>
+    <string name="framekit_voice_record">Rekam</string>
+    <string name="framekit_voice_recording">Merekam…</string>
+    <string name="framekit_voice_waiting">Menyiapkan mikrofon…</string>
+    <string name="framekit_voice_stop">Selesai</string>
+    <string name="framekit_voice_permission_denied">Izin mikrofon diperlukan untuk merekam. Anda dapat mengizinkannya di Setelan.</string>
+    <string name="framekit_voice_failed">Mikrofon tidak dapat digunakan. Mungkin sedang dipakai aplikasi lain.</string>
+    <string name="framekit_voice_too_short">Rekaman terlalu pendek.</string>
+    <string name="framekit_track_sound_mp4_only">Suara hanya disimpan dalam MP4. GIF dan WebP tidak bisa berisi suara.</string>
 </resources>

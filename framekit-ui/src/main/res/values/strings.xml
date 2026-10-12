@@ -166,4 +166,23 @@
     <string name="framekit_filter_hint">Pick a filter to adjust its strength</string>
     <string name="framekit_draft_apply">Apply %1$s</string>
     <string name="framekit_draft_discard">Discard %1$s</string>
+    <string name="framekit_track_music">Background music</string>
+    <string name="framekit_track_music_add">Add music</string>
+    <string name="framekit_track_voice">Voice</string>
+    <string name="framekit_track_voice_add">Add voice file</string>
+    <string name="framekit_track_replace">Replace</string>
+    <string name="framekit_track_remove">Remove</string>
+    <string name="framekit_track_volume">Volume</string>
+    <string name="framekit_track_offset">Start in audio</string>
+    <string name="framekit_track_loop">Loop</string>
+    <string name="framekit_track_start_here">Start at playhead</string>
+    <string name="framekit_track_untitled">Audio</string>
+    <string name="framekit_voice_record">Record</string>
+    <string name="framekit_voice_recording">Recording…</string>
+    <string name="framekit_voice_waiting">Getting the microphone ready…</string>
+    <string name="framekit_voice_stop">Done</string>
+    <string name="framekit_voice_permission_denied">Microphone permission is needed to record. You can allow it in Settings.</string>
+    <string name="framekit_voice_failed">Couldn\'t use the microphone. Another app may be using it.</string>
+    <string name="framekit_voice_too_short">The recording was too short.</string>
+    <string name="framekit_track_sound_mp4_only">Sound is saved only in MP4. GIF and WebP can\'t contain sound.</string>
 </resources>

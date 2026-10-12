@@ -166,4 +166,23 @@
     <string name="framekit_filter_hint">Wähle einen Filter, um seine Stärke anzupassen</string>
     <string name="framekit_draft_apply">%1$s anwenden</string>
     <string name="framekit_draft_discard">%1$s verwerfen</string>
+    <string name="framekit_track_music">Hintergrundmusik</string>
+    <string name="framekit_track_music_add">Musik hinzufügen</string>
+    <string name="framekit_track_voice">Stimme</string>
+    <string name="framekit_track_voice_add">Sprachdatei hinzufügen</string>
+    <string name="framekit_track_replace">Ersetzen</string>
+    <string name="framekit_track_remove">Entfernen</string>
+    <string name="framekit_track_volume">Lautstärke</string>
+    <string name="framekit_track_offset">Audio-Startpunkt</string>
+    <string name="framekit_track_loop">Wiederholen</string>
+    <string name="framekit_track_start_here">An Wiedergabeposition starten</string>
+    <string name="framekit_track_untitled">Audio</string>
+    <string name="framekit_voice_record">Aufnehmen</string>
+    <string name="framekit_voice_recording">Aufnahme läuft…</string>
+    <string name="framekit_voice_waiting">Mikrofon wird vorbereitet…</string>
+    <string name="framekit_voice_stop">Fertig</string>
+    <string name="framekit_voice_permission_denied">Zum Aufnehmen wird die Mikrofonberechtigung benötigt. Du kannst sie in den Einstellungen erteilen.</string>
+    <string name="framekit_voice_failed">Das Mikrofon kann nicht verwendet werden. Möglicherweise nutzt es eine andere App.</string>
+    <string name="framekit_voice_too_short">Die Aufnahme ist zu kurz.</string>
+    <string name="framekit_track_sound_mp4_only">Ton wird nur in MP4 gespeichert. GIF und WebP können keinen Ton enthalten.</string>
 </resources>
