@@ -1,5 +1,6 @@
 package com.naury.framekit.image.export
 
+import com.naury.framekit.image.overlay.WatermarkRenderer
 import kotlinx.coroutines.CancellationException
 import com.naury.framekit.core.pdf.PdfTextLine
 import com.naury.framekit.image.ocr.TextRecognizers
@@ -83,6 +84,7 @@ public class ImageExportCoordinator(
 
     private val decoder = BitmapDecoder(resolver, contentResolver)
     private val overlayRenderer = OverlayRenderer()
+    private val watermarkRenderer = WatermarkRenderer()
     private val exifWriter = SafeExifWriter(resolver)
 
     /**
@@ -352,6 +354,8 @@ public class ImageExportCoordinator(
             if (project.overlays.isNotEmpty() || project.drawing.isNotEmpty()) {
                 overlayRenderer.draw(Canvas(rendered), outputSize, project.overlays, project.drawing)
             }
+            // 워터마크는 텍스트·스티커보다 위에 얹는다.
+            if (project.watermark != null) watermarkRenderer.draw(Canvas(rendered), outputSize, project.watermark)
         } catch (error: OutOfMemoryError) {
             rendered.recycle()
             throw FrameKitException(EditorErrorCode.INSUFFICIENT_MEMORY, "Effects did not fit in memory", error)
