@@ -89,4 +89,10 @@
     <string name="example_motion_edit_title">GIF·WebP 편집</string>
     <string name="example_motion_edit_description">움직이는 GIF·WebP를 열어 구간·속도·부메랑·필터·텍스트 편집</string>
     <string name="result_animated">움직이는 이미지</string>
+    <string name="example_chooser_title">무엇을 할지 묻기</string>
+    <string name="example_chooser_description">사진·영상을 고른 뒤 편집·PDF·움직이는 이미지·그대로 보내기 중에서 선택</string>
+    <string name="example_host_album_title">앱 앨범에서 고른 파일 넘기기</string>
+    <string name="example_host_album_description">호스트 앱이 먼저 고른 파일을 넘기면 FrameKit이 무엇을 할지 물어봄</string>
+    <string name="result_original">편집</string>
+    <string name="result_original_yes">안 함(원본)</string>
 </resources>

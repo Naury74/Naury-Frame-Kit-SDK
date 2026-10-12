@@ -90,4 +90,10 @@
     <string name="example_motion_edit_title">Редактировать GIF·WebP</string>
     <string name="example_motion_edit_description">Откройте анимированный GIF·WebP: обрезка, скорость, бумеранг, фильтры и текст</string>
     <string name="result_animated">Анимированное изображение</string>
+    <string name="example_chooser_title">Спросить, что сделать</string>
+    <string name="example_chooser_description">Выберите фото или видео, затем: редактировать, PDF, анимация или отправить как есть</string>
+    <string name="example_host_album_title">Передать файлы из альбома приложения</string>
+    <string name="example_host_album_description">Приложение выбирает файлы и передаёт их FrameKit, который спрашивает, что сделать</string>
+    <string name="result_original">Изменено</string>
+    <string name="result_original_yes">Нет (оригинал)</string>
 </resources>

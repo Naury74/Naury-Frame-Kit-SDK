@@ -90,4 +90,10 @@
     <string name="example_motion_edit_title">Edit a GIF or WebP</string>
     <string name="example_motion_edit_description">Open an animated GIF or WebP to trim, change speed, boomerang, filter and add text</string>
     <string name="result_animated">Animated image</string>
+    <string name="example_chooser_title">Ask what to do</string>
+    <string name="example_chooser_description">Pick photos or videos, then choose: edit, PDF, animated image or send as is</string>
+    <string name="example_host_album_title">Pass files from your app\'s album</string>
+    <string name="example_host_album_description">Your app picks the files first and hands them to FrameKit, which asks what to do</string>
+    <string name="result_original">Edited</string>
+    <string name="result_original_yes">Not edited (original)</string>
 </resources>

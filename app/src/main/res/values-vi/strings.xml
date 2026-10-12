@@ -88,4 +88,10 @@
     <string name="example_motion_edit_title">Chỉnh sửa GIF·WebP</string>
     <string name="example_motion_edit_description">Mở GIF·WebP động để cắt đoạn, đổi tốc độ, phát qua lại, thêm bộ lọc và chữ</string>
     <string name="result_animated">Ảnh động</string>
+    <string name="example_chooser_title">Hỏi muốn làm gì</string>
+    <string name="example_chooser_description">Chọn ảnh hoặc video rồi chọn chỉnh sửa, PDF, ảnh động hoặc gửi nguyên bản</string>
+    <string name="example_host_album_title">Chuyển tệp chọn từ album của ứng dụng</string>
+    <string name="example_host_album_description">Ứng dụng chọn tệp trước rồi giao cho FrameKit, FrameKit sẽ hỏi muốn làm gì</string>
+    <string name="result_original">Chỉnh sửa</string>
+    <string name="result_original_yes">Không (bản gốc)</string>
 </resources>

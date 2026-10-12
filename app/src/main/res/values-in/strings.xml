@@ -88,4 +88,10 @@
     <string name="example_motion_edit_title">Edit GIF·WebP</string>
     <string name="example_motion_edit_description">Buka GIF·WebP bergerak untuk memangkas, mengubah kecepatan, bolak-balik, filter, dan teks</string>
     <string name="result_animated">Gambar bergerak</string>
+    <string name="example_chooser_title">Tanya mau melakukan apa</string>
+    <string name="example_chooser_description">Pilih foto atau video, lalu pilih edit, PDF, gambar bergerak, atau kirim apa adanya</string>
+    <string name="example_host_album_title">Teruskan file dari album aplikasi</string>
+    <string name="example_host_album_description">Aplikasi memilih file dulu lalu menyerahkannya ke FrameKit, yang akan bertanya</string>
+    <string name="result_original">Diedit</string>
+    <string name="result_original_yes">Tidak (asli)</string>
 </resources>

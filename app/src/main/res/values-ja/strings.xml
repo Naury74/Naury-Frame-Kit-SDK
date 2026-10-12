@@ -88,4 +88,10 @@
     <string name="example_motion_edit_title">GIF・WebPを編集</string>
     <string name="example_motion_edit_description">動くGIF・WebPを開いて範囲・速度・ブーメラン・フィルター・テキストを編集</string>
     <string name="result_animated">動く画像</string>
+    <string name="example_chooser_title">何をするか選ぶ</string>
+    <string name="example_chooser_description">写真・動画を選んでから、編集・PDF・動く画像・そのまま送るを選択</string>
+    <string name="example_host_album_title">アプリのアルバムで選んだファイルを渡す</string>
+    <string name="example_host_album_description">アプリが先に選んだファイルを渡すと、FrameKitが何をするか尋ねます</string>
+    <string name="result_original">編集</string>
+    <string name="result_original_yes">なし（元のまま）</string>
 </resources>

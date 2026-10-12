@@ -122,6 +122,7 @@ private fun ResultCard(media: EditedMedia) {
         media.pageCount?.let { MetadataRow(stringResource(R.string.result_pages), "$it") }
         media.durationMs?.let { MetadataRow(stringResource(R.string.result_duration), String.format(Locale.ROOT, "%.2f s", it / 1000.0)) }
         MetadataRow(stringResource(R.string.result_mime), media.mimeType)
+        if (media.isOriginal) MetadataRow(stringResource(R.string.result_original), stringResource(R.string.result_original_yes))
         MetadataRow(stringResource(R.string.result_file_size), Formatter.formatShortFileSize(context, media.fileSize))
         MetadataRow(stringResource(R.string.result_warnings), media.warnings.joinToString("\n").ifEmpty { stringResource(R.string.result_none) })
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {

@@ -88,4 +88,10 @@
     <string name="example_motion_edit_title">แก้ไข GIF·WebP</string>
     <string name="example_motion_edit_description">เปิด GIF·WebP แบบเคลื่อนไหวเพื่อตัดช่วง ปรับความเร็ว เล่นกลับไปมา ใส่ฟิลเตอร์และข้อความ</string>
     <string name="result_animated">ภาพเคลื่อนไหว</string>
+    <string name="example_chooser_title">ถามว่าจะทำอะไร</string>
+    <string name="example_chooser_description">เลือกรูปหรือวิดีโอ แล้วเลือกแก้ไข PDF ภาพเคลื่อนไหว หรือส่งตามเดิม</string>
+    <string name="example_host_album_title">ส่งไฟล์ที่เลือกจากอัลบั้มของแอป</string>
+    <string name="example_host_album_description">แอปเลือกไฟล์ก่อนแล้วส่งให้ FrameKit ซึ่งจะถามว่าจะทำอะไร</string>
+    <string name="result_original">แก้ไข</string>
+    <string name="result_original_yes">ไม่ (ต้นฉบับ)</string>
 </resources>

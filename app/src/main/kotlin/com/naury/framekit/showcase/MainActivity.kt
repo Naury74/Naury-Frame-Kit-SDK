@@ -1,5 +1,10 @@
 package com.naury.framekit.showcase
 
+import androidx.compose.runtime.remember
+import com.naury.framekit.android.input.EditorInput
+import com.naury.framekit.FrameKitRequest
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.result.PickVisualMediaRequest
 import android.os.Bundle
 import android.os.SystemClock
 import androidx.activity.ComponentActivity
@@ -64,6 +69,18 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
+                // 호스트 앱의 앨범 화면을 흉내 낸다: 앱이 먼저 고르고, 고른 파일을 FrameKit에 넘겨 무엇을 할지 묻게 한다.
+                var pendingHost by remember { mutableStateOf<FrameKitRequest?>(null) }
+                val hostPicker = rememberLauncherForActivityResult(ActivityResultContracts.PickMultipleVisualMedia(10)) { uris ->
+                    val base = pendingHost
+                    pendingHost = null
+                    if (base != null && uris.isNotEmpty()) {
+                        val input = if (uris.size == 1) EditorInput.UriSource(uris.single()) else EditorInput.Multiple(uris.map(EditorInput::UriSource))
+                        launchedAt = SystemClock.elapsedRealtime()
+                        editor.launch(base.copy(input = input))
+                    }
+                }
+
                 val current = result
                 if (current == null && playground) {
                     BackHandler { playground = false }
@@ -80,7 +97,14 @@ class MainActivity : ComponentActivity() {
                         onLaunch = { example ->
                             launchedAt = SystemClock.elapsedRealtime()
                             val motion = example.motion
-                            if (motion != null) motionEditor.launch(motion) else editor.launch(example.request)
+                            when {
+                                motion != null -> motionEditor.launch(motion)
+                                example.hostPick -> {
+                                    pendingHost = example.request
+                                    hostPicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageAndVideo))
+                                }
+                                else -> editor.launch(example.request)
+                            }
                         },
                         onPlayground = { playground = true },
                     )

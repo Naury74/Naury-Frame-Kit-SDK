@@ -88,4 +88,10 @@
     <string name="example_motion_edit_title">编辑 GIF·WebP</string>
     <string name="example_motion_edit_description">打开动态 GIF·WebP，剪辑片段、调整速度、来回播放、滤镜和文字</string>
     <string name="result_animated">动图</string>
+    <string name="example_chooser_title">询问要做什么</string>
+    <string name="example_chooser_description">选好照片或视频后，选择编辑、PDF、动图或直接发送</string>
+    <string name="example_host_album_title">传入应用相册中选好的文件</string>
+    <string name="example_host_album_description">应用先选好文件再交给 FrameKit，由它询问要做什么</string>
+    <string name="result_original">编辑</string>
+    <string name="result_original_yes">未编辑（原件）</string>
 </resources>

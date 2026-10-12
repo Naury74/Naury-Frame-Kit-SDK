@@ -2,6 +2,7 @@ package com.naury.framekit.showcase
 
 import androidx.annotation.StringRes
 import com.naury.framekit.FrameKitRequest
+import com.naury.framekit.EditorChooser
 import com.naury.framekit.motion.export.MotionExportConfig
 import com.naury.framekit.motion.export.MotionFormat
 import com.naury.framekit.ui.motion.contract.MotionEditorRequest
@@ -25,13 +26,27 @@ import com.naury.framekit.video.export.VideoExportConfig
 
 /**
  * 홈 화면의 예제. 각 예제는 실제 요청으로 FrameKit을 실행한다. [motion]이 있으면 [request] 대신 움직이는 이미지 편집기로 연다.
+ * [hostPick]이면 호스트 앱이 먼저 사진·영상을 고르고(호스트의 앨범 화면을 흉내 냄) 고른 파일을 [request]의 입력으로 넘긴다.
  */
 enum class ShowcaseExample(
     @StringRes val title: Int,
     @StringRes val description: Int,
     val request: FrameKitRequest,
     val motion: MotionEditorRequest? = null,
+    val hostPick: Boolean = false,
 ) {
+    CHOOSER(
+        R.string.example_chooser_title,
+        R.string.example_chooser_description,
+        FrameKitRequest(EditorInput.Pick(MediaKind.ANY, maxItems = 10), chooser = EditorChooser.ASK),
+    ),
+    HOST_ALBUM(
+        R.string.example_host_album_title,
+        R.string.example_host_album_description,
+        // 입력은 호스트가 고른 뒤 Multiple로 바꿔 넘긴다. 여기서는 설정만 둔다.
+        FrameKitRequest(EditorInput.Pick(MediaKind.ANY, maxItems = 10), chooser = EditorChooser.ASK),
+        hostPick = true,
+    ),
     DEFAULT(
         R.string.example_default_title,
         R.string.example_default_description,

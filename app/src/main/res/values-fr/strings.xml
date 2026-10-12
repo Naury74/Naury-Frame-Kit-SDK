@@ -90,4 +90,10 @@
     <string name="example_motion_edit_title">Modifier un GIF·WebP</string>
     <string name="example_motion_edit_description">Ouvrez un GIF·WebP animé pour couper, changer la vitesse, faire un boomerang, ajouter filtres et texte</string>
     <string name="result_animated">Image animée</string>
+    <string name="example_chooser_title">Demander quoi faire</string>
+    <string name="example_chooser_description">Choisissez des photos ou vidéos, puis modifiez, créez un PDF, une image animée ou envoyez tel quel</string>
+    <string name="example_host_album_title">Transmettre des fichiers de l\'album de l\'appli</string>
+    <string name="example_host_album_description">Votre appli choisit les fichiers et les transmet à FrameKit, qui demande quoi faire</string>
+    <string name="result_original">Modifié</string>
+    <string name="result_original_yes">Non (original)</string>
 </resources>
