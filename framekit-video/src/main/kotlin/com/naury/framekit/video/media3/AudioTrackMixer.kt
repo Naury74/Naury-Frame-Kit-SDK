@@ -11,7 +11,9 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.MimeTypes
 import androidx.media3.common.audio.AudioProcessor
 import androidx.media3.common.util.UnstableApi
+import androidx.media3.transformer.AudioEncoderSettings
 import androidx.media3.transformer.Composition
+import androidx.media3.transformer.DefaultEncoderFactory
 import androidx.media3.transformer.EditedMediaItem
 import androidx.media3.transformer.EditedMediaItemSequence
 import androidx.media3.transformer.Effects
@@ -75,6 +77,27 @@ public object AudioTrackMixer {
         run(context.applicationContext, composition, output, onProgress)
     }
 
+    /**
+     * 영상 없이 소리 트랙만 섞어 AAC(M4A) 파일로 쓴다. 음성 편집기의 저장에 쓴다.
+     *
+     * @param durationUs 결과 길이(µs). 이보다 긴 소리는 자른다.
+     * @param bitrate AAC 비트레이트(bps).
+     * @throws FrameKitException 쓰지 못하면 `ENCODE_FAILED`.
+     */
+    public suspend fun mixAudioOnly(
+        context: Context,
+        durationUs: Long,
+        tracks: List<AudioMixTrack>,
+        output: File,
+        bitrate: Int = DEFAULT_BITRATE,
+        onProgress: (Float) -> Unit = {},
+    ): Unit = withContext(Dispatchers.Main) {
+        val sequences = tracks.mapNotNull { sequence(it, durationUs) }
+        if (sequences.isEmpty()) throw FrameKitException(EditorErrorCode.INVALID_PROJECT, "Nothing to export")
+        val composition = Composition.Builder(sequences).build()
+        run(context.applicationContext, composition, output, onProgress, bitrate)
+    }
+
     private fun sequence(track: AudioMixTrack, videoDurationUs: Long): EditedMediaItemSequence? {
         val segments = AudioPlacement.segments(track.clip, videoDurationUs)
         if (segments.none { it is AudioSegment.Play }) return null
@@ -116,7 +139,7 @@ public object AudioTrackMixer {
         return builder.build()
     }
 
-    private suspend fun run(context: Context, composition: Composition, output: File, onProgress: (Float) -> Unit) = coroutineScope {
+    private suspend fun run(context: Context, composition: Composition, output: File, onProgress: (Float) -> Unit, bitrate: Int? = null) = coroutineScope {
         val holder = arrayOfNulls<Transformer>(1)
         val poller = launch {
             val progress = ProgressHolder()
@@ -130,6 +153,15 @@ public object AudioTrackMixer {
             suspendCancellableCoroutine<Unit> { continuation ->
                 val transformer = Transformer.Builder(context)
                     .setAudioMimeType(MimeTypes.AUDIO_AAC)
+                    .apply {
+                        if (bitrate != null) {
+                            setEncoderFactory(
+                                DefaultEncoderFactory.Builder(context)
+                                    .setRequestedAudioEncoderSettings(AudioEncoderSettings.Builder().setBitrate(bitrate).build())
+                                    .build(),
+                            )
+                        }
+                    }
                     .addListener(object : Transformer.Listener {
                         override fun onCompleted(composition: Composition, exportResult: ExportResult) {
                             if (continuation.isActive) continuation.resume(Unit)
@@ -152,4 +184,7 @@ public object AudioTrackMixer {
     }
 
     private const val POLL_MS = 200L
+
+    /** 음성 저장 기본 비트레이트(bps). */
+    public const val DEFAULT_BITRATE: Int = 128_000
 }
