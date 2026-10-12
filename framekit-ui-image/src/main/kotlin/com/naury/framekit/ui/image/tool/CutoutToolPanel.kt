@@ -97,8 +97,16 @@ internal fun CutoutToolPanel(
                 color = colors.error,
                 style = MaterialTheme.typography.bodyMedium,
             )
-            applied -> OutlinedButton(onClick = onRestore, modifier = Modifier.fillMaxWidth()) {
-                Text(stringResource(R.string.framekit_cutout_restore), color = colors.foreground)
+            // 이미 지운 사진이면 다시 지우거나 원래 배경으로 되돌릴 수 있게 둘 다 보여 준다.
+            applied -> {
+                Button(
+                    onClick = onRemove,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(containerColor = colors.accent, contentColor = colors.onAccent),
+                ) { Text(stringResource(R.string.framekit_cutout_remove_again)) }
+                OutlinedButton(onClick = onRestore, modifier = Modifier.fillMaxWidth()) {
+                    Text(stringResource(R.string.framekit_cutout_restore), color = colors.foreground)
+                }
             }
             else -> Button(
                 onClick = onRemove,

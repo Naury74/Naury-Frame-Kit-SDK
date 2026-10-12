@@ -9,6 +9,7 @@
     <string name="framekit_brush_opacity">ความทึบ</string>
     <string name="framekit_tool_cutout">ลบพื้นหลัง</string>
     <string name="framekit_cutout_remove">ลบพื้นหลัง</string>
+    <string name="framekit_cutout_remove_again">ลบอีกครั้ง</string>
     <string name="framekit_cutout_restore">คืนค่าพื้นหลัง</string>
     <string name="framekit_cutout_processing">กำลังหาวัตถุหลัก…</string>
     <string name="framekit_cutout_description">เก็บวัตถุหลักไว้และทำให้พื้นหลังโปร่งใส หากบันทึกเป็น JPEG พื้นหลังจะถูกเติมด้วยสีทึบ เลือก PNG หรือ WEBP เพื่อคงความโปร่งใส</string>

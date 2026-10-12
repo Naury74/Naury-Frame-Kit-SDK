@@ -9,6 +9,7 @@
     <string name="framekit_brush_opacity">Độ mờ đục</string>
     <string name="framekit_tool_cutout">Tách nền</string>
     <string name="framekit_cutout_remove">Xóa nền</string>
+    <string name="framekit_cutout_remove_again">Xóa lại</string>
     <string name="framekit_cutout_restore">Khôi phục nền</string>
     <string name="framekit_cutout_processing">Đang tìm chủ thể…</string>
     <string name="framekit_cutout_description">Giữ lại chủ thể và làm nền trong suốt. Khi lưu JPEG, nền sẽ được tô một màu; hãy chọn PNG hoặc WEBP để giữ độ trong suốt.</string>

@@ -9,6 +9,7 @@
     <string name="framekit_brush_opacity">Opacidad</string>
     <string name="framekit_tool_cutout">Quitar fondo</string>
     <string name="framekit_cutout_remove">Quitar fondo</string>
+    <string name="framekit_cutout_remove_again">Quitar de nuevo</string>
     <string name="framekit_cutout_restore">Restaurar fondo</string>
     <string name="framekit_cutout_processing">Buscando el sujeto…</string>
     <string name="framekit_cutout_description">Conserva el sujeto y hace transparente el fondo. Al guardar en JPEG, el fondo se rellena con un color sólido; elige PNG o WEBP para mantener la transparencia.</string>

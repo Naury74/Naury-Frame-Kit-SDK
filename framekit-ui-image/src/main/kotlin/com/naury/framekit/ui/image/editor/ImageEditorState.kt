@@ -1,5 +1,6 @@
 package com.naury.framekit.ui.image.editor
 
+import com.naury.framekit.core.overlay.ImageOverlay
 import com.naury.framekit.ui.tool.PrivacySettings
 import com.naury.framekit.android.result.EditorErrorCode
 import com.naury.framekit.core.effect.AdjustmentKind
@@ -66,8 +67,13 @@ internal sealed interface ImageEditorUiState {
     ) : ImageEditorUiState {
         val displayed: ImageProject get() = transaction.displayed
         val isDirty: Boolean get() = transaction.history.isDirty
+        // 새로 연 텍스트를 비워 둔 채면 적용해도 빠지므로 바뀐 것으로 보지 않는다.
         val hasDraftChanges: Boolean
-            get() = transaction.draft?.let { !it.sameContentAs(transaction.history.current) } == true
+            get() = transaction.draft?.let { draft ->
+                val blank = draft.overlays.firstOrNull { it.id == editingTextId }?.let { it is ImageOverlay.Text && it.text.isBlank() } == true
+                val compared = if (blank && transaction.history.current.overlays.none { it.id == editingTextId }) draft.copy(overlays = draft.overlays.filterNot { it.id == editingTextId }) else draft
+                !compared.sameContentAs(transaction.history.current)
+            } == true
     }
 }
 

@@ -422,7 +422,14 @@ private fun ToolArea(
                         onRestore = viewModel::restoreOriginalDocument,
                     )
                 }
-                ImageTool.CUTOUT -> ToolPanelWithActions(viewModel, isDraft = false, scrollPanel, wide) {
+                // 배경을 지우거나 되돌리기 전에는 적용할 것이 없으므로 적용 줄을 숨긴다(나가기는 상단 뒤로 가기).
+                ImageTool.CUTOUT -> ToolPanelWithActions(
+                    viewModel,
+                    isDraft = false,
+                    scrollPanel,
+                    wide,
+                    showActions = viewModel.toolSessionChanged(state),
+                ) {
                     CutoutToolPanel(
                         applied = state.displayed.cutout != null,
                         status = state.cutoutStatus,
@@ -497,6 +504,7 @@ private fun ColumnScope.ToolPanelWithActions(
     fill: Boolean,
     resettable: Boolean = false,
     onApply: () -> Unit = if (isDraft) viewModel::applyTool else viewModel::closeTool,
+    showActions: Boolean = true,
     panel: @Composable () -> Unit,
 ) {
     if (scroll) {
@@ -505,7 +513,7 @@ private fun ColumnScope.ToolPanelWithActions(
     } else {
         panel()
     }
-    ToolActionBar(onApply = onApply, onReset = if (resettable) viewModel::resetTool else null)
+    if (showActions) ToolActionBar(onApply = onApply, onReset = if (resettable) viewModel::resetTool else null)
 }
 
 @Composable

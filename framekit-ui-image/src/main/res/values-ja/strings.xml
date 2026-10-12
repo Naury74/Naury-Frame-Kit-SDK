@@ -9,6 +9,7 @@
     <string name="framekit_brush_opacity">不透明度</string>
     <string name="framekit_tool_cutout">背景削除</string>
     <string name="framekit_cutout_remove">背景を削除</string>
+    <string name="framekit_cutout_remove_again">もう一度削除</string>
     <string name="framekit_cutout_restore">背景を復元</string>
     <string name="framekit_cutout_processing">被写体を検出中…</string>
     <string name="framekit_cutout_description">被写体だけを残して背景を透明にします。JPEG で保存すると背景は単色で塗りつぶされます。透明のまま残すには PNG または WEBP を選んでください。</string>

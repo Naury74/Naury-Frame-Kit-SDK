@@ -9,6 +9,7 @@
     <string name="framekit_brush_opacity">Opasitas</string>
     <string name="framekit_tool_cutout">Hapus latar</string>
     <string name="framekit_cutout_remove">Hapus latar belakang</string>
+    <string name="framekit_cutout_remove_again">Hapus lagi</string>
     <string name="framekit_cutout_restore">Pulihkan latar belakang</string>
     <string name="framekit_cutout_processing">Mencari subjek…</string>
     <string name="framekit_cutout_description">Mempertahankan subjek dan membuat latar belakang transparan. Output JPEG mengisinya dengan warna solid; pilih PNG atau WEBP agar tetap transparan.</string>

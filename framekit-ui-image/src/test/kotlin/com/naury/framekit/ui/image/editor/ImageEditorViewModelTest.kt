@@ -746,10 +746,10 @@ class ImageEditorViewModelTest {
         val remover = DownloadingRemover(initial = OnDeviceModelState.Downloading(10, 100))
         val viewModel = viewModel(EditorInput.FileSource(sourceFile.absolutePath), remover = remover)
         viewModel.selectTool(ImageTool.CUTOUT)
-        // 앱이 중간에 끝났던 내려받기는 다시 묻지 않고 이어서 따라간다. 이때는 저절로 배경을 지우지 않는다.
+        // 앱이 중간에 끝났던 내려받기는 다시 묻지 않고 이어서 따라가고, 다 받으면 화면 그대로 배경을 지운다.
         assertThat(remover.downloads).isEqualTo(1)
         assertThat(ready(viewModel).cutoutStatus).isNull()
-        assertThat(ready(viewModel).displayed.cutout).isNull()
+        assertThat(ready(viewModel).displayed.cutout).isNotNull()
     }
 
     @Test

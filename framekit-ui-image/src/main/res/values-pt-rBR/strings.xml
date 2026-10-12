@@ -9,6 +9,7 @@
     <string name="framekit_brush_opacity">Opacidade</string>
     <string name="framekit_tool_cutout">Remover fundo</string>
     <string name="framekit_cutout_remove">Remover fundo</string>
+    <string name="framekit_cutout_remove_again">Remover de novo</string>
     <string name="framekit_cutout_restore">Restaurar fundo</string>
     <string name="framekit_cutout_processing">Encontrando o objeto…</string>
     <string name="framekit_cutout_description">Mantém o objeto principal e deixa o fundo transparente. Em JPEG, o fundo é preenchido com uma cor sólida; escolha PNG ou WEBP para manter a transparência.</string>

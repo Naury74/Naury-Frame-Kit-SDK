@@ -9,6 +9,7 @@
     <string name="framekit_brush_opacity">Deckkraft</string>
     <string name="framekit_tool_cutout">Freistellen</string>
     <string name="framekit_cutout_remove">Hintergrund entfernen</string>
+    <string name="framekit_cutout_remove_again">Erneut entfernen</string>
     <string name="framekit_cutout_restore">Hintergrund zurück</string>
     <string name="framekit_cutout_processing">Motiv wird erkannt …</string>
     <string name="framekit_cutout_description">Behält das Motiv und macht den Hintergrund transparent. Bei JPEG wird er mit einer Vollfarbe gefüllt; wähle PNG oder WEBP, um die Transparenz zu erhalten.</string>

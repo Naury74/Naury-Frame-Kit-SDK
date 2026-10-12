@@ -1015,8 +1015,12 @@ internal class ImageEditorViewModel(
         cutoutModelJob = viewModelScope.launch {
             val state = queryModelState(remover)
             applyModelState(state)
-            // 전에 받기 시작한 것이 끝나지 않았으면(앱이 중간에 끝난 경우 등) 이어서 따라간다.
-            if (state is OnDeviceModelState.Downloading) collectDownload(remover)
+            // 전에 받기 시작한 것이 끝나지 않았으면(앱이 중간에 끝난 경우 등) 이어서 따라간다. 사용자가 이미 받기로 했으므로
+            // 다 받으면 다시 누르지 않아도 바로 배경을 지운다.
+            if (state is OnDeviceModelState.Downloading) {
+                removeAfterDownload = true
+                collectDownload(remover)
+            }
         }
     }
 
@@ -1360,7 +1364,8 @@ internal class ImageEditorViewModel(
         if ((_state.value as? ImageEditorUiState.Ready)?.activeTool?.isDraft == true) cancelTool() else revertTool()
     }
 
-    private fun toolSessionChanged(ready: ImageEditorUiState.Ready): Boolean {
+    /** 바로 기록되는 도구를 연 뒤 바뀐 것이 있으면 `true`. 적용 버튼을 보일지 정할 때도 쓴다. */
+    internal fun toolSessionChanged(ready: ImageEditorUiState.Ready): Boolean {
         val entry = toolEntry ?: return false
         return ready.activeTool?.isDraft == false && !ready.transaction.history.current.sameContentAs(entry)
     }

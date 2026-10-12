@@ -9,6 +9,7 @@
     <string name="framekit_brush_opacity">Непрозрачность</string>
     <string name="framekit_tool_cutout">Удаление фона</string>
     <string name="framekit_cutout_remove">Удалить фон</string>
+    <string name="framekit_cutout_remove_again">Удалить снова</string>
     <string name="framekit_cutout_restore">Вернуть фон</string>
     <string name="framekit_cutout_processing">Поиск объекта…</string>
     <string name="framekit_cutout_description">Оставляет объект и делает фон прозрачным. В JPEG фон заливается сплошным цветом — чтобы сохранить прозрачность, выберите PNG или WEBP.</string>

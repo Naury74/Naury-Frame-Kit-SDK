@@ -9,6 +9,7 @@
     <string name="framekit_brush_opacity">Opacité</string>
     <string name="framekit_tool_cutout">Détourage</string>
     <string name="framekit_cutout_remove">Supprimer l\'arrière-plan</string>
+    <string name="framekit_cutout_remove_again">Supprimer à nouveau</string>
     <string name="framekit_cutout_restore">Rétablir l\'arrière-plan</string>
     <string name="framekit_cutout_processing">Détection du sujet…</string>
     <string name="framekit_cutout_description">Conserve le sujet et rend l\'arrière-plan transparent. En JPEG, il est rempli d\'une couleur unie ; choisissez PNG ou WEBP pour garder la transparence.</string>

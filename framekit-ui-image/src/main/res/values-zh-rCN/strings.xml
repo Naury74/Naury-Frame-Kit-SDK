@@ -9,6 +9,7 @@
     <string name="framekit_brush_opacity">不透明度</string>
     <string name="framekit_tool_cutout">抠图</string>
     <string name="framekit_cutout_remove">移除背景</string>
+    <string name="framekit_cutout_remove_again">重新移除</string>
     <string name="framekit_cutout_restore">恢复背景</string>
     <string name="framekit_cutout_processing">正在识别主体…</string>
     <string name="framekit_cutout_description">保留主体并将背景变为透明。保存为 JPEG 时背景会以纯色填充；如需保留透明，请选择 PNG 或 WEBP。</string>
