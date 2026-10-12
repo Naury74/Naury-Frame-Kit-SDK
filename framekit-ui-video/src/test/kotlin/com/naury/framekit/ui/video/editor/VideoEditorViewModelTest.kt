@@ -23,6 +23,8 @@ import com.naury.framekit.core.video.TimeRangeUs
 import com.naury.framekit.core.video.Timeline
 import com.naury.framekit.core.video.VideoProject
 import com.naury.framekit.ui.video.contract.VideoEditorConfig
+import com.naury.framekit.ui.config.WatermarkConfig
+import com.naury.framekit.core.overlay.WatermarkPattern
 import com.naury.framekit.ui.video.contract.VideoEditorRequest
 import com.naury.framekit.ui.video.contract.VideoTool
 import com.naury.framekit.video.VideoRenderPlan
@@ -255,6 +257,39 @@ class VideoEditorViewModelTest {
         assertThat(engine.plans.size - before).isEqualTo(1)
         assertThat(engine.plans.last().project.timeline.videoClips.single().effects.adjustments)
             .isEqualTo(ready(viewModel).clip.effects.adjustments)
+    }
+
+    @Test
+    fun `watermark is drawn by the screen while editing and exported after apply`() {
+        val viewModel = viewModel(durationUs = 4_000_000)
+        viewModel.selectTool(VideoTool.WATERMARK)
+        assertThat(ready(viewModel).hasDraftChanges).isFalse()
+        viewModel.updateWatermark { it.copy(text = "@naury", pattern = WatermarkPattern.DIAGONAL) }
+        dispatcher.scheduler.advanceUntilIdle()
+        // 편집 중에는 재생 구성에 넣지 않는다(화면이 그린다).
+        assertThat(engine.plans.last().project.timeline.watermark).isNull()
+
+        viewModel.applyTool()
+        dispatcher.scheduler.advanceUntilIdle()
+        assertThat(engine.plans.last().project.timeline.watermark?.text).isEqualTo("@naury")
+        assertThat(ready(viewModel).transaction.history.past).hasSize(1)
+
+        viewModel.save()
+        dispatcher.scheduler.advanceUntilIdle()
+        assertThat(exported.single().timeline.watermark?.pattern).isEqualTo(WatermarkPattern.DIAGONAL)
+    }
+
+    @Test
+    fun `locked video watermark hides the tool and is always exported`() {
+        val config = VideoEditorConfig(watermark = WatermarkConfig(text = "SAMPLE", applyOnOpen = true, locked = true))
+        val viewModel = viewModel(durationUs = 4_000_000, config = config)
+
+        viewModel.selectTool(VideoTool.WATERMARK)
+        assertThat(ready(viewModel).activeTool).isNull()
+        viewModel.save()
+        dispatcher.scheduler.advanceUntilIdle()
+
+        assertThat(exported.single().timeline.watermark?.text).isEqualTo("SAMPLE")
     }
 
     @Test

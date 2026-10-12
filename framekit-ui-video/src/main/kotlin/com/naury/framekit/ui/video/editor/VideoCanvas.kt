@@ -1,5 +1,6 @@
 package com.naury.framekit.ui.video.editor
 
+import com.naury.framekit.image.overlay.WatermarkRenderer
 import androidx.compose.foundation.gestures.calculatePan
 import androidx.compose.foundation.gestures.calculateRotation
 import androidx.compose.foundation.gestures.calculateZoom
@@ -134,6 +135,7 @@ internal fun VideoCanvas(
                 val outputSize = PixelSize(size.first, size.second)
                 val outputToViewport = viewport.contentToViewport * Affine2D.scale(1.0 / size.first, 1.0 / size.second)
                 val overlayRenderer = remember { OverlayRenderer() }
+                val watermarkRenderer = remember { WatermarkRenderer() }
                 val selectedOverlay = visibleOverlays.firstOrNull { it.id == state.selectedOverlayId }
                 val selectionCorners = selectedOverlay?.let { overlay -> overlayRenderer.corners(overlay, outputSize).map { outputToViewport.map(it) } }
                 val currentOverlays by rememberUpdatedState(visibleOverlays)
@@ -291,6 +293,17 @@ internal fun VideoCanvas(
                         drawIntoCanvas { canvas ->
                             canvas.nativeCanvas.withMatrix(outputToViewport.toAndroidMatrix()) {
                                 overlayRenderer.draw(this, outputSize, visibleOverlays, emptyList())
+                            }
+                        }
+                    }
+                    // 워터마크 도구에서는 플레이어 대신 화면이 워터마크를 그려 설정이 바로 보이게 한다.
+                    val editingWatermark = state.displayed.timeline.watermark.takeIf { state.activeTool == VideoTool.WATERMARK }
+                    if (editingWatermark != null) {
+                        drawIntoCanvas { canvas ->
+                            canvas.nativeCanvas.withMatrix(outputToViewport.toAndroidMatrix()) {
+                                // 반복·대각선 무늬가 사진 밖 화면으로 번지지 않게 출력 영역으로 자른다.
+                                clipRect(0f, 0f, outputSize.width.toFloat(), outputSize.height.toFloat())
+                                watermarkRenderer.draw(this, outputSize, editingWatermark)
                             }
                         }
                     }

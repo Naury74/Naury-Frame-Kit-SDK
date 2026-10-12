@@ -1,5 +1,6 @@
 package com.naury.framekit.ui.video.editor
 
+import com.naury.framekit.core.overlay.Watermark
 import com.naury.framekit.video.audio.Waveform
 import com.naury.framekit.core.video.TimeRanges
 import com.naury.framekit.core.video.AudioEditing
@@ -181,6 +182,9 @@ internal class VideoEditorViewModel(
     private var maskAnchor: PointN? = null
     // 바로 기록되는 도구(보정·필터 등)를 열 때의 프로젝트. 뒤로 가기·취소 때 이 상태로 되돌린다.
     private var toolEntry: VideoProject? = null
+
+    // 워터마크 도구를 다시 열 때 채울 마지막 값.
+    private var lastWatermark: Watermark? = null
     private var maskEditStart: Triple<String, RectN, Boolean>? = null
     private var resumeAfterScrub = false
     private var overlayGestureStart: ImageOverlay? = null
@@ -395,7 +399,11 @@ internal class VideoEditorViewModel(
         val duration = main.info.metadata.durationUs ?: 0L
         val firstClipId = restored?.timeline?.videoClips?.firstOrNull { it.source == mainId }?.id ?: newId()
         val clip = VideoClip(firstClipId, mainId, TimeRangeUs(0, min(duration, config.maxTimelineDurationUs)))
-        val baseline = VideoProject(restored?.id ?: ProjectId(newId()), Timeline(listOf(clip)), grainSeed = restored?.grainSeed ?: Random.nextLong())
+        val baseline = VideoProject(
+            restored?.id ?: ProjectId(newId()),
+            Timeline(listOf(clip), watermark = config.watermark?.initialWatermark),
+            grainSeed = restored?.grainSeed ?: Random.nextLong(),
+        )
         val transaction = if (restored != null) HistoryTransaction(EditHistory.restore(baseline, restored)) else HistoryTransaction.start(baseline)
         val notice = when {
             previous?.exportWasInterrupted == true -> VideoNotice.EXPORT_INTERRUPTED
@@ -427,6 +435,8 @@ internal class VideoEditorViewModel(
             // 텍스트·스티커를 고치는 동안에는 화면이 직접 그려 손가락을 바로 따라가게 한다.
             ready.activeTool == VideoTool.TEXT || ready.activeTool == VideoTool.STICKER ->
                 project.copy(timeline = project.timeline.copy(overlays = emptyList()))
+            // 워터마크를 고치는 동안에도 화면이 그려, 슬라이더를 움직일 때마다 재생 구성을 다시 만들지 않는다.
+            ready.activeTool == VideoTool.WATERMARK -> project.copy(timeline = project.timeline.copy(watermark = null))
             else -> project
         }
     }
@@ -504,6 +514,7 @@ internal class VideoEditorViewModel(
     fun selectTool(tool: VideoTool) {
         val ready = _state.value as? VideoEditorUiState.Ready ?: return
         if (ready.activeTool != null || ready.export != null || ready.transaction.isActive || ready.busy || tool !in config.enabledTools) return
+        if (tool == VideoTool.WATERMARK && watermarkLocked) return
         if (tool == VideoTool.FILTER) ensureFilterThumbnails(ready)
         if (tool.isDraft || tool == VideoTool.STICKER) engine.pause()
         if (tool.isGeometry) {
@@ -513,6 +524,12 @@ internal class VideoEditorViewModel(
         if (tool == VideoTool.TEXT) return openText(existingId = null)
         updateReady {
             when {
+                tool == VideoTool.WATERMARK -> {
+                    val begun = it.transaction.begin()
+                    val draft = checkNotNull(begun.draft)
+                    val start = draft.timeline.watermark ?: lastWatermark ?: config.watermark?.template() ?: Watermark("")
+                    it.copy(activeTool = tool, transaction = begun.update(draft.copy(timeline = draft.timeline.copy(watermark = start))))
+                }
                 tool.isDraft -> it.copy(activeTool = tool, cropAspect = CropAspectRatio.Free, transaction = it.transaction.begin())
                 else -> it.copy(activeTool = tool, selectedMaskId = null, selectedOverlayId = null)
             }
@@ -530,6 +547,12 @@ internal class VideoEditorViewModel(
             val text = draft.timeline.overlays.firstOrNull { it.overlay.id == editing }?.overlay as? ImageOverlay.Text
             if (text != null && text.text.isBlank()) draft = Edit.removeOverlay(draft, editing)
         }
+        if (ready.activeTool == VideoTool.WATERMARK) {
+            // 문구가 빈 워터마크는 없애는 것으로 본다.
+            val watermark = draft.timeline.watermark?.takeIf { it.text.isNotBlank() }?.normalized()
+            draft = draft.copy(timeline = draft.timeline.copy(watermark = watermark))
+            if (watermark != null) lastWatermark = watermark
+        }
         leaveGeometry(ready)
         updateReady { current ->
             val committed = current.transaction.update(Edit.clampTimed(draft)).commit()
@@ -537,6 +560,27 @@ internal class VideoEditorViewModel(
             current.copy(activeTool = null, transaction = committed, editingTextId = null, selectedOverlayId = selected)
         }
     }
+
+    // ---- 워터마크 ----
+
+    /** 워터마크 도구에서 고친 값. 문구가 비어 있는 동안은 그려지지 않고, 그대로 적용하면 워터마크가 없어진다. */
+    fun updateWatermark(transform: (Watermark) -> Watermark) = updateReady { ready ->
+        val draft = ready.transaction.draft ?: return@updateReady ready
+        if (ready.activeTool != VideoTool.WATERMARK) return@updateReady ready
+        val next = transform(draft.timeline.watermark ?: Watermark(""))
+        ready.copy(transaction = ready.transaction.update(draft.copy(timeline = draft.timeline.copy(watermark = next))))
+    }
+
+    /** 워터마크를 없애고 도구를 닫는다. 실행 취소 한 단계다. */
+    fun removeWatermark() {
+        updateWatermark { it.copy(text = "") }
+        applyTool()
+    }
+
+    /** 호스트가 워터마크를 잠갔으면 사용자가 바꿀 수 없다. */
+    internal val watermarkLocked: Boolean get() = config.watermark?.locked == true
+
+    internal val watermarkSuggestions: List<String> get() = config.watermark?.suggestions.orEmpty()
 
     /** 초안 도구 취소. 프로젝트는 도구를 열기 전 상태로 돌아간다. */
     fun cancelTool() {
@@ -592,6 +636,8 @@ internal class VideoEditorViewModel(
             }
             VideoTool.ROTATE -> updateDraftGeometry { _, _ -> GeometryEdit() }
             VideoTool.CANVAS -> setCanvas(CanvasSpec())
+            // 문구는 두고 모양만 처음 값으로 되돌린다.
+            VideoTool.WATERMARK -> updateWatermark { current -> (config.watermark?.template() ?: Watermark("")).copy(text = current.text) }
             null -> Unit
         }
     }
@@ -1425,7 +1471,9 @@ internal class VideoEditorViewModel(
         // 결과를 이미 보냈거나 저장이 진행 중이면 두 번째 저장 요청은 무시한다.
         if (_result.value != null || ready.export != null || exportJob?.isActive == true || ready.busy) return
         engine.pause()
-        val snapshot = ready.transaction.history.current
+        // 잠긴 워터마크는 복원된 세션 등과 상관없이 저장할 때 항상 넣는다.
+        val committed = ready.transaction.history.current
+        val snapshot = if (watermarkLocked) committed.copy(timeline = committed.timeline.copy(watermark = config.watermark?.initialWatermark)) else committed
         updateReady { it.copy(export = ExportUiState.Running(ExportStageUi.PREPARING)) }
         exportJob = viewModelScope.launch {
             try {

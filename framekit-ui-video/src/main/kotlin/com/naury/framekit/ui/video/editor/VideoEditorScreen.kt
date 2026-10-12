@@ -1,5 +1,6 @@
 package com.naury.framekit.ui.video.editor
 
+import com.naury.framekit.ui.tool.WatermarkToolPanel
 import com.naury.framekit.core.video.TimeRanges
 import com.naury.framekit.ui.video.timeline.TimelineOriginal
 import com.naury.framekit.ui.video.timeline.TimelineAudio
@@ -598,7 +599,7 @@ private fun ToolArea(
     scrollPanel: Boolean = false,
 ) {
     // 구간 자르기는 타임라인의 클립 손잡이로 하므로 도구 목록에서는 뺀다.
-    val tools = viewModel.config.enabledTools.filter { it != VideoTool.TRIM }.sortedBy { it.ordinal }
+    val tools = viewModel.config.enabledTools.filter { it != VideoTool.TRIM && (it != VideoTool.WATERMARK || !viewModel.watermarkLocked) }.sortedBy { it.ordinal }
     AnimatedContent(
         targetState = state.activeTool,
         modifier = modifier.fillMaxWidth(),
@@ -724,6 +725,16 @@ private fun ToolArea(
                         shapes = listOf(PrivacyShape.RECTANGLE, PrivacyShape.ELLIPSE),
                     )
                 }
+                VideoTool.WATERMARK -> ToolPanelWithActions(viewModel, isDraft = true, scrollPanel, wide) {
+                    state.displayed.timeline.watermark?.let { watermark ->
+                        WatermarkToolPanel(
+                            watermark = watermark,
+                            suggestions = viewModel.watermarkSuggestions,
+                            onChange = viewModel::updateWatermark,
+                            onRemove = viewModel::removeWatermark.takeIf { state.transaction.history.current.timeline.watermark != null },
+                        )
+                    }
+                }
                 null -> when {
                     state.hasTimelineSelection -> TimelineSelectionPanel(state, viewModel)
                     tools.isEmpty() -> Unit
@@ -766,6 +777,7 @@ private fun VideoTool.railItem(): ToolRailItem<VideoTool> = when (this) {
     VideoTool.TEXT -> ToolRailItem(this, stringResource(UiR.string.framekit_tool_text), painterResource(UiR.drawable.framekit_ic_text))
     VideoTool.STICKER -> ToolRailItem(this, stringResource(UiR.string.framekit_tool_sticker), painterResource(UiR.drawable.framekit_ic_sticker))
     VideoTool.PRIVACY -> ToolRailItem(this, stringResource(UiR.string.framekit_tool_privacy), painterResource(UiR.drawable.framekit_ic_privacy))
+    VideoTool.WATERMARK -> ToolRailItem(this, stringResource(UiR.string.framekit_tool_watermark), painterResource(UiR.drawable.framekit_ic_watermark))
 }
 
 // 좁은 화면에서 재생 줄·타임라인·도구가 차지할 수 있는 최대 비율. 나머지는 미리보기 몫이다.

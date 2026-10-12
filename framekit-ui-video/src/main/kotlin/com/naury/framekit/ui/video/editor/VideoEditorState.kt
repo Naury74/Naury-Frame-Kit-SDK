@@ -84,7 +84,9 @@ internal sealed interface VideoEditorUiState {
                 val blank = overlays.firstOrNull { it.overlay.id == editingTextId }?.overlay.let { it is ImageOverlay.Text && it.text.isBlank() }
                 val isNew = transaction.history.current.timeline.overlays.none { it.overlay.id == editingTextId }
                 val compared = if (blank && isNew) draft.copy(timeline = draft.timeline.copy(overlays = overlays.filterNot { it.overlay.id == editingTextId })) else draft
-                !compared.sameContentAs(transaction.history.current)
+                // 문구가 빈 워터마크는 없는 것과 같다(워터마크 도구를 열기만 한 경우).
+                val settled = if (compared.timeline.watermark?.text?.isBlank() == true) compared.copy(timeline = compared.timeline.copy(watermark = null)) else compared
+                !settled.sameContentAs(transaction.history.current)
             } == true
 
         /** 고른 오디오 조각. */

@@ -13,10 +13,13 @@ public enum class VideoTool {
     TEXT,
     STICKER,
     PRIVACY,
+
+    /** 글자 워터마크(한 곳·반복·대각선·띠). 영상 전체에 들어간다. 호스트가 [VideoEditorConfig.watermark]를 잠그면 숨겨진다. */
+    WATERMARK,
     ;
 
     /** 초안 도구는 통째로 적용하거나 취소하고, 나머지는 변경마다 커밋한다. */
-    internal val isDraft: Boolean get() = this == TRIM || this == CROP || this == ROTATE || this == SPEED || this == TEXT
+    internal val isDraft: Boolean get() = this == TRIM || this == CROP || this == ROTATE || this == SPEED || this == TEXT || this == WATERMARK
 
     /** 기하 도구는 회전된 프레임 전체 위에 자르기 프레임을 표시한다. */
     internal val isGeometry: Boolean get() = this == CROP || this == ROTATE
