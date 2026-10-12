@@ -1,5 +1,25 @@
 # Release Notes
 
+## 다음 버전 (개발 중)
+
+### 바뀜
+
+- 도구 화면의 상단 바: 닫기(X) 대신 뒤로 가기 화살표와 도구 이름(`EditorTopBar(toolTitle = …)`). 뒤로 가기는 시스템 뒤로 가기와 같아 바뀐 내용이 있으면 적용할지 묻는다.
+- 도구 하단 바를 `ToolActionBar`로 교체: 왼쪽 초기화, 오른쪽 적용(아이콘과 글자). 넓은 화면에서는 패널 맨 아래에 고정. `ApplyCancelBar`는 deprecated.
+- 텍스트 글꼴 이름 "손글씨" → "필기체"(13개 언어). 저장되는 글꼴 id `handwriting`은 그대로.
+- 배경 제거 모델을 분리 프로세스(`:framekit_segmentation`)에서 실행. 모델이 기기에서 동작하지 못하면(SIGILL 등) 앱은 살아 있고 도구를 숨긴다(`BackgroundRemover.isAvailable`).
+- 글자 인식도 분리 프로세스(`:framekit_ocr`)에서 실행(`TextRecognizer.isAvailable`). 사진을 열 때 도는 문서 판별·PDF 저장이 앱을 종료시키지 않는다.
+
+### 추가
+
+- 텍스트 꾸밈 세부 설정: 외곽선 색·두께, 배경 색·불투명도·모서리 둥글기·여백, 그림자 색·흐림·거리·불투명도
+- 배경 제거 모델 내려받기 흐름: 이유·데이터 사용 안내(모바일 데이터면 강조), 진행률, 앱이 끝나도 이어받기, 다 받으면 바로 배경 제거(`BackgroundRemover.modelState`/`downloadModel`, `OnDeviceModelState`)
+- 분리 프로세스 도구(`IsolatedWorkerService`, `IsolatedServiceClient`, `ProcessCrashGuard`, `PixelFiles`)
+
+### 고침
+
+- 여러 장 편집의 쪽 목록 미리보기가 편집 내용을 반영하지 않던 문제
+
 ## 1.0.0-alpha01
 
 ### 추가

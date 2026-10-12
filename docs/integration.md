@@ -203,8 +203,13 @@ implementation(project(":framekit-segmentation"))
 
 - 추가하면 manifest meta-data로 편집기가 구현을 찾아 "배경 제거" 도구를 보여 줍니다. 모듈이 없으면 도구는 숨겨지고 `ImageProcessor.canRemoveBackground`는 `false`입니다.
 - 피사체 분할은 Google Play 서비스의 ML Kit으로 **기기 안에서** 수행됩니다. 사진을 서버로 보내지 않습니다.
-- 모델은 앱 설치 시 Play 서비스가 내려받습니다. 아직 받지 못했으면 "잠시 후 다시 시도" 안내가 나타나고, headless에서는 `UNSUPPORTED_OPERATION`이 반환됩니다.
+- 모델은 Play 서비스가 내려받습니다. 아직 없으면 배경 제거 도구가 이유(기기 안에서 처리, 한 번만 받음)와 데이터 사용 안내를 보여 주고, 사용자가 동의하면 받습니다. 모바일 데이터에 연결되어 있으면 경고를 더 눈에 띄게 보여 줍니다.
+- 받는 동안 패널과 사진 위에 진행률을 보여 주고, 다른 편집은 계속할 수 있습니다. 다 받으면 바로 배경을 지웁니다. 앱이 중간에 끝나도 Play 서비스는 계속 받으며, 다음에 도구를 열면 진행 상황을 이어서 보여 줍니다.
+- 직접 다루려면 `BackgroundRemover.modelState()`와 `downloadModel()`(`OnDeviceModelState`)을 씁니다. headless에서 모델이 없으면 `UNSUPPORTED_OPERATION`이 반환됩니다.
 - Play 서비스가 없는 기기(일부 중국향 기기 등)에서는 사용할 수 없습니다.
+- 모델은 앱과 다른 프로세스(`:framekit_segmentation`)에서 돕니다. 모델이 기기에서 프로세스를 죽여도(아래 알려진 문제) 편집기는 살아 있고 "이 기기에서는 배경 제거를 사용할 수 없습니다"가 나타나며, 그 뒤로는 도구를 숨기고 `BackgroundRemover.isAvailable`·`ImageProcessor.canRemoveBackground`가 `false`가 됩니다. 앱이나 OS를 업데이트하면 다시 시도합니다.
+- 글자 인식(`framekit-ocr`)도 같은 방식으로 `:framekit_ocr` 프로세스에서 돕니다. 모델이 이 기기에서 프로세스를 죽이면 인식을 건너뛰고(PDF는 이미지만 담고 `TEXT_RECOGNITION_SKIPPED` 경고) 그 뒤로는 `TextRecognizer.isAvailable`이 `false`입니다.
+- 분리 프로세스도 호스트의 `Application.onCreate`를 거칩니다. 그곳에서 하는 무거운 초기화(분석 SDK 등)는 기본 프로세스에서만 하도록 프로세스 이름을 확인하세요.
 - ML Kit 의존성이 `INTERNET`, `ACCESS_NETWORK_STATE` 권한을 merge합니다. 앱 정책상 제거해야 한다면 호스트 manifest에서 직접 제거할 수 있지만, Play 서비스 동작은 직접 확인해야 합니다.
 
 ```xml
@@ -238,7 +243,7 @@ implementation("com.naurylab:framekit-ocr:1.0.0-alpha01")
 
 ### 알려진 문제: Apple 실리콘 Mac의 arm64 에뮬레이터
 
-일부 arm64 에뮬레이터(Apple 실리콘 호스트)에서는 ML Kit 모델의 네이티브 코드가 `SIGILL`로 앱을 종료시킵니다. 배경 제거를 실행하거나 OCR이 켜진 PDF를 저장할 때 생기며, 실기기(Galaxy Z Fold7)에서는 정상 동작을 확인했습니다. 에뮬레이터에서 PDF를 확인할 때는 `PdfOptions(recognizeText = false)`를 쓰세요.
+일부 arm64 에뮬레이터(Apple 실리콘 호스트)에서는 ML Kit 모델의 네이티브 코드가 `SIGILL`로 프로세스를 종료시킵니다. 실기기(Galaxy Z Fold7)에서는 정상 동작을 확인했습니다. 배경 제거와 글자 인식은 분리 프로세스에서 돌아 앱은 종료되지 않고, 배경 제거 도구는 숨겨지며 PDF 글자 레이어는 건너뜁니다.
 
 ## R8
 
