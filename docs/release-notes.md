@@ -1,5 +1,14 @@
 # Release Notes
 
+## 다음 버전
+
+### 추가
+
+- `framekit-scanner`: 카메라 문서 스캐너. 미리보기에서 문서 테두리를 실시간으로 찾아 표시하고 자동 촬영, 여러 쪽 연속 촬영, 찍은 쪽을 펴서 스캔 보정. `DocumentScanContract`로 단독 사용
+- `EditorInput.Capture(MediaKind.IMAGE)`로 PDF를 만들면 스캐너로 찍은 뒤 PDF 편집기로 넘어감
+- 휘거나 접힌 종이: 실제 테두리 곡선을 찾아(`DocumentOutline`, `DocumentDetector.Analysis.outline`) 곡선을 따라 반듯하게 폄. 모서리도 휜 변에 끌려가지 않고 실제 모서리에 맞춤
+- 문서 감지: 글자가 빽빽한 영수증, 흰 종이를 밝은 바탕에 둔 경우에 더 잘 찾고, 카메라용 `insideOnly`(모서리가 화면 끝에 닿는 결과 제외) 옵션 추가
+
 ## 1.0.0-alpha04
 
 ### 바뀜

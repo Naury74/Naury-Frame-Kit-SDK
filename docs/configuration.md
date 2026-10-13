@@ -244,3 +244,14 @@ FrameKitRequest(
 | `mimeTypes` | 비어 있음 | 보여 줄 형식. `image/jpeg`, `video/*` 형태. 비어 있으면 `kind`의 모든 형식 |
 | `style` | `AUTO` | `SYSTEM`이면 항상 시스템 사진 선택기 |
 | `ui` | 기본값 | 갤러리의 색·언어(`EditorUiConfig`) |
+
+## DocumentScanRequest
+
+`DocumentScanContract`로 여는 카메라 문서 스캔 요청입니다.
+
+| 필드 | 기본값 | 설명 |
+| --- | --- | --- |
+| `maxPages` | `20` | 한 번에 찍을 수 있는 최대 쪽 수, `1..50` |
+| `autoCapture` | `true` | 문서 테두리가 잠시 흔들리지 않으면 자동으로 찍음. 화면에서 끌 수 있음 |
+| `scanMode` | `COLOR` | 찍은 쪽에 적용할 스캔 보정(`COLOR`, `GRAYSCALE`, `BLACK_WHITE`, `ORIGINAL`) |
+| `ui` | 기본값 | 화면의 색·언어(`EditorUiConfig`) |

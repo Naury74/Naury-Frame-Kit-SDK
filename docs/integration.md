@@ -426,6 +426,35 @@ SDK는 권한을 추가하지 않습니다. 앱 안 갤러리는 호스트가 �
 
 > **Google Play 정책 주의:** `READ_MEDIA_IMAGES`·`READ_MEDIA_VIDEO`는 사진·영상 전체 접근이 앱의 핵심 기능인 경우에만 쓸 수 있습니다. 해당하지 않는 앱은 권한을 선언하지 말고 시스템 사진 선택기(기본 동작)를 쓰세요.
 
+## 카메라 문서 스캐너
+
+`framekit-scanner`는 카메라 미리보기에서 문서 테두리를 실시간으로 찾아 표시하고, 테두리가 잠시 흔들리지 않으면 자동으로 찍는 문서 스캐너입니다. 여러 쪽을 이어서 찍을 수 있고, 찍은 쪽은 반듯하게 펴서 스캔 보정(컬러·흑백 등)을 적용합니다. 통합 모듈(`framekit`)에 들어 있고, 개별 모듈만 쓴다면 따로 추가합니다.
+
+```kotlin
+implementation("com.naurylab:framekit-scanner:<버전>") // 다음 배포부터
+```
+
+### FrameKit에서
+
+사진을 찍어 PDF로 저장하는 요청이면 스캐너가 열리고, 찍은 쪽이 PDF 편집기로 넘어갑니다.
+
+```kotlin
+editor.launch(FrameKitRequest(EditorInput.Capture(MediaKind.IMAGE), imageExport = ImageExportConfig(format = ImageFormat.PDF)))
+```
+
+### 단독으로 쓰기
+
+```kotlin
+val scanner = registerForActivityResult(DocumentScanContract()) { result ->
+    if (result is FrameKitResult.Success) result.outputs.forEach { show(it.uri) } // 찍은 순서대로 편 쪽(JPEG)
+}
+scanner.launch(DocumentScanRequest(maxPages = 10, scanMode = ScanMode.GRAYSCALE))
+```
+
+- 화면에서 자동 촬영과 플래시를 켜고 끌 수 있고, 마지막 쪽을 눌러 지우고 다시 찍을 수 있습니다.
+- 결과 파일은 다른 결과와 같이 앱 내부 저장소에 있으며, 필요 없으면 `FrameKitOutputs.deleteOutput`으로 지웁니다.
+- 앱 안 카메라는 호스트가 `CAMERA` 권한을 선언했을 때만 씁니다. 처음 열 때 권한을 묻고, 선언하지 않았거나 거부하면 기기 카메라 앱으로 한 장을 찍어 같은 방식으로 펴서 돌려줍니다.
+
 ## 배경 제거 선택 모듈
 
 ```kotlin

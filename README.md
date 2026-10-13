@@ -19,7 +19,7 @@
 ## 기능
 
 - **사진**: 자르기·회전, 보정·필터, 텍스트·스티커·그리기, 모자이크, 배경 제거, 여러 장 편집
-- **문서 스캔·PDF**: 문서 테두리 자동 인식과 원근 보정, 컬러·흑백 스캔, 여러 쪽 한 번에 스캔, 글자 검색이 되는 PDF
+- **문서 스캔·PDF**: 카메라로 문서 테두리를 실시간으로 찾아 자동 촬영, 원근 보정, 컬러·흑백 스캔, 여러 쪽 한 번에 스캔, 글자 검색이 되는 PDF
 - **영상**: 여러 클립 이어 붙이기·자르기, 보정·필터·속도, 배경 음악·음성, 텍스트·스티커, MP4 저장
 - **움직이는 이미지**: 사진으로 슬라이드쇼 만들기, GIF·WebP 편집, MP4·GIF·WebP 저장
 - **음성**: 녹음(탭·누르고 말하기), 소리 파일 편집, M4A 저장
@@ -92,6 +92,7 @@ dependencies {
 | `framekit-ui-motion` | 움직이는 이미지 편집기(`MotionEditorContract`) |
 | `framekit-ui-audio` | 음성 편집기(`AudioEditorContract`) |
 | `framekit-picker` | 앱 안 사진·영상 갤러리(`MediaPickerContract`) |
+| `framekit-scanner` | 카메라 문서 스캐너(`DocumentScanContract`) |
 | `framekit-segmentation` | (선택) 배경 제거 |
 | `framekit-ocr` | (선택) PDF 글자 검색 |
 
@@ -180,13 +181,16 @@ motion.launch(MotionEditorRequest(EditorInput.Pick(MediaKind.IMAGE, maxItems = 2
 ### 문서를 스캔해 PDF로
 
 ```kotlin
-editor.launch(
-    FrameKitRequest(
-        EditorInput.Pick(MediaKind.IMAGE, maxItems = 20),
-        imageExport = ImageExportConfig(format = ImageFormat.PDF, pdf = PdfOptions(pageSize = PdfPageSize.A4)),
-    ),
-)
+val pdf = ImageExportConfig(format = ImageFormat.PDF, pdf = PdfOptions(pageSize = PdfPageSize.A4))
+
+// 카메라로 스캔: 문서 테두리를 실시간으로 찾아 자동으로 찍고, 여러 쪽을 펴서 PDF 편집기로 넘긴다.
+editor.launch(FrameKitRequest(EditorInput.Capture(MediaKind.IMAGE), imageExport = pdf))
+
+// 이미 찍어 둔 사진으로
+editor.launch(FrameKitRequest(EditorInput.Pick(MediaKind.IMAGE, maxItems = 20), imageExport = pdf))
 ```
+
+카메라로 스캔할 때는 문서 테두리가 화면에 표시되고, 잠시 흔들리지 않으면 자동으로 찍힙니다(수동 촬영도 됩니다). 찍은 쪽은 반듯하게 펴서 PDF 편집기로 넘어갑니다. 스캐너만 따로 쓰려면 `DocumentScanContract`를 씁니다.
 
 PDF로 저장할 때는 편집기 도구 맨 앞에 **문서 보정**이 나옵니다. 문서 테두리를 자동으로 찾아 반듯하게 펴고, 컬러·흑백 스캔을 고를 수 있으며, **모든 쪽 스캔**으로 여러 쪽을 한 번에 처리합니다. 테두리를 찾지 못한 쪽은 모서리를 직접 맞추면 됩니다. `framekit-ocr`을 추가하면 PDF에서 글자 검색·복사가 됩니다.
 
@@ -238,7 +242,7 @@ picker.launch(MediaPickerRequest(MediaKind.ANY, maxItems = 10, maxFileSizeBytes 
 - 기본 모듈은 권한을 추가하지 않습니다. 원본 파일을 읽을 권한은 앱에서 확보해야 합니다.
 - 앱 안 갤러리에 쓰는 `READ_MEDIA_IMAGES`·`READ_MEDIA_VIDEO`는 Google Play 정책상 사진·영상 전체 접근이 핵심 기능인 앱만 선언할 수 있습니다. 해당하지 않으면 선언하지 마세요(시스템 사진 선택기로 동작).
 - 녹음 기능을 쓰려면 앱 manifest에 `RECORD_AUDIO`를 선언하세요. 선언하지 않으면 녹음 버튼이 표시되지 않습니다.
-- 앱이 `CAMERA`를 선언한 경우, 촬영할 때 SDK가 권한을 요청합니다.
+- 앱이 `CAMERA`를 선언한 경우, 촬영할 때 SDK가 권한을 요청합니다. 카메라 문서 스캐너(실시간 테두리 인식)는 `CAMERA`를 선언했을 때만 쓰며, 아니면 기기 카메라 앱으로 한 장을 찍어 펴 줍니다.
 - 배경 제거·글자 검색 모듈은 Google Play 서비스(ML Kit)가 필요하며 `INTERNET` 권한이 추가됩니다. 처음 사용할 때 모델을 내려받을 수 있습니다.
 - 사진과 영상을 함께 섞어 편집할 수는 없습니다.
 - 결과는 앱 내부 저장소에만 저장됩니다. 갤러리에 저장하려면 앱에서 직접 처리하세요.
