@@ -25,7 +25,8 @@
 - **음성**: 녹음(탭·누르고 말하기), 소리 파일 편집, M4A 저장
 - **워터마크**: 사진·영상에 문구 워터마크(반복·대각선·띠 패턴, 수정 잠금)
 - **갤러리**: 앨범·날짜별 보기, 고른 순서 표시, 크게 보기(확대·축소), 개수·크기·길이 제한. 권한이 없으면 시스템 사진 선택기로 대신
-- **그 밖에**: 촬영 후 바로 편집, 화면 없이 코드로 처리(headless), 앱 전용 필터·스티커·폰트, 다크·라이트 테마와 브랜드 색상, 13개 언어, 폴드·태블릿 화면
+- **폴드·태블릿**: 넓은 화면에서는 도구를 옆 패널로 옮겨 사진·영상을 크게 표시, 폴더블을 반쯤 접으면 접힌 선을 따라 화면과 조작부를 나눔, 접거나 펼쳐도 편집 유지
+- **그 밖에**: 촬영 후 바로 편집, 화면 없이 코드로 처리(headless), 앱 전용 필터·스티커·폰트, 다크·라이트 테마와 브랜드 색상, 13개 언어
 
 ## 화면
 
@@ -62,6 +63,18 @@
     <td align="center"><img src="docs/images/screen-record-light.png" width="200" alt="녹음"><br><b>녹음</b><br>탭·누르고 말하기</td>
     <td align="center"><img src="docs/images/screen-audio-light.png" width="200" alt="음성 편집"><br><b>음성 편집</b><br>파형·나누기·끼워 넣기</td>
     <td align="center"><img src="docs/images/screen-watermark-light.png" width="200" alt="워터마크"><br><b>워터마크</b><br>한 곳·반복·대각선·띠</td>
+  </tr>
+</table>
+
+### 폴드·태블릿
+
+폭이 넓은 화면에서는 편집 도구가 오른쪽 패널로 옮겨 가서 사진·영상을 더 크게 보며 편집할 수 있습니다. 폴더블을 반쯤 접으면 접힌 선을 기준으로 위(또는 왼쪽)에 사진·영상을, 아래(또는 오른쪽)에 조작부를 둡니다. 접거나 펼치거나 화면을 돌려도 하던 편집은 그대로 이어집니다. 갤러리는 화면 폭에 맞춰 한 줄에 더 많은 사진을 보여 줍니다.
+
+<table>
+  <tr>
+    <td align="center" width="33%"><img src="docs/images/screen-fold-photo.png" width="280" alt="펼친 폴드에서 사진 편집"><br><b>사진 편집</b><br>도구를 옆 패널에</td>
+    <td align="center" width="33%"><img src="docs/images/screen-fold-video.png" width="280" alt="펼친 폴드에서 영상 편집"><br><b>영상 편집</b><br>미리보기·타임라인·도구를 한 화면에</td>
+    <td align="center" width="33%"><img src="docs/images/screen-fold-gallery.png" width="280" alt="펼친 폴드에서 갤러리"><br><b>갤러리</b><br>폭에 맞춰 늘어나는 격자</td>
   </tr>
 </table>
 
