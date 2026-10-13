@@ -1,6 +1,19 @@
-# FrameKit
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/images/logo-dark.png">
+    <img src="docs/images/logo-light.png" alt="FrameKit" width="420">
+  </picture>
+</p>
+
+<p align="center">
+  <a href="https://central.sonatype.com/artifact/com.naurylab/framekit"><img src="https://img.shields.io/maven-central/v/com.naurylab/framekit?label=Maven%20Central&color=6C5CE7" alt="Maven Central"></a>
+  <img src="https://img.shields.io/badge/minSdk-26-3DDC84" alt="minSdk 26">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache%202.0-blue" alt="License"></a>
+</p>
 
 Android 앱에 넣어 쓰는 사진·영상·음성 편집 SDK입니다. 편집 화면을 한 줄로 띄우고, 편집이 끝나면 결과 파일을 돌려받습니다. 원본은 바꾸지 않습니다.
+
+![FrameKit](docs/images/hero.png)
 
 ## 기능
 
@@ -10,6 +23,19 @@ Android 앱에 넣어 쓰는 사진·영상·음성 편집 SDK입니다. 편집 
 - **음성**: 녹음(탭·누르고 말하기), 소리 파일 편집, M4A 저장
 - **워터마크**: 사진·영상에 글자 워터마크
 - **기타**: 카메라 촬영 직후 편집, 편집 화면 없이 처리(headless), 앱 필터·스티커·폰트 추가, 테마·13개 언어
+
+<table>
+  <tr>
+    <td align="center" width="33%"><img src="docs/images/screen-photo.png" width="240" alt="사진 편집"><br><b>사진 편집</b><br>텍스트·필터·스티커</td>
+    <td align="center" width="33%"><img src="docs/images/screen-video.png" width="240" alt="영상 편집"><br><b>영상 편집</b><br>클립·음악·음성 줄</td>
+    <td align="center" width="33%"><img src="docs/images/screen-motion.png" width="240" alt="움직이는 이미지"><br><b>움직이는 이미지</b><br>사진으로 슬라이드쇼</td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/images/screen-record.png" width="240" alt="녹음"><br><b>녹음</b><br>탭·누르고 말하기</td>
+    <td align="center"><img src="docs/images/screen-audio.png" width="240" alt="음성 편집"><br><b>음성 편집</b><br>파형·나누기·끼워 넣기</td>
+    <td align="center"><img src="docs/images/screen-watermark.png" width="240" alt="워터마크"><br><b>워터마크</b><br>한 곳·반복·대각선·띠</td>
+  </tr>
+</table>
 
 ## 설치
 
@@ -83,6 +109,8 @@ EditorInput.Capture(MediaKind.AUDIO)                    // 녹음하고 편집
 ### 무엇을 할지 묻기
 
 자동으로 열지 않고, 원본을 보여 주며 "편집 / PDF로 묶기 / 움직이는 이미지 만들기 / 편집 없이 보내기" 중에서 고르게 할 수 있습니다.
+
+<p align="center"><img src="docs/images/screen-chooser.png" width="260" alt="무엇을 할지 묻기"></p>
 
 ```kotlin
 editor.launch(FrameKitRequest(EditorInput.Multiple(uris.map(EditorInput::UriSource)), chooser = EditorChooser.ASK))
