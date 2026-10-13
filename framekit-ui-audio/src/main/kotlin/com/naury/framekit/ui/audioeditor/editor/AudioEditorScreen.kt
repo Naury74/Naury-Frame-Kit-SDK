@@ -68,6 +68,8 @@ import com.naury.framekit.ui.component.DiscardChangesDialog
 import com.naury.framekit.ui.component.EditorErrorView
 import com.naury.framekit.ui.component.EditorLoadingView
 import com.naury.framekit.ui.component.EditorTopBar
+import com.naury.framekit.ui.component.FrameKitNavigationBar
+import com.naury.framekit.ui.component.NavigationIcon
 import com.naury.framekit.ui.component.ExportErrorDialog
 import com.naury.framekit.ui.component.ExportOverlay
 import com.naury.framekit.ui.component.ExportStageUi
@@ -116,15 +118,14 @@ internal fun AudioEditorScreen(viewModel: AudioEditorViewModel) {
 private fun FirstRecording(viewModel: AudioEditorViewModel) {
     val colors = FrameKitTheme.colors
     var tooShort by remember { mutableStateOf(false) }
-    Column(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing).padding(horizontal = 24.dp)) {
-        Row(Modifier.fillMaxWidth().height(56.dp), verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = viewModel::cancelRecording) {
-                Icon(Icons.Filled.Close, contentDescription = stringResource(UiR.string.framekit_action_close), tint = colors.foreground)
-            }
-            Text(stringResource(R.string.framekit_audio_new_recording), color = colors.foreground, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-        }
+    Column(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)) {
+        FrameKitNavigationBar(
+            title = stringResource(R.string.framekit_audio_new_recording),
+            navigationIcon = NavigationIcon.CLOSE,
+            onNavigate = viewModel::cancelRecording,
+        )
         Spacer(Modifier.weight(1f))
-        Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+        Box(Modifier.fillMaxWidth().padding(horizontal = 24.dp), contentAlignment = Alignment.Center) {
             RecorderPanel(
                 mode = viewModel.config.recordMode,
                 maxRecordingMs = viewModel.config.maxRecordingMs,

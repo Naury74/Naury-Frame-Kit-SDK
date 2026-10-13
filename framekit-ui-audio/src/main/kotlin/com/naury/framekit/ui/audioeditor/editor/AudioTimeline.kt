@@ -227,8 +227,8 @@ internal fun AudioTimeline(
                     drawLabel(measurer, name, left.coerceAtLeast(0f) + 8.dp.toPx(), top + 4.dp.toPx(), 14.dp.toPx(), Color.White, right - left.coerceAtLeast(0f) - 12.dp.toPx())
                 }
                 if (selected) {
-                    drawRoundRect(Color.White, Offset(left, top), Size(right - left, h), CornerRadius(10.dp.toPx()), style = Stroke(2.dp.toPx()))
-                    drawHandles(left, right, top, h, Color.White)
+                    drawRoundRect(colors.foreground, Offset(left, top), Size(right - left, h), CornerRadius(10.dp.toPx()), style = Stroke(2.dp.toPx()))
+                    drawHandles(left, right, top, h, colors.foreground)
                 }
             }
             range?.let { r ->
@@ -239,11 +239,12 @@ internal fun AudioTimeline(
             }
             val start = x(0)
             val end = x(duration)
-            if (start > 0) drawRect(Color.Black.copy(alpha = 0.3f), Offset.Zero, Size(start, size.height))
-            if (end < size.width) drawRect(Color.Black.copy(alpha = 0.3f), Offset(end, 0f), Size(size.width - end, size.height))
-            drawLine(Color.Black.copy(alpha = 0.5f), Offset(center, 0f), Offset(center, size.height), 4.dp.toPx())
-            drawLine(Color.White, Offset(center, 0f), Offset(center, size.height), 2.dp.toPx())
-            drawCircle(Color.White, 4.dp.toPx(), Offset(center, 2.dp.toPx()))
+            // 처음 앞·끝 뒤는 배경색으로 덮어 흐리게 한다(밝은 테마에서도 회색 덩어리로 보이지 않게).
+            if (start > 0) drawRect(colors.background.copy(alpha = 0.6f), Offset.Zero, Size(start, size.height))
+            if (end < size.width) drawRect(colors.background.copy(alpha = 0.6f), Offset(end, 0f), Size(size.width - end, size.height))
+            drawLine(colors.background.copy(alpha = 0.5f), Offset(center, 0f), Offset(center, size.height), 4.dp.toPx())
+            drawLine(colors.foreground, Offset(center, 0f), Offset(center, size.height), 2.dp.toPx())
+            drawCircle(colors.foreground, 4.dp.toPx(), Offset(center, 2.dp.toPx()))
         }
     }
 }
