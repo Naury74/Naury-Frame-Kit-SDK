@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="framekit_scan_title">Digitalizar documento</string>
+    <string name="framekit_scan_hint_find">Enquadre o documento</string>
+    <string name="framekit_scan_hint_hold">Fique parado para capturar automaticamente</string>
+    <string name="framekit_scan_hint_manual">Toque no botão para capturar</string>
+    <string name="framekit_scan_working">Endireitando página…</string>
+    <string name="framekit_scan_auto">Auto</string>
+    <string name="framekit_scan_torch">Flash</string>
+    <string name="framekit_scan_shutter">Capturar</string>
+    <string name="framekit_scan_done_count">Concluir (%1$d)</string>
+    <string name="framekit_scan_failed">Não foi possível processar a foto. Tente novamente.</string>
+    <string name="framekit_scan_camera_error">Não foi possível abrir a câmera.</string>
+    <plurals name="framekit_scan_limit">
+        <item quantity="one">Você pode digitalizar até %1$d página</item>
+        <item quantity="many">Você pode digitalizar até %1$d páginas</item>
+        <item quantity="other">Você pode digitalizar até %1$d páginas</item>
+    </plurals>
+    <plurals name="framekit_scan_pages_cd">
+        <item quantity="one">%1$d página digitalizada. Toque para remover a última</item>
+        <item quantity="many">%1$d páginas digitalizadas. Toque para remover a última</item>
+        <item quantity="other">%1$d páginas digitalizadas. Toque para remover a última</item>
+    </plurals>
+</resources>

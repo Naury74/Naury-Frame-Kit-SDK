@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="framekit_scan_title">สแกนเอกสาร</string>
+    <string name="framekit_scan_hint_find">จัดเอกสารให้อยู่ในกรอบ</string>
+    <string name="framekit_scan_hint_hold">ถือนิ่งไว้เพื่อถ่ายอัตโนมัติ</string>
+    <string name="framekit_scan_hint_manual">แตะปุ่มเพื่อถ่าย</string>
+    <string name="framekit_scan_working">กำลังปรับหน้า…</string>
+    <string name="framekit_scan_auto">อัตโนมัติ</string>
+    <string name="framekit_scan_torch">แฟลช</string>
+    <string name="framekit_scan_shutter">ถ่าย</string>
+    <string name="framekit_scan_done_count">เสร็จ (%1$d)</string>
+    <string name="framekit_scan_failed">ประมวลผลรูปไม่ได้ โปรดถ่ายอีกครั้ง</string>
+    <string name="framekit_scan_camera_error">เปิดกล้องไม่ได้</string>
+    <plurals name="framekit_scan_limit">
+        <item quantity="other">สแกนได้สูงสุด %1$d หน้า</item>
+    </plurals>
+    <plurals name="framekit_scan_pages_cd">
+        <item quantity="other">สแกนแล้ว %1$d หน้า แตะเพื่อลบหน้าสุดท้าย</item>
+    </plurals>
+</resources>

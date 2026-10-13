@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="framekit_scan_title">Сканировать документ</string>
+    <string name="framekit_scan_hint_find">Поместите документ в кадр</string>
+    <string name="framekit_scan_hint_hold">Не двигайте — снимок сделается сам</string>
+    <string name="framekit_scan_hint_manual">Нажмите кнопку, чтобы сделать снимок</string>
+    <string name="framekit_scan_working">Выравнивание страницы…</string>
+    <string name="framekit_scan_auto">Авто</string>
+    <string name="framekit_scan_torch">Вспышка</string>
+    <string name="framekit_scan_shutter">Снять</string>
+    <string name="framekit_scan_done_count">Готово (%1$d)</string>
+    <string name="framekit_scan_failed">Не удалось обработать фото. Попробуйте ещё раз.</string>
+    <string name="framekit_scan_camera_error">Не удалось открыть камеру.</string>
+    <plurals name="framekit_scan_limit">
+        <item quantity="one">Можно отсканировать не более %1$d страницы</item>
+        <item quantity="few">Можно отсканировать не более %1$d страниц</item>
+        <item quantity="many">Можно отсканировать не более %1$d страниц</item>
+        <item quantity="other">Можно отсканировать не более %1$d страницы</item>
+    </plurals>
+    <plurals name="framekit_scan_pages_cd">
+        <item quantity="one">Отсканирована %1$d страница. Нажмите, чтобы удалить последнюю</item>
+        <item quantity="few">Отсканировано %1$d страницы. Нажмите, чтобы удалить последнюю</item>
+        <item quantity="many">Отсканировано %1$d страниц. Нажмите, чтобы удалить последнюю</item>
+        <item quantity="other">Отсканировано %1$d страницы. Нажмите, чтобы удалить последнюю</item>
+    </plurals>
+</resources>

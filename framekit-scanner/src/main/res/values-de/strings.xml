@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="framekit_scan_title">Dokument scannen</string>
+    <string name="framekit_scan_hint_find">Dokument im Bild ausrichten</string>
+    <string name="framekit_scan_hint_hold">Ruhig halten für automatische Aufnahme</string>
+    <string name="framekit_scan_hint_manual">Zum Aufnehmen die Taste tippen</string>
+    <string name="framekit_scan_working">Seite wird begradigt …</string>
+    <string name="framekit_scan_auto">Auto</string>
+    <string name="framekit_scan_torch">Blitz</string>
+    <string name="framekit_scan_shutter">Aufnehmen</string>
+    <string name="framekit_scan_done_count">Fertig (%1$d)</string>
+    <string name="framekit_scan_failed">Das Foto konnte nicht verarbeitet werden. Bitte erneut aufnehmen.</string>
+    <string name="framekit_scan_camera_error">Die Kamera kann nicht geöffnet werden.</string>
+    <plurals name="framekit_scan_limit">
+        <item quantity="one">Du kannst bis zu %1$d Seite scannen</item>
+        <item quantity="other">Du kannst bis zu %1$d Seiten scannen</item>
+    </plurals>
+    <plurals name="framekit_scan_pages_cd">
+        <item quantity="one">%1$d Seite gescannt. Tippen entfernt die letzte Seite</item>
+        <item quantity="other">%1$d Seiten gescannt. Tippen entfernt die letzte Seite</item>
+    </plurals>
+</resources>

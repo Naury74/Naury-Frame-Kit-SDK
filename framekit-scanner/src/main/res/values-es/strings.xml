@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="framekit_scan_title">Escanear documento</string>
+    <string name="framekit_scan_hint_find">Encuadra el documento</string>
+    <string name="framekit_scan_hint_hold">Mantén quieto para capturar automáticamente</string>
+    <string name="framekit_scan_hint_manual">Toca el botón para capturar</string>
+    <string name="framekit_scan_working">Enderezando página…</string>
+    <string name="framekit_scan_auto">Auto</string>
+    <string name="framekit_scan_torch">Flash</string>
+    <string name="framekit_scan_shutter">Capturar</string>
+    <string name="framekit_scan_done_count">Listo (%1$d)</string>
+    <string name="framekit_scan_failed">No se pudo procesar la foto. Inténtalo de nuevo.</string>
+    <string name="framekit_scan_camera_error">No se puede abrir la cámara.</string>
+    <plurals name="framekit_scan_limit">
+        <item quantity="one">Puedes escanear hasta %1$d página</item>
+        <item quantity="many">Puedes escanear hasta %1$d páginas</item>
+        <item quantity="other">Puedes escanear hasta %1$d páginas</item>
+    </plurals>
+    <plurals name="framekit_scan_pages_cd">
+        <item quantity="one">%1$d página escaneada. Toca para quitar la última</item>
+        <item quantity="many">%1$d páginas escaneadas. Toca para quitar la última</item>
+        <item quantity="other">%1$d páginas escaneadas. Toca para quitar la última</item>
+    </plurals>
+</resources>

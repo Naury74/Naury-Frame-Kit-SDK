@@ -20,6 +20,7 @@ val sdkModules = mapOf(
     "framekit-ui-motion" to "움직이는 이미지 편집 화면과 MotionEditorContract",
     "framekit-ui-audio" to "음성 녹음·편집 화면과 AudioEditorContract",
     "framekit-picker" to "앨범별 보기·선택 순서·미리보기·제한이 있는 앱 안 사진·영상 갤러리",
+    "framekit-scanner" to "카메라로 문서 테두리를 실시간으로 찾아 찍고 반듯하게 펴는 문서 스캐너",
     "framekit" to "사진·영상 편집기를 고르는 FrameKitContract (통합)",
     "framekit-segmentation" to "ML Kit 배경 제거 (선택)",
     "framekit-ocr" to "ML Kit 글자 인식, PDF 글자 레이어 (선택)",

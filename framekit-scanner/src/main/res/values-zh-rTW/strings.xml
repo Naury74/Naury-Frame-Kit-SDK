@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="framekit_scan_title">掃描文件</string>
+    <string name="framekit_scan_hint_find">請將文件放入畫面中</string>
+    <string name="framekit_scan_hint_hold">保持不動即可自動拍攝</string>
+    <string name="framekit_scan_hint_manual">請點按按鈕拍攝</string>
+    <string name="framekit_scan_working">正在拉平…</string>
+    <string name="framekit_scan_auto">自動</string>
+    <string name="framekit_scan_torch">閃光燈</string>
+    <string name="framekit_scan_shutter">拍攝</string>
+    <string name="framekit_scan_done_count">完成 (%1$d)</string>
+    <string name="framekit_scan_failed">無法處理相片，請重新拍攝。</string>
+    <string name="framekit_scan_camera_error">無法開啟相機。</string>
+    <plurals name="framekit_scan_limit">
+        <item quantity="other">最多可掃描 %1$d 頁</item>
+    </plurals>
+    <plurals name="framekit_scan_pages_cd">
+        <item quantity="other">已掃描 %1$d 頁。點按可刪除最後一頁</item>
+    </plurals>
+</resources>

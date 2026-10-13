@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="framekit_scan_title">書類をスキャン</string>
+    <string name="framekit_scan_hint_find">書類を枠内に収めてください</string>
+    <string name="framekit_scan_hint_hold">そのまま持つと自動で撮影します</string>
+    <string name="framekit_scan_hint_manual">ボタンを押して撮影してください</string>
+    <string name="framekit_scan_working">補正中…</string>
+    <string name="framekit_scan_auto">自動</string>
+    <string name="framekit_scan_torch">フラッシュ</string>
+    <string name="framekit_scan_shutter">撮影</string>
+    <string name="framekit_scan_done_count">完了 (%1$d)</string>
+    <string name="framekit_scan_failed">写真を処理できませんでした。もう一度撮影してください。</string>
+    <string name="framekit_scan_camera_error">カメラを開けません。</string>
+    <plurals name="framekit_scan_limit">
+        <item quantity="other">最大%1$dページまでスキャンできます</item>
+    </plurals>
+    <plurals name="framekit_scan_pages_cd">
+        <item quantity="other">%1$dページ撮影済み。タップで最後のページを削除</item>
+    </plurals>
+</resources>

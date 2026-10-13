@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="framekit_scan_title">Quét tài liệu</string>
+    <string name="framekit_scan_hint_find">Đặt tài liệu vào khung hình</string>
+    <string name="framekit_scan_hint_hold">Giữ yên để tự động chụp</string>
+    <string name="framekit_scan_hint_manual">Nhấn nút để chụp</string>
+    <string name="framekit_scan_working">Đang làm phẳng trang…</string>
+    <string name="framekit_scan_auto">Tự động</string>
+    <string name="framekit_scan_torch">Đèn flash</string>
+    <string name="framekit_scan_shutter">Chụp</string>
+    <string name="framekit_scan_done_count">Xong (%1$d)</string>
+    <string name="framekit_scan_failed">Không xử lý được ảnh. Vui lòng chụp lại.</string>
+    <string name="framekit_scan_camera_error">Không mở được máy ảnh.</string>
+    <plurals name="framekit_scan_limit">
+        <item quantity="other">Bạn có thể quét tối đa %1$d trang</item>
+    </plurals>
+    <plurals name="framekit_scan_pages_cd">
+        <item quantity="other">Đã quét %1$d trang. Nhấn để xóa trang cuối</item>
+    </plurals>
+</resources>

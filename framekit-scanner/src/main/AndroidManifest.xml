@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- 권한은 추가하지 않는다. 호스트가 CAMERA를 선언한 경우에만 앱 안 카메라를 쓰고, 아니면 기기 카메라 앱으로 대신한다. -->
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+
+    <application>
+        <activity
+            android:name="com.naury.framekit.scanner.DocumentScannerActivity"
+            android:exported="false"
+            android:theme="@style/framekit_Theme.Editor" />
+    </application>
+
+</manifest>

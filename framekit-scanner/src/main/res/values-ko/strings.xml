@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="framekit_scan_title">문서 스캔</string>
+    <string name="framekit_scan_hint_find">문서를 화면 안에 맞춰 주세요</string>
+    <string name="framekit_scan_hint_hold">그대로 들고 있으면 자동으로 찍어요</string>
+    <string name="framekit_scan_hint_manual">버튼을 눌러 찍어 주세요</string>
+    <string name="framekit_scan_working">문서를 펴는 중…</string>
+    <string name="framekit_scan_auto">자동</string>
+    <string name="framekit_scan_torch">플래시</string>
+    <string name="framekit_scan_shutter">찍기</string>
+    <string name="framekit_scan_done_count">완료 (%1$d)</string>
+    <string name="framekit_scan_failed">사진을 처리하지 못했어요. 다시 찍어 주세요.</string>
+    <string name="framekit_scan_camera_error">카메라를 열 수 없어요.</string>
+    <plurals name="framekit_scan_limit">
+        <item quantity="other">최대 %1$d쪽까지 찍을 수 있어요</item>
+    </plurals>
+    <plurals name="framekit_scan_pages_cd">
+        <item quantity="other">%1$d쪽 찍음. 누르면 마지막 쪽을 지워요</item>
+    </plurals>
+</resources>

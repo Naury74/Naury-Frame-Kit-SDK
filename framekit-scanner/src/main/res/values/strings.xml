@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="framekit_scan_title">Scan document</string>
+    <string name="framekit_scan_hint_find">Fit the document in the frame</string>
+    <string name="framekit_scan_hint_hold">Hold still to capture automatically</string>
+    <string name="framekit_scan_hint_manual">Tap the button to capture</string>
+    <string name="framekit_scan_working">Flattening the page…</string>
+    <string name="framekit_scan_auto">Auto</string>
+    <string name="framekit_scan_torch">Flash</string>
+    <string name="framekit_scan_shutter">Capture</string>
+    <string name="framekit_scan_done_count">Done (%1$d)</string>
+    <string name="framekit_scan_failed">Couldn\'t process the photo. Please try again.</string>
+    <string name="framekit_scan_camera_error">Couldn\'t open the camera.</string>
+    <plurals name="framekit_scan_limit">
+        <item quantity="one">You can scan up to %1$d page</item>
+        <item quantity="other">You can scan up to %1$d pages</item>
+    </plurals>
+    <plurals name="framekit_scan_pages_cd">
+        <item quantity="one">%1$d page scanned. Tap to remove the last page</item>
+        <item quantity="other">%1$d pages scanned. Tap to remove the last page</item>
+    </plurals>
+</resources>

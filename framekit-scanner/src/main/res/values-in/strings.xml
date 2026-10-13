@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="framekit_scan_title">Pindai dokumen</string>
+    <string name="framekit_scan_hint_find">Posisikan dokumen di dalam bingkai</string>
+    <string name="framekit_scan_hint_hold">Tahan diam untuk memotret otomatis</string>
+    <string name="framekit_scan_hint_manual">Ketuk tombol untuk memotret</string>
+    <string name="framekit_scan_working">Meratakan halaman…</string>
+    <string name="framekit_scan_auto">Otomatis</string>
+    <string name="framekit_scan_torch">Lampu kilat</string>
+    <string name="framekit_scan_shutter">Potret</string>
+    <string name="framekit_scan_done_count">Selesai (%1$d)</string>
+    <string name="framekit_scan_failed">Foto tidak dapat diproses. Coba lagi.</string>
+    <string name="framekit_scan_camera_error">Kamera tidak dapat dibuka.</string>
+    <plurals name="framekit_scan_limit">
+        <item quantity="other">Anda dapat memindai hingga %1$d halaman</item>
+    </plurals>
+    <plurals name="framekit_scan_pages_cd">
+        <item quantity="other">%1$d halaman dipindai. Ketuk untuk menghapus halaman terakhir</item>
+    </plurals>
+</resources>

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="framekit_scan_title">Numériser un document</string>
+    <string name="framekit_scan_hint_find">Cadrez le document</string>
+    <string name="framekit_scan_hint_hold">Ne bougez pas pour une capture automatique</string>
+    <string name="framekit_scan_hint_manual">Touchez le bouton pour capturer</string>
+    <string name="framekit_scan_working">Redressement de la page…</string>
+    <string name="framekit_scan_auto">Auto</string>
+    <string name="framekit_scan_torch">Flash</string>
+    <string name="framekit_scan_shutter">Capturer</string>
+    <string name="framekit_scan_done_count">OK (%1$d)</string>
+    <string name="framekit_scan_failed">Impossible de traiter la photo. Réessayez.</string>
+    <string name="framekit_scan_camera_error">Impossible d\'ouvrir l\'appareil photo.</string>
+    <plurals name="framekit_scan_limit">
+        <item quantity="one">Vous pouvez numériser jusqu\'à %1$d page</item>
+        <item quantity="many">Vous pouvez numériser jusqu\'à %1$d pages</item>
+        <item quantity="other">Vous pouvez numériser jusqu\'à %1$d pages</item>
+    </plurals>
+    <plurals name="framekit_scan_pages_cd">
+        <item quantity="one">%1$d page numérisée. Touchez pour retirer la dernière</item>
+        <item quantity="many">%1$d pages numérisées. Touchez pour retirer la dernière</item>
+        <item quantity="other">%1$d pages numérisées. Touchez pour retirer la dernière</item>
+    </plurals>
+</resources>
