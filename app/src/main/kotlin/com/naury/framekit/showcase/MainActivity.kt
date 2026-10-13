@@ -19,6 +19,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalResources
 import com.naury.framekit.FrameKitContract
 import com.naury.framekit.android.input.MediaKind
+import com.naury.framekit.ui.config.ThemeMode
+import com.naury.framekit.ui.config.EditorUiConfig
 import com.naury.framekit.ui.picker.MediaPickerContract
 import com.naury.framekit.ui.picker.MediaPickerRequest
 import com.naury.framekit.ui.picker.MediaPickerResult
@@ -41,6 +43,7 @@ class MainActivity : ComponentActivity() {
                 var lastMessage by rememberSaveable { mutableStateOf<String?>(null) }
                 var launchedAt by rememberSaveable { mutableLongStateOf(0L) }
                 var playground by rememberSaveable { mutableStateOf(false) }
+                var editorTheme by rememberSaveable { mutableStateOf(ThemeMode.DARK) }
 
                 val editor = rememberLauncherForActivityResult(FrameKitContract()) { outcome ->
                     when (outcome) {
@@ -97,18 +100,27 @@ class MainActivity : ComponentActivity() {
                 } else if (current == null) {
                     HomeScreen(
                         message = lastMessage,
+                        editorTheme = editorTheme,
+                        onEditorTheme = { editorTheme = it },
                         onLaunch = { example ->
                             launchedAt = SystemClock.elapsedRealtime()
                             val motion = example.motion
+                            val request = example.request.copy(ui = example.request.ui.copy(themeMode = editorTheme))
                             when {
-                                motion != null -> motionEditor.launch(motion)
+                                motion != null -> motionEditor.launch(motion.copy(ui = motion.ui.copy(themeMode = editorTheme)))
                                 example.hostPick -> {
-                                    pendingHost = example.request
+                                    pendingHost = request
                                     hostPicker.launch(
-                                        MediaPickerRequest(MediaKind.ANY, maxItems = 10, maxFileSizeBytes = 50L * 1024 * 1024, maxVideoDurationMs = 60_000),
+                                        MediaPickerRequest(
+                                            MediaKind.ANY,
+                                            maxItems = 10,
+                                            maxFileSizeBytes = 50L * 1024 * 1024,
+                                            maxVideoDurationMs = 60_000,
+                                            ui = EditorUiConfig(themeMode = editorTheme),
+                                        ),
                                     )
                                 }
-                                else -> editor.launch(example.request)
+                                else -> editor.launch(request)
                             }
                         },
                         onPlayground = { playground = true },

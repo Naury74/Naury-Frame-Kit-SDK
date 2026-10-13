@@ -109,4 +109,7 @@
     <string name="example_watermark_description">Saisissez un texte ou choisissez une suggestion, puis placez-le à un endroit, en répétition, en diagonale ou en bandeau</string>
     <string name="example_watermark_locked_title">Filigrane verrouillé</string>
     <string name="example_watermark_locked_description">L\'app applique un filigrane SAMPLE répété que l\'utilisateur ne peut ni modifier ni retirer</string>
+    <string name="home_editor_theme">Thème de l\'éditeur</string>
+    <string name="home_theme_dark">Sombre</string>
+    <string name="home_theme_light">Clair</string>
 </resources>

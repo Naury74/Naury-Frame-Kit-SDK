@@ -107,4 +107,7 @@
     <string name="example_watermark_description">Nhập chữ hoặc chọn gợi ý, rồi đặt ở một chỗ, lặp lại, đường chéo hoặc dải</string>
     <string name="example_watermark_locked_title">Hình mờ bị khóa</string>
     <string name="example_watermark_locked_description">Ứng dụng đặt hình mờ SAMPLE lặp lại, người dùng không thể đổi hay gỡ</string>
+    <string name="home_editor_theme">Giao diện trình chỉnh sửa</string>
+    <string name="home_theme_dark">Tối</string>
+    <string name="home_theme_light">Sáng</string>
 </resources>

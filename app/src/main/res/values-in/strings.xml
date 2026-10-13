@@ -107,4 +107,7 @@
     <string name="example_watermark_description">Ketik teks atau pilih saran, lalu pasang di satu titik, berulang, diagonal, atau pita</string>
     <string name="example_watermark_locked_title">Tanda air terkunci</string>
     <string name="example_watermark_locked_description">Aplikasi memasang tanda air SAMPLE berulang yang tidak bisa diubah atau dihapus pengguna</string>
+    <string name="home_editor_theme">Tema editor</string>
+    <string name="home_theme_dark">Gelap</string>
+    <string name="home_theme_light">Terang</string>
 </resources>

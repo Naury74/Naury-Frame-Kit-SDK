@@ -109,4 +109,7 @@
     <string name="example_watermark_description">Text eingeben oder Vorschlag wählen und an einer Stelle, wiederholt, diagonal oder als Band platzieren</string>
     <string name="example_watermark_locked_title">Gesperrtes Wasserzeichen</string>
     <string name="example_watermark_locked_description">Die App setzt ein wiederholtes SAMPLE-Wasserzeichen, das nicht geändert oder entfernt werden kann</string>
+    <string name="home_editor_theme">Editor-Design</string>
+    <string name="home_theme_dark">Dunkel</string>
+    <string name="home_theme_light">Hell</string>
 </resources>

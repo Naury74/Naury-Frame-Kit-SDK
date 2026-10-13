@@ -107,4 +107,7 @@
     <string name="example_watermark_description">输入文字或选择推荐文字，以单处、重复、对角线或横条方式添加</string>
     <string name="example_watermark_locked_title">锁定水印</string>
     <string name="example_watermark_locked_description">应用指定的重复 SAMPLE 水印，用户无法修改或移除</string>
+    <string name="home_editor_theme">编辑器主题</string>
+    <string name="home_theme_dark">深色</string>
+    <string name="home_theme_light">浅色</string>
 </resources>

@@ -20,6 +20,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
+import com.naury.framekit.ui.config.ThemeMode
+import androidx.compose.foundation.layout.width
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -28,7 +31,13 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 
 @Composable
-fun HomeScreen(message: String?, onLaunch: (ShowcaseExample) -> Unit, onPlayground: () -> Unit) {
+fun HomeScreen(
+    message: String?,
+    editorTheme: ThemeMode,
+    onEditorTheme: (ThemeMode) -> Unit,
+    onLaunch: (ShowcaseExample) -> Unit,
+    onPlayground: () -> Unit,
+) {
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
@@ -47,7 +56,15 @@ fun HomeScreen(message: String?, onLaunch: (ShowcaseExample) -> Unit, onPlaygrou
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                Spacer(Modifier.height(24.dp))
+                Spacer(Modifier.height(20.dp))
+                // 모든 예제의 편집기를 다크·라이트 중 고른 테마로 연다.
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(stringResource(R.string.home_editor_theme), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Spacer(Modifier.width(4.dp))
+                    FilterChip(selected = editorTheme == ThemeMode.DARK, onClick = { onEditorTheme(ThemeMode.DARK) }, label = { Text(stringResource(R.string.home_theme_dark)) })
+                    FilterChip(selected = editorTheme == ThemeMode.LIGHT, onClick = { onEditorTheme(ThemeMode.LIGHT) }, label = { Text(stringResource(R.string.home_theme_light)) })
+                }
+                Spacer(Modifier.height(16.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     Button(onClick = { onLaunch(ShowcaseExample.DEFAULT) }, modifier = Modifier.weight(1f).height(56.dp)) {
                         Text(stringResource(R.string.home_edit_photo))

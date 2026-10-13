@@ -109,4 +109,7 @@
     <string name="example_watermark_description">Type a watermark or pick a suggested one, then choose one spot, repeat, diagonal or band</string>
     <string name="example_watermark_locked_title">Locked watermark</string>
     <string name="example_watermark_locked_description">The app applies a repeating SAMPLE watermark that users can\'t change or remove</string>
+    <string name="home_editor_theme">Editor theme</string>
+    <string name="home_theme_dark">Dark</string>
+    <string name="home_theme_light">Light</string>
 </resources>

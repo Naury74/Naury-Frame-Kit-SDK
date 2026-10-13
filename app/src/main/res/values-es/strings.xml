@@ -109,4 +109,7 @@
     <string name="example_watermark_description">Escribe un texto o elige una sugerencia y colócalo en un lugar, repetido, en diagonal o en franja</string>
     <string name="example_watermark_locked_title">Marca de agua bloqueada</string>
     <string name="example_watermark_locked_description">La app aplica una marca SAMPLE repetida que no se puede cambiar ni quitar</string>
+    <string name="home_editor_theme">Tema del editor</string>
+    <string name="home_theme_dark">Oscuro</string>
+    <string name="home_theme_light">Claro</string>
 </resources>

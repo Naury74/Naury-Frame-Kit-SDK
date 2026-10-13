@@ -107,4 +107,7 @@
     <string name="example_watermark_description">文字を入力するか候補から選び、1か所・繰り返し・対角線・帯で配置</string>
     <string name="example_watermark_locked_title">固定の透かし</string>
     <string name="example_watermark_locked_description">アプリが決めた繰り返しのSAMPLE透かしが入り、変更・削除はできない</string>
+    <string name="home_editor_theme">エディターのテーマ</string>
+    <string name="home_theme_dark">ダーク</string>
+    <string name="home_theme_light">ライト</string>
 </resources>

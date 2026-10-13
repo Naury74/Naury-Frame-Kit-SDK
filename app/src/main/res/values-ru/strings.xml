@@ -109,4 +109,7 @@
     <string name="example_watermark_description">Введите текст или выберите вариант и разместите в одном месте, повтором, по диагонали или полосой</string>
     <string name="example_watermark_locked_title">Закреплённый водяной знак</string>
     <string name="example_watermark_locked_description">Приложение ставит повторяющийся знак SAMPLE, который нельзя изменить или убрать</string>
+    <string name="home_editor_theme">Тема редактора</string>
+    <string name="home_theme_dark">Тёмная</string>
+    <string name="home_theme_light">Светлая</string>
 </resources>

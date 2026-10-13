@@ -107,4 +107,7 @@
     <string name="example_watermark_description">พิมพ์ข้อความหรือเลือกคำแนะนำ แล้ววางแบบจุดเดียว ซ้ำ แนวทแยง หรือแถบ</string>
     <string name="example_watermark_locked_title">ลายน้ำแบบล็อก</string>
     <string name="example_watermark_locked_description">แอปใส่ลายน้ำ SAMPLE แบบซ้ำที่ผู้ใช้เปลี่ยนหรือลบไม่ได้</string>
+    <string name="home_editor_theme">ธีมตัวแก้ไข</string>
+    <string name="home_theme_dark">มืด</string>
+    <string name="home_theme_light">สว่าง</string>
 </resources>
