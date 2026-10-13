@@ -84,6 +84,60 @@ class DocumentRectifierTest {
     }
 
     @Test
+    fun `curved pages are flattened along their outline`() {
+        // 위·아래 변이 휜 종이. 종이 위 가로줄(v = 0.5)도 같은 모양으로 휘어 있다.
+        val bow = 0.05
+        fun curve(from: PointN, to: PointN, lift: Double) = List(17) { i ->
+            val t = i / 16.0
+            PointN(from.x + (to.x - from.x) * t, from.y + (to.y - from.y) * t - kotlin.math.sin(Math.PI * t) * lift)
+        }
+        val quad = DocumentQuad(PointN(0.2, 0.2), PointN(0.8, 0.2), PointN(0.8, 0.8), PointN(0.2, 0.8))
+        val outline = com.naury.framekit.core.document.DocumentOutline(
+            quad = quad,
+            top = curve(quad.topLeft, quad.topRight, bow),
+            right = curve(quad.topRight, quad.bottomRight, 0.0),
+            bottom = curve(quad.bottomLeft, quad.bottomRight, bow),
+            left = curve(quad.topLeft, quad.bottomLeft, 0.0),
+        )
+        assertThat(outline.isCurved).isTrue()
+        val width = 600
+        val height = 800
+        val photo = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888).apply {
+            val canvas = Canvas(this)
+            canvas.drawColor(Color.rgb(40, 40, 40))
+            val paper = Path().apply {
+                (outline.top + outline.right.drop(1) + outline.bottom.reversed().drop(1) + outline.left.reversed().drop(1)).forEachIndexed { i, p ->
+                    if (i == 0) moveTo((p.x * width).toFloat(), (p.y * height).toFloat()) else lineTo((p.x * width).toFloat(), (p.y * height).toFloat())
+                }
+                close()
+            }
+            canvas.drawPath(paper, Paint().apply { color = Color.WHITE })
+            val ink = Paint().apply { color = Color.BLACK; strokeWidth = 6f; style = Paint.Style.STROKE }
+            val line = Path().apply {
+                for (i in 0..40) {
+                    val p = outline.point(i / 40.0, 0.5)
+                    if (i == 0) moveTo((p.x * width).toFloat(), (p.y * height).toFloat()) else lineTo((p.x * width).toFloat(), (p.y * height).toFloat())
+                }
+            }
+            canvas.drawPath(line, ink)
+        }
+        // 펴낸 쪽에서 가로줄의 높이가 폭 전체에서 얼마나 흔들리는지 잰다.
+        fun spread(target: Bitmap): Int {
+            val rows = (1 until 10).map { k ->
+                val x = target.width * k / 10
+                (0 until target.height).filter { y -> Color.red(target.getPixel(x, y)) < 100 }.average()
+            }
+            return (rows.max() - rows.min()).toInt()
+        }
+        val curvedResult = Bitmap.createBitmap(300, 400, Bitmap.Config.ARGB_8888)
+        DocumentRectifier.warp(photo, outline, curvedResult)
+        val straightResult = Bitmap.createBitmap(300, 400, Bitmap.Config.ARGB_8888)
+        DocumentRectifier.warp(photo, quad, straightResult)
+        assertThat(spread(curvedResult)).isAtMost(4)
+        assertThat(spread(straightResult)).isGreaterThan(12)
+    }
+
+    @Test
     fun `twisted corners are rejected and flat images find nothing`() {
         val sourceFile = File(context.cacheDir, "flat-src.png").apply { outputStream().use { photo(100, 100).compress(Bitmap.CompressFormat.PNG, 100, it) } }
         val resolver = FileSourceResolver("doc" to sourceFile)

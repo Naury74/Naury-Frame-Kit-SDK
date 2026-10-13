@@ -7,11 +7,13 @@ import android.graphics.Color
 import android.graphics.Matrix
 import android.graphics.Paint
 import androidx.core.graphics.createBitmap
+import androidx.core.graphics.withClip
 import androidx.core.graphics.scale
 import com.naury.framekit.android.result.EditorErrorCode
 import com.naury.framekit.android.result.FrameKitException
 import com.naury.framekit.android.source.SourceResolver
 import com.naury.framekit.core.document.DocumentDetector
+import com.naury.framekit.core.document.DocumentOutline
 import com.naury.framekit.core.document.DocumentQuad
 import com.naury.framekit.core.document.ScanMode
 import com.naury.framekit.core.model.PixelSize
@@ -44,6 +46,8 @@ public class DocumentRectifier(
      * 펴낸 문서를 [output]에 JPEG로 쓴다. 긴 변은 [maxLongEdge]를 넘지 않고, 원본보다 키우지 않는다.
      *
      * @param mode 편 뒤 적용할 스캔 보정([ScanEnhancer]). 기본은 색을 살린 스캔.
+     * @param outline 종이가 휘거나 접혔을 때의 실제 테두리([DocumentRectifier.analyze]가 찾는다). 모서리가 [quad]와 같고 변이
+     *   휘었으면 테두리 곡선을 따라 펴고, 아니면 네 모서리로 편다.
      * @return 결과 픽셀 크기.
      * @throws FrameKitException 모서리가 문서 모양이 아니면 `INVALID_PROJECT`, 메모리가 모자라면
      *   `INSUFFICIENT_MEMORY`, 파일을 쓰지 못하면 `OUTPUT_WRITE_FAILED`, 그 밖의 디코딩 오류.
@@ -55,10 +59,12 @@ public class DocumentRectifier(
         mode: ScanMode = ScanMode.COLOR,
         maxLongEdge: Int = MAX_LONG_EDGE,
         quality: Int = JPEG_QUALITY,
+        outline: DocumentOutline? = null,
     ): PixelSize {
         if (!quad.isUsable) throw FrameKitException(EditorErrorCode.INVALID_PROJECT, "Corners do not form a document")
+        val curved = outline?.takeIf { it.quad == quad && it.isCurved }
         val upright = info.metadata.uprightSize
-        val (fullWidth, fullHeight) = quad.rectifiedSize(upright.width, upright.height)
+        val (fullWidth, fullHeight) = curved?.rectifiedSize(upright.width, upright.height) ?: quad.rectifiedSize(upright.width, upright.height)
         // 결과와 디코딩한 원본이 함께 메모리에 있으므로 둘을 합쳐 예산 안에 들게 줄인다.
         val budgetPixels = (memoryBudgetBytes / BYTES_PER_PIXEL / 3).coerceAtLeast(MIN_BUDGET_PIXELS)
         var scale = min(1.0, maxLongEdge.toDouble() / max(fullWidth, fullHeight))
@@ -76,7 +82,7 @@ public class DocumentRectifier(
                 throw FrameKitException(EditorErrorCode.INSUFFICIENT_MEMORY, "Document did not fit in memory", error)
             }
             try {
-                warp(source, quad, result)
+                if (curved != null) warp(source, curved, result) else warp(source, quad, result)
                 ScanEnhancer.enhance(result, mode)
                 try {
                     output.parentFile?.mkdirs()
@@ -103,6 +109,9 @@ public class DocumentRectifier(
         public const val MAX_LONG_EDGE: Int = 4096
         public const val JPEG_QUALITY: Int = 92
 
+        /** 휜 테두리를 펼 때 나누는 칸 수(가로·세로 각각). */
+        public const val MESH_CELLS: Int = 12
+
         private const val BYTES_PER_PIXEL = 4L
         private const val MIN_BUDGET_PIXELS = 4_000_000L
 
@@ -110,10 +119,16 @@ public class DocumentRectifier(
          * [image]에서 문서 모서리를 찾는다. 이미지를 [DocumentDetector.WORKING_LONG_EDGE]로 줄여 밝기·채도로 바꾼 뒤
          * 감지하므로 빠르다. 찾지 못하면 `null`.
          */
-        public fun detect(image: Bitmap): DocumentQuad? = analyze(image).quad
+        @JvmOverloads
+        public fun detect(image: Bitmap, insideOnly: Boolean = false): DocumentQuad? = analyze(image, insideOnly).quad
 
-        /** [detect]와 같지만 문서가 아니라고 본 이유를 함께 돌려준다(로그용). */
-        public fun analyze(image: Bitmap): DocumentDetector.Analysis {
+        /**
+         * [detect]와 같지만 문서가 아니라고 본 이유를 함께 돌려준다(로그용).
+         *
+         * @param insideOnly 모서리가 사진 가장자리에 닿는 결과는 버린다([DocumentDetector.analyze] 참고).
+         */
+        @JvmOverloads
+        public fun analyze(image: Bitmap, insideOnly: Boolean = false): DocumentDetector.Analysis {
             val long = max(image.width, image.height)
             val factor = min(1f, DocumentDetector.WORKING_LONG_EDGE.toFloat() / long)
             val w = max(8, (image.width * factor).roundToInt())
@@ -131,9 +146,44 @@ public class DocumentRectifier(
                     luma[i] = (r * 299 + g * 587 + b * 114) / 1000
                     chroma[i] = maxOf(r, g, b) - minOf(r, g, b)
                 }
-                return DocumentDetector.analyze(luma, w, h, chroma)
+                return DocumentDetector.analyze(luma, w, h, chroma, insideOnly)
             } finally {
                 if (small !== image) small.recycle()
+            }
+        }
+
+        /**
+         * [image]에서 문서의 실제 테두리(휘거나 접힌 변 포함)를 찾는다. 찾지 못하면 `null`.
+         *
+         * @param insideOnly 모서리가 사진 가장자리에 닿는 결과는 버린다.
+         */
+        @JvmOverloads
+        public fun detectOutline(image: Bitmap, insideOnly: Boolean = false): DocumentOutline? = analyze(image, insideOnly).outline
+
+        /**
+         * [source] 위의 휜 테두리 [outline]을 [target] 전체로 편다. 결과를 [MESH_CELLS]×[MESH_CELLS] 칸으로 나눠, 칸마다 테두리
+         * 곡선 면 위의 네 점을 칸의 네 모서리로 옮기는 원근 변환으로 그린다.
+         */
+        public fun warp(source: Bitmap, outline: DocumentOutline, target: Bitmap) {
+            val canvas = Canvas(target)
+            canvas.drawColor(Color.WHITE)
+            val paint = Paint(Paint.FILTER_BITMAP_FLAG or Paint.ANTI_ALIAS_FLAG)
+            val w = target.width.toFloat()
+            val h = target.height.toFloat()
+            val n = MESH_CELLS
+            val grid = Array(n + 1) { j -> Array(n + 1) { i -> outline.point(i.toDouble() / n, j.toDouble() / n) } }
+            val matrix = Matrix()
+            for (j in 0 until n) for (i in 0 until n) {
+                val corners = listOf(grid[j][i], grid[j][i + 1], grid[j + 1][i + 1], grid[j + 1][i])
+                val src = corners.flatMap { listOf((it.x * source.width).toFloat(), (it.y * source.height).toFloat()) }.toFloatArray()
+                val left = w * i / n
+                val right = w * (i + 1) / n
+                val top = h * j / n
+                val bottom = h * (j + 1) / n
+                val dst = floatArrayOf(left, top, right, top, right, bottom, left, bottom)
+                if (!matrix.setPolyToPoly(src, 0, dst, 0, 4)) continue
+                // 칸 사이에 틈이 보이지 않도록 반 픽셀씩 겹쳐 그린다.
+                canvas.withClip(left - 0.5f, top - 0.5f, right + 0.5f, bottom + 0.5f) { drawBitmap(source, matrix, paint) }
             }
         }
 
