@@ -4,6 +4,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.CircleShape
+import com.naury.framekit.ui.design.frameKitGlass
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -21,7 +24,6 @@ import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.unit.dp
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
@@ -46,7 +48,7 @@ public fun HistoryControls(
 ) {
     if (!showUndo && !showRedo && onCompare == null) return
     val colors = FrameKitTheme.colors
-    Row(modifier.background(colors.surface.copy(alpha = 0.86f), MaterialTheme.shapes.medium)) {
+    Row(modifier.frameKitGlass(CircleShape).padding(horizontal = 4.dp)) {
         if (showUndo) {
             IconButton(onClick = onUndo, enabled = canUndo) {
                 Icon(

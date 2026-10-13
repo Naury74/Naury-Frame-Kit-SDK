@@ -4,6 +4,7 @@ import android.os.Parcelable
 import com.naury.framekit.core.validation.ValidationCode
 import com.naury.framekit.core.validation.ValidationIssue
 import com.naury.framekit.core.validation.ValidationResult
+import com.naury.framekit.ui.picker.PickerStyle
 import kotlinx.parcelize.Parcelize
 
 /** 에디터의 색 구성 선택. */
@@ -32,6 +33,7 @@ public enum class ThemeMode {
  *   `null`이면 기기 로케일. 제공하지 않는 언어는 영어로 보인다.
  * @property palette 배경·패널·글자 색을 바꾸는 값. `null`이면 테마 기본 색.
  * @property uiFontId 편집기 문구에 쓸 폰트. 요청 카탈로그에 등록한 폰트 id이며, `null`이면 시스템 폰트.
+ * @property picker 원본을 고르는 화면. 기본은 `framekit-picker`가 있으면 앱 안 갤러리, 없으면 시스템 사진 선택기.
  */
 @Parcelize
 public data class EditorUiConfig(
@@ -43,6 +45,7 @@ public data class EditorUiConfig(
     val localeTag: String? = null,
     val palette: EditorPalette? = null,
     val uiFontId: String? = null,
+    val picker: PickerStyle = PickerStyle.AUTO,
 ) : Parcelable {
 
     public fun validate(): ValidationResult {
