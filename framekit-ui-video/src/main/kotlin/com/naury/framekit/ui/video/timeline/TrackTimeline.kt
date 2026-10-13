@@ -392,8 +392,9 @@ internal fun TrackTimeline(
 
             val start = x(0)
             val end = x(durationUs)
-            if (start > 0) drawRect(Color.Black.copy(alpha = 0.25f), Offset.Zero, Size(start, size.height))
-            if (end < size.width) drawRect(Color.Black.copy(alpha = 0.25f), Offset(end, 0f), Size(size.width - end, size.height))
+            // 처음 앞·끝 뒤는 배경색으로 덮어 흐리게 한다(밝은 테마에서도 회색 덩어리로 보이지 않게).
+            if (start > 0) drawRect(colors.background.copy(alpha = 0.6f), Offset.Zero, Size(start, size.height))
+            if (end < size.width) drawRect(colors.background.copy(alpha = 0.6f), Offset(end, 0f), Size(size.width - end, size.height))
 
             // 줄 이름은 왼쪽에 고정해 어느 줄인지 늘 보이게 한다.
             lanes.filter { it != TrackLane.VIDEO }.forEach { lane ->
