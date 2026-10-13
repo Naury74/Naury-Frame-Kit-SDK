@@ -15,6 +15,7 @@ import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.transformer.CompositionPlayer
 import com.naury.framekit.android.result.EditorErrorCode
+import com.naury.framekit.core.video.TimelineTimeMapper
 import com.naury.framekit.video.VideoRenderPlan
 import com.naury.framekit.video.media3.Media3CompositionFactory
 import kotlinx.coroutines.CoroutineScope
@@ -81,6 +82,9 @@ public class Media3VideoPreviewEngine(context: Context, private val scope: Corou
     private var poller: Job? = null
     private var released = false
 
+    // 지금 계획의 출력 길이(µs). 끝에 닿은 뒤 플레이어가 이보다 큰 위치를 알려 줘도 이 안으로 맞춘다.
+    private var planDurationUs = 0L
+
     init {
         player.addListener(object : Player.Listener {
             override fun onPlaybackStateChanged(playbackState: Int) {
@@ -112,6 +116,7 @@ public class Media3VideoPreviewEngine(context: Context, private val scope: Corou
 
     override fun setPlan(plan: VideoRenderPlan, positionUs: Long) {
         if (released || plan.projectRevision < _state.value.planRevision) return
+        planDurationUs = TimelineTimeMapper.durationUs(plan.project.timeline)
         player.setComposition(Media3CompositionFactory.create(plan, maxFrameRate = null), positionUs / 1000)
         player.prepare()
         _state.update { it.copy(planRevision = plan.projectRevision, positionUs = positionUs, error = null, ended = false) }
@@ -157,7 +162,7 @@ public class Media3VideoPreviewEngine(context: Context, private val scope: Corou
         if (poller?.isActive == true) return
         poller = scope.launch {
             while (isActive && !released) {
-                _state.update { it.copy(positionUs = player.currentPosition * 1000) }
+                _state.update { it.copy(positionUs = currentPositionUs()) }
                 delay(POSITION_INTERVAL_MS)
             }
         }
@@ -166,7 +171,12 @@ public class Media3VideoPreviewEngine(context: Context, private val scope: Corou
     private fun stopPolling() {
         poller?.cancel()
         poller = null
-        if (!released) _state.update { it.copy(positionUs = player.currentPosition * 1000) }
+        if (!released) _state.update { it.copy(positionUs = currentPositionUs()) }
+    }
+
+    private fun currentPositionUs(): Long {
+        val position = player.currentPosition * 1000
+        return if (planDurationUs > 0) position.coerceIn(0L, planDurationUs) else position
     }
 
     private companion object {
