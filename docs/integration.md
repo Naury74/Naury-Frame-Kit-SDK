@@ -370,6 +370,62 @@ audio.launch(AudioEditorRequest(EditorInput.UriSource(audioUri), export = AudioE
 - 녹음 파일(AAC, m4a)은 `files/framekit/recordings`에 둡니다. 편집을 이어 가는 데 필요해 편집기가 지우지 않으며, 필요 없으면 호스트가 지웁니다.
 - 한 번에 최대 10분까지 녹음합니다.
 
+## 앱 안 갤러리 (사진·영상 고르기)
+
+`framekit-picker`는 시스템 사진 선택기 대신 쓸 수 있는 갤러리 화면입니다. 앨범별 보기, 고른 순서 번호, 크게 보기(확대·축소), 개수·파일 크기·영상 길이·형식 제한을 지원합니다. 통합 모듈(`framekit`)에 들어 있고, 개별 모듈만 쓴다면 따로 추가합니다.
+
+```kotlin
+implementation("com.naurylab:framekit-picker:<버전>")
+```
+
+### 단독으로 쓰기
+
+```kotlin
+val picker = registerForActivityResult(MediaPickerContract()) { result ->
+    when (result) {
+        is MediaPickerResult.Picked -> result.items.forEach { show(it.uri, it.mimeType, it.durationMs) } // 고른 순서
+        MediaPickerResult.Cancelled -> Unit
+    }
+}
+
+picker.launch(
+    MediaPickerRequest(
+        kind = MediaKind.ANY,
+        maxItems = 10,
+        maxFileSizeBytes = 50L * 1024 * 1024,
+        maxVideoDurationMs = 60_000,
+        mimeTypes = setOf("image/jpeg", "image/png", "video/*"),
+    ),
+)
+```
+
+- 사진을 누르면 고르고, 칸의 크게 보기 버튼(또는 길게 누르기)으로 크게 봅니다. 크게 보는 화면에서도 고르고 끝낼 수 있습니다.
+- 하나만 고르면(`maxItems = 1`) 누르는 즉시 돌려줍니다.
+- 제한에 걸리는 항목은 흐리게 보이고, 누르면 이유를 알려 줍니다. 형식이 맞지 않는 항목은 보이지 않습니다.
+- `PickedMedia`에는 Uri와 함께 형식·크기·가로세로(회전 반영)·영상 길이가 들어 있습니다.
+
+### 편집기에서
+
+편집기가 원본을 고를 때(`EditorInput.Pick`, 쪽·슬라이드 추가)도 같은 화면이 열립니다. 시스템 선택기를 계속 쓰려면 `EditorUiConfig(picker = PickerStyle.SYSTEM)`으로 둡니다.
+
+### 권한
+
+SDK는 권한을 추가하지 않습니다. 앱 안 갤러리는 호스트가 아래 권한을 선언한 경우에만 열리고, 처음 열 때 권한을 묻습니다.
+
+```xml
+<uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+<uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
+<!-- Android 14 이상에서 "일부만 허용"을 받으려면 -->
+<uses-permission android:name="android.permission.READ_MEDIA_VISUAL_USER_SELECTED" />
+<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
+```
+
+- 권한을 선언하지 않았거나 사용자가 거부하면 시스템 사진 선택기가 대신 열립니다. 이때도 크기·길이·형식 제한은 고른 뒤 적용되고, 뺀 개수는 `MediaPickerResult.Picked.skipped`에 들어 있습니다.
+- Android 14 이상에서 사용자가 일부만 허용하면 허용한 항목만 보이고, 위쪽 안내에서 더 허용할 수 있습니다.
+- `framekit-picker` 없이 `MediaPickerContract`를 쓰면 시스템 사진 선택기가 열리며, 개수 외의 제한은 적용되지 않습니다.
+
+> **Google Play 정책 주의:** `READ_MEDIA_IMAGES`·`READ_MEDIA_VIDEO`는 사진·영상 전체 접근이 앱의 핵심 기능인 경우에만 쓸 수 있습니다. 해당하지 않는 앱은 권한을 선언하지 말고 시스템 사진 선택기(기본 동작)를 쓰세요.
+
 ## 배경 제거 선택 모듈
 
 ```kotlin

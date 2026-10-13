@@ -46,7 +46,7 @@ ImageEditorRequest(
 | `STICKER` | 표준 이모지 스티커 |
 | `DRAW` | 펜·마커·형광펜·지우개 |
 | `PRIVACY` | 모자이크·블러 |
-| `DOCUMENT` | 문서 보정(스캔). 사진을 열 때 문서로 판별되면 툴바에 나타나고 "문서가 감지됐어요" 제안을 띄움(일반 사진에서는 숨김). 네 모서리를 자동으로 찾고(직접 맞출 수 있음, 돋보기 표시) 반듯하게 편 뒤 스캔 보정(컬러·흑백·선명한 흑백·원래 색)을 적용. 펴낸 이미지가 그 쪽의 새 원본이 되고 보정·필터는 이어짐. `framekit-ocr`이 있으면 인식한 글자를 보여 주고 복사할 수 있음. "원본으로"로 되돌림 |
+| `DOCUMENT` | 문서 보정(스캔). 사진을 열 때 문서로 판별되면 툴바에 나타나고 "문서가 감지됐어요" 제안을 띄움(일반 사진에서는 숨김). PDF로 저장할 때는 감지 여부와 상관없이 툴바 맨 앞에 나오고, 여러 쪽이면 "모든 쪽 스캔"으로 남은 쪽을 한 번에 폄(문서를 찾지 못한 쪽은 그대로 둠). 네 모서리를 자동으로 찾고(직접 맞출 수 있음, 돋보기 표시) 반듯하게 편 뒤 스캔 보정(컬러·흑백·선명한 흑백·원래 색)을 적용. 펴낸 이미지가 그 쪽의 새 원본이 되고 보정·필터는 이어짐. `framekit-ocr`이 있으면 인식한 글자를 보여 주고 복사할 수 있음. "원본으로"로 되돌림 |
 | `CUTOUT` | 배경 제거. `framekit-segmentation`이 있을 때만 표시 |
 
 자르기·회전·텍스트는 도구를 열고 적용할 때까지의 모든 변경이 undo 한 단계입니다. 보정·필터·스티커·그리기·가리기는 바로 반영되며, 슬라이더 드래그 1회·선택 1회·획 1개·마스크 1개가 각각 한 단계입니다. undo 기록은 최대 50단계이며 이미지(Bitmap)가 아닌 편집 값만 저장합니다.
@@ -79,7 +79,7 @@ ImageEditorRequest(
 | `recognizeText` | `true` | `framekit-ocr` 모듈이 있으면 쪽마다 글자를 인식해 보이지 않는 글자 레이어를 넣음(검색·복사 가능) |
 
 - 쪽 이미지는 JPEG(`quality` 적용)로 넣습니다. 쪽마다 디코딩·인코딩한 뒤 바로 파일에 써서 쪽 수가 많아도 메모리가 늘지 않습니다.
-- 문서를 비스듬히 찍었으면 편집기의 **문서 보정**(`ImageTool.DOCUMENT`)으로 네 모서리를 맞춰 반듯하게 편 뒤, 필터의 `문서`(밝고 선명하게)·`문서 흑백` 프리셋을 함께 쓰면 좋습니다.
+- 문서를 비스듬히 찍었으면 편집기의 **문서 보정**(`ImageTool.DOCUMENT`)으로 네 모서리를 맞춰 반듯하게 편 뒤(여러 쪽은 "모든 쪽 스캔"), 필터의 `문서`(밝고 선명하게)·`문서 흑백` 프리셋을 함께 쓰면 좋습니다.
 - 메타데이터 정책은 PDF에 적용되지 않습니다. PDF에는 EXIF를 쓰지 않고 제작 프로그램 이름만 기록합니다.
 
 - 출력 크기는 자른 영역의 원본 픽셀 크기에서 시작해 상한에 맞게 비율을 유지하며 줄입니다. **확대하지 않습니다.**
@@ -103,6 +103,7 @@ ImageEditorRequest(
 | `localeTag` | `null` | BCP 47 태그(`ko`, `en`, `ja`, `zh-CN`, `zh-TW`, `vi`, `th`, `id`, `ru`, `es`, `pt-BR`, `fr`, `de`). `null`은 기기 언어, 제공하지 않는 언어는 영어. 빈 문자열은 오류 |
 | `palette` | `null` | `EditorPalette`. 배경·패널·강조 패널·글자·보조 글자·캔버스 여백·프라이머리 색 위 글자 색(ARGB)을 바꿈. `null`인 항목은 테마 기본값 |
 | `uiFontId` | `null` | 편집기 문구 폰트. `catalog.fonts`에 있는 id여야 함 |
+| `picker` | `AUTO` | 원본을 고르는 화면. `AUTO`: `framekit-picker`가 있고 사진 읽기 권한을 선언했으면 앱 안 갤러리, 아니면 시스템 사진 선택기. `SYSTEM`: 항상 시스템 사진 선택기 |
 
 기본 다크 팔레트: background `#0D0D0E`, surface `#171719`, raised `#242428`, foreground `#FFFFFF`, foregroundMuted `#A1A1AA`, primary `#635BFF`, onPrimary 자동(기본 색에서는 `#FFFFFF`).
 
@@ -228,3 +229,18 @@ FrameKitRequest(
 | 값 | 설명 |
 | --- | --- |
 | `AppFile` | `files/framekit/exports/`에 저장하고 FileProvider Uri 반환 (현재 유일한 대상) |
+
+## MediaPickerRequest
+
+`MediaPickerContract`로 여는 사진·영상 고르기 요청입니다. 자세한 사용법은 [연동 가이드](integration.md#앱-안-갤러리-사진영상-고르기)를 보세요.
+
+| 필드 | 기본값 | 설명 |
+| --- | --- | --- |
+| `kind` | `ANY` | `IMAGE`, `VIDEO`, `ANY`. `AUDIO`는 지원하지 않음 |
+| `maxItems` | `1` | `1..100`. 1이면 누르는 즉시 돌려줌 |
+| `minItems` | `1` | `1..maxItems`. 이보다 적으면 완료할 수 없음 |
+| `maxFileSizeBytes` | `null` | 파일 하나의 최대 크기(byte). `null`이면 제한 없음 |
+| `maxVideoDurationMs` | `null` | 영상 하나의 최대 길이(ms). `null`이면 제한 없음 |
+| `mimeTypes` | 비어 있음 | 보여 줄 형식. `image/jpeg`, `video/*` 형태. 비어 있으면 `kind`의 모든 형식 |
+| `style` | `AUTO` | `SYSTEM`이면 항상 시스템 사진 선택기 |
+| `ui` | 기본값 | 갤러리의 색·언어(`EditorUiConfig`) |

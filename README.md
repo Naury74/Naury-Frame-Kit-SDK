@@ -18,11 +18,12 @@
 
 ## 기능
 
-- **사진**: 자르기·회전, 보정·필터, 텍스트·스티커·그리기, 모자이크, 배경 제거, 여러 장 편집, PDF 저장
+- **사진**: 자르기·회전, 보정·필터, 텍스트·스티커·그리기, 모자이크, 배경 제거, 여러 장 편집, 문서 스캔(원근 보정·여러 쪽 한 번에), PDF 저장
 - **영상**: 여러 클립 이어 붙이기·자르기, 보정·필터·속도, 배경 음악·음성, 텍스트·스티커, MP4 저장
 - **움직이는 이미지**: 사진으로 슬라이드쇼 만들기, GIF·WebP 편집, MP4·GIF·WebP 저장
 - **음성**: 녹음(탭·누르고 말하기), 소리 파일 편집, M4A 저장
 - **워터마크**: 사진·영상에 문구 워터마크(반복·대각선·띠 패턴, 수정 잠금)
+- **갤러리**: 앨범별 보기·선택 순서·크게 보기·개수/크기/길이 제한이 있는 사진·영상 고르기 화면
 - **그 밖에**: 촬영 후 바로 편집, 화면 없이 코드로 처리(headless), 앱 전용 필터·스티커·폰트, 테마 색상, 13개 언어
 
 <table>
@@ -64,6 +65,7 @@ dependencies {
 | `framekit-ui-video` | 영상 편집기(`VideoEditorContract`) |
 | `framekit-ui-motion` | 움직이는 이미지 편집기(`MotionEditorContract`) |
 | `framekit-ui-audio` | 음성 편집기(`AudioEditorContract`) |
+| `framekit-picker` | 앱 안 사진·영상 갤러리(`MediaPickerContract`) |
 | `framekit-segmentation` | (선택) 배경 제거 |
 | `framekit-ocr` | (선택) PDF 글자 검색 |
 
@@ -182,6 +184,17 @@ FrameKitRequest(
 )
 ```
 
+### 앱 안 갤러리로 고르기
+
+```kotlin
+val picker = registerForActivityResult(MediaPickerContract()) { result ->
+    if (result is MediaPickerResult.Picked) result.items.forEach { show(it.uri) } // 고른 순서
+}
+picker.launch(MediaPickerRequest(MediaKind.ANY, maxItems = 10, maxFileSizeBytes = 50L * 1024 * 1024, maxVideoDurationMs = 60_000))
+```
+
+호스트가 사진 읽기 권한(`READ_MEDIA_IMAGES`·`READ_MEDIA_VIDEO`)을 선언한 경우에만 앱 안 갤러리가 열리고, 아니면 시스템 사진 선택기가 열립니다. 편집기가 원본을 고를 때도 같은 화면을 씁니다. 자세한 내용은 [연동 가이드](docs/integration.md#앱-안-갤러리-사진영상-고르기)를 보세요.
+
 ### 결과 파일
 
 - 결과 파일은 앱 내부 저장소에 저장되고 `content://` Uri로 전달됩니다. 파일 관리는 앱이 맡으며, 더 이상 필요 없으면 `FrameKitOutputs.deleteOutput(context, uri)`로 삭제하세요.
@@ -190,6 +203,7 @@ FrameKitRequest(
 ## 주의사항
 
 - 기본 모듈은 권한을 추가하지 않습니다. 원본 파일을 읽을 권한은 앱에서 확보해야 합니다.
+- 앱 안 갤러리에 쓰는 `READ_MEDIA_IMAGES`·`READ_MEDIA_VIDEO`는 Google Play 정책상 사진·영상 전체 접근이 핵심 기능인 앱만 선언할 수 있습니다. 해당하지 않으면 선언하지 마세요(시스템 사진 선택기로 동작).
 - 녹음 기능을 쓰려면 앱 manifest에 `RECORD_AUDIO`를 선언하세요. 선언하지 않으면 녹음 버튼이 표시되지 않습니다.
 - 앱이 `CAMERA`를 선언한 경우, 촬영할 때 SDK가 권한을 요청합니다.
 - 배경 제거·글자 검색 모듈은 Google Play 서비스(ML Kit)가 필요하며 `INTERNET` 권한이 추가됩니다. 처음 사용할 때 모델을 내려받을 수 있습니다.
