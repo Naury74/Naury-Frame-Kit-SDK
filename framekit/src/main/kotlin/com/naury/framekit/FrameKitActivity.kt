@@ -34,6 +34,10 @@ import com.naury.framekit.ui.motion.contract.MotionEditorContract
 import com.naury.framekit.ui.audioeditor.contract.AudioEditorContract
 import com.naury.framekit.ui.video.contract.VideoEditorContract
 import com.naury.framekit.ui.picker.MediaPickerContract
+import com.naury.framekit.android.output.FrameKitOutputs
+import com.naury.framekit.image.export.ImageFormat
+import com.naury.framekit.scanner.DocumentScanContract
+import com.naury.framekit.scanner.DocumentScanRequest
 import com.naury.framekit.ui.picker.MediaPickerRequest
 import com.naury.framekit.ui.picker.MediaPickerResult
 import kotlinx.coroutines.Dispatchers
@@ -82,6 +86,25 @@ internal class FrameKitActivity : ComponentActivity() {
         }
     }
 
+    // 카메라로 스캔한 쪽. PDF 편집기에 넘긴 뒤에는 중간 파일이므로 편집이 끝나면 지운다.
+    private var scannedPages = ArrayList<Uri>()
+
+    private val scanner = registerForActivityResult(DocumentScanContract()) { result ->
+        if (result is FrameKitResult.Success) {
+            scannedPages = ArrayList(result.outputs.map { it.uri })
+            val pages = result.outputs.map { EditorInput.UriSource(it.uri) }
+            scannedPdfEditor.launch(request.forPdf(if (pages.size == 1) pages.single() else EditorInput.Multiple(pages)))
+        } else {
+            deliver(result)
+        }
+    }
+
+    private val scannedPdfEditor = registerForActivityResult(ImageEditorContract()) { result ->
+        scannedPages.forEach { FrameKitOutputs.deleteOutput(this, it) }
+        scannedPages.clear()
+        deliver(result)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val parsed = IntentCompat.getParcelableExtra(intent, FrameKitContract.EXTRA_REQUEST, FrameKitRequest::class.java)
@@ -106,6 +129,7 @@ internal class FrameKitActivity : ComponentActivity() {
             }
         }
         launched = savedInstanceState?.getBoolean(KEY_LAUNCHED) == true
+        savedInstanceState?.let { BundleCompat.getParcelableArrayList(it, KEY_SCANNED, Uri::class.java) }?.let { scannedPages = it }
         val savedChooser = savedInstanceState?.let { BundleCompat.getParcelable(it, KEY_CHOOSER, EditorInput::class.java) }
         when {
             savedChooser != null -> showChooser(savedChooser)
@@ -119,12 +143,17 @@ internal class FrameKitActivity : ComponentActivity() {
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
         outState.putBoolean(KEY_LAUNCHED, launched)
+        outState.putParcelableArrayList(KEY_SCANNED, scannedPages)
         chooserInput?.let { outState.putParcelable(KEY_CHOOSER, it) }
     }
 
     private fun open(input: EditorInput) {
         // 녹음은 음성 편집기가 바로 연다.
         if (input is EditorInput.Capture && input.kind == MediaKind.AUDIO) return launchEditor(MediaKind.AUDIO, input)
+        // 사진을 찍어 PDF로 저장하면 문서 스캐너로 찍는다(테두리 자동 인식·여러 쪽).
+        if (input is EditorInput.Capture && input.kind == MediaKind.IMAGE && request.imageExport.format == ImageFormat.PDF) {
+            return scanner.launch(DocumentScanRequest(maxPages = DocumentScanRequest.MAX_PAGES, ui = request.ui))
+        }
         if (request.chooser == EditorChooser.ASK && input !is EditorInput.Capture) {
             // 고르기 시트를 쓰면 원본을 이 라우터가 먼저 받아야 하므로 picker도 여기서 띄운다.
             if (input is EditorInput.Pick) return launchPicker(input.kind, input.maxItems)
@@ -259,6 +288,7 @@ internal class FrameKitActivity : ComponentActivity() {
 
     private companion object {
         const val KEY_LAUNCHED = "framekit_router_launched"
+        const val KEY_SCANNED = "framekit_router_scanned"
         const val KEY_CHOOSER = "framekit_router_chooser"
         const val MAX_THUMBNAILS = 6
         const val THUMBNAIL_PX = 192
