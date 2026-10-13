@@ -78,7 +78,7 @@ dependencyResolutionManagement {
 
 // app/build.gradle.kts
 dependencies {
-    implementation("com.naurylab:framekit:1.0.0-alpha03")
+    implementation("com.naurylab:framekit:1.0.0-alpha04")
 }
 ```
 

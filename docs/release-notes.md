@@ -1,6 +1,6 @@
 # Release Notes
 
-## 다음 버전
+## 1.0.0-alpha04
 
 ### 바뀜
 
