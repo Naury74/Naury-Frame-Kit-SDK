@@ -25,7 +25,13 @@
 - **음성**: 녹음(탭·누르고 말하기), 소리 파일 편집, M4A 저장
 - **워터마크**: 사진·영상에 문구 워터마크(반복·대각선·띠 패턴, 수정 잠금)
 - **갤러리**: 앨범·날짜별 보기, 고른 순서 표시, 크게 보기(확대·축소), 개수·크기·길이 제한. 권한이 없으면 시스템 사진 선택기로 대신
-- **그 밖에**: 촬영 후 바로 편집, 화면 없이 코드로 처리(headless), 앱 전용 필터·스티커·폰트, 테마 색상, 13개 언어, 폴드·태블릿 화면
+- **그 밖에**: 촬영 후 바로 편집, 화면 없이 코드로 처리(headless), 앱 전용 필터·스티커·폰트, 다크·라이트 테마와 브랜드 색상, 13개 언어, 폴드·태블릿 화면
+
+## 화면
+
+편집 화면은 다크·라이트 테마를 모두 지원합니다(`EditorUiConfig(themeMode = …)`).
+
+### 다크 모드
 
 <table>
   <tr>
@@ -39,6 +45,23 @@
     <td align="center"><img src="docs/images/screen-record.png" width="200" alt="녹음"><br><b>녹음</b><br>탭·누르고 말하기</td>
     <td align="center"><img src="docs/images/screen-audio.png" width="200" alt="음성 편집"><br><b>음성 편집</b><br>파형·나누기·끼워 넣기</td>
     <td align="center"><img src="docs/images/screen-watermark.png" width="200" alt="워터마크"><br><b>워터마크</b><br>한 곳·반복·대각선·띠</td>
+  </tr>
+</table>
+
+### 라이트 모드
+
+<table>
+  <tr>
+    <td align="center" width="25%"><img src="docs/images/screen-photo-light.png" width="200" alt="사진 편집"><br><b>사진 편집</b><br>텍스트·필터·스티커</td>
+    <td align="center" width="25%"><img src="docs/images/screen-scan-light.png" width="200" alt="문서 스캔"><br><b>문서 스캔</b><br>원근 보정·여러 쪽 스캔</td>
+    <td align="center" width="25%"><img src="docs/images/screen-gallery-light.png" width="200" alt="갤러리"><br><b>갤러리</b><br>앨범·순서·크게 보기</td>
+    <td align="center" width="25%"><img src="docs/images/screen-video-light.png" width="200" alt="영상 편집"><br><b>영상 편집</b><br>클립·음악·음성 줄</td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/images/screen-motion-light.png" width="200" alt="움직이는 이미지"><br><b>움직이는 이미지</b><br>사진으로 슬라이드쇼</td>
+    <td align="center"><img src="docs/images/screen-record-light.png" width="200" alt="녹음"><br><b>녹음</b><br>탭·누르고 말하기</td>
+    <td align="center"><img src="docs/images/screen-audio-light.png" width="200" alt="음성 편집"><br><b>음성 편집</b><br>파형·나누기·끼워 넣기</td>
+    <td align="center"><img src="docs/images/screen-watermark-light.png" width="200" alt="워터마크"><br><b>워터마크</b><br>한 곳·반복·대각선·띠</td>
   </tr>
 </table>
 
