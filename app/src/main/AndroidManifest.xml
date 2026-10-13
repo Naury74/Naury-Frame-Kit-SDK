@@ -4,6 +4,12 @@
     <!-- 영상·움직이는 이미지 편집기의 음성 녹음을 시연한다. SDK는 이 권한을 직접 넣지 않고, 선언한 앱에서만 녹음 버튼을 보여 준다. -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
 
+    <!-- 앱 안 갤러리(framekit-picker)를 시연한다. 선언하지 않으면 FrameKit은 시스템 사진 선택기를 쓴다. -->
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
+    <uses-permission android:name="android.permission.READ_MEDIA_VISUAL_USER_SELECTED" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
+
     <application
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"

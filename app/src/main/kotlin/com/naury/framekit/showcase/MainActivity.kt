@@ -3,8 +3,6 @@ package com.naury.framekit.showcase
 import androidx.compose.runtime.remember
 import com.naury.framekit.android.input.EditorInput
 import com.naury.framekit.FrameKitRequest
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.activity.result.PickVisualMediaRequest
 import android.os.Bundle
 import android.os.SystemClock
 import androidx.activity.ComponentActivity
@@ -20,6 +18,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalResources
 import com.naury.framekit.FrameKitContract
+import com.naury.framekit.android.input.MediaKind
+import com.naury.framekit.ui.picker.MediaPickerContract
+import com.naury.framekit.ui.picker.MediaPickerRequest
+import com.naury.framekit.ui.picker.MediaPickerResult
 import com.naury.framekit.ui.motion.contract.MotionEditorContract
 import com.naury.framekit.android.output.FrameKitOutputs
 import com.naury.framekit.android.result.EditedMedia
@@ -69,11 +71,12 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
-                // 호스트 앱의 앨범 화면을 흉내 낸다: 앱이 먼저 고르고, 고른 파일을 FrameKit에 넘겨 무엇을 할지 묻게 한다.
+                // 호스트 앱의 앨범 화면: FrameKit 갤러리(MediaPickerContract)로 먼저 고르고, 고른 파일을 FrameKit에 넘겨 무엇을 할지 묻게 한다.
                 var pendingHost by remember { mutableStateOf<FrameKitRequest?>(null) }
-                val hostPicker = rememberLauncherForActivityResult(ActivityResultContracts.PickMultipleVisualMedia(10)) { uris ->
+                val hostPicker = rememberLauncherForActivityResult(MediaPickerContract()) { picked ->
                     val base = pendingHost
                     pendingHost = null
+                    val uris = (picked as? MediaPickerResult.Picked)?.items?.map { it.uri }.orEmpty()
                     if (base != null && uris.isNotEmpty()) {
                         val input = if (uris.size == 1) EditorInput.UriSource(uris.single()) else EditorInput.Multiple(uris.map(EditorInput::UriSource))
                         launchedAt = SystemClock.elapsedRealtime()
@@ -101,7 +104,9 @@ class MainActivity : ComponentActivity() {
                                 motion != null -> motionEditor.launch(motion)
                                 example.hostPick -> {
                                     pendingHost = example.request
-                                    hostPicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageAndVideo))
+                                    hostPicker.launch(
+                                        MediaPickerRequest(MediaKind.ANY, maxItems = 10, maxFileSizeBytes = 50L * 1024 * 1024, maxVideoDurationMs = 60_000),
+                                    )
                                 }
                                 else -> editor.launch(example.request)
                             }
