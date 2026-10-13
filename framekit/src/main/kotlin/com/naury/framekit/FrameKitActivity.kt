@@ -5,7 +5,6 @@ import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
@@ -34,6 +33,9 @@ import com.naury.framekit.ui.image.contract.ImageEditorContract
 import com.naury.framekit.ui.motion.contract.MotionEditorContract
 import com.naury.framekit.ui.audioeditor.contract.AudioEditorContract
 import com.naury.framekit.ui.video.contract.VideoEditorContract
+import com.naury.framekit.ui.picker.MediaPickerContract
+import com.naury.framekit.ui.picker.MediaPickerRequest
+import com.naury.framekit.ui.picker.MediaPickerResult
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -70,13 +72,9 @@ internal class FrameKitActivity : ComponentActivity() {
             else -> open(EditorInput.Multiple(picked.map(EditorInput::UriSource)))
         }
     }
-    private val picker = registerForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri: Uri? ->
-        if (uri == null) deliver(FrameKitResult.Cancelled) else open(EditorInput.UriSource(uri))
-    }
-
-    // 여러 개를 고르는 picker. 최대 개수는 요청을 읽은 뒤 정하므로 고른 뒤 그 수만큼 남긴다.
-    private val multiPicker = registerForActivityResult(ActivityResultContracts.PickMultipleVisualMedia(EditorInput.MAX_PICK_ITEMS)) { uris: List<Uri> ->
-        val picked = uris.take(pickLimit)
+    // 사진·영상 고르기. 앱 안 갤러리(framekit-picker)나 시스템 선택기가 열리며, 고른 뒤 요청한 수만큼 남긴다.
+    private val picker = registerForActivityResult(MediaPickerContract()) { result ->
+        val picked = (result as? MediaPickerResult.Picked)?.items.orEmpty().map { it.uri }.take(pickLimit)
         when {
             picked.isEmpty() -> deliver(FrameKitResult.Cancelled)
             picked.size == 1 -> open(EditorInput.UriSource(picked.single()))
@@ -143,13 +141,7 @@ internal class FrameKitActivity : ComponentActivity() {
     private fun launchPicker(kind: MediaKind, maxItems: Int) {
         pickLimit = maxItems
         if (kind == MediaKind.AUDIO) return audioPicker.launch(arrayOf("audio/*"))
-        val type = when (kind) {
-            MediaKind.IMAGE -> ActivityResultContracts.PickVisualMedia.ImageOnly
-            MediaKind.VIDEO -> ActivityResultContracts.PickVisualMedia.VideoOnly
-            MediaKind.ANY, MediaKind.AUDIO -> ActivityResultContracts.PickVisualMedia.ImageAndVideo
-        }
-        val pick = PickVisualMediaRequest(type)
-        if (maxItems > 1) multiPicker.launch(pick) else picker.launch(pick)
+        picker.launch(MediaPickerRequest(kind, maxItems = maxItems.coerceIn(1, EditorInput.MAX_PICK_ITEMS), style = request.ui.picker, ui = request.ui))
     }
 
     // 원본 종류를 보고 알맞은 편집기를 바로 연다(EditorChooser.AUTO).
