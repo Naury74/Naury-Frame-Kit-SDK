@@ -26,19 +26,25 @@ public object DocumentDetector {
     /**
      * @param luma 밝기 `0..255`, 행 우선. 크기는 `width * height`.
      * @param chroma 채도 `0..255`(픽셀의 RGB 최댓값 - 최솟값), 행 우선. `null`이면 채도로는 찾지 않는다.
+     * @param insideOnly `true`면 모서리가 사진 가장자리([INSIDE_MARGIN] 안쪽)에 닿는 결과는 버린다. 카메라 미리보기처럼 문서
+     *   전체가 화면 안에 들어왔을 때만 찍어야 하는 경우에 쓴다.
      * @return 문서 모서리(정규화 좌표). 문서가 너무 작거나 화면 전체이거나 모양이 이상하면 `null`.
      * @throws IllegalArgumentException 크기가 맞지 않거나 너무 작을 때(가로·세로 8px 미만).
      */
     @JvmOverloads
-    public fun detect(luma: IntArray, width: Int, height: Int, chroma: IntArray? = null): DocumentQuad? =
-        analyze(luma, width, height, chroma).quad
+    public fun detect(luma: IntArray, width: Int, height: Int, chroma: IntArray? = null, insideOnly: Boolean = false): DocumentQuad? =
+        analyze(luma, width, height, chroma, insideOnly).quad
 
-    /** 판별 결과와, 문서가 아니라고 본 경우 그 이유(로그·테스트용). 성공하면 [reason]이 `ok`로 시작한다. */
-    public data class Analysis(val quad: DocumentQuad?, val reason: String)
+    /**
+     * 판별 결과와, 문서가 아니라고 본 경우 그 이유(로그·테스트용). 성공하면 [reason]이 `ok`로 시작한다.
+     *
+     * @property outline 종이가 휘거나 접혀 변이 곧지 않을 때 실제 테두리 곡선. [quad]와 같은 모서리를 쓴다.
+     */
+    public data class Analysis(val quad: DocumentQuad?, val reason: String, val outline: DocumentOutline? = null)
 
     /** [detect]와 같지만 방식마다 탈락한 단계를 함께 돌려준다. 이유는 밝기 방식부터 차례로 적는다. */
     @JvmOverloads
-    public fun analyze(luma: IntArray, width: Int, height: Int, chroma: IntArray? = null): Analysis {
+    public fun analyze(luma: IntArray, width: Int, height: Int, chroma: IntArray? = null, insideOnly: Boolean = false): Analysis {
         require(width >= MIN_SIDE && height >= MIN_SIDE) { "Image is too small" }
         require(luma.size == width * height) { "Size does not match" }
         require(chroma == null || chroma.size == luma.size) { "Chroma size does not match" }
@@ -48,10 +54,20 @@ public object DocumentDetector {
         val gradient = image.gradient()
         for (step in EDGE_STEPS) attempts += "edge$step" to image.evaluate(image.edgeRegion(gradient, step))
         if (chroma != null) attempts += "chroma" to image.evaluate(image.chromaRegion(chroma))
+        fun usable(analysis: Analysis): Boolean {
+            val quad = analysis.quad ?: return false
+            return !insideOnly || quad.corners.all { it.x in INSIDE_MARGIN..(1 - INSIDE_MARGIN) && it.y in INSIDE_MARGIN..(1 - INSIDE_MARGIN) }
+        }
         // 바탕까지 번진 영역은 사진 가장자리에 닿는다. 가장자리에 덜 닿은 후보를 먼저 고르고, 같으면 넓은 쪽을 고른다.
-        val found = attempts.filter { it.second.quad != null }
-            .maxWithOrNull(compareBy<Pair<String, Analysis>>({ -image.cornersOnBorder(it.second.quad!!) }, { it.second.quad!!.area }))
-        if (found != null) return Analysis(found.second.quad, "ok(${found.first}) | ${found.second.reason}")
+        val order = compareBy<Pair<String, Analysis>>({ -image.cornersOnBorder(it.second.quad!!) }, { it.second.quad!!.area })
+        var found = attempts.filter { usable(it.second) }.maxWithOrNull(order)
+        // 선으로 찾기는 그림자 선까지 잡을 수 있어, 다른 방식이 모두 실패했을 때만 쓴다.
+        if (found == null) {
+            val lines = "lines" to image.evaluate(image.lineRegion(gradient))
+            attempts += lines
+            if (usable(lines.second)) found = lines
+        }
+        if (found != null) return Analysis(found.second.quad, "ok(${found.first}) | ${found.second.reason}", found.second.outline)
         return Analysis(null, attempts.joinToString(" ; ") { (label, analysis) -> if (label == "luma") analysis.reason else "$label: ${analysis.reason}" })
     }
 
@@ -90,7 +106,7 @@ public object DocumentDetector {
          */
         fun edgeRegion(gradient: IntArray, step: Int): Candidate {
             // 테두리가 한두 픽셀 끊긴 틈으로 바탕까지 번지지 않게 테두리를 1px 넓힌다.
-            val edge = morph(BooleanArray(size) { gradient[it] > step }, width, height, 1, grow = true)
+            val edge = morph(BooleanArray(size) { gradient[it] > step }, width, height, 2, grow = true)
             // 가운데 영역에서 가장 흔한 밝기를 종이색으로 보고, 그 색인 점에서 시작한다(글자 줄 안에서 시작하지 않게).
             val histogram = IntArray(256)
             forCenter { i -> if (!edge[i]) histogram[structure[i]]++ }
@@ -116,6 +132,99 @@ public object DocumentDetector {
             if (centerShare(neutral) < 0.5) return Candidate(null, "colorful center", trace)
             val seed = nearestToCenter { neutral[it] } ?: return Candidate(null, "no seed", trace)
             return Candidate(flood(seed) { neutral[it] }, trace = trace)
+        }
+
+        /**
+         * 테두리를 곧은 선으로 보고 사각형을 찾는다. 경사가 큰 점으로 선을 찾고(Hough 변환), 가로·세로 선 두 개씩을 골라 만든
+         * 사각형 중 둘레가 실제 경계와 가장 잘 겹치는 것을 고른다. 테두리가 군데군데 약해 영역이 바탕으로 새는 사진(흰 종이를
+         * 밝은 바탕에 놓은 경우 등)에서도 선이 보이면 찾는다.
+         */
+        fun lineRegion(gradient: IntArray): Candidate {
+            val edge = BooleanArray(size) { gradient[it] > LINE_EDGE_STEP }
+            val lines = houghLines(edge)
+            if (lines.size < 4) return Candidate(null, "few lines")
+            val support = morph(edge, width, height, 1, grow = true)
+            val horizontal = lines.filter { abs(it.theta - Math.PI / 2) < Math.PI / 4 }
+            val vertical = lines.filter { abs(it.theta - Math.PI / 2) >= Math.PI / 4 }
+            var best: List<Point>? = null
+            var bestScore = 0.0
+            for (i in horizontal.indices) for (j in i + 1 until horizontal.size) for (k in vertical.indices) for (l in k + 1 until vertical.size) {
+                val corners = listOf(horizontal[i] to vertical[k], horizontal[i] to vertical[l], horizontal[j] to vertical[l], horizontal[j] to vertical[k])
+                    .map { (a, b) -> a.intersect(b) ?: return@map null }
+                if (corners.any { it == null }) continue
+                val ordered = orderClockwise(corners.filterNotNull())
+                if (ordered.any { it.x < -LINE_MARGIN * width || it.x > (1 + LINE_MARGIN) * width || it.y < -LINE_MARGIN * height || it.y > (1 + LINE_MARGIN) * height }) continue
+                val area = polygonArea(ordered) / size
+                if (area < MIN_DOCUMENT_AREA || area > MAX_FRACTION) continue
+                if (!convex(ordered)) continue
+                val fit = perimeterSupport(ordered, support)
+                if (fit < MIN_LINE_SUPPORT) continue
+                val score = fit * (0.5 + area)
+                if (score > bestScore) {
+                    bestScore = score
+                    best = ordered
+                }
+            }
+            val quad = best ?: return Candidate(null, "no line quad")
+            val region = BooleanArray(size) { i -> inside(quad, i % width + 0.5, i / width + 0.5) }
+            return Candidate(region, trace = "support=${String.format(java.util.Locale.ROOT, "%.2f", bestScore)}")
+        }
+
+        // 경사가 큰 점을 (theta, rho) 공간에 모아, 표가 많은 선을 겹치지 않게 고른다.
+        private fun houghLines(edge: BooleanArray): List<Line2> {
+            val diagonal = hypot(width.toDouble(), height.toDouble()).toInt() + 1
+            val thetas = HOUGH_THETAS
+            val cos = DoubleArray(thetas) { kotlin.math.cos(Math.PI * it / thetas) }
+            val sin = DoubleArray(thetas) { kotlin.math.sin(Math.PI * it / thetas) }
+            val rhos = diagonal * 2 + 1
+            val votes = IntArray(thetas * rhos)
+            for (i in 0 until size) {
+                if (!edge[i]) continue
+                val x = i % width
+                val y = i / width
+                for (t in 0 until thetas) {
+                    val r = (x * cos[t] + y * sin[t]).toInt() + diagonal
+                    votes[t * rhos + r]++
+                }
+            }
+            val minVotes = (minOf(width, height) * MIN_LINE_LENGTH).toInt()
+            val found = ArrayList<Line2>()
+            val used = BooleanArray(votes.size)
+            repeat(MAX_LINES) {
+                var bestIndex = -1
+                var bestVotes = minVotes
+                for (k in votes.indices) if (!used[k] && votes[k] > bestVotes) { bestVotes = votes[k]; bestIndex = k }
+                if (bestIndex < 0) return found
+                val t = bestIndex / rhos
+                val r = bestIndex % rhos
+                found += Line2(Math.PI * t / thetas, (r - diagonal).toDouble())
+                // 비슷한 각도·거리의 선은 같은 선으로 보고 다시 고르지 않는다.
+                for (dt in -LINE_NMS_THETA..LINE_NMS_THETA) for (dr in -LINE_NMS_RHO..LINE_NMS_RHO) {
+                    val tt = ((t + dt) % thetas + thetas) % thetas
+                    val rr = if (t + dt in 0 until thetas) r + dr else rhos - 1 - (r + dr)
+                    if (rr in 0 until rhos) used[tt * rhos + rr] = true
+                }
+            }
+            return found
+        }
+
+        // 사각형 둘레를 따라 1px 간격으로 보며 경계 점 위에 있는 비율.
+        private fun perimeterSupport(corners: List<Point>, support: BooleanArray): Double {
+            var hit = 0
+            var total = 0
+            for (k in 0 until 4) {
+                val a = corners[k]
+                val b = corners[(k + 1) % 4]
+                val steps = maxOf(1, hypot(b.x - a.x, b.y - a.y).toInt())
+                for (s in 0..steps) {
+                    val x = (a.x + (b.x - a.x) * s / steps).toInt()
+                    val y = (a.y + (b.y - a.y) * s / steps).toInt()
+                    if (x !in 0 until width || y !in 0 until height) continue
+                    total++
+                    if (support[y * width + x]) hit++
+                }
+            }
+            return if (total == 0) 0.0 else hit.toDouble() / total
         }
 
         // ---- 검사 ----
@@ -146,11 +255,12 @@ public object DocumentDetector {
             val paperLevel = modeOf(histogram)
             val paperShare = (maxOf(0, paperLevel - PAPER_BAND)..minOf(255, paperLevel + PAPER_BAND)).sumOf { histogram[it] }.toDouble() / inside
             note("paper", paperShare)
-            if (paperShare < MIN_PAPER_SHARE) return reject("not uniform like paper")
             // 가까이 찍은 문서는 사진 가장자리에 닿을 수 있다. 네 변에 모두 닿으면 종이 모서리를 알 수 없어 문서로 보지 않는다.
             val edges = edgesTouched(region)
             note("edges", edges.toDouble())
             if (edges >= 4) return reject("touches all edges")
+            // 사진 안에 들어온 종이는 글자가 빽빽해도(영수증 등) 받아들이고, 가장자리까지 차는 영역은 더 종이다워야 한다.
+            if (paperShare < (if (edges >= 2) MIN_PAPER_SHARE_AT_EDGES else MIN_PAPER_SHARE)) return reject("not uniform like paper")
             // 문서에는 글자가 있다. 글자 획은 이웃 픽셀과 밝기가 급하게 달라지는 점이 촘촘하고, 벽·하늘처럼 매끄럽게
             // 변하는 면에는 이런 점이 거의 없다. 테두리에서 충분히 안쪽에서 흐리기 전 밝기로 센다.
             var strokes = 0
@@ -164,18 +274,21 @@ public object DocumentDetector {
             }
             val strokeRatio = strokes.toDouble() / inside
             note("strokes", strokeRatio)
+
             if (strokeRatio < MIN_STROKES) return reject("no text strokes")
             val quad = fitQuad(region) ?: return reject("no quad")
             if (!quad.isUsable || quad.area < MIN_DOCUMENT_AREA) return reject("quad area ${quad.area}")
             note("area", quad.area)
-            // 종이는 네 모서리가 만드는 사각형을 거의 꽉 채운다. 모양이 들쭉날쭉한 영역(하늘·벽·자동차 등)은 걸러 낸다.
-            val fill = fraction / quad.area
+            // 종이는 테두리가 둘러싼 면을 거의 꽉 채운다. 모양이 들쭉날쭉한 영역(하늘·벽·자동차 등)은 걸러 낸다. 휘거나 접힌 종이는
+            // 변이 불룩하므로 직선 사각형이 아니라 찾은 테두리 곡선의 넓이와 비교한다.
+            val outline = traceOutline(region, quad)
+            val fill = fraction / outlineArea(outline)
             note("fill", fill)
             if (fill < MIN_FILL || fill > MAX_FILL) return reject("fill $fill")
             // 변 길이 비가 지나치게 길쭉하면 영수증 띠보다도 극단적인 것이라 문서가 아니라고 본다.
             val (w, h) = quad.rectifiedSize(width, height)
             if (maxOf(w, h).toDouble() / minOf(w, h) > MAX_ASPECT) return reject("aspect")
-            return Analysis(quad, trace.toString())
+            return Analysis(quad, trace.toString(), outline)
         }
 
         // ---- 모서리 맞추기 ----
@@ -217,45 +330,109 @@ public object DocumentDetector {
         }
 
         /**
-         * 대략 맞춘 [corners]의 네 변마다 근처 테두리 점에서 직선을 다시 찾고, 이웃 직선의 교점을 새 모서리로 쓴다.
-         * 손가락·접힌 모서리처럼 변에서 벗어난 점이 섞여도 흔들리지 않도록, 두 점으로 만든 직선 중 가장 많은 점이
-         * 가까이 모이는 것을 고른 뒤(RANSAC) 그 점들로만 맞춘다. 교점이 너무 멀리 가면 원래 모서리를 둔다.
+         * 대략 맞춘 [corners]의 모서리마다, 이웃한 두 변 중 그 모서리에 가까운 구간의 테두리 점으로 직선을 맞추고 두 직선의 교점을
+         * 새 모서리로 쓴다. 변 전체가 아니라 모서리 근처만 보므로 종이가 휘거나 접혀 변이 곧지 않아도 실제 모서리에 맞는다.
+         * 손가락·접힌 귀퉁이처럼 변에서 벗어난 점이 섞여도 흔들리지 않도록, 두 점으로 만든 직선 중 가장 많은 점이 가까이 모이는
+         * 것을 고른 뒤(RANSAC) 그 점들로만 맞춘다. 교점이 너무 멀리 가면 원래 모서리를 둔다.
          */
         private fun refine(corners: List<Point>, points: List<Point>): List<Point> {
             val diagonal = hypot(width.toDouble(), height.toDouble())
             val search = maxOf(3.0, diagonal * SIDE_SEARCH)
             val random = java.util.Random(RANSAC_SEED)
-            val lines = (0 until 4).map { side ->
+            // side 변의 [from, to] 구간(변 길이 비율)에 있는 테두리 점으로 맞춘 직선과, 구간 점 중 그 직선에 모인 비율.
+            fun sideLine(side: Int, from: Double, to: Double): Pair<Line, Double>? {
                 val a = corners[side]
                 val b = corners[(side + 1) % 4]
                 val dx = b.x - a.x; val dy = b.y - a.y
                 val length = hypot(dx, dy)
-                if (length < 1e-6) return@map null
+                if (length < 1e-6) return null
                 val near = points.filter { p ->
                     val t = ((p.x - a.x) * dx + (p.y - a.y) * dy) / (length * length)
                     val distance = abs((p.x - a.x) * dy - (p.y - a.y) * dx) / length
-                    t in -SIDE_OVERRUN..(1 + SIDE_OVERRUN) && distance <= search
+                    t in from..to && distance <= search
                 }
-                if (near.size < MIN_SIDE_POINTS) return@map null
+                if (near.size < MIN_SIDE_POINTS) return null
                 var best: List<Point> = emptyList()
                 repeat(RANSAC_ROUNDS) {
                     val p = near[random.nextInt(near.size)]
                     val q = near[random.nextInt(near.size)]
                     val ql = hypot(q.x - p.x, q.y - p.y)
                     // 너무 가까운 두 점은 방향이 불안정하다.
-                    if (ql < length * 0.2) return@repeat
+                    if (ql < length * (to - from) * 0.3) return@repeat
                     val inliers = near.filter { r -> abs((r.x - p.x) * (q.y - p.y) - (r.y - p.y) * (q.x - p.x)) / ql <= INLIER_DISTANCE }
                     if (inliers.size > best.size) best = inliers
                 }
-                if (best.size < MIN_SIDE_POINTS) null else fitLine(best)
+                return if (best.size < MIN_SIDE_POINTS) null else fitLine(best) to best.size.toDouble() / near.size
             }
+            // 곧은 변은 변 전체로 맞춘 직선이 가장 안정적이다(손가락에 가린 모서리 등). 테두리 점이 한 직선에 잘 모이지 않는 변만
+            // 휘거나 접힌 것으로 보고 모서리 근처 구간의 직선을 쓴다.
+            val whole = (0 until 4).map { sideLine(it, -SIDE_OVERRUN, 1 + SIDE_OVERRUN) }
+            val straight = whole.map { it != null && it.second >= STRAIGHT_SIDE_SHARE }
+            val starts = (0 until 4).map { if (straight[it]) whole[it]?.first else sideLine(it, -SIDE_OVERRUN, CORNER_SPAN)?.first ?: whole[it]?.first }
+            val ends = (0 until 4).map { if (straight[it]) whole[it]?.first else sideLine(it, 1 - CORNER_SPAN, 1 + SIDE_OVERRUN)?.first ?: whole[it]?.first }
             return (0 until 4).map { corner ->
-                val before = lines[(corner + 3) % 4]
-                val after = lines[corner]
+                val before = ends[(corner + 3) % 4]
+                val after = starts[corner]
                 val original = corners[corner]
                 val crossing = if (before != null && after != null) intersect(before, after) else null
                 if (crossing == null || hypot(crossing.x - original.x, crossing.y - original.y) > diagonal * MAX_CORNER_SHIFT) original else crossing
             }
+        }
+
+        /**
+         * 모서리 사이의 실제 테두리를 따라간다. 변 위 일정 간격의 점마다 바깥쪽 법선을 따라 영역이 끝나는 곳을 찾고, 너무 멀리
+         * 벗어난 점은 버린 뒤 이웃과 고르게 다듬는다.
+         */
+        fun traceOutline(region: BooleanArray, quad: DocumentQuad): DocumentOutline {
+            val corners = quad.corners.map { Point(it.x * width, it.y * height) }
+            val cx = corners.sumOf { it.x } / 4
+            val cy = corners.sumOf { it.y } / 4
+            val reach = minOf(width, height) * OUTLINE_REACH
+            fun member(x: Double, y: Double): Boolean {
+                val xi = x.toInt(); val yi = y.toInt()
+                return xi in 0 until width && yi in 0 until height && region[yi * width + xi]
+            }
+            fun side(a: Point, b: Point): List<PointN> {
+                val dx = b.x - a.x; val dy = b.y - a.y
+                val length = hypot(dx, dy).coerceAtLeast(1e-6)
+                var nx = -dy / length; var ny = dx / length
+                val mid = Point((a.x + b.x) / 2, (a.y + b.y) / 2)
+                if ((mid.x + nx - cx) * (mid.x + nx - cx) + (mid.y + ny - cy) * (mid.y + ny - cy) < (mid.x - cx) * (mid.x - cx) + (mid.y - cy) * (mid.y - cy)) { nx = -nx; ny = -ny }
+                val offsets = DoubleArray(OUTLINE_SAMPLES + 1)
+                for (i in 1 until OUTLINE_SAMPLES) {
+                    val t = i.toDouble() / OUTLINE_SAMPLES
+                    val px = a.x + dx * t; val py = a.y + dy * t
+                    // 안쪽에서 바깥쪽으로 가며 영역이 끝나는 마지막 자리를 찾는다.
+                    var found = Double.NaN
+                    var s = -reach
+                    var wasInside = false
+                    while (s <= reach) {
+                        val inside = member(px + nx * s, py + ny * s)
+                        if (wasInside && !inside) found = s - 0.5
+                        wasInside = inside
+                        s += 0.5
+                    }
+                    offsets[i] = if (found.isNaN()) 0.0 else found
+                }
+                // 글자·그림자로 튄 점을 이웃 값으로 고르게 한다(양 끝 모서리는 0으로 고정).
+                val smooth = DoubleArray(offsets.size) { i ->
+                    if (i == 0 || i == offsets.size - 1) 0.0 else (offsets[i - 1] + offsets[i] * 2 + offsets[i + 1]) / 4
+                }
+                return List(OUTLINE_SAMPLES + 1) { i ->
+                    val t = i.toDouble() / OUTLINE_SAMPLES
+                    val x = a.x + dx * t + nx * smooth[i]
+                    val y = a.y + dy * t + ny * smooth[i]
+                    PointN((x / width).coerceIn(0.0, 1.0), (y / height).coerceIn(0.0, 1.0))
+                }
+            }
+            val (tl, tr, br, bl) = corners
+            return DocumentOutline(
+                quad = quad,
+                top = side(tl, tr),
+                right = side(tr, br),
+                bottom = side(bl, br),
+                left = side(tl, bl),
+            )
         }
 
         // ---- 보조 ----
@@ -388,6 +565,59 @@ public object DocumentDetector {
     }
 
     private data class Point(val x: Double, val y: Double)
+
+    /** x·cos(theta) + y·sin(theta) = rho 꼴의 직선. */
+    private data class Line2(val theta: Double, val rho: Double) {
+        fun intersect(other: Line2): Point? {
+            val a1 = kotlin.math.cos(theta); val b1 = kotlin.math.sin(theta)
+            val a2 = kotlin.math.cos(other.theta); val b2 = kotlin.math.sin(other.theta)
+            val det = a1 * b2 - a2 * b1
+            if (abs(det) < 1e-6) return null
+            return Point((rho * b2 - other.rho * b1) / det, (a1 * other.rho - a2 * rho) / det)
+        }
+    }
+
+    // 테두리 곡선이 둘러싼 넓이(정규화, 이미지 전체가 1).
+    private fun outlineArea(outline: DocumentOutline): Double {
+        val ring = outline.top + outline.right.drop(1) + outline.bottom.reversed().drop(1) + outline.left.reversed().drop(1)
+        var sum = 0.0
+        for (i in ring.indices) {
+            val a = ring[i]; val b = ring[(i + 1) % ring.size]
+            sum += a.x * b.y - b.x * a.y
+        }
+        return abs(sum) / 2
+    }
+
+    private fun polygonArea(c: List<Point>): Double {
+        var sum = 0.0
+        for (i in c.indices) {
+            val a = c[i]; val b = c[(i + 1) % c.size]
+            sum += a.x * b.y - b.x * a.y
+        }
+        return abs(sum) / 2
+    }
+
+    private fun convex(c: List<Point>): Boolean {
+        var sign = 0
+        for (i in c.indices) {
+            val z = cross(c[i], c[(i + 1) % 4], c[(i + 2) % 4])
+            if (abs(z) < 1e-9) return false
+            val s = if (z > 0) 1 else -1
+            if (sign == 0) sign = s else if (s != sign) return false
+        }
+        return true
+    }
+
+    private fun inside(c: List<Point>, x: Double, y: Double): Boolean {
+        var sign = 0
+        for (i in c.indices) {
+            val z = cross(c[i], c[(i + 1) % 4], Point(x, y))
+            val s = if (z > 0) 1 else if (z < 0) -1 else 0
+            if (s == 0) continue
+            if (sign == 0) sign = s else if (s != sign) return false
+        }
+        return true
+    }
 
     /** 점 ([x], [y])를 지나고 방향이 ([dx], [dy])인 직선. */
     private data class Line(val x: Double, val y: Double, val dx: Double, val dy: Double)
@@ -552,6 +782,9 @@ public object DocumentDetector {
         return threshold
     }
 
+    /** [analyze]의 `insideOnly`에서 모서리가 사진 가장자리에서 떨어져 있어야 하는 거리(정규화). */
+    public const val INSIDE_MARGIN: Double = 0.015
+
     /** 감지에 쓰기 좋은 긴 변 길이(px). 더 크면 느리기만 하고 정확도는 비슷하다. */
     public const val WORKING_LONG_EDGE: Int = 256
 
@@ -569,12 +802,13 @@ public object DocumentDetector {
     private const val STROKE_STEP = 30
     private const val MIN_STROKES = 0.03
     private const val PAPER_BAND = 20
-    private const val MIN_PAPER_SHARE = 0.4
+    private const val MIN_PAPER_SHARE = 0.3
+    private const val MIN_PAPER_SHARE_AT_EDGES = 0.4
 
     // 윤곽선 방식의 테두리 문턱(흐린 밝기의 이웃 차). 큰 값부터 시도한다. 7이면 밝기 차 약 13인 테두리까지 잡는다.
-    private val EDGE_STEPS = intArrayOf(12, 7)
+    private val EDGE_STEPS = intArrayOf(12, 7, 5)
     private const val SEED_TOLERANCE = 12
-    private const val EDGE_GROW = 3
+    private const val EDGE_GROW = 4
 
     private const val MAX_HULL = 64
     private const val SIDE_SEARCH = 0.05
@@ -584,4 +818,20 @@ public object DocumentDetector {
     private const val RANSAC_SEED = 17L
     private const val MIN_SIDE_POINTS = 6
     private const val MAX_CORNER_SHIFT = 0.1
+
+    // 모서리를 맞출 때 쓰는 변 구간(모서리에서 변 길이의 이 비율까지), 테두리 곡선의 표본 수와 법선 방향으로 찾는 범위(짧은 변 대비).
+    private const val CORNER_SPAN = 0.35
+    private const val STRAIGHT_SIDE_SHARE = 0.75
+    private const val OUTLINE_SAMPLES = 16
+    private const val OUTLINE_REACH = 0.08
+
+    // 선으로 찾기: 경계로 볼 경사, 선의 최소 길이(짧은 변 대비), 고를 선 수, 같은 선으로 볼 범위, 둘레가 경계와 겹쳐야 하는 비율.
+    private const val LINE_EDGE_STEP = 7
+    private const val HOUGH_THETAS = 180
+    private const val MIN_LINE_LENGTH = 0.18
+    private const val MAX_LINES = 16
+    private const val LINE_NMS_THETA = 6
+    private const val LINE_NMS_RHO = 8
+    private const val LINE_MARGIN = 0.02
+    private const val MIN_LINE_SUPPORT = 0.6
 }

@@ -235,6 +235,78 @@ class DocumentDetectorTest {
     }
 
     @Test
+    fun `a narrow receipt with dense text on a light mat is found`() {
+        // 연회색 매트(190) 위의 흰 영수증(245). 글자 줄이 빽빽해 종이 바탕이 적다.
+        val width = 192
+        val height = 256
+        val quad = listOf(0.3 to 0.15, 0.68 to 0.14, 0.7 to 0.88, 0.28 to 0.89)
+        val pts = quad.map { (x, y) -> x * width to y * height }
+        val scene = IntArray(width * height) { i ->
+            val x = i % width
+            val y = i / width
+            when {
+                !inside(pts, x + 0.5, y + 0.5) -> 190
+                y % 5 in 1..2 && x % 6 in 1..4 -> 80
+                else -> 245
+            }
+        }
+        val found = DocumentDetector.detect(scene, width, height, insideOnly = true)!!
+        assertNear(found.topLeft, 0.3, 0.15)
+        assertNear(found.bottomRight, 0.7, 0.88)
+    }
+
+    @Test
+    fun `inside only drops pages that touch the photo edges`() {
+        // 위·좌·우가 사진 끝까지 차는 근접 촬영은 사진에서는 문서지만, 카메라 미리보기에서는 다 들어오지 않은 것으로 본다.
+        val width = 192
+        val height = 256
+        val quad = listOf(0.0 to 0.0, 1.0 to 0.0, 1.0 to 0.82, 0.0 to 0.84)
+        val base = scene(width, height, quad, paper = 225, desk = 25, text = false)
+        val text = IntArray(base.size) { i -> if (base[i] > 128 && (i / width) % 12 in 4..6 && (i % width) % 20 in 3..16) 40 else base[i] }
+        assertThat(DocumentDetector.detect(text, width, height)).isNotNull()
+        assertThat(DocumentDetector.detect(text, width, height, insideOnly = true)).isNull()
+    }
+
+    @Test
+    fun `a page with a bowed top edge gives its corners and the curved outline`() {
+        // 윗변이 위로 휜 종이. 모서리는 휘지 않은 자리에 있고, 윗변 가운데는 0.05만큼 위로 올라가 있다.
+        val width = 192
+        val height = 256
+        val bowed = (0..32).map { i ->
+            val t = i / 32.0
+            (0.25 + 0.5 * t) to (0.2 - kotlin.math.sin(Math.PI * t) * 0.05)
+        }
+        val polygon = bowed + listOf(0.75 to 0.85, 0.25 to 0.85)
+        val pts = polygon.map { (x, y) -> x * width to y * height }
+        val scene = IntArray(width * height) { i ->
+            val x = i % width
+            val y = i / width
+            when {
+                !inside(pts, x + 0.5, y + 0.5) -> 40
+                y % 9 in 3..4 && x % 7 in 1..4 && y > 0.3 * height && x in (0.32 * width).toInt()..(0.68 * width).toInt() -> 80
+                else -> 225
+            }
+        }
+        val analysis = DocumentDetector.analyze(scene, width, height)
+        assertNear(analysis.quad!!.topLeft, 0.25, 0.2)
+        assertNear(analysis.quad!!.bottomRight, 0.75, 0.85)
+        val outline = analysis.outline!!
+        assertThat(outline.isCurved).isTrue()
+        assertThat(outline.top[outline.top.size / 2].y).isWithin(0.02).of(0.15)
+    }
+
+    @Test
+    fun `outline maps the unit square onto its corners and measures arc lengths`() {
+        val quad = DocumentQuad(PointN(0.1, 0.1), PointN(0.9, 0.1), PointN(0.9, 0.6), PointN(0.1, 0.6))
+        val straight = DocumentOutline.straight(quad)
+        assertThat(straight.isCurved).isFalse()
+        assertThat(straight.point(0.0, 0.0)).isEqualTo(quad.topLeft)
+        assertThat(straight.point(1.0, 1.0).x).isWithin(1e-9).of(0.9)
+        assertThat(straight.point(0.5, 0.5).y).isWithin(1e-9).of(0.35)
+        assertThat(straight.rectifiedSize(1000, 2000)).isEqualTo(800 to 1000)
+    }
+
+    @Test
     fun `quad measures area convexity and rectified size`() {
         val quad = DocumentQuad(PointN(0.1, 0.1), PointN(0.9, 0.1), PointN(0.9, 0.6), PointN(0.1, 0.6))
         assertThat(quad.area).isWithin(1e-9).of(0.4)
