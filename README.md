@@ -78,6 +78,14 @@
   </tr>
 </table>
 
+## 샘플 앱
+
+소스를 받지 않고도 기능을 직접 써 볼 수 있도록 샘플 앱(APK)을 [Releases](https://github.com/Naury74/Naury-Frame-Kit-SDK/releases/latest)에 올려 두었습니다. 사진·영상·문서 스캔·녹음 편집기와 기능별 예제, 설정을 바꿔 가며 편집기를 열어 보는 Playground가 들어 있습니다.
+
+- [샘플 앱 내려받기 (framekit-showcase.apk)](https://github.com/Naury74/Naury-Frame-Kit-SDK/releases/latest/download/framekit-showcase.apk)
+- Android 8.0(API 26) 이상에서 설치할 수 있습니다. 처음 설치할 때 "출처를 알 수 없는 앱" 설치를 허용해야 합니다.
+- 체험용으로 서명한 앱입니다. 새 버전이 덮어 설치되지 않으면 기존 샘플 앱을 지운 뒤 설치하세요.
+
 ## 설치
 
 ```kotlin
