@@ -107,7 +107,7 @@ public class DocumentRectifier(
         private const val MIN_BUDGET_PIXELS = 4_000_000L
 
         /**
-         * [image]에서 문서 모서리를 찾는다. 이미지를 [DocumentDetector.WORKING_LONG_EDGE]로 줄여 밝기로 바꾼 뒤
+         * [image]에서 문서 모서리를 찾는다. 이미지를 [DocumentDetector.WORKING_LONG_EDGE]로 줄여 밝기·채도로 바꾼 뒤
          * 감지하므로 빠르다. 찾지 못하면 `null`.
          */
         public fun detect(image: Bitmap): DocumentQuad? = analyze(image).quad
@@ -122,11 +122,16 @@ public class DocumentRectifier(
             try {
                 val pixels = IntArray(w * h)
                 small.getPixels(pixels, 0, w, 0, 0, w, h)
-                val luma = IntArray(pixels.size) { i ->
+                val luma = IntArray(pixels.size)
+                // 종이는 색이 거의 없어, 밝기가 비슷한 색 있는 바탕(나무 책상 등)과 채도로 구별한다.
+                val chroma = IntArray(pixels.size)
+                for (i in pixels.indices) {
                     val c = pixels[i]
-                    (Color.red(c) * 299 + Color.green(c) * 587 + Color.blue(c) * 114) / 1000
+                    val r = Color.red(c); val g = Color.green(c); val b = Color.blue(c)
+                    luma[i] = (r * 299 + g * 587 + b * 114) / 1000
+                    chroma[i] = maxOf(r, g, b) - minOf(r, g, b)
                 }
-                return DocumentDetector.analyze(luma, w, h)
+                return DocumentDetector.analyze(luma, w, h, chroma)
             } finally {
                 if (small !== image) small.recycle()
             }
