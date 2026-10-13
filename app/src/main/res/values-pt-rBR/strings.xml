@@ -112,4 +112,6 @@
     <string name="home_editor_theme">Tema do editor</string>
     <string name="home_theme_dark">Escuro</string>
     <string name="home_theme_light">Claro</string>
+    <string name="example_scan_title">Digitalizar para PDF</string>
+    <string name="example_scan_description">A câmera detecta as bordas, captura automaticamente e salva as páginas endireitadas em um PDF</string>
 </resources>

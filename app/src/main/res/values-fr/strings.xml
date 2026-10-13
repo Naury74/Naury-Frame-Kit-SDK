@@ -112,4 +112,6 @@
     <string name="home_editor_theme">Thème de l\'éditeur</string>
     <string name="home_theme_dark">Sombre</string>
     <string name="home_theme_light">Clair</string>
+    <string name="example_scan_title">Numériser en PDF</string>
+    <string name="example_scan_description">L\'appareil détecte les bords, capture automatiquement et enregistre les pages redressées dans un PDF</string>
 </resources>

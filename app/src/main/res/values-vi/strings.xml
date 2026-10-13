@@ -110,4 +110,6 @@
     <string name="home_editor_theme">Giao diện trình chỉnh sửa</string>
     <string name="home_theme_dark">Tối</string>
     <string name="home_theme_light">Sáng</string>
+    <string name="example_scan_title">Quét thành PDF</string>
+    <string name="example_scan_description">Máy ảnh tìm mép tài liệu, tự động chụp và lưu các trang đã làm phẳng thành một PDF</string>
 </resources>

@@ -111,4 +111,6 @@
     <string name="home_editor_theme">편집기 테마</string>
     <string name="home_theme_dark">다크</string>
     <string name="home_theme_light">라이트</string>
+    <string name="example_scan_title">문서 스캔해서 PDF로</string>
+    <string name="example_scan_description">카메라가 문서 테두리를 찾아 자동으로 찍고, 여러 쪽을 반듯하게 펴서 PDF 하나로 저장</string>
 </resources>

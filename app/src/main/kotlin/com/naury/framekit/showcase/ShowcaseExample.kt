@@ -107,6 +107,14 @@ enum class ShowcaseExample(
             imageExport = ImageExportConfig(format = ImageFormat.PDF, quality = 85, pdf = PdfOptions(pageSize = PdfPageSize.A4, marginMm = 8.0)),
         ),
     ),
+    DOCUMENT_SCAN(
+        R.string.example_scan_title,
+        R.string.example_scan_description,
+        FrameKitRequest(
+            EditorInput.Capture(MediaKind.IMAGE),
+            imageExport = ImageExportConfig(format = ImageFormat.PDF, quality = 85, pdf = PdfOptions(pageSize = PdfPageSize.A4, marginMm = 8.0)),
+        ),
+    ),
     CAMERA_PHOTO(
         R.string.example_camera_photo_title,
         R.string.example_camera_photo_description,

@@ -110,4 +110,6 @@
     <string name="home_editor_theme">Tema editor</string>
     <string name="home_theme_dark">Gelap</string>
     <string name="home_theme_light">Terang</string>
+    <string name="example_scan_title">Pindai ke PDF</string>
+    <string name="example_scan_description">Kamera menemukan tepi dokumen, memotret otomatis, dan menyimpan halaman yang diratakan sebagai satu PDF</string>
 </resources>

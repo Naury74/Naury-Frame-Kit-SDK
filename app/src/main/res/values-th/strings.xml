@@ -110,4 +110,6 @@
     <string name="home_editor_theme">ธีมตัวแก้ไข</string>
     <string name="home_theme_dark">มืด</string>
     <string name="home_theme_light">สว่าง</string>
+    <string name="example_scan_title">สแกนเป็น PDF</string>
+    <string name="example_scan_description">กล้องหาขอบเอกสารและถ่ายอัตโนมัติ แล้วปรับหน้าให้ตรงและบันทึกเป็น PDF เดียว</string>
 </resources>

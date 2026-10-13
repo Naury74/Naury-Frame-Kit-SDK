@@ -112,4 +112,6 @@
     <string name="home_editor_theme">Editor theme</string>
     <string name="home_theme_dark">Dark</string>
     <string name="home_theme_light">Light</string>
+    <string name="example_scan_title">Scan to PDF</string>
+    <string name="example_scan_description">The camera finds the page edges and captures automatically; pages are flattened into one PDF</string>
 </resources>

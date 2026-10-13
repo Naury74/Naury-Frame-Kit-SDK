@@ -112,4 +112,6 @@
     <string name="home_editor_theme">Тема редактора</string>
     <string name="home_theme_dark">Тёмная</string>
     <string name="home_theme_light">Светлая</string>
+    <string name="example_scan_title">Скан в PDF</string>
+    <string name="example_scan_description">Камера находит края документа, снимает автоматически и сохраняет выровненные страницы в один PDF</string>
 </resources>

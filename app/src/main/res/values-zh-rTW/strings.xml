@@ -110,4 +110,6 @@
     <string name="home_editor_theme">編輯器主題</string>
     <string name="home_theme_dark">深色</string>
     <string name="home_theme_light">淺色</string>
+    <string name="example_scan_title">掃描成 PDF</string>
+    <string name="example_scan_description">相機自動辨識文件邊緣並拍攝，將多頁拉平後儲存為一個 PDF</string>
 </resources>

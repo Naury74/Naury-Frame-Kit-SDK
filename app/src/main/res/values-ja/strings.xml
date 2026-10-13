@@ -110,4 +110,6 @@
     <string name="home_editor_theme">エディターのテーマ</string>
     <string name="home_theme_dark">ダーク</string>
     <string name="home_theme_light">ライト</string>
+    <string name="example_scan_title">スキャンしてPDFに</string>
+    <string name="example_scan_description">カメラが書類の輪郭を見つけて自動撮影し、複数ページを補正して1つのPDFに保存</string>
 </resources>

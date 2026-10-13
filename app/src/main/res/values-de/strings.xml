@@ -112,4 +112,6 @@
     <string name="home_editor_theme">Editor-Design</string>
     <string name="home_theme_dark">Dunkel</string>
     <string name="home_theme_light">Hell</string>
+    <string name="example_scan_title">Als PDF scannen</string>
+    <string name="example_scan_description">Die Kamera erkennt die Seitenränder, nimmt automatisch auf und speichert begradigte Seiten als ein PDF</string>
 </resources>

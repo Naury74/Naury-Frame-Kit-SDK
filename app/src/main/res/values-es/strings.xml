@@ -112,4 +112,6 @@
     <string name="home_editor_theme">Tema del editor</string>
     <string name="home_theme_dark">Oscuro</string>
     <string name="home_theme_light">Claro</string>
+    <string name="example_scan_title">Escanear a PDF</string>
+    <string name="example_scan_description">La cámara detecta los bordes, captura automáticamente y guarda las páginas enderezadas en un PDF</string>
 </resources>

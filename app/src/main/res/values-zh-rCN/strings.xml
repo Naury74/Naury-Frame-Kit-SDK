@@ -110,4 +110,6 @@
     <string name="home_editor_theme">编辑器主题</string>
     <string name="home_theme_dark">深色</string>
     <string name="home_theme_light">浅色</string>
+    <string name="example_scan_title">扫描为 PDF</string>
+    <string name="example_scan_description">相机自动识别文档边缘并拍摄，将多页拉平后保存为一个 PDF</string>
 </resources>
