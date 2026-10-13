@@ -35,7 +35,7 @@
 
 <table>
   <tr>
-    <td align="center" width="25%"><img src="docs/images/screen-photo.png" width="200" alt="사진 편집"><br><b>사진 편집</b><br>텍스트·필터·스티커</td>
+    <td align="center" width="25%"><img src="docs/images/screen-photo.png" width="200" alt="사진 편집"><br><b>사진 편집</b><br>보정·필터·텍스트</td>
     <td align="center" width="25%"><img src="docs/images/screen-scan.png" width="200" alt="문서 스캔"><br><b>문서 스캔</b><br>원근 보정·여러 쪽 스캔</td>
     <td align="center" width="25%"><img src="docs/images/screen-gallery.png" width="200" alt="갤러리"><br><b>갤러리</b><br>앨범·순서·크게 보기</td>
     <td align="center" width="25%"><img src="docs/images/screen-video.png" width="200" alt="영상 편집"><br><b>영상 편집</b><br>클립·음악·음성 줄</td>
@@ -52,7 +52,7 @@
 
 <table>
   <tr>
-    <td align="center" width="25%"><img src="docs/images/screen-photo-light.png" width="200" alt="사진 편집"><br><b>사진 편집</b><br>텍스트·필터·스티커</td>
+    <td align="center" width="25%"><img src="docs/images/screen-photo-light.png" width="200" alt="사진 편집"><br><b>사진 편집</b><br>보정·필터·텍스트</td>
     <td align="center" width="25%"><img src="docs/images/screen-scan-light.png" width="200" alt="문서 스캔"><br><b>문서 스캔</b><br>원근 보정·여러 쪽 스캔</td>
     <td align="center" width="25%"><img src="docs/images/screen-gallery-light.png" width="200" alt="갤러리"><br><b>갤러리</b><br>앨범·순서·크게 보기</td>
     <td align="center" width="25%"><img src="docs/images/screen-video-light.png" width="200" alt="영상 편집"><br><b>영상 편집</b><br>클립·음악·음성 줄</td>
