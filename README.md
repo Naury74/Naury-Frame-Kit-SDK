@@ -11,7 +11,8 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache%202.0-blue" alt="License"></a>
 </p>
 
-Android 앱에 넣어 쓰는 사진·영상·음성 편집 SDK입니다. 편집 화면을 한 줄로 띄우고, 편집이 끝나면 결과 파일을 돌려받습니다. 원본은 바꾸지 않습니다.
+**FrameKit**은 Android 앱에 사진·영상·음성 편집 기능을 더하는 SDK입니다.
+자르기·필터·텍스트부터 클립 편집, 녹음, 워터마크까지 완성된 편집 화면을 앱에 그대로 붙여 쓸 수 있고, 사용자가 편집을 마치면 결과 파일을 받아 바로 활용할 수 있습니다. 원본 파일은 변경되지 않습니다.
 
 ![FrameKit](docs/images/hero.png)
 
@@ -21,8 +22,8 @@ Android 앱에 넣어 쓰는 사진·영상·음성 편집 SDK입니다. 편집 
 - **영상**: 여러 클립 이어 붙이기·자르기, 보정·필터·속도, 배경 음악·음성, 텍스트·스티커, MP4 저장
 - **움직이는 이미지**: 사진으로 슬라이드쇼 만들기, GIF·WebP 편집, MP4·GIF·WebP 저장
 - **음성**: 녹음(탭·누르고 말하기), 소리 파일 편집, M4A 저장
-- **워터마크**: 사진·영상에 글자 워터마크
-- **기타**: 카메라 촬영 직후 편집, 편집 화면 없이 처리(headless), 앱 필터·스티커·폰트 추가, 테마·13개 언어
+- **워터마크**: 사진·영상에 문구 워터마크(반복·대각선·띠 패턴, 수정 잠금)
+- **그 밖에**: 촬영 후 바로 편집, 화면 없이 코드로 처리(headless), 앱 전용 필터·스티커·폰트, 테마 색상, 13개 언어
 
 <table>
   <tr>
@@ -54,20 +55,20 @@ dependencies {
 }
 ```
 
-일부 기능만 쓰려면 해당 모듈만 추가해도 됩니다.
+필요한 편집기만 쓰려면 해당 모듈만 추가하면 됩니다.
 
 | 모듈 | 내용 |
 | --- | --- |
-| `framekit` | 모든 편집기와 통합 진입점 `FrameKitContract` |
-| `framekit-ui-image` | 사진 편집기만(`ImageEditorContract`) |
-| `framekit-ui-video` | 영상 편집기만(`VideoEditorContract`) |
-| `framekit-ui-motion` | 움직이는 이미지 편집기만(`MotionEditorContract`) |
-| `framekit-ui-audio` | 음성 편집기만(`AudioEditorContract`) |
+| `framekit` | 전체 편집기와 통합 진입점(`FrameKitContract`) |
+| `framekit-ui-image` | 사진 편집기(`ImageEditorContract`) |
+| `framekit-ui-video` | 영상 편집기(`VideoEditorContract`) |
+| `framekit-ui-motion` | 움직이는 이미지 편집기(`MotionEditorContract`) |
+| `framekit-ui-audio` | 음성 편집기(`AudioEditorContract`) |
 | `framekit-segmentation` | (선택) 배경 제거 |
 | `framekit-ocr` | (선택) PDF 글자 검색 |
 
-- minSdk 26, Kotlin 2.2 이상. 호스트 앱이 Compose를 쓰지 않아도 됩니다.
-- R8에 별도 keep 규칙이 필요 없습니다.
+- minSdk 26, Kotlin 2.2 이상이 필요합니다. 앱이 Compose를 쓰지 않아도 사용할 수 있습니다.
+- R8/ProGuard 규칙을 따로 추가할 필요가 없습니다.
 
 ## 사용법
 
@@ -85,38 +86,38 @@ class MainActivity : ComponentActivity() {
     }
 
     fun edit() {
-        // 사진이나 영상을 고르면 알맞은 편집기가 열린다.
+        // 사용자가 고른 파일에 맞는 편집기가 열린다.
         editor.launch(FrameKitRequest(EditorInput.Pick(MediaKind.ANY)))
     }
 }
 ```
 
-Compose에서는 `rememberLauncherForActivityResult(FrameKitContract())`를 씁니다. 결과가 여러 개면(여러 장을 사진마다 저장) `result.outputs`에 모두 들어 있습니다.
+Compose에서는 `rememberLauncherForActivityResult(FrameKitContract())`를 사용합니다. 여러 장을 각각 저장한 경우처럼 결과가 여러 개이면 `result.outputs`로 모두 받을 수 있습니다.
 
-### 입력 바꾸기
+### 입력 지정
 
 ```kotlin
-EditorInput.UriSource(uri)                              // 가진 파일 하나
-EditorInput.Multiple(uris.map(EditorInput::UriSource))  // 가진 파일 여러 개
-EditorInput.Pick(MediaKind.IMAGE, maxItems = 10)        // 사진 최대 10장 고르기
-EditorInput.Pick(MediaKind.AUDIO, maxItems = 5)         // 소리 파일 고르기
-EditorInput.Capture(MediaKind.IMAGE)                    // 카메라로 찍고 편집 (VIDEO: 녹화)
-EditorInput.Capture(MediaKind.AUDIO)                    // 녹음하고 편집
+EditorInput.UriSource(uri)                              // 파일 하나
+EditorInput.Multiple(uris.map(EditorInput::UriSource))  // 파일 여러 개
+EditorInput.Pick(MediaKind.IMAGE, maxItems = 10)        // 갤러리에서 사진 최대 10장 선택
+EditorInput.Pick(MediaKind.AUDIO, maxItems = 5)         // 오디오 파일 최대 5개 선택
+EditorInput.Capture(MediaKind.IMAGE)                    // 촬영 후 편집 (VIDEO는 녹화 후 편집)
+EditorInput.Capture(MediaKind.AUDIO)                    // 녹음 후 편집
 ```
 
-원본 종류(사진·영상·움직이는 GIF·소리)에 맞는 편집기가 자동으로 열립니다.
+파일 종류(사진·영상·움직이는 GIF·오디오)에 따라 알맞은 편집기가 자동으로 열립니다.
 
-### 무엇을 할지 묻기
+### 작업 선택 화면
 
-자동으로 열지 않고, 원본을 보여 주며 "편집 / PDF로 묶기 / 움직이는 이미지 만들기 / 편집 없이 보내기" 중에서 고르게 할 수 있습니다.
+편집기를 바로 여는 대신, 선택한 파일을 보여 주고 **편집 / PDF로 묶기 / 움직이는 이미지 만들기 / 편집 없이 보내기** 중 원하는 작업을 고르게 할 수 있습니다.
 
-<p align="center"><img src="docs/images/screen-chooser.png" width="260" alt="무엇을 할지 묻기"></p>
+<p align="center"><img src="docs/images/screen-chooser.png" width="260" alt="작업 선택 화면"></p>
 
 ```kotlin
 editor.launch(FrameKitRequest(EditorInput.Multiple(uris.map(EditorInput::UriSource)), chooser = EditorChooser.ASK))
 ```
 
-편집 없이 보내기를 고르면 원본이 그대로 `Success`로 오고 `isOriginal`이 `true`입니다.
+'편집 없이 보내기'를 고르면 원본 파일이 그대로 `Success`로 전달되며, 이때 `isOriginal`은 `true`입니다.
 
 ### 자주 쓰는 설정
 
@@ -136,25 +137,27 @@ FrameKitRequest(
     ui = EditorUiConfig(themeMode = ThemeMode.LIGHT, primaryArgb = 0xFF1E6BFF.toInt()),
 )
 
-// 녹음만 하고 바로 받기(누르고 말하기)
+// 누르고 말하기로 녹음한 뒤 편집 없이 바로 받기
 FrameKitRequest(
     EditorInput.Capture(MediaKind.AUDIO),
     audio = AudioEditorConfig(recordMode = RecordMode.HOLD, editAfterRecording = false),
 )
 
-// 워터마크: 앱이 정한 문구를 바꿀 수 없게 넣기
+// 워터마크: 앱에서 정한 문구를 사용자가 바꿀 수 없도록 고정
 val watermark = WatermarkConfig(text = "© MyShop", pattern = WatermarkPattern.TILE, applyOnOpen = true, locked = true)
 FrameKitRequest(EditorInput.Pick(MediaKind.ANY), image = ImageEditorConfig(watermark = watermark), video = VideoEditorConfig(watermark = watermark))
 ```
 
-움직이는 이미지는 `MotionEditorContract`로 엽니다.
+움직이는 이미지 편집기는 `MotionEditorContract`로 엽니다.
 
 ```kotlin
 val motion = registerForActivityResult(MotionEditorContract()) { result -> /* ... */ }
 motion.launch(MotionEditorRequest(EditorInput.Pick(MediaKind.IMAGE, maxItems = 20)))
 ```
 
-### 편집 화면 없이 처리
+### 화면 없이 처리
+
+편집 화면을 띄우지 않고 코드만으로 같은 편집을 적용해 저장할 수 있습니다.
 
 ```kotlin
 ImageProcessor(context).use { processor ->
@@ -164,9 +167,9 @@ ImageProcessor(context).use { processor ->
 }
 ```
 
-영상은 `VideoProcessor`로 같은 방식입니다.
+영상은 `VideoProcessor`를 같은 방식으로 사용합니다.
 
-### 앱의 필터·스티커·폰트 추가
+### 앱 전용 필터·스티커·폰트 추가
 
 ```kotlin
 FrameKitRequest(
@@ -181,31 +184,31 @@ FrameKitRequest(
 
 ### 결과 파일
 
-- 결과는 앱 내부 저장소에 만들어지고 `content://` Uri로 전달됩니다. 파일은 호스트 앱 소유이며, 필요 없으면 `FrameKitOutputs.deleteOutput(context, uri)`로 지웁니다.
-- 다른 앱에 공유할 때는 Intent에 `FLAG_GRANT_READ_URI_PERMISSION`을 넣습니다.
+- 결과 파일은 앱 내부 저장소에 저장되고 `content://` Uri로 전달됩니다. 파일 관리는 앱이 맡으며, 더 이상 필요 없으면 `FrameKitOutputs.deleteOutput(context, uri)`로 삭제하세요.
+- 다른 앱과 공유할 때는 Intent에 `FLAG_GRANT_READ_URI_PERMISSION`을 추가하세요.
 
 ## 주의사항
 
-- SDK는 권한을 추가하지 않습니다. 원본을 읽을 권한은 호스트가 가지고 있어야 합니다.
-- 녹음하려면 호스트 manifest에 `RECORD_AUDIO`를 선언해야 합니다. 없으면 녹음 버튼이 숨겨집니다.
-- 호스트가 `CAMERA`를 선언했다면 카메라 촬영 때 SDK가 권한을 요청합니다.
-- 배경 제거·글자 검색 모듈은 Google Play 서비스(ML Kit)가 필요하고 `INTERNET` 권한이 추가됩니다. 처음 쓸 때 모델을 내려받을 수 있습니다.
-- 사진과 영상을 한 번에 섞어 편집할 수 없습니다.
-- 저장 위치는 앱 내부 저장소만 지원합니다(갤러리 저장은 호스트가 처리).
-- 저장 시 위치 정보 등 민감한 메타데이터는 기본으로 제거됩니다.
-- 프로세스가 종료돼도 적용한 편집은 이어서 열리지만, 실행 취소 기록은 남지 않습니다.
-- `localeTag`로 언어를 고정하면서 App Bundle 언어 분할을 쓰면 문구가 빠질 수 있습니다.
+- 기본 모듈은 권한을 추가하지 않습니다. 원본 파일을 읽을 권한은 앱에서 확보해야 합니다.
+- 녹음 기능을 쓰려면 앱 manifest에 `RECORD_AUDIO`를 선언하세요. 선언하지 않으면 녹음 버튼이 표시되지 않습니다.
+- 앱이 `CAMERA`를 선언한 경우, 촬영할 때 SDK가 권한을 요청합니다.
+- 배경 제거·글자 검색 모듈은 Google Play 서비스(ML Kit)가 필요하며 `INTERNET` 권한이 추가됩니다. 처음 사용할 때 모델을 내려받을 수 있습니다.
+- 사진과 영상을 함께 섞어 편집할 수는 없습니다.
+- 결과는 앱 내부 저장소에만 저장됩니다. 갤러리에 저장하려면 앱에서 직접 처리하세요.
+- 저장할 때 위치 정보 같은 민감한 메타데이터는 기본으로 제거됩니다.
+- 편집 중 앱이 종료되어도 적용한 편집 내용은 복원되지만, 실행 취소 기록은 복원되지 않습니다.
+- `localeTag`로 언어를 고정한 상태에서 App Bundle 언어 분할을 사용하면 일부 문구가 누락될 수 있습니다.
 
 ## 문서
 
-- [연동 가이드](docs/integration.md): 진입점별 예시, 결과·오류 처리, 움직이는 이미지·음성·워터마크
-- [설정](docs/configuration.md): 모든 옵션의 기본값과 범위
-- [편집 화면 없이 처리](docs/headless.md)
+- [연동 가이드](docs/integration.md): 편집기별 사용 예시, 결과·오류 처리, 움직이는 이미지·음성·워터마크
+- [설정](docs/configuration.md): 전체 옵션의 기본값과 범위
+- [화면 없이 처리](docs/headless.md)
 - [지원 형식](docs/supported-formats.md)
 - [변경 이력](docs/release-notes.md)
 
-저장소의 `app` 모듈은 위 기능을 직접 실행해 볼 수 있는 예제 앱입니다.
+`app` 모듈은 모든 기능을 직접 실행해 볼 수 있는 예제 앱입니다.
 
 ## License
 
-Apache License 2.0. [LICENSE](LICENSE)를 보세요. 일부 아이콘은 [Material Icons](https://github.com/google/material-design-icons)를 사용합니다([NOTICE](NOTICE)).
+Apache License 2.0으로 배포됩니다. 자세한 내용은 [LICENSE](LICENSE)를 참고하세요. 일부 아이콘은 [Material Icons](https://github.com/google/material-design-icons)를 사용합니다([NOTICE](NOTICE)).
