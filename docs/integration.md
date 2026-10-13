@@ -6,9 +6,9 @@
 
 ```kotlin
 dependencies {
-    implementation("com.naurylab:framekit:1.0.0-alpha05")             // 사진·영상 모두
-    // implementation("com.naurylab:framekit-ui-image:1.0.0-alpha05") // 사진만 (Media3 없음)
-    // implementation("com.naurylab:framekit-ui-video:1.0.0-alpha05") // 영상만
+    implementation("com.naurylab:framekit:1.0.0-alpha06")             // 사진·영상 모두
+    // implementation("com.naurylab:framekit-ui-image:1.0.0-alpha06") // 사진만 (Media3 없음)
+    // implementation("com.naurylab:framekit-ui-video:1.0.0-alpha06") // 영상만
 }
 ```
 
@@ -375,7 +375,7 @@ audio.launch(AudioEditorRequest(EditorInput.UriSource(audioUri), export = AudioE
 `framekit-picker`는 시스템 사진 선택기 대신 쓸 수 있는 갤러리 화면입니다. 앨범별 보기, 고른 순서 번호, 크게 보기(확대·축소), 개수·파일 크기·영상 길이·형식 제한을 지원합니다. 통합 모듈(`framekit`)에 들어 있고, 개별 모듈만 쓴다면 따로 추가합니다.
 
 ```kotlin
-implementation("com.naurylab:framekit-picker:1.0.0-alpha05")
+implementation("com.naurylab:framekit-picker:1.0.0-alpha06")
 ```
 
 ### 단독으로 쓰기
@@ -431,7 +431,7 @@ SDK는 권한을 추가하지 않습니다. 앱 안 갤러리는 호스트가 �
 `framekit-scanner`는 카메라 미리보기에서 문서 테두리를 실시간으로 찾아 표시하고, 테두리가 잠시 흔들리지 않으면 자동으로 찍는 문서 스캐너입니다. 여러 쪽을 이어서 찍을 수 있고, 찍은 쪽은 반듯하게 펴서 스캔 보정(컬러·흑백 등)을 적용합니다. 통합 모듈(`framekit`)에 들어 있고, 개별 모듈만 쓴다면 따로 추가합니다.
 
 ```kotlin
-implementation("com.naurylab:framekit-scanner:1.0.0-alpha05")
+implementation("com.naurylab:framekit-scanner:1.0.0-alpha06")
 ```
 
 ### FrameKit에서
@@ -481,7 +481,7 @@ implementation(project(":framekit-segmentation"))
 ## 글자 인식(OCR) 선택 모듈
 
 ```kotlin
-implementation("com.naurylab:framekit-ocr:1.0.0-alpha05")
+implementation("com.naurylab:framekit-ocr:1.0.0-alpha06")
 ```
 
 - 추가하면 PDF로 저장할 때 쪽마다 글자를 인식해 **보이지 않는 글자 레이어**를 겹칩니다. PDF 뷰어에서 검색·선택·복사가 되고, 이미지는 그대로 보입니다. `PdfOptions.recognizeText = false`로 끌 수 있습니다.
