@@ -73,7 +73,7 @@
 <table>
   <tr>
     <td align="center" width="33%"><img src="docs/images/screen-fold-photo.png" width="280" alt="펼친 폴드에서 사진 편집"><br><b>사진 편집</b><br>도구를 옆 패널에</td>
-    <td align="center" width="33%"><img src="docs/images/screen-fold-video.png" width="280" alt="펼친 폴드에서 영상 편집"><br><b>영상 편집</b><br>미리보기·타임라인·도구를 한 화면에</td>
+    <td align="center" width="33%"><img src="docs/images/screen-fold-video.png" width="280" alt="반쯤 접은 폴드에서 영상 편집"><br><b>영상 편집(반쯤 접기)</b><br>위에는 영상, 아래에는 타임라인·도구</td>
     <td align="center" width="33%"><img src="docs/images/screen-fold-gallery.png" width="280" alt="펼친 폴드에서 갤러리"><br><b>갤러리</b><br>폭에 맞춰 늘어나는 격자</td>
   </tr>
 </table>
