@@ -35,6 +35,11 @@
     <string name="framekit_scan_grayscale">扫描（灰度）</string>
     <string name="framekit_scan_black_white">高对比黑白</string>
     <string name="framekit_scan_original">原色</string>
+    <plurals name="framekit_document_scan_all">
+        <item quantity="other">扫描全部 %1$d 页</item>
+    </plurals>
+    <string name="framekit_document_scanning_pages">正在扫描第 %1$d 页，共 %2$d 页…</string>
+    <string name="framekit_document_batch_skipped">部分页面未找到文档，已保持原样。请在这些页面中手动调整四角。</string>
     <string name="framekit_document_detected">检测到文档</string>
     <string name="framekit_document_scan">扫描</string>
     <string name="framekit_document_text_found">已识别文字</string>

@@ -35,6 +35,11 @@
     <string name="framekit_scan_grayscale">스캔 (흑백)</string>
     <string name="framekit_scan_black_white">선명한 흑백</string>
     <string name="framekit_scan_original">원래 색</string>
+    <plurals name="framekit_document_scan_all">
+        <item quantity="other">%1$d쪽 모두 스캔</item>
+    </plurals>
+    <string name="framekit_document_scanning_pages">%2$d쪽 중 %1$d쪽 스캔 중…</string>
+    <string name="framekit_document_batch_skipped">문서를 찾지 못한 쪽은 그대로 두었어요. 해당 쪽에서 모서리를 직접 맞춰 주세요.</string>
     <string name="framekit_document_detected">문서가 감지됐어요</string>
     <string name="framekit_document_scan">스캔하기</string>
     <string name="framekit_document_text_found">글자를 인식했어요</string>

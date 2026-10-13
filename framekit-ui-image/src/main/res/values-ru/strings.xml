@@ -35,6 +35,14 @@
     <string name="framekit_scan_grayscale">Скан (серый)</string>
     <string name="framekit_scan_black_white">Чёрно-белый</string>
     <string name="framekit_scan_original">Исходный цвет</string>
+    <plurals name="framekit_document_scan_all">
+        <item quantity="one">Сканировать %1$d страницу</item>
+        <item quantity="few">Сканировать все %1$d страницы</item>
+        <item quantity="many">Сканировать все %1$d страниц</item>
+        <item quantity="other">Сканировать все %1$d страницы</item>
+    </plurals>
+    <string name="framekit_document_scanning_pages">Сканирование страницы %1$d из %2$d…</string>
+    <string name="framekit_document_batch_skipped">На некоторых страницах документ не найден, они оставлены без изменений. Откройте их, чтобы задать углы вручную.</string>
     <string name="framekit_document_detected">Похоже на документ</string>
     <string name="framekit_document_scan">Сканировать</string>
     <string name="framekit_document_text_found">Текст распознан</string>

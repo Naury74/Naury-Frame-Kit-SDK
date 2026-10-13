@@ -90,6 +90,7 @@ import com.naury.framekit.ui.component.DiscardChangesDialog
 import com.naury.framekit.ui.component.EditorErrorView
 import com.naury.framekit.ui.component.EditorLoadingView
 import com.naury.framekit.ui.component.EditorTopBar
+import com.naury.framekit.ui.component.editorChrome
 import com.naury.framekit.ui.component.ExportErrorDialog
 import com.naury.framekit.ui.component.ExportOverlay
 import com.naury.framekit.ui.component.HistoryControls
@@ -174,6 +175,7 @@ private fun ReadyContent(state: ImageEditorUiState.Ready, viewModel: ImageEditor
                 SessionNotice.PAGE_LIMIT -> R.string.framekit_page_limit
                 SessionNotice.DOCUMENT_APPLIED -> R.string.framekit_document_applied
                 SessionNotice.DOCUMENT_FAILED -> R.string.framekit_document_failed
+                SessionNotice.DOCUMENT_BATCH_SKIPPED -> R.string.framekit_document_batch_skipped
                 SessionNotice.CUTOUT_MODEL_READY -> R.string.framekit_cutout_model_ready
             },
         )
@@ -200,6 +202,7 @@ private fun ReadyContent(state: ImageEditorUiState.Ready, viewModel: ImageEditor
                 // 바뀐 내용이 있으면 적용할지 먼저 묻는다.
                 val tool = state.activeTool
                 EditorTopBar(
+                    modifier = Modifier.editorChrome(state.chromeHidden, viewModel::showChrome),
                     onClose = if (tool != null) viewModel::onBack else viewModel::requestClose,
                     onSave = viewModel::save,
                     saveEnabled = state.export == null,
@@ -315,13 +318,16 @@ private fun CanvasArea(state: ImageEditorUiState.Ready, viewModel: ImageEditorVi
                 showRedo = viewModel.config.allowRedo,
                 onUndo = viewModel::undo,
                 onRedo = viewModel::redo,
-                modifier = Modifier.align(Alignment.TopCenter).padding(top = 12.dp),
+                modifier = Modifier.align(Alignment.TopCenter).padding(top = 12.dp).editorChrome(state.chromeHidden, viewModel::showChrome),
                 onCompare = if (state.activeTool == null && history.isDirty) viewModel::showOriginal else null,
             )
         }
         if (state.activeTool == null && state.export == null) {
             val suggestion = state.documentSuggestion
-            Column(Modifier.align(Alignment.BottomCenter).padding(bottom = 12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            Column(
+                Modifier.align(Alignment.BottomCenter).padding(bottom = 12.dp).editorChrome(state.chromeHidden, viewModel::showChrome),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
                 if (suggestion != null && !state.documentSuggestionDismissed && !state.documentRectified) {
                     DocumentPill(
                         text = stringResource(R.string.framekit_document_detected),
@@ -357,14 +363,16 @@ private fun ToolArea(
     scrollPanel: Boolean = false,
 ) {
     // 문서 보정은 문서로 판별된 사진(또는 이미 보정한 쪽)에서만 보여 줘, 일반 사진에서는 툴바를 차지하지 않게 한다.
+    // PDF로 저장할 때는 감지 여부와 상관없이 맨 앞에 둬, 찾지 못한 문서도 모서리를 직접 맞춰 펼 수 있게 한다.
     val tools = viewModel.config.enabledTools.filter {
         (it != ImageTool.CUTOUT || viewModel.cutoutAvailable) &&
             (it != ImageTool.WATERMARK || !viewModel.watermarkLocked) &&
-            (it != ImageTool.DOCUMENT || state.documentSuggestion != null || state.documentRectified)
-    }
+            (it != ImageTool.DOCUMENT || viewModel.documentFirst || state.documentSuggestion != null || state.documentRectified)
+    }.let { visible -> if (viewModel.documentFirst) visible.sortedBy { it != ImageTool.DOCUMENT } else visible }
     AnimatedContent(
         targetState = state.activeTool,
-        modifier = modifier.background(FrameKitTheme.colors.background).wrapContentWidth(Alignment.CenterHorizontally),
+        modifier = modifier.editorChrome(state.chromeHidden, viewModel::showChrome)
+            .background(FrameKitTheme.colors.background).wrapContentWidth(Alignment.CenterHorizontally),
         transitionSpec = { fadeIn(tween(TOOL_TRANSITION_MS)) togetherWith fadeOut(tween(TOOL_TRANSITION_MS)) },
         label = "tool-area",
     ) { tool ->
@@ -416,7 +424,10 @@ private fun ToolArea(
                 ImageTool.DOCUMENT -> ToolPanelWithActions(viewModel, isDraft = false, scrollPanel, wide, onApply = viewModel::applyDocument) {
                     DocumentToolPanel(
                         busy = state.documentBusy,
+                        batch = state.documentBatch,
                         rectified = state.documentRectified,
+                        pageCount = state.pageCount,
+                        onScanAll = viewModel::scanAllPages,
                         scanMode = state.scanMode,
                         onScanMode = viewModel::selectScanMode,
                         onDetect = viewModel::detectDocument,

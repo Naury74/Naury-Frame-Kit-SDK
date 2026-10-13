@@ -41,16 +41,20 @@ internal sealed interface ImageEditorUiState {
         val documentBusy: Boolean = false,
         /** 지금 쪽이 문서 보정으로 만든 이미지라 원본으로 되돌릴 수 있으면 `true`. */
         val documentRectified: Boolean = false,
-        /** 사진을 열 때 문서로 판별해 찾은 모서리. 문서가 아니면 `null`이고 문서 보정 도구도 숨긴다. */
+        /** 사진을 열 때 문서로 판별해 찾은 모서리. 문서가 아니면 `null`이고, PDF 저장이 아니면 문서 보정 도구도 숨긴다. */
         val documentSuggestion: DocumentQuad? = null,
         /** 문서 감지 제안을 사용자가 닫았으면 `true`. */
         val documentSuggestionDismissed: Boolean = false,
+        /** 모든 쪽을 한 번에 스캔하는 중이면 진행 상황. 아니면 `null`. */
+        val documentBatch: DocumentBatch? = null,
         /** 문서 보정에서 고른 스캔 방식. */
         val scanMode: ScanMode = ScanMode.COLOR,
         /** 문서 보정 뒤 인식한 글자. 인식 모듈이 없거나 글자가 없으면 `null`. */
         val documentText: String? = null,
         /** 인식한 글자 보기 창을 열었으면 `true`. */
         val showDocumentText: Boolean = false,
+        /** 사진만 보도록 조작부를 숨겼으면 `true`. 도구가 열려 있으면 늘 `false`. */
+        val chromeHidden: Boolean = false,
         val showApplyHint: Boolean = false,
         val showingOriginal: Boolean = false,
         val draggingCrop: Boolean = false,
@@ -144,6 +148,9 @@ internal enum class SessionNotice {
     /** 문서를 펴지 못했다(메모리·저장 공간 부족 등). 편집은 그대로다. */
     DOCUMENT_FAILED,
 
+    /** 모든 쪽 스캔에서 문서를 찾지 못한 쪽이 있어 그대로 두었다. */
+    DOCUMENT_BATCH_SKIPPED,
+
     /** 배경 제거 도구를 닫은 사이에 모델을 다 받았다. */
     CUTOUT_MODEL_READY,
 }
@@ -153,3 +160,6 @@ internal sealed interface ExportUiState {
     data class Running(val stage: ExportStageUi, val progress: Float? = null) : ExportUiState
     data class Failed(val code: EditorErrorCode) : ExportUiState
 }
+
+/** 모든 쪽 스캔 진행 상황. [done]은 처리를 마친 쪽 수(`0..total`). */
+internal data class DocumentBatch(val done: Int, val total: Int)

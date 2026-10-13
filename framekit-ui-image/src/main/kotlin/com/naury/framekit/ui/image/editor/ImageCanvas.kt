@@ -371,6 +371,9 @@ internal fun ImageCanvas(
                                         val (targetZoom, targetPan) = zoomState.doubleTapTarget(second.position, Size(size.width.toFloat(), size.height.toFloat()))
                                         scope.launch { zoomState.animateTo(targetZoom, targetPan) }
                                         waitForUpOrCancellation()
+                                    } else if (second == null && selectedId == null) {
+                                        // 선택된 것을 푸는 탭이 아니라 빈 곳을 한 번 누른 것이면 조작부를 숨기거나 보인다.
+                                        actions.toggleChrome()
                                     }
                                     return@awaitEachGesture
                                 }

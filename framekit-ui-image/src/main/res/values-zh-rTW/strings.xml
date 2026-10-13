@@ -35,6 +35,11 @@
     <string name="framekit_scan_grayscale">掃描（灰階）</string>
     <string name="framekit_scan_black_white">高對比黑白</string>
     <string name="framekit_scan_original">原色</string>
+    <plurals name="framekit_document_scan_all">
+        <item quantity="other">掃描全部 %1$d 頁</item>
+    </plurals>
+    <string name="framekit_document_scanning_pages">正在掃描第 %1$d 頁，共 %2$d 頁…</string>
+    <string name="framekit_document_batch_skipped">部分頁面找不到文件，已維持原樣。請在這些頁面中手動調整四角。</string>
     <string name="framekit_document_detected">偵測到文件</string>
     <string name="framekit_document_scan">掃描</string>
     <string name="framekit_document_text_found">已辨識文字</string>

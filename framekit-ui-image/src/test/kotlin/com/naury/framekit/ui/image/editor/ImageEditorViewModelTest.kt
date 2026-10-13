@@ -331,6 +331,63 @@ class ImageEditorViewModelTest {
         assertThat(ready(viewModel(EditorInput.FileSource(file.absolutePath), textRecognizer = text)).documentSuggestion).isNotNull()
     }
 
+    // 어두운 바탕에 비스듬한 흰 종이와 글자 줄이 있는 사진 파일.
+    private fun documentPhoto(name: String): File {
+        val photo = Bitmap.createBitmap(400, 500, Bitmap.Config.ARGB_8888).apply {
+            val canvas = android.graphics.Canvas(this)
+            canvas.drawColor(android.graphics.Color.rgb(30, 30, 30))
+            val paper = android.graphics.Path().apply { moveTo(100f, 60f); lineTo(330f, 90f); lineTo(350f, 440f); lineTo(70f, 420f); close() }
+            canvas.drawPath(paper, android.graphics.Paint().apply { color = android.graphics.Color.WHITE })
+            val ink = android.graphics.Paint().apply { color = android.graphics.Color.rgb(60, 60, 60) }
+            for (row in 0 until 12) for (col in 0 until 8) canvas.drawRect(130f + col * 22f, 140f + row * 20f, 144f + col * 22f, 144f + row * 20f, ink)
+        }
+        return File(context.cacheDir, name).apply { outputStream().use { photo.compress(Bitmap.CompressFormat.PNG, 100, it) } }
+    }
+
+    @Test
+    fun `pdf editing trusts detection and scans every page at once`() {
+        val pages = EditorInput.Multiple(listOf(documentPhoto("page-a.png"), sourceFile, documentPhoto("page-c.png")).map { EditorInput.FileSource(it.absolutePath) })
+        // 글자 확인이 실패해도(글자 2자) PDF로 묶을 때는 감지 결과를 그대로 제안한다.
+        val few = object : com.naury.framekit.image.ocr.TextRecognizer {
+            override suspend fun recognize(image: Bitmap) = listOf(com.naury.framekit.image.ocr.RecognizedLine("ab", 0f, 0f, 10f, 10f))
+        }
+        val viewModel = viewModel(pages, export = ImageExportConfig(format = ImageFormat.PDF), textRecognizer = few)
+        assertThat(viewModel.documentFirst).isTrue()
+        assertThat(ready(viewModel).documentSuggestion).isNotNull()
+
+        viewModel.selectTool(ImageTool.DOCUMENT)
+        viewModel.selectScanMode(com.naury.framekit.core.document.ScanMode.GRAYSCALE)
+        viewModel.scanAllPages()
+
+        // 문서인 두 쪽만 펴고, 일반 사진은 그대로 두고 안내한다.
+        val after = ready(viewModel)
+        assertThat(after.documentBatch).isNull()
+        assertThat(after.documentBusy).isFalse()
+        assertThat(after.documentRectified).isTrue()
+        assertThat(after.notice).isEqualTo(SessionNotice.DOCUMENT_BATCH_SKIPPED)
+        assertThat(File(context.filesDir, "documents-test").listFiles().orEmpty()).hasLength(2)
+        viewModel.selectPage(1)
+        assertThat(ready(viewModel).documentRectified).isFalse()
+        viewModel.selectPage(2)
+        assertThat(ready(viewModel).documentRectified).isTrue()
+        assertThat(ready(viewModel).source.metadata.uprightSize.width).isWithin(15).of(280)
+    }
+
+    @Test
+    fun `a tap on the photo hides the controls until the next tap and tools bring them back`() {
+        val viewModel = viewModel(EditorInput.FileSource(sourceFile.absolutePath))
+        viewModel.toggleChrome()
+        assertThat(ready(viewModel).chromeHidden).isTrue()
+        viewModel.toggleChrome()
+        assertThat(ready(viewModel).chromeHidden).isFalse()
+        viewModel.toggleChrome()
+        viewModel.selectTool(ImageTool.ADJUST)
+        assertThat(ready(viewModel).chromeHidden).isFalse()
+        // 도구가 열린 동안에는 숨기지 않는다.
+        viewModel.toggleChrome()
+        assertThat(ready(viewModel).chromeHidden).isFalse()
+    }
+
     @Test
     fun `ordinary photos do not suggest the document tool`() {
         val viewModel = viewModel(EditorInput.FileSource(sourceFile.absolutePath))

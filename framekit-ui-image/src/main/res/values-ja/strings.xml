@@ -35,6 +35,11 @@
     <string name="framekit_scan_grayscale">スキャン（グレー）</string>
     <string name="framekit_scan_black_white">くっきり白黒</string>
     <string name="framekit_scan_original">元の色</string>
+    <plurals name="framekit_document_scan_all">
+        <item quantity="other">全%1$dページをスキャン</item>
+    </plurals>
+    <string name="framekit_document_scanning_pages">%2$dページ中%1$dページ目をスキャン中…</string>
+    <string name="framekit_document_batch_skipped">書類が見つからなかったページはそのままにしました。そのページで角を手動で合わせてください。</string>
     <string name="framekit_document_detected">書類のようです</string>
     <string name="framekit_document_scan">スキャン</string>
     <string name="framekit_document_text_found">文字を認識しました</string>

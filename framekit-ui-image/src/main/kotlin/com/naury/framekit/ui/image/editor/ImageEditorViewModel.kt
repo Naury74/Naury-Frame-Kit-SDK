@@ -456,7 +456,9 @@ internal class ImageEditorViewModel(
                     documentSuggestion = page.documentSuggestion,
                     documentSuggestionDismissed = page.documentSuggestionDismissed,
                     documentText = page.documentText,
+                    notice = pendingNotice ?: ready.notice,
                 )
+                pendingNotice = null
                 checkDocument(page, ready.preview.bitmap)
                 if (page.recognizeAfterLoad) {
                     page.recognizeAfterLoad = false
@@ -588,6 +590,7 @@ internal class ImageEditorViewModel(
     fun dismissNotice() = updateReady { it.copy(notice = null) }
 
     fun selectTool(tool: ImageTool) {
+        showChrome()
         updateReady { ready ->
             if (ready.activeTool != null || ready.export != null || ready.transaction.isActive || tool !in config.enabledTools) {
                 return@updateReady ready
@@ -852,7 +855,8 @@ internal class ImageEditorViewModel(
             val analysis = withContext(ioDispatcher) { runCatching { DocumentRectifier.analyze(preview) }.getOrNull() }
             // 사진 내용 없이 판별 결과만 남겨, 문서가 안 잡힐 때 이유를 기기 로그로 확인할 수 있게 한다.
             Log.d(TAG, "document check: ${analysis?.reason ?: "failed"}")
-            val found = analysis?.quad?.let { quad -> if (confirmText(preview, quad)) quad else null }
+            // PDF로 묶을 때는 사용자가 문서를 넣었다고 보고 글자 확인 없이 감지 결과를 쓴다.
+            val found = analysis?.quad?.let { quad -> if (documentFirst || confirmText(preview, quad)) quad else null }
             page.documentSuggestion = found
             if (found != null && pages.getOrNull(pageIndex) === page) updateReady { it.copy(documentSuggestion = found) }
         }
@@ -880,6 +884,92 @@ internal class ImageEditorViewModel(
             .sumOf { line -> line.text.count { it.isLetterOrDigit() } }
         Log.d(TAG, "document text check: $characters characters")
         return characters >= MIN_DOCUMENT_CHARACTERS
+    }
+
+    // 쪽을 다시 연 뒤 띄울 안내. 다시 여는 동안에는 Ready 상태가 아니라 바로 띄울 수 없다.
+    private var pendingNotice: SessionNotice? = null
+
+    /**
+     * PDF로 저장하는 편집이면 `true`. 이때는 문서 보정 도구를 감지 결과와 상관없이 맨 앞에 두고, 여러 쪽을 한 번에
+     * 스캔할 수 있게 한다.
+     */
+    val documentFirst: Boolean get() = request.export.format == ImageFormat.PDF
+
+    /**
+     * 아직 보정하지 않은 모든 쪽을 지금 고른 스캔 방식으로 한 번에 편다. 지금 쪽은 맞춰 둔 모서리를, 다른 쪽은 자동으로
+     * 찾은 모서리를 쓴다. 문서를 찾지 못한 쪽은 그대로 두고 안내한다. 쪽마다 보정·필터는 이어진다.
+     */
+    fun scanAllPages() {
+        val ready = _state.value as? ImageEditorUiState.Ready ?: return
+        val directory = documentDirectory ?: return
+        if (ready.activeTool != ImageTool.DOCUMENT || ready.documentBusy || ready.export != null || pages.size < 2) return
+        stashCurrentPage()
+        val current = pages.getOrNull(pageIndex) ?: return
+        val currentQuad = ready.documentQuad?.takeIf { it.isUsable }
+        val mode = ready.scanMode
+        val targets = pages.filter { it.original == null }
+        if (targets.isEmpty()) return
+        updateReady { it.copy(documentBusy = true, documentBatch = DocumentBatch(0, targets.size)) }
+        viewModelScope.launch {
+            var skipped = 0
+            var dropped = false
+            targets.forEachIndexed { index, page ->
+                val output = File(directory, "${UUID.randomUUID()}.jpg")
+                val written = withContext(ioDispatcher) {
+                    try {
+                        val (_, info) = openPage(page)
+                        val quad = (if (page === current) currentQuad else null) ?: page.documentSuggestion ?: detectPage(info)
+                        if (quad == null) {
+                            false
+                        } else {
+                            DocumentRectifier(registry, contentResolver, memoryBudgetBytes).rectify(info, quad, output, mode)
+                            true
+                        }
+                    } catch (error: FrameKitException) {
+                        logFailure("document", error)
+                        output.delete()
+                        false
+                    } catch (error: OutOfMemoryError) {
+                        logFailure("document", FrameKitException(EditorErrorCode.INSUFFICIENT_MEMORY, cause = error))
+                        output.delete()
+                        false
+                    }
+                }
+                if (written) {
+                    val replacement = Page(newId(), EditorInput.FileSource(output.absolutePath), original = page.input)
+                    page.transaction?.history?.current?.let { project ->
+                        replacement.carry = { fresh -> fresh.copy(adjustments = project.adjustments, filter = project.filter) }
+                        dropped = dropped || project.hasPlacedEdits
+                    }
+                    replacement.recognizeAfterLoad = page === current
+                    swapPage(page, replacement)
+                } else {
+                    skipped++
+                }
+                updateReady { it.copy(documentBatch = DocumentBatch(index + 1, targets.size)) }
+            }
+            pagesChanged = true
+            persistPages()
+            updateReady { it.copy(documentBatch = null) }
+            loadPage(pageIndex, stash = false)
+            loadPageThumbnails()
+            val notice = when {
+                skipped > 0 -> SessionNotice.DOCUMENT_BATCH_SKIPPED
+                dropped -> SessionNotice.DOCUMENT_APPLIED
+                else -> null
+            }
+            if (notice != null) pendingNotice = notice
+        }
+    }
+
+    // 화면에 띄우지 않은 쪽의 문서를 찾는다. 감지는 작은 이미지로 충분하므로 작게 읽는다.
+    private fun detectPage(info: ImageSourceInfo): DocumentQuad? {
+        val decoded = BitmapDecoder(registry, contentResolver).decode(info, SampleSize.forMinimumLongEdge(info.encodedSize, DETECT_LONG_EDGE))
+        return try {
+            DocumentRectifier.detect(decoded.bitmap)
+        } finally {
+            decoded.recycle()
+        }
     }
 
     /** 문서 감지 제안을 닫는다. 도구는 툴바에 그대로 남는다. */
@@ -981,12 +1071,12 @@ internal class ImageEditorViewModel(
                 return@launch
             }
             val replacement = Page(newId(), EditorInput.FileSource(output.absolutePath), original = page.original ?: page.input)
-            val dropped = current.geometry != GeometryEdit() || current.overlays.isNotEmpty() || current.drawing.isNotEmpty() ||
-                current.privacyMasks.isNotEmpty() || current.cutout != null
+            val dropped = current.hasPlacedEdits
             replacement.carry = { fresh -> fresh.copy(adjustments = current.adjustments, filter = current.filter) }
             replacement.recognizeAfterLoad = true
+            // 쪽을 다시 여는 동안 상태가 바뀌므로, 안내는 다시 연 뒤에 띄운다.
+            if (dropped) pendingNotice = SessionNotice.DOCUMENT_APPLIED
             replacePage(page, replacement)
-            if (dropped) updateReady { it.copy(notice = SessionNotice.DOCUMENT_APPLIED) }
         }
     }
 
@@ -1003,7 +1093,16 @@ internal class ImageEditorViewModel(
     }
 
     private fun replacePage(old: Page, replacement: Page) {
-        val index = pages.indexOf(old).takeIf { it >= 0 } ?: return
+        val index = swapPage(old, replacement) ?: return
+        pagesChanged = true
+        persistPages()
+        loadPage(index, stash = false)
+        loadPageThumbnails()
+    }
+
+    // 쪽 목록에서 [old]를 [replacement]로 바꾸고, 문서 보정으로 만든 이전 중간 파일을 정리한다. 바꾼 위치를 돌려준다.
+    private fun swapPage(old: Page, replacement: Page): Int? {
+        val index = pages.indexOf(old).takeIf { it >= 0 } ?: return null
         pages[index] = replacement
         recorders.remove(old.id)?.end()
         // 문서 보정으로 만든 중간 파일은 다른 쪽이 쓰지 않으면 지운다.
@@ -1014,10 +1113,7 @@ internal class ImageEditorViewModel(
             }
         }
         _pageThumbnails.value = _pageThumbnails.value - old.id
-        pagesChanged = true
-        persistPages()
-        loadPage(index, stash = false)
-        loadPageThumbnails()
+        return index
     }
 
     fun resetTool() {
@@ -1285,6 +1381,13 @@ internal class ImageEditorViewModel(
         if (!config.allowRedo || ready.export != null) ready else ready.copy(transaction = ready.transaction.redo())
     }
 
+    override fun toggleChrome() = updateReady { ready ->
+        if (ready.activeTool != null || ready.export != null) ready.copy(chromeHidden = false) else ready.copy(chromeHidden = !ready.chromeHidden)
+    }
+
+    /** 숨긴 조작부를 다시 보인다. */
+    fun showChrome() = updateReady { if (it.chromeHidden) it.copy(chromeHidden = false) else it }
+
     override fun showOriginal(show: Boolean) = updateReady { it.copy(showingOriginal = show && it.activeTool == null) }
 
     fun save() {
@@ -1528,6 +1631,9 @@ internal class ImageEditorViewModel(
         const val DOCUMENT_STALE_MILLIS = 7L * 24 * 60 * 60 * 1000
         const val MAIN_PAGE_ID = "main"
         const val PAGE_THUMBNAIL_PX = 200
+
+        // 화면에 띄우지 않은 쪽에서 문서를 찾을 때 읽는 긴 변(px). 감지는 256px로 줄여 하므로 이 정도면 충분하다.
+        const val DETECT_LONG_EDGE = 512
         const val PAGE_THUMBNAIL_DEBOUNCE_MILLIS = 150L
         const val SNAPSHOT_DEBOUNCE_MILLIS = 300L
         const val MIN_MASK_SIZE = 0.01
@@ -1561,3 +1667,7 @@ private class Page(val id: String, val input: EditorInput, val original: EditorI
     var recognizeAfterLoad: Boolean = false
     var documentText: String? = null
 }
+
+// 위치가 바뀌는 편집(자르기·텍스트·스티커·그리기·가리기·배경 제거)이 있으면 `true`. 문서를 펴면 이것들은 초기화된다.
+private val ImageProject.hasPlacedEdits: Boolean
+    get() = geometry != GeometryEdit() || overlays.isNotEmpty() || drawing.isNotEmpty() || privacyMasks.isNotEmpty() || cutout != null

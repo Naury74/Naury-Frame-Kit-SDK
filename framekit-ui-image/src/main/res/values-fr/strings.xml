@@ -35,6 +35,13 @@
     <string name="framekit_scan_grayscale">Scan (gris)</string>
     <string name="framekit_scan_black_white">Noir et blanc</string>
     <string name="framekit_scan_original">Couleurs d\'origine</string>
+    <plurals name="framekit_document_scan_all">
+        <item quantity="one">Numériser %1$d page</item>
+        <item quantity="many">Numériser les %1$d pages</item>
+        <item quantity="other">Numériser les %1$d pages</item>
+    </plurals>
+    <string name="framekit_document_scanning_pages">Numérisation de la page %1$d sur %2$d…</string>
+    <string name="framekit_document_batch_skipped">Aucun document n\'a été trouvé sur certaines pages, elles sont restées telles quelles. Ouvrez-les pour placer les coins vous-même.</string>
     <string name="framekit_document_detected">Cela ressemble à un document</string>
     <string name="framekit_document_scan">Numériser</string>
     <string name="framekit_document_text_found">Texte reconnu</string>

@@ -35,6 +35,11 @@
     <string name="framekit_scan_grayscale">Pindai (abu-abu)</string>
     <string name="framekit_scan_black_white">Hitam putih</string>
     <string name="framekit_scan_original">Warna asli</string>
+    <plurals name="framekit_document_scan_all">
+        <item quantity="other">Pindai semua %1$d halaman</item>
+    </plurals>
+    <string name="framekit_document_scanning_pages">Memindai halaman %1$d dari %2$d…</string>
+    <string name="framekit_document_batch_skipped">Beberapa halaman tidak terdeteksi dokumennya dan dibiarkan apa adanya. Buka halaman tersebut untuk mengatur sudutnya sendiri.</string>
     <string name="framekit_document_detected">Sepertinya dokumen</string>
     <string name="framekit_document_scan">Pindai</string>
     <string name="framekit_document_text_found">Teks dikenali</string>
