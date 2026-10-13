@@ -4,6 +4,7 @@ import com.google.common.truth.Truth.assertThat
 import com.naury.framekit.core.geometry.PointN
 import org.junit.Test
 import kotlin.math.abs
+import kotlin.math.hypot
 
 class DocumentDetectorTest {
 
@@ -147,12 +148,90 @@ class DocumentDetectorTest {
             if (x * x + y * y < 80.0 * 80.0 || (x > 0 && y > 0 && x + y < 95)) 220 else 40
         }
         assertThat(DocumentDetector.detect(blob, 200, 200)).isNull()
-        // 종이와 바탕의 밝기 차이가 작은 장면.
+        // 종이와 바탕의 밝기 차이가 거의 없는 장면.
         val quad = listOf(0.2 to 0.2, 0.8 to 0.2, 0.8 to 0.8, 0.2 to 0.8)
-        assertThat(DocumentDetector.detect(scene(200, 200, quad, paper = 130, desk = 105), 200, 200)).isNull()
+        assertThat(DocumentDetector.detect(scene(200, 200, quad, paper = 130, desk = 124), 200, 200)).isNull()
         // 이미지의 작은 일부인 사각형(간판 등)은 문서로 보지 않는다.
         val small = listOf(0.4 to 0.4, 0.6 to 0.4, 0.6 to 0.6, 0.4 to 0.6)
         assertThat(DocumentDetector.detect(scene(200, 200, small), 200, 200)).isNull()
+    }
+
+    // 여백 안쪽에 글자 줄이 있는 종이를 [paperAt]으로 칠한 장면. [paperAt]은 (x, y)의 종이 밝기, [deskAt]은 바탕 밝기.
+    private fun shaded(width: Int, height: Int, quad: List<Pair<Double, Double>>, paperAt: (Int, Int) -> Int, deskAt: (Int, Int) -> Int): IntArray {
+        val pts = quad.map { (x, y) -> x * width to y * height }
+        val cx = pts.sumOf { it.first } / 4
+        val cy = pts.sumOf { it.second } / 4
+        val margin = pts.map { (x, y) -> cx + (x - cx) * 0.86 to cy + (y - cy) * 0.86 }
+        return IntArray(width * height) { i ->
+            val x = i % width
+            val y = i / width
+            when {
+                !inside(pts, x + 0.5, y + 0.5) -> deskAt(x, y)
+                inside(margin, x + 0.5, y + 0.5) && y % 9 in 3..4 && x % 7 in 1..4 -> paperAt(x, y) - 120
+                else -> paperAt(x, y)
+            }
+        }
+    }
+
+    @Test
+    fun `white paper on a light gray desk is found`() {
+        // 밝기 차이가 30 정도뿐이라 문턱값 하나로는 나뉘지 않던 장면.
+        val quad = listOf(0.18 to 0.15, 0.84 to 0.12, 0.88 to 0.86, 0.12 to 0.9)
+        val scene = shaded(192, 256, quad, { _, _ -> 228 }, { _, _ -> 196 })
+        val analysis = DocumentDetector.analyze(scene, 192, 256)
+        assertThat(analysis.reason).startsWith("ok")
+        assertNear(analysis.quad!!.topLeft, 0.18, 0.15)
+        assertNear(analysis.quad!!.bottomRight, 0.88, 0.86)
+    }
+
+    @Test
+    fun `a shadow across the page does not cut the document`() {
+        // 왼쪽 위에서 오른쪽 아래로 갈수록 어두워지는 그림자. 종이 오른쪽 아래가 바탕보다 어두운 밝기까지 내려간다.
+        val width = 192
+        val height = 256
+        val quad = listOf(0.15 to 0.1, 0.85 to 0.12, 0.88 to 0.9, 0.1 to 0.88)
+        val scene = shaded(width, height, quad, { x, y -> 235 - (x + y) * 130 / (width + height) }, { x, y -> 70 + (x + y) * 40 / (width + height) })
+        val found = DocumentDetector.detect(scene, width, height)!!
+        assertNear(found.topLeft, 0.15, 0.1)
+        assertNear(found.topRight, 0.85, 0.12)
+        assertNear(found.bottomRight, 0.88, 0.9)
+        assertNear(found.bottomLeft, 0.1, 0.88)
+    }
+
+    @Test
+    fun `paper on a colored desk of the same brightness is found by color`() {
+        // 종이(회색 200)와 나무색 책상(밝기 약 200)의 밝기가 같고 색만 다르다.
+        val width = 160
+        val height = 200
+        val quad = listOf(0.2 to 0.15, 0.8 to 0.15, 0.8 to 0.85, 0.2 to 0.85)
+        val luma = shaded(width, height, quad, { _, _ -> 200 }, { _, _ -> 199 })
+        val pts = quad.map { (x, y) -> x * width to y * height }
+        val chroma = IntArray(width * height) { i -> if (inside(pts, i % width + 0.5, i / width + 0.5)) 4 else 80 }
+        assertThat(DocumentDetector.detect(luma, width, height)).isNull()
+        val found = DocumentDetector.detect(luma, width, height, chroma)!!
+        assertNear(found.topLeft, 0.2, 0.15)
+        assertNear(found.bottomRight, 0.8, 0.85)
+    }
+
+    @Test
+    fun `rounded or covered corners still land on the paper corners`() {
+        val width = 200
+        val height = 260
+        val quad = listOf(0.2 to 0.12, 0.82 to 0.16, 0.86 to 0.88, 0.14 to 0.84)
+        val base = scene(width, height, quad)
+        // 왼쪽 위 모서리를 둥글게 깎고, 오른쪽 아래 모서리는 손가락처럼 어두운 원으로 가린다.
+        val corner = 0.2 * width to 0.12 * height
+        val finger = 0.86 * width to 0.88 * height
+        val edited = IntArray(base.size) { i ->
+            val x = i % width + 0.5
+            val y = i / width + 0.5
+            val nearTopLeft = x < corner.first + 10 && y < corner.second + 10 && hypot(x - (corner.first + 10), y - (corner.second + 10)) > 10
+            val underFinger = hypot(x - finger.first, y - finger.second) < 12
+            if ((nearTopLeft && base[i] > 128) || underFinger) 40 else base[i]
+        }
+        val found = DocumentDetector.detect(edited, width, height)!!
+        assertNear(found.topLeft, 0.2, 0.12)
+        assertNear(found.bottomRight, 0.86, 0.88)
     }
 
     @Test
