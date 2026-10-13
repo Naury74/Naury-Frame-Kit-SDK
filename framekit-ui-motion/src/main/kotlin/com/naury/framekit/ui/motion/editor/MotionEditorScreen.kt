@@ -4,7 +4,6 @@ import com.naury.framekit.core.video.AudioRole
 import android.graphics.Bitmap
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.tween
@@ -97,19 +96,20 @@ import com.naury.framekit.ui.tool.StickerToolPanel
 import com.naury.framekit.ui.tool.TextToolPanel
 import java.util.Locale
 import kotlin.math.abs
+import com.naury.framekit.android.input.MediaKind
+import com.naury.framekit.ui.picker.MediaPickerContract
+import com.naury.framekit.ui.picker.MediaPickerRequest
+import com.naury.framekit.ui.picker.MediaPickerResult
 import com.naury.framekit.ui.R as UiR
 
 @Composable
 internal fun MotionEditorScreen(viewModel: MotionEditorViewModel) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     var pickerLaunched by rememberSaveable { mutableStateOf(false) }
-    val picker = rememberLauncherForActivityResult(ActivityResultContracts.PickMultipleVisualMedia(maxOf(2, viewModel.config.maxImageCount))) { uris ->
+    val ui = FrameKitTheme.config
+    val picker = rememberLauncherForActivityResult(MediaPickerContract()) { result ->
         pickerLaunched = false
-        viewModel.onPicked(uris)
-    }
-    val singlePicker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
-        pickerLaunched = false
-        viewModel.onPicked(listOfNotNull(uri))
+        viewModel.onPicked((result as? MediaPickerResult.Picked)?.items?.map { it.uri }.orEmpty())
     }
     BackHandler { viewModel.onBack() }
     Box(Modifier.fillMaxSize().background(FrameKitTheme.colors.background)) {
@@ -117,8 +117,7 @@ internal fun MotionEditorScreen(viewModel: MotionEditorViewModel) {
             is MotionEditorUiState.AwaitingSource -> LaunchedEffect(current) {
                 if (!pickerLaunched) {
                     pickerLaunched = true
-                    val request = PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                    if (current.maxItems > 1) picker.launch(request) else singlePicker.launch(request)
+                    picker.launch(MediaPickerRequest(MediaKind.IMAGE, maxItems = current.maxItems.coerceAtLeast(1), style = ui.picker, ui = ui))
                 }
             }
             MotionEditorUiState.Loading -> EditorLoadingView(Modifier.windowInsetsPadding(WindowInsets.safeDrawing))

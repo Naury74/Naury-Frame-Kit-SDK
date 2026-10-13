@@ -7,6 +7,10 @@ import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.material3.TextButton
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Refresh
+import com.naury.framekit.android.input.MediaKind
+import com.naury.framekit.ui.picker.MediaPickerContract
+import com.naury.framekit.ui.picker.MediaPickerRequest
+import com.naury.framekit.ui.picker.MediaPickerResult
 import com.naury.framekit.ui.audio.VoiceRecordDialog
 import com.naury.framekit.ui.audio.VoiceRecorder
 import com.naury.framekit.ui.audio.AudioTrackUi
@@ -16,7 +20,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.platform.LocalContext
 import android.graphics.Bitmap
 import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
@@ -353,7 +356,10 @@ internal fun SlideStrip(state: MotionEditorUiState.Ready, viewModel: MotionEdito
     val colors = FrameKitTheme.colors
     val thumbnails by viewModel.thumbnails.collectAsStateWithLifecycle()
     val ids = state.displayed.sourceIds
-    val picker = rememberLauncherForActivityResult(ActivityResultContracts.PickMultipleVisualMedia(maxOf(2, viewModel.config.maxImageCount))) { uris -> viewModel.addSlides(uris) }
+    val ui = FrameKitTheme.config
+    val picker = rememberLauncherForActivityResult(MediaPickerContract()) { result ->
+        viewModel.addSlides((result as? MediaPickerResult.Picked)?.items?.map { it.uri }.orEmpty())
+    }
     val enabled = state.export == null && !state.transaction.isActive
     Column(Modifier.fillMaxWidth().padding(top = 4.dp)) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -384,7 +390,7 @@ internal fun SlideStrip(state: MotionEditorUiState.Ready, viewModel: MotionEdito
             if (ids.size < viewModel.config.maxImageCount) {
                 Box(
                     Modifier.size(THUMB_DP.dp).clip(RoundedCornerShape(10.dp)).background(colors.raised)
-                        .clickable(enabled = enabled, role = Role.Button) { picker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
+                        .clickable(enabled = enabled, role = Role.Button) { picker.launch(MediaPickerRequest(MediaKind.IMAGE, maxItems = maxOf(1, viewModel.config.maxImageCount - ids.size), style = ui.picker, ui = ui)) },
                     contentAlignment = Alignment.Center,
                 ) { Icon(Icons.Filled.Add, stringResource(R.string.framekit_motion_slide_add), tint = colors.foreground) }
             }
