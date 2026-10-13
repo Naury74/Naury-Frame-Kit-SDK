@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="framekit_picker_recent">Недавние</string>
+    <string name="framekit_picker_videos">Видео</string>
+    <string name="framekit_picker_choose_album">Выбрать альбом</string>
+    <string name="framekit_picker_done_count">Готово (%1$d)</string>
+    <plurals name="framekit_picker_limit">
+        <item quantity="one">Можно выбрать не более %1$d элемента</item>
+        <item quantity="few">Можно выбрать не более %1$d элементов</item>
+        <item quantity="many">Можно выбрать не более %1$d элементов</item>
+        <item quantity="other">Можно выбрать не более %1$d элемента</item>
+    </plurals>
+    <plurals name="framekit_picker_min">
+        <item quantity="one">Выберите хотя бы %1$d элемент</item>
+        <item quantity="few">Выберите хотя бы %1$d элемента</item>
+        <item quantity="many">Выберите хотя бы %1$d элементов</item>
+        <item quantity="other">Выберите хотя бы %1$d элемента</item>
+    </plurals>
+    <string name="framekit_picker_too_large">Нельзя выбрать файлы больше %1$s</string>
+    <string name="framekit_picker_too_long">Нельзя выбрать видео длиннее %1$s</string>
+    <string name="framekit_picker_partial">Показаны только разрешённые фото и видео.</string>
+    <string name="framekit_picker_partial_manage">Управлять</string>
+    <string name="framekit_picker_empty">Нет фото или видео для выбора</string>
+    <string name="framekit_picker_open_system">Выбрать в системном окне</string>
+    <string name="framekit_picker_preview">Просмотр</string>
+    <string name="framekit_picker_select_cd">Выбрать</string>
+    <string name="framekit_picker_selected_cd">Выбрано, номер %1$d</string>
+    <string name="framekit_picker_remove_cd">Убрать из выбора</string>
+    <string name="framekit_picker_video_cd">Видео, %1$s</string>
+    <string name="framekit_picker_today">Сегодня</string>
+    <string name="framekit_picker_yesterday">Вчера</string>
+</resources>

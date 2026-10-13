@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="framekit_picker_recent">最近项目</string>
+    <string name="framekit_picker_videos">视频</string>
+    <string name="framekit_picker_choose_album">选择相册</string>
+    <string name="framekit_picker_done_count">完成 (%1$d)</string>
+    <plurals name="framekit_picker_limit">
+        <item quantity="other">最多可选择 %1$d 项</item>
+    </plurals>
+    <plurals name="framekit_picker_min">
+        <item quantity="other">请至少选择 %1$d 项</item>
+    </plurals>
+    <string name="framekit_picker_too_large">无法选择大于 %1$s 的文件</string>
+    <string name="framekit_picker_too_long">无法选择长于 %1$s 的视频</string>
+    <string name="framekit_picker_partial">仅显示你允许访问的照片和视频。</string>
+    <string name="framekit_picker_partial_manage">管理</string>
+    <string name="framekit_picker_empty">没有可选择的照片或视频</string>
+    <string name="framekit_picker_open_system">使用系统选择器选择</string>
+    <string name="framekit_picker_preview">预览</string>
+    <string name="framekit_picker_select_cd">选择</string>
+    <string name="framekit_picker_selected_cd">第 %1$d 个已选</string>
+    <string name="framekit_picker_remove_cd">取消选择</string>
+    <string name="framekit_picker_video_cd">视频，%1$s</string>
+    <string name="framekit_picker_today">今天</string>
+    <string name="framekit_picker_yesterday">昨天</string>
+</resources>

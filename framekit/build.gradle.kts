@@ -39,6 +39,7 @@ dependencies {
     api(project(":framekit-ui-video"))
     api(project(":framekit-ui-motion"))
     api(project(":framekit-ui-audio"))
+    api(project(":framekit-picker"))
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.exifinterface)
     implementation(libs.androidx.core.ktx)

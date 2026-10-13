@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="framekit_picker_recent">최근 항목</string>
+    <string name="framekit_picker_videos">동영상</string>
+    <string name="framekit_picker_choose_album">앨범 선택</string>
+    <string name="framekit_picker_done_count">완료 (%1$d)</string>
+    <plurals name="framekit_picker_limit">
+        <item quantity="other">최대 %1$d개까지 고를 수 있어요</item>
+    </plurals>
+    <plurals name="framekit_picker_min">
+        <item quantity="other">%1$d개 이상 골라 주세요</item>
+    </plurals>
+    <string name="framekit_picker_too_large">%1$s보다 큰 파일은 고를 수 없어요</string>
+    <string name="framekit_picker_too_long">%1$s보다 긴 영상은 고를 수 없어요</string>
+    <string name="framekit_picker_partial">허용한 사진과 영상만 보여요.</string>
+    <string name="framekit_picker_partial_manage">더 허용</string>
+    <string name="framekit_picker_empty">고를 수 있는 사진이나 영상이 없어요</string>
+    <string name="framekit_picker_open_system">시스템 선택기에서 고르기</string>
+    <string name="framekit_picker_preview">미리보기</string>
+    <string name="framekit_picker_select_cd">선택</string>
+    <string name="framekit_picker_selected_cd">%1$d번째로 선택됨</string>
+    <string name="framekit_picker_remove_cd">선택 해제</string>
+    <string name="framekit_picker_video_cd">동영상, %1$s</string>
+    <string name="framekit_picker_today">오늘</string>
+    <string name="framekit_picker_yesterday">어제</string>
+</resources>

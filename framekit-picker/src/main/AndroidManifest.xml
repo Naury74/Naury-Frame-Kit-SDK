@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- 권한은 추가하지 않는다. 호스트가 사진 읽기 권한을 선언한 경우에만 앱 안 갤러리를 보여 주고, 아니면 시스템 사진 선택기로 대신한다. -->
+    <application>
+        <activity
+            android:name="com.naury.framekit.picker.MediaPickerActivity"
+            android:exported="false"
+            android:theme="@style/framekit_Theme.Picker" />
+    </application>
+
+</manifest>

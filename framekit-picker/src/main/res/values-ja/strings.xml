@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="framekit_picker_recent">最近の項目</string>
+    <string name="framekit_picker_videos">動画</string>
+    <string name="framekit_picker_choose_album">アルバムを選択</string>
+    <string name="framekit_picker_done_count">完了 (%1$d)</string>
+    <plurals name="framekit_picker_limit">
+        <item quantity="other">最大%1$d件まで選択できます</item>
+    </plurals>
+    <plurals name="framekit_picker_min">
+        <item quantity="other">%1$d件以上選択してください</item>
+    </plurals>
+    <string name="framekit_picker_too_large">%1$sを超えるファイルは選択できません</string>
+    <string name="framekit_picker_too_long">%1$sを超える動画は選択できません</string>
+    <string name="framekit_picker_partial">許可した写真と動画のみ表示しています。</string>
+    <string name="framekit_picker_partial_manage">管理</string>
+    <string name="framekit_picker_empty">選択できる写真や動画がありません</string>
+    <string name="framekit_picker_open_system">システムの選択画面で選ぶ</string>
+    <string name="framekit_picker_preview">プレビュー</string>
+    <string name="framekit_picker_select_cd">選択</string>
+    <string name="framekit_picker_selected_cd">%1$d番目に選択</string>
+    <string name="framekit_picker_remove_cd">選択を解除</string>
+    <string name="framekit_picker_video_cd">動画、%1$s</string>
+    <string name="framekit_picker_today">今日</string>
+    <string name="framekit_picker_yesterday">昨日</string>
+</resources>

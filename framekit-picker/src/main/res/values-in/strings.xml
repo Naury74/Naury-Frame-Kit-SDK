@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="framekit_picker_recent">Terbaru</string>
+    <string name="framekit_picker_videos">Video</string>
+    <string name="framekit_picker_choose_album">Pilih album</string>
+    <string name="framekit_picker_done_count">Selesai (%1$d)</string>
+    <plurals name="framekit_picker_limit">
+        <item quantity="other">Anda dapat memilih hingga %1$d item</item>
+    </plurals>
+    <plurals name="framekit_picker_min">
+        <item quantity="other">Pilih minimal %1$d item</item>
+    </plurals>
+    <string name="framekit_picker_too_large">File yang lebih besar dari %1$s tidak dapat dipilih</string>
+    <string name="framekit_picker_too_long">Video yang lebih panjang dari %1$s tidak dapat dipilih</string>
+    <string name="framekit_picker_partial">Hanya menampilkan foto dan video yang Anda izinkan.</string>
+    <string name="framekit_picker_partial_manage">Kelola</string>
+    <string name="framekit_picker_empty">Tidak ada foto atau video untuk dipilih</string>
+    <string name="framekit_picker_open_system">Pilih dengan pemilih sistem</string>
+    <string name="framekit_picker_preview">Pratinjau</string>
+    <string name="framekit_picker_select_cd">Pilih</string>
+    <string name="framekit_picker_selected_cd">Dipilih, nomor %1$d</string>
+    <string name="framekit_picker_remove_cd">Hapus dari pilihan</string>
+    <string name="framekit_picker_video_cd">Video, %1$s</string>
+    <string name="framekit_picker_today">Hari ini</string>
+    <string name="framekit_picker_yesterday">Kemarin</string>
+</resources>

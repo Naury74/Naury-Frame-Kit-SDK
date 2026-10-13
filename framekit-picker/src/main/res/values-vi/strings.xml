@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="framekit_picker_recent">Gần đây</string>
+    <string name="framekit_picker_videos">Video</string>
+    <string name="framekit_picker_choose_album">Chọn album</string>
+    <string name="framekit_picker_done_count">Xong (%1$d)</string>
+    <plurals name="framekit_picker_limit">
+        <item quantity="other">Bạn có thể chọn tối đa %1$d mục</item>
+    </plurals>
+    <plurals name="framekit_picker_min">
+        <item quantity="other">Hãy chọn ít nhất %1$d mục</item>
+    </plurals>
+    <string name="framekit_picker_too_large">Không thể chọn tệp lớn hơn %1$s</string>
+    <string name="framekit_picker_too_long">Không thể chọn video dài hơn %1$s</string>
+    <string name="framekit_picker_partial">Chỉ hiển thị ảnh và video bạn đã cho phép.</string>
+    <string name="framekit_picker_partial_manage">Quản lý</string>
+    <string name="framekit_picker_empty">Không có ảnh hoặc video để chọn</string>
+    <string name="framekit_picker_open_system">Chọn bằng trình chọn của hệ thống</string>
+    <string name="framekit_picker_preview">Xem trước</string>
+    <string name="framekit_picker_select_cd">Chọn</string>
+    <string name="framekit_picker_selected_cd">Đã chọn, thứ %1$d</string>
+    <string name="framekit_picker_remove_cd">Bỏ chọn</string>
+    <string name="framekit_picker_video_cd">Video, %1$s</string>
+    <string name="framekit_picker_today">Hôm nay</string>
+    <string name="framekit_picker_yesterday">Hôm qua</string>
+</resources>

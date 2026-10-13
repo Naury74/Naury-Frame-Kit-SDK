@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="framekit_picker_recent">ล่าสุด</string>
+    <string name="framekit_picker_videos">วิดีโอ</string>
+    <string name="framekit_picker_choose_album">เลือกอัลบั้ม</string>
+    <string name="framekit_picker_done_count">เสร็จ (%1$d)</string>
+    <plurals name="framekit_picker_limit">
+        <item quantity="other">เลือกได้สูงสุด %1$d รายการ</item>
+    </plurals>
+    <plurals name="framekit_picker_min">
+        <item quantity="other">เลือกอย่างน้อย %1$d รายการ</item>
+    </plurals>
+    <string name="framekit_picker_too_large">ไม่สามารถเลือกไฟล์ที่ใหญ่กว่า %1$s</string>
+    <string name="framekit_picker_too_long">ไม่สามารถเลือกวิดีโอที่ยาวกว่า %1$s</string>
+    <string name="framekit_picker_partial">แสดงเฉพาะรูปภาพและวิดีโอที่คุณอนุญาต</string>
+    <string name="framekit_picker_partial_manage">จัดการ</string>
+    <string name="framekit_picker_empty">ไม่มีรูปภาพหรือวิดีโอให้เลือก</string>
+    <string name="framekit_picker_open_system">เลือกด้วยตัวเลือกของระบบ</string>
+    <string name="framekit_picker_preview">ดูตัวอย่าง</string>
+    <string name="framekit_picker_select_cd">เลือก</string>
+    <string name="framekit_picker_selected_cd">เลือกแล้ว ลำดับที่ %1$d</string>
+    <string name="framekit_picker_remove_cd">นำออกจากที่เลือก</string>
+    <string name="framekit_picker_video_cd">วิดีโอ %1$s</string>
+    <string name="framekit_picker_today">วันนี้</string>
+    <string name="framekit_picker_yesterday">เมื่อวาน</string>
+</resources>

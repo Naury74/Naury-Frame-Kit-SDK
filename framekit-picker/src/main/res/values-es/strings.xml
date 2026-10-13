@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="framekit_picker_recent">Recientes</string>
+    <string name="framekit_picker_videos">Videos</string>
+    <string name="framekit_picker_choose_album">Elegir álbum</string>
+    <string name="framekit_picker_done_count">Listo (%1$d)</string>
+    <plurals name="framekit_picker_limit">
+        <item quantity="one">Puedes elegir hasta %1$d elemento</item>
+        <item quantity="many">Puedes elegir hasta %1$d elementos</item>
+        <item quantity="other">Puedes elegir hasta %1$d elementos</item>
+    </plurals>
+    <plurals name="framekit_picker_min">
+        <item quantity="one">Elige al menos %1$d elemento</item>
+        <item quantity="many">Elige al menos %1$d elementos</item>
+        <item quantity="other">Elige al menos %1$d elementos</item>
+    </plurals>
+    <string name="framekit_picker_too_large">No se pueden elegir archivos de más de %1$s</string>
+    <string name="framekit_picker_too_long">No se pueden elegir videos de más de %1$s</string>
+    <string name="framekit_picker_partial">Solo se muestran las fotos y videos que permitiste.</string>
+    <string name="framekit_picker_partial_manage">Gestionar</string>
+    <string name="framekit_picker_empty">No hay fotos ni videos para elegir</string>
+    <string name="framekit_picker_open_system">Elegir con el selector del sistema</string>
+    <string name="framekit_picker_preview">Vista previa</string>
+    <string name="framekit_picker_select_cd">Seleccionar</string>
+    <string name="framekit_picker_selected_cd">Seleccionado, número %1$d</string>
+    <string name="framekit_picker_remove_cd">Quitar de la selección</string>
+    <string name="framekit_picker_video_cd">Video, %1$s</string>
+    <string name="framekit_picker_today">Hoy</string>
+    <string name="framekit_picker_yesterday">Ayer</string>
+</resources>
