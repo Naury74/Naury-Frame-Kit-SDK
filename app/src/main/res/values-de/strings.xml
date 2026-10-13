@@ -2,7 +2,6 @@
 <resources>
     <string name="home_subtitle">SDK für nicht-destruktive Foto- und Videobearbeitung unter Android</string>
     <string name="home_edit_photo">Foto bearbeiten</string>
-    <string name="home_examples">Beispiele</string>
 
     <string name="example_default_title">Standard</string>
     <string name="example_default_description">Alle Werkzeuge, dunkles Design, JPEG 92</string>
@@ -109,9 +108,22 @@
     <string name="example_watermark_description">Text eingeben oder Vorschlag wählen und an einer Stelle, wiederholt, diagonal oder als Band platzieren</string>
     <string name="example_watermark_locked_title">Gesperrtes Wasserzeichen</string>
     <string name="example_watermark_locked_description">Die App setzt ein wiederholtes SAMPLE-Wasserzeichen, das nicht geändert oder entfernt werden kann</string>
-    <string name="home_editor_theme">Editor-Design</string>
     <string name="home_theme_dark">Dunkel</string>
     <string name="home_theme_light">Hell</string>
     <string name="example_scan_title">Als PDF scannen</string>
     <string name="example_scan_description">Die Kamera erkennt die Seitenränder, nimmt automatisch auf und speichert begradigte Seiten als ein PDF</string>
+    <string name="home_quick_photo_caption">Anpassen, Filter, Text</string>
+    <string name="home_quick_video_caption">Clips, Musik, Untertitel</string>
+    <string name="home_quick_scan_caption">Automatisch aufnehmen als PDF</string>
+    <string name="home_quick_record_caption">Aufnehmen, dann bearbeiten</string>
+    <string name="home_quick_scan">Dokument scannen</string>
+    <string name="home_quick_record">Sprache aufnehmen</string>
+    <string name="home_group_start">Erste Schritte</string>
+    <string name="home_group_photo">Foto</string>
+    <string name="home_group_video">Video</string>
+    <string name="home_group_document">Dokumente &amp; PDF</string>
+    <string name="home_group_motion">Animierte Bilder</string>
+    <string name="home_group_audio">Audio</string>
+    <string name="home_group_watermark">Wasserzeichen</string>
+    <string name="home_group_custom">Anpassung</string>
 </resources>

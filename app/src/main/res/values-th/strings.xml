@@ -2,7 +2,6 @@
 <resources>
     <string name="home_subtitle">SDK แก้ไขรูปภาพและวิดีโอแบบไม่ทำลายต้นฉบับสำหรับ Android</string>
     <string name="home_edit_photo">แก้ไขรูปภาพ</string>
-    <string name="home_examples">ตัวอย่าง</string>
     <string name="example_default_title">ค่าเริ่มต้น</string>
     <string name="example_default_description">เครื่องมือทั้งหมด ธีมมืด JPEG 92</string>
     <string name="example_rotate_only_title">หมุนเท่านั้น</string>
@@ -107,9 +106,22 @@
     <string name="example_watermark_description">พิมพ์ข้อความหรือเลือกคำแนะนำ แล้ววางแบบจุดเดียว ซ้ำ แนวทแยง หรือแถบ</string>
     <string name="example_watermark_locked_title">ลายน้ำแบบล็อก</string>
     <string name="example_watermark_locked_description">แอปใส่ลายน้ำ SAMPLE แบบซ้ำที่ผู้ใช้เปลี่ยนหรือลบไม่ได้</string>
-    <string name="home_editor_theme">ธีมตัวแก้ไข</string>
     <string name="home_theme_dark">มืด</string>
     <string name="home_theme_light">สว่าง</string>
     <string name="example_scan_title">สแกนเป็น PDF</string>
     <string name="example_scan_description">กล้องหาขอบเอกสารและถ่ายอัตโนมัติ แล้วปรับหน้าให้ตรงและบันทึกเป็น PDF เดียว</string>
+    <string name="home_quick_photo_caption">ปรับแต่ง ฟิลเตอร์ ข้อความ</string>
+    <string name="home_quick_video_caption">คลิป เพลง คำบรรยาย</string>
+    <string name="home_quick_scan_caption">ถ่ายอัตโนมัติเป็น PDF</string>
+    <string name="home_quick_record_caption">อัดเสียงแล้วแก้ไข</string>
+    <string name="home_quick_scan">สแกนเอกสาร</string>
+    <string name="home_quick_record">อัดเสียง</string>
+    <string name="home_group_start">เริ่มต้นใช้งาน</string>
+    <string name="home_group_photo">รูปภาพ</string>
+    <string name="home_group_video">วิดีโอ</string>
+    <string name="home_group_document">เอกสารและ PDF</string>
+    <string name="home_group_motion">ภาพเคลื่อนไหว</string>
+    <string name="home_group_audio">เสียง</string>
+    <string name="home_group_watermark">ลายน้ำ</string>
+    <string name="home_group_custom">ปรับแต่งเอง</string>
 </resources>

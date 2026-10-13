@@ -2,7 +2,6 @@
 <resources>
     <string name="home_subtitle">適用於 Android 的非破壞性圖片與影片編輯 SDK</string>
     <string name="home_edit_photo">編輯照片</string>
-    <string name="home_examples">範例</string>
     <string name="example_default_title">預設</string>
     <string name="example_default_description">所有工具、深色主題、JPEG 92</string>
     <string name="example_rotate_only_title">僅旋轉</string>
@@ -107,9 +106,22 @@
     <string name="example_watermark_description">輸入文字或選擇推薦文字，以單處、重複、對角線或橫條方式加入</string>
     <string name="example_watermark_locked_title">鎖定浮水印</string>
     <string name="example_watermark_locked_description">套用 App 指定的重複 SAMPLE 浮水印，使用者無法修改或移除</string>
-    <string name="home_editor_theme">編輯器主題</string>
     <string name="home_theme_dark">深色</string>
     <string name="home_theme_light">淺色</string>
     <string name="example_scan_title">掃描成 PDF</string>
     <string name="example_scan_description">相機自動辨識文件邊緣並拍攝，將多頁拉平後儲存為一個 PDF</string>
+    <string name="home_quick_photo_caption">調整、濾鏡、文字</string>
+    <string name="home_quick_video_caption">片段、音樂、字幕</string>
+    <string name="home_quick_scan_caption">自動拍攝並產生 PDF</string>
+    <string name="home_quick_record_caption">錄音後編輯</string>
+    <string name="home_quick_scan">掃描文件</string>
+    <string name="home_quick_record">錄音</string>
+    <string name="home_group_start">開始使用</string>
+    <string name="home_group_photo">照片</string>
+    <string name="home_group_video">影片</string>
+    <string name="home_group_document">文件與 PDF</string>
+    <string name="home_group_motion">動態圖片</string>
+    <string name="home_group_audio">音訊</string>
+    <string name="home_group_watermark">浮水印</string>
+    <string name="home_group_custom">自訂</string>
 </resources>

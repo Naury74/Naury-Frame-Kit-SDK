@@ -2,7 +2,6 @@
 <resources>
     <string name="home_subtitle">SDK de edição não destrutiva de imagens e vídeos para Android</string>
     <string name="home_edit_photo">Editar foto</string>
-    <string name="home_examples">Exemplos</string>
 
     <string name="example_default_title">Padrão</string>
     <string name="example_default_description">Todas as ferramentas, tema escuro, JPEG 92</string>
@@ -109,9 +108,22 @@
     <string name="example_watermark_description">Digite um texto ou escolha uma sugestão e coloque em um lugar, repetido, na diagonal ou em faixa</string>
     <string name="example_watermark_locked_title">Marca d\'água bloqueada</string>
     <string name="example_watermark_locked_description">O app aplica uma marca SAMPLE repetida que não pode ser alterada nem removida</string>
-    <string name="home_editor_theme">Tema do editor</string>
     <string name="home_theme_dark">Escuro</string>
     <string name="home_theme_light">Claro</string>
     <string name="example_scan_title">Digitalizar para PDF</string>
     <string name="example_scan_description">A câmera detecta as bordas, captura automaticamente e salva as páginas endireitadas em um PDF</string>
+    <string name="home_quick_photo_caption">Ajustes, filtros, texto</string>
+    <string name="home_quick_video_caption">Clipes, música, legendas</string>
+    <string name="home_quick_scan_caption">Captura automática em PDF</string>
+    <string name="home_quick_record_caption">Grave e depois edite</string>
+    <string name="home_quick_scan">Digitalizar documento</string>
+    <string name="home_quick_record">Gravar voz</string>
+    <string name="home_group_start">Primeiros passos</string>
+    <string name="home_group_photo">Foto</string>
+    <string name="home_group_video">Vídeo</string>
+    <string name="home_group_document">Documentos e PDF</string>
+    <string name="home_group_motion">Imagens animadas</string>
+    <string name="home_group_audio">Áudio</string>
+    <string name="home_group_watermark">Marca d\'água</string>
+    <string name="home_group_custom">Personalizar</string>
 </resources>

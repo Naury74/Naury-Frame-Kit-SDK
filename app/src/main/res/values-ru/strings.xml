@@ -2,7 +2,6 @@
 <resources>
     <string name="home_subtitle">SDK для неразрушающего редактирования фото и видео на Android</string>
     <string name="home_edit_photo">Редактировать фото</string>
-    <string name="home_examples">Примеры</string>
 
     <string name="example_default_title">По умолчанию</string>
     <string name="example_default_description">Все инструменты, тёмная тема, JPEG 92</string>
@@ -109,9 +108,22 @@
     <string name="example_watermark_description">Введите текст или выберите вариант и разместите в одном месте, повтором, по диагонали или полосой</string>
     <string name="example_watermark_locked_title">Закреплённый водяной знак</string>
     <string name="example_watermark_locked_description">Приложение ставит повторяющийся знак SAMPLE, который нельзя изменить или убрать</string>
-    <string name="home_editor_theme">Тема редактора</string>
     <string name="home_theme_dark">Тёмная</string>
     <string name="home_theme_light">Светлая</string>
     <string name="example_scan_title">Скан в PDF</string>
     <string name="example_scan_description">Камера находит края документа, снимает автоматически и сохраняет выровненные страницы в один PDF</string>
+    <string name="home_quick_photo_caption">Коррекция, фильтры, текст</string>
+    <string name="home_quick_video_caption">Клипы, музыка, подписи</string>
+    <string name="home_quick_scan_caption">Автосъёмка в PDF</string>
+    <string name="home_quick_record_caption">Запишите и отредактируйте</string>
+    <string name="home_quick_scan">Сканировать документ</string>
+    <string name="home_quick_record">Записать голос</string>
+    <string name="home_group_start">Начало работы</string>
+    <string name="home_group_photo">Фото</string>
+    <string name="home_group_video">Видео</string>
+    <string name="home_group_document">Документы и PDF</string>
+    <string name="home_group_motion">Анимированные изображения</string>
+    <string name="home_group_audio">Аудио</string>
+    <string name="home_group_watermark">Водяной знак</string>
+    <string name="home_group_custom">Настройка</string>
 </resources>

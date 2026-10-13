@@ -2,7 +2,6 @@
 <resources>
     <string name="home_subtitle">Android 向けの非破壊画像・動画編集 SDK</string>
     <string name="home_edit_photo">写真を編集</string>
-    <string name="home_examples">サンプル</string>
     <string name="example_default_title">デフォルト</string>
     <string name="example_default_description">すべてのツール、ダークテーマ、JPEG 92</string>
     <string name="example_rotate_only_title">回転のみ</string>
@@ -107,9 +106,22 @@
     <string name="example_watermark_description">文字を入力するか候補から選び、1か所・繰り返し・対角線・帯で配置</string>
     <string name="example_watermark_locked_title">固定の透かし</string>
     <string name="example_watermark_locked_description">アプリが決めた繰り返しのSAMPLE透かしが入り、変更・削除はできない</string>
-    <string name="home_editor_theme">エディターのテーマ</string>
     <string name="home_theme_dark">ダーク</string>
     <string name="home_theme_light">ライト</string>
     <string name="example_scan_title">スキャンしてPDFに</string>
     <string name="example_scan_description">カメラが書類の輪郭を見つけて自動撮影し、複数ページを補正して1つのPDFに保存</string>
+    <string name="home_quick_photo_caption">補正・フィルター・テキスト</string>
+    <string name="home_quick_video_caption">クリップ・音楽・字幕</string>
+    <string name="home_quick_scan_caption">自動撮影して PDF に</string>
+    <string name="home_quick_record_caption">録音して編集</string>
+    <string name="home_quick_scan">書類をスキャン</string>
+    <string name="home_quick_record">録音</string>
+    <string name="home_group_start">はじめに</string>
+    <string name="home_group_photo">写真</string>
+    <string name="home_group_video">動画</string>
+    <string name="home_group_document">書類・PDF</string>
+    <string name="home_group_motion">アニメーション画像</string>
+    <string name="home_group_audio">音声</string>
+    <string name="home_group_watermark">透かし</string>
+    <string name="home_group_custom">カスタマイズ</string>
 </resources>

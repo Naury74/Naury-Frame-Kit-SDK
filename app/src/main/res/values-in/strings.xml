@@ -2,7 +2,6 @@
 <resources>
     <string name="home_subtitle">SDK pengeditan gambar dan video non-destruktif untuk Android</string>
     <string name="home_edit_photo">Edit foto</string>
-    <string name="home_examples">Contoh</string>
     <string name="example_default_title">Default</string>
     <string name="example_default_description">Semua alat, tema gelap, JPEG 92</string>
     <string name="example_rotate_only_title">Hanya putar</string>
@@ -107,9 +106,22 @@
     <string name="example_watermark_description">Ketik teks atau pilih saran, lalu pasang di satu titik, berulang, diagonal, atau pita</string>
     <string name="example_watermark_locked_title">Tanda air terkunci</string>
     <string name="example_watermark_locked_description">Aplikasi memasang tanda air SAMPLE berulang yang tidak bisa diubah atau dihapus pengguna</string>
-    <string name="home_editor_theme">Tema editor</string>
     <string name="home_theme_dark">Gelap</string>
     <string name="home_theme_light">Terang</string>
     <string name="example_scan_title">Pindai ke PDF</string>
     <string name="example_scan_description">Kamera menemukan tepi dokumen, memotret otomatis, dan menyimpan halaman yang diratakan sebagai satu PDF</string>
+    <string name="home_quick_photo_caption">Penyesuaian, filter, teks</string>
+    <string name="home_quick_video_caption">Klip, musik, teks</string>
+    <string name="home_quick_scan_caption">Ambil otomatis ke PDF</string>
+    <string name="home_quick_record_caption">Rekam, lalu edit</string>
+    <string name="home_quick_scan">Pindai dokumen</string>
+    <string name="home_quick_record">Rekam suara</string>
+    <string name="home_group_start">Mulai</string>
+    <string name="home_group_photo">Foto</string>
+    <string name="home_group_video">Video</string>
+    <string name="home_group_document">Dokumen &amp; PDF</string>
+    <string name="home_group_motion">Gambar animasi</string>
+    <string name="home_group_audio">Audio</string>
+    <string name="home_group_watermark">Tanda air</string>
+    <string name="home_group_custom">Kustomisasi</string>
 </resources>

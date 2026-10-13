@@ -2,7 +2,6 @@
 <resources>
     <string name="home_subtitle">SDK chỉnh sửa ảnh và video không phá hủy cho Android</string>
     <string name="home_edit_photo">Sửa ảnh</string>
-    <string name="home_examples">Ví dụ</string>
     <string name="example_default_title">Mặc định</string>
     <string name="example_default_description">Tất cả công cụ, giao diện tối, JPEG 92</string>
     <string name="example_rotate_only_title">Chỉ xoay</string>
@@ -107,9 +106,22 @@
     <string name="example_watermark_description">Nhập chữ hoặc chọn gợi ý, rồi đặt ở một chỗ, lặp lại, đường chéo hoặc dải</string>
     <string name="example_watermark_locked_title">Hình mờ bị khóa</string>
     <string name="example_watermark_locked_description">Ứng dụng đặt hình mờ SAMPLE lặp lại, người dùng không thể đổi hay gỡ</string>
-    <string name="home_editor_theme">Giao diện trình chỉnh sửa</string>
     <string name="home_theme_dark">Tối</string>
     <string name="home_theme_light">Sáng</string>
     <string name="example_scan_title">Quét thành PDF</string>
     <string name="example_scan_description">Máy ảnh tìm mép tài liệu, tự động chụp và lưu các trang đã làm phẳng thành một PDF</string>
+    <string name="home_quick_photo_caption">Chỉnh màu, bộ lọc, chữ</string>
+    <string name="home_quick_video_caption">Clip, nhạc, phụ đề</string>
+    <string name="home_quick_scan_caption">Tự chụp thành PDF</string>
+    <string name="home_quick_record_caption">Ghi âm rồi chỉnh sửa</string>
+    <string name="home_quick_scan">Quét tài liệu</string>
+    <string name="home_quick_record">Ghi âm</string>
+    <string name="home_group_start">Bắt đầu</string>
+    <string name="home_group_photo">Ảnh</string>
+    <string name="home_group_video">Video</string>
+    <string name="home_group_document">Tài liệu &amp; PDF</string>
+    <string name="home_group_motion">Ảnh động</string>
+    <string name="home_group_audio">Âm thanh</string>
+    <string name="home_group_watermark">Hình mờ</string>
+    <string name="home_group_custom">Tùy chỉnh</string>
 </resources>

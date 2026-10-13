@@ -2,7 +2,6 @@
 <resources>
     <string name="home_subtitle">适用于 Android 的非破坏性图片与视频编辑 SDK</string>
     <string name="home_edit_photo">编辑照片</string>
-    <string name="home_examples">示例</string>
     <string name="example_default_title">默认</string>
     <string name="example_default_description">全部工具、深色主题、JPEG 92</string>
     <string name="example_rotate_only_title">仅旋转</string>
@@ -107,9 +106,22 @@
     <string name="example_watermark_description">输入文字或选择推荐文字，以单处、重复、对角线或横条方式添加</string>
     <string name="example_watermark_locked_title">锁定水印</string>
     <string name="example_watermark_locked_description">应用指定的重复 SAMPLE 水印，用户无法修改或移除</string>
-    <string name="home_editor_theme">编辑器主题</string>
     <string name="home_theme_dark">深色</string>
     <string name="home_theme_light">浅色</string>
     <string name="example_scan_title">扫描为 PDF</string>
     <string name="example_scan_description">相机自动识别文档边缘并拍摄，将多页拉平后保存为一个 PDF</string>
+    <string name="home_quick_photo_caption">调整、滤镜、文字</string>
+    <string name="home_quick_video_caption">片段、音乐、字幕</string>
+    <string name="home_quick_scan_caption">自动拍摄并生成 PDF</string>
+    <string name="home_quick_record_caption">录音后编辑</string>
+    <string name="home_quick_scan">扫描文档</string>
+    <string name="home_quick_record">录音</string>
+    <string name="home_group_start">开始使用</string>
+    <string name="home_group_photo">照片</string>
+    <string name="home_group_video">视频</string>
+    <string name="home_group_document">文档与 PDF</string>
+    <string name="home_group_motion">动图</string>
+    <string name="home_group_audio">音频</string>
+    <string name="home_group_watermark">水印</string>
+    <string name="home_group_custom">自定义</string>
 </resources>

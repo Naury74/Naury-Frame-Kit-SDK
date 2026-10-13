@@ -169,7 +169,7 @@ fun PlaygroundScreen(onBack: () -> Unit, onLaunch: (FrameKitRequest) -> Unit) {
                         Modifier
                             .size(36.dp)
                             .background(Color(argb), CircleShape)
-                            .border(if (selected) 3.dp else 0.dp, if (selected) Color.White else Color.Transparent, CircleShape)
+                            .border(if (selected) 3.dp else 0.dp, if (selected) MaterialTheme.colorScheme.onBackground else Color.Transparent, CircleShape)
                             .clickable { settings = settings.copy(primaryArgb = argb) },
                     ) {}
                 }

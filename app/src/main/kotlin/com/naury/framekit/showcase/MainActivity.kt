@@ -5,11 +5,15 @@ import com.naury.framekit.android.input.EditorInput
 import com.naury.framekit.FrameKitRequest
 import android.os.Bundle
 import android.os.SystemClock
+import android.graphics.Color
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -35,7 +39,15 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            ShowcaseTheme {
+            val systemDark = isSystemInDarkTheme()
+            var editorTheme by rememberSaveable { mutableStateOf(if (systemDark) ThemeMode.DARK else ThemeMode.LIGHT) }
+            val dark = editorTheme == ThemeMode.DARK
+            // 앱 안에서 고른 테마에 맞춰 상태 표시줄·내비게이션 바 아이콘 색을 바꾼다.
+            LaunchedEffect(dark) {
+                val style = if (dark) SystemBarStyle.dark(Color.TRANSPARENT) else SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT)
+                enableEdgeToEdge(statusBarStyle = style, navigationBarStyle = style)
+            }
+            ShowcaseTheme(dark) {
                 val context = LocalContext.current
                 val resources = LocalResources.current
                 var result by rememberSaveable { mutableStateOf<ArrayList<EditedMedia>?>(null) }
@@ -43,7 +55,6 @@ class MainActivity : ComponentActivity() {
                 var lastMessage by rememberSaveable { mutableStateOf<String?>(null) }
                 var launchedAt by rememberSaveable { mutableLongStateOf(0L) }
                 var playground by rememberSaveable { mutableStateOf(false) }
-                var editorTheme by rememberSaveable { mutableStateOf(ThemeMode.DARK) }
 
                 val editor = rememberLauncherForActivityResult(FrameKitContract()) { outcome ->
                     when (outcome) {

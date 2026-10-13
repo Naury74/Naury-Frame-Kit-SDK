@@ -2,7 +2,6 @@
 <resources>
     <string name="home_subtitle">SDK de edición no destructiva de imágenes y videos para Android</string>
     <string name="home_edit_photo">Editar foto</string>
-    <string name="home_examples">Ejemplos</string>
 
     <string name="example_default_title">Predeterminado</string>
     <string name="example_default_description">Todas las herramientas, tema oscuro, JPEG 92</string>
@@ -109,9 +108,22 @@
     <string name="example_watermark_description">Escribe un texto o elige una sugerencia y colócalo en un lugar, repetido, en diagonal o en franja</string>
     <string name="example_watermark_locked_title">Marca de agua bloqueada</string>
     <string name="example_watermark_locked_description">La app aplica una marca SAMPLE repetida que no se puede cambiar ni quitar</string>
-    <string name="home_editor_theme">Tema del editor</string>
     <string name="home_theme_dark">Oscuro</string>
     <string name="home_theme_light">Claro</string>
     <string name="example_scan_title">Escanear a PDF</string>
     <string name="example_scan_description">La cámara detecta los bordes, captura automáticamente y guarda las páginas enderezadas en un PDF</string>
+    <string name="home_quick_photo_caption">Ajustes, filtros, texto</string>
+    <string name="home_quick_video_caption">Clips, música, subtítulos</string>
+    <string name="home_quick_scan_caption">Captura automática a PDF</string>
+    <string name="home_quick_record_caption">Graba y luego edita</string>
+    <string name="home_quick_scan">Escanear documento</string>
+    <string name="home_quick_record">Grabar voz</string>
+    <string name="home_group_start">Primeros pasos</string>
+    <string name="home_group_photo">Foto</string>
+    <string name="home_group_video">Video</string>
+    <string name="home_group_document">Documentos y PDF</string>
+    <string name="home_group_motion">Imágenes animadas</string>
+    <string name="home_group_audio">Audio</string>
+    <string name="home_group_watermark">Marca de agua</string>
+    <string name="home_group_custom">Personalizar</string>
 </resources>

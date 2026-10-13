@@ -2,7 +2,6 @@
     <string name="app_name" translatable="false">FrameKit</string>
     <string name="home_subtitle">Non-destructive image and video editing SDK for Android</string>
     <string name="home_edit_photo">Edit photo</string>
-    <string name="home_examples">Examples</string>
 
     <string name="example_default_title">Default</string>
     <string name="example_default_description">All tools, dark theme, JPEG 92</string>
@@ -109,9 +108,22 @@
     <string name="example_watermark_description">Type a watermark or pick a suggested one, then choose one spot, repeat, diagonal or band</string>
     <string name="example_watermark_locked_title">Locked watermark</string>
     <string name="example_watermark_locked_description">The app applies a repeating SAMPLE watermark that users can\'t change or remove</string>
-    <string name="home_editor_theme">Editor theme</string>
     <string name="home_theme_dark">Dark</string>
     <string name="home_theme_light">Light</string>
     <string name="example_scan_title">Scan to PDF</string>
     <string name="example_scan_description">The camera finds the page edges and captures automatically; pages are flattened into one PDF</string>
+    <string name="home_quick_photo_caption">Adjust, filters, text</string>
+    <string name="home_quick_video_caption">Clips, music, captions</string>
+    <string name="home_quick_scan_caption">Auto capture to PDF</string>
+    <string name="home_quick_record_caption">Record, then edit</string>
+    <string name="home_quick_scan">Scan document</string>
+    <string name="home_quick_record">Record voice</string>
+    <string name="home_group_start">Get started</string>
+    <string name="home_group_photo">Photo</string>
+    <string name="home_group_video">Video</string>
+    <string name="home_group_document">Documents &amp; PDF</string>
+    <string name="home_group_motion">Animated images</string>
+    <string name="home_group_audio">Audio</string>
+    <string name="home_group_watermark">Watermark</string>
+    <string name="home_group_custom">Customize</string>
 </resources>
