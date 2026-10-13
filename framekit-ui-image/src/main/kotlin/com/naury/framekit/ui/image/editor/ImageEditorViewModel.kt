@@ -15,6 +15,8 @@ import com.naury.framekit.image.ml.OnDeviceModelState
 import com.naury.framekit.core.document.ScanMode
 import com.naury.framekit.image.document.DocumentRectifier
 import com.naury.framekit.core.document.DocumentQuad
+import com.naury.framekit.core.document.DocumentOutline
+import com.naury.framekit.core.document.DocumentDetector
 import java.io.File
 import com.naury.framekit.ui.image.editor.ImageSessionRecorder.Companion.toInput
 import com.naury.framekit.image.export.PdfPage
@@ -858,6 +860,7 @@ internal class ImageEditorViewModel(
             // PDF로 묶을 때는 사용자가 문서를 넣었다고 보고 글자 확인 없이 감지 결과를 쓴다.
             val found = analysis?.quad?.let { quad -> if (documentFirst || confirmText(preview, quad)) quad else null }
             page.documentSuggestion = found
+            if (found != null) page.documentOutline = analysis.outline
             if (found != null && pages.getOrNull(pageIndex) === page) updateReady { it.copy(documentSuggestion = found) }
         }
     }
@@ -918,11 +921,14 @@ internal class ImageEditorViewModel(
                 val written = withContext(ioDispatcher) {
                     try {
                         val (_, info) = openPage(page)
-                        val quad = (if (page === current) currentQuad else null) ?: page.documentSuggestion ?: detectPage(info)
+                        val detected = if ((page === current && currentQuad != null) || page.documentSuggestion != null) null else detectPage(info)
+                        val quad = (if (page === current) currentQuad else null) ?: page.documentSuggestion ?: detected?.quad
+                        // 감지한 모서리를 그대로 쓰면 휜 테두리 곡선도 함께 써서 편다.
+                        val outline = (detected?.outline ?: page.documentOutline)?.takeIf { it.quad == quad }
                         if (quad == null) {
                             false
                         } else {
-                            DocumentRectifier(registry, contentResolver, memoryBudgetBytes).rectify(info, quad, output, mode)
+                            DocumentRectifier(registry, contentResolver, memoryBudgetBytes).rectify(info, quad, output, mode, outline = outline)
                             true
                         }
                     } catch (error: FrameKitException) {
@@ -963,10 +969,10 @@ internal class ImageEditorViewModel(
     }
 
     // 화면에 띄우지 않은 쪽의 문서를 찾는다. 감지는 작은 이미지로 충분하므로 작게 읽는다.
-    private fun detectPage(info: ImageSourceInfo): DocumentQuad? {
+    private fun detectPage(info: ImageSourceInfo): DocumentDetector.Analysis {
         val decoded = BitmapDecoder(registry, contentResolver).decode(info, SampleSize.forMinimumLongEdge(info.encodedSize, DETECT_LONG_EDGE))
         return try {
-            DocumentRectifier.detect(decoded.bitmap)
+            DocumentRectifier.analyze(decoded.bitmap)
         } finally {
             decoded.recycle()
         }
@@ -1000,8 +1006,11 @@ internal class ImageEditorViewModel(
 
     private fun detectDocumentLater(ready: ImageEditorUiState.Ready) {
         val preview = ready.preview.bitmap
+        val page = pages.getOrNull(pageIndex)
         viewModelScope.launch {
-            val found = withContext(ioDispatcher) { runCatching { DocumentRectifier.detect(preview) }.getOrNull() }
+            val analysis = withContext(ioDispatcher) { runCatching { DocumentRectifier.analyze(preview) }.getOrNull() }
+            val found = analysis?.quad
+            if (found != null) page?.documentOutline = analysis.outline
             // 그새 사용자가 모서리를 옮겼으면 덮어쓰지 않는다.
             updateReady { current ->
                 if (current.activeTool == ImageTool.DOCUMENT && current.documentQuad == DocumentQuad.inset() && found != null) current.copy(documentQuad = found) else current
@@ -1014,8 +1023,11 @@ internal class ImageEditorViewModel(
         val ready = _state.value as? ImageEditorUiState.Ready ?: return
         if (ready.activeTool != ImageTool.DOCUMENT || ready.documentBusy) return
         val preview = ready.preview.bitmap
+        val page = pages.getOrNull(pageIndex)
         viewModelScope.launch {
-            val found = withContext(ioDispatcher) { runCatching { DocumentRectifier.detect(preview) }.getOrNull() }
+            val analysis = withContext(ioDispatcher) { runCatching { DocumentRectifier.analyze(preview) }.getOrNull() }
+            val found = analysis?.quad
+            if (found != null) page?.documentOutline = analysis.outline
             updateReady { if (it.activeTool == ImageTool.DOCUMENT) it.copy(documentQuad = found ?: DocumentQuad.inset()) else it }
         }
     }
@@ -1054,7 +1066,9 @@ internal class ImageEditorViewModel(
             val output = File(directory, "${UUID.randomUUID()}.jpg")
             val written = withContext(ioDispatcher) {
                 try {
-                    DocumentRectifier(registry, contentResolver, memoryBudgetBytes).rectify(ready.source, quad, output, ready.scanMode)
+                    // 사용자가 모서리를 옮기지 않았으면 감지한 휜 테두리 곡선을 따라 편다.
+                    val outline = page.documentOutline?.takeIf { it.quad == quad }
+                    DocumentRectifier(registry, contentResolver, memoryBudgetBytes).rectify(ready.source, quad, output, ready.scanMode, outline = outline)
                     true
                 } catch (error: FrameKitException) {
                     logFailure("document", error)
@@ -1661,6 +1675,9 @@ private class Page(val id: String, val input: EditorInput, val original: EditorI
     /** 문서 판별을 마쳤는지와 그 결과(문서가 아니면 `null`). 다시 열 때 또 계산하지 않는다. */
     var documentChecked: Boolean = false
     var documentSuggestion: DocumentQuad? = null
+
+    /** 감지한 문서의 실제 테두리(휜 변 포함). 모서리가 이와 같을 때만 펼 때 쓴다. */
+    var documentOutline: DocumentOutline? = null
     var documentSuggestionDismissed: Boolean = false
 
     /** 문서 보정 직후 글자를 인식해야 하면 `true`. 인식한 글자는 [documentText]. */
