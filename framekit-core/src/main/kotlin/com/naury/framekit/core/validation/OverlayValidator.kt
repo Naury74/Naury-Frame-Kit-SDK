@@ -9,8 +9,9 @@ import com.naury.framekit.core.overlay.MaskShape
 import com.naury.framekit.core.overlay.OverlayTransform
 import com.naury.framekit.core.overlay.PrivacyEffect
 import com.naury.framekit.core.overlay.PrivacyMask
+import com.naury.framekit.core.overlay.ShapeStyle
 
-/** 텍스트, 스티커, 그리기 획의 검증. */
+/** 텍스트, 스티커, 도형, 그리기 획의 검증. */
 internal object OverlayValidator {
 
     fun validate(overlays: List<ImageOverlay>, drawing: List<DrawingStroke>, issues: MutableList<ValidationIssue>) {
@@ -39,6 +40,19 @@ internal object OverlayValidator {
                     }
                     if (!positive(overlay.widthRatio)) {
                         issues += ValidationIssue(ValidationCode.OUT_OF_RANGE, "$path.widthRatio", "Must be positive")
+                    }
+                }
+                is ImageOverlay.Shape -> {
+                    val max = ImageOverlay.Shape.MAX_SIZE_RATIO
+                    // 선·화살표는 높이를 쓰지 않으므로 0이어도 된다.
+                    val heightOk = overlay.heightRatio.isFinite() && overlay.heightRatio <= max &&
+                        (if (overlay.kind.isLine) overlay.heightRatio >= 0.0 else overlay.heightRatio > 0.0)
+                    if (!positive(overlay.widthRatio) || overlay.widthRatio > max || !heightOk) {
+                        issues += ValidationIssue(ValidationCode.OUT_OF_RANGE, "$path.size", "Expected width 0..$max and height 0..$max")
+                    }
+                    val stroke = overlay.style.strokeWidthShortEdgeRatio
+                    if (!positive(stroke) || stroke > ShapeStyle.MAX_STROKE_RATIO) {
+                        issues += ValidationIssue(ValidationCode.OUT_OF_RANGE, "$path.style.strokeWidthShortEdgeRatio", "Expected 0..${ShapeStyle.MAX_STROKE_RATIO}")
                     }
                 }
             }

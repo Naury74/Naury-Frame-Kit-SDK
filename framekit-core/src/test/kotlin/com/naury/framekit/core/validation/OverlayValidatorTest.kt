@@ -17,6 +17,8 @@ import com.naury.framekit.core.overlay.DrawingStroke
 import com.naury.framekit.core.overlay.EmojiCatalog
 import com.naury.framekit.core.overlay.ImageOverlay
 import com.naury.framekit.core.overlay.OverlayTransform
+import com.naury.framekit.core.overlay.ShapeKind
+import com.naury.framekit.core.overlay.ShapeStyle
 import com.naury.framekit.core.overlay.StrokePoint
 import com.naury.framekit.core.overlay.TextStyleSpec
 import org.junit.Test
@@ -43,6 +45,24 @@ class OverlayValidatorTest {
         )
 
         assertThat(codes(valid)).isEmpty()
+    }
+
+    @Test
+    fun `shapes need a positive box and stroke while lines may have no height`() {
+        val valid = project.copy(
+            overlays = listOf(
+                ImageOverlay.Shape("r", ShapeKind.RECTANGLE, 0.3, 0.2),
+                ImageOverlay.Shape("l", ShapeKind.ARROW, 0.4, 0.0),
+            ),
+        )
+        assertThat(codes(valid)).isEmpty()
+
+        val flatBox = project.copy(overlays = listOf(ImageOverlay.Shape("r", ShapeKind.ELLIPSE, 0.3, 0.0)))
+        val huge = project.copy(overlays = listOf(ImageOverlay.Shape("r", ShapeKind.RECTANGLE, 9.0, 0.2)))
+        val noStroke = project.copy(overlays = listOf(ImageOverlay.Shape("r", ShapeKind.RECTANGLE, 0.3, 0.2, ShapeStyle(strokeWidthShortEdgeRatio = 0.0))))
+        assertThat(codes(flatBox)).contains(ValidationCode.OUT_OF_RANGE)
+        assertThat(codes(huge)).contains(ValidationCode.OUT_OF_RANGE)
+        assertThat(codes(noStroke)).contains(ValidationCode.OUT_OF_RANGE)
     }
 
     @Test

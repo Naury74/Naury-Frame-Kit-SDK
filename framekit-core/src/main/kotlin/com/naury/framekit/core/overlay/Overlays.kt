@@ -66,7 +66,7 @@ public data class TextStyleSpec(
     val background: BackgroundSpec? = null,
 )
 
-/** 이미지 위에 놓는 텍스트나 스티커. 목록 순서가 z-order이며 마지막이 맨 위다. */
+/** 이미지 위에 놓는 텍스트·스티커·도형. 목록 순서가 z-order이며 마지막이 맨 위다. */
 public sealed interface ImageOverlay {
     public val id: String
     public val transform: OverlayTransform
@@ -96,6 +96,68 @@ public sealed interface ImageOverlay {
         override val transform: OverlayTransform = OverlayTransform(),
     ) : ImageOverlay {
         override fun withTransform(transform: OverlayTransform): Sticker = copy(transform = transform)
+    }
+
+    /**
+     * 사각형·원·화살표 같은 도형. 손으로 그린 획과 달리 그린 뒤에도 옮기고 크기·회전·색·굵기를 바꿀 수 있다.
+     *
+     * 상자 크기는 배율 1에서의 값이고 [OverlayTransform.scale]이 곱해진다. 선 굵기는 배율과 상관없이 그대로다.
+     * 선·화살표는 상자 왼쪽 가운데에서 오른쪽 가운데로 긋고, 방향은 [OverlayTransform.rotationDegrees]로 정한다.
+     *
+     * @property widthRatio 상자 너비를 캔버스 너비로 나눈 값. `0` 초과 [MAX_SIZE_RATIO] 이하.
+     * @property heightRatio 상자 높이를 캔버스 높이로 나눈 값. 선·화살표는 쓰지 않는다. `0` 이상 [MAX_SIZE_RATIO] 이하.
+     */
+    public data class Shape(
+        override val id: String,
+        val kind: ShapeKind,
+        val widthRatio: Double,
+        val heightRatio: Double,
+        val style: ShapeStyle = ShapeStyle(),
+        override val transform: OverlayTransform = OverlayTransform(),
+    ) : ImageOverlay {
+        override fun withTransform(transform: OverlayTransform): Shape = copy(transform = transform)
+
+        public companion object {
+            /** 상자 한 변의 최대 비율. 캔버스 밖으로 넉넉히 키울 수 있게 1보다 크다. */
+            public const val MAX_SIZE_RATIO: Double = 4.0
+        }
+    }
+}
+
+/** 도형 종류. */
+public enum class ShapeKind {
+    RECTANGLE,
+    ROUNDED_RECTANGLE,
+    ELLIPSE,
+    TRIANGLE,
+    STAR,
+    LINE,
+    ARROW,
+
+    /** 양쪽 끝에 화살촉이 있는 선. */
+    DOUBLE_ARROW,
+    ;
+
+    /** 상자 대신 한 줄로 긋는 도형이면 `true`. 이때 높이는 쓰지 않고 채우기도 적용되지 않는다. */
+    public val isLine: Boolean get() = this == LINE || this == ARROW || this == DOUBLE_ARROW
+}
+
+/**
+ * 도형 모양.
+ *
+ * @property colorArgb 선(또는 채우기) 색.
+ * @property strokeWidthShortEdgeRatio 선 굵기를 캔버스 짧은 변으로 나눈 값. `0` 초과 [MAX_STROKE_RATIO] 이하.
+ * @property filled `true`면 안을 [colorArgb]로 채운다. 선·화살표에는 적용되지 않는다.
+ * @property dashed `true`면 점선으로 긋는다. 채운 도형에는 적용되지 않는다.
+ */
+public data class ShapeStyle(
+    val colorArgb: Int = 0xFFFFFFFF.toInt(),
+    val strokeWidthShortEdgeRatio: Double = 0.008,
+    val filled: Boolean = false,
+    val dashed: Boolean = false,
+) {
+    public companion object {
+        public const val MAX_STROKE_RATIO: Double = 0.1
     }
 }
 
