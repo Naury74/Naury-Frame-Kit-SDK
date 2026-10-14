@@ -11,13 +11,25 @@ val project = processor.newProject(source).copy(
     geometry = GeometryEdit(crop = RectN(0.1, 0.1, 0.9, 0.9)),
     adjustments = Adjustments(brightness = 0.1),
     filter = FilterSelection("bright", 0.8),
-    overlays = listOf(ImageOverlay.Sticker("s1", EmojiCatalog.assetId("🎉"))),
+    overlays = listOf(
+        ImageOverlay.Sticker("s1", EmojiCatalog.assetId("🎉")),
+        // 빨간 테두리 사각형. 크기는 캔버스 대비 비율, 위치는 transform.center
+        ImageOverlay.Shape("r1", ShapeKind.RECTANGLE, widthRatio = 0.4, heightRatio = 0.3, style = ShapeStyle(colorArgb = 0xFFFF3B30.toInt())),
+    ),
 )
 val handle = processor.startExport(project, source, ImageExportConfig(format = ImageFormat.WEBP_LOSSY), scope = lifecycleScope)
 handle.state.collect { state -> render(state) }   // 선택
 val result = handle.awaitResult()
 processor.close()
 ```
+
+### 도형
+
+`ImageOverlay.Shape`는 사각형·둥근 사각형·원·삼각형·별·선·화살표·양쪽 화살표(`ShapeKind`)를 그립니다.
+
+- `widthRatio`·`heightRatio`: 배율 1에서의 상자 크기(캔버스 너비·높이 대비, 0 초과 4 이하). 선·화살표는 `heightRatio`를 쓰지 않고(0), 왼쪽에서 오른쪽으로 그은 뒤 `transform.rotationDegrees`로 방향을 정합니다.
+- `ShapeStyle`: 색, 선 굵기(짧은 변 대비, 0 초과 0.1 이하), 채우기(`filled`, 선·화살표 제외), 점선(`dashed`, 채운 도형 제외).
+- 선 굵기는 `transform.scale`로 키워도 그대로입니다.
 
 ## PDF
 
