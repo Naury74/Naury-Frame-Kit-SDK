@@ -24,6 +24,7 @@ internal object OverlayEditing {
         val copy = when (source) {
             is ImageOverlay.Text -> source.copy(id = newId, transform = moved)
             is ImageOverlay.Sticker -> source.copy(id = newId, transform = moved)
+            is ImageOverlay.Shape -> source.copy(id = newId, transform = moved)
         }
         return project.copy(overlays = project.overlays + copy)
     }

@@ -18,6 +18,8 @@ import com.naury.framekit.core.overlay.ImageOverlay
 import com.naury.framekit.image.overlay.OverlayRenderer
 import com.naury.framekit.image.render.toAndroidMatrix
 import kotlin.math.abs
+import androidx.compose.ui.input.pointer.AwaitPointerEventScope
+import androidx.compose.ui.input.pointer.PointerInputChange
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -171,10 +173,21 @@ internal fun ImageCanvas(
                 val overlayRenderer = remember { OverlayRenderer() }
                 val watermarkRenderer = remember { WatermarkRenderer() }
                 val showOverlays = !toolMode && !state.showingOriginal
+                val shapeMode = state.activeTool == ImageTool.DRAW && state.brush.shapes
                 val selected = state.selectedOverlayId?.let { id -> project.overlays.firstOrNull { it.id == id } }
-                    ?.takeIf { showOverlays && state.activeTool != ImageTool.TEXT && state.activeTool != ImageTool.DRAW && state.activeTool != ImageTool.PRIVACY }
+                    ?.takeIf { overlay ->
+                        showOverlays && when (state.activeTool) {
+                            ImageTool.TEXT, ImageTool.PRIVACY -> false
+                            // 그리기 도구에서는 도형 모드일 때 고른 도형만 손잡이를 보인다.
+                            ImageTool.DRAW -> shapeMode && overlay is ImageOverlay.Shape
+                            else -> true
+                        }
+                    }
+                val minSelectionHalf = with(density) { 28.dp.toPx().toDouble() } / zoomState.zoom
                 val selectionCorners = selected?.let { overlay ->
-                    overlayRenderer.corners(overlay, plan.outputSize).map { outputToViewport.map(it) }
+                    val corners = overlayRenderer.corners(overlay, plan.outputSize).map { outputToViewport.map(it) }
+                    // 가는 선은 틀이 납작해 손잡이가 한쪽 끝에 겹치므로, 틀을 선과 수직으로 벌려 손잡이를 나눠 둔다.
+                    if (overlay is ImageOverlay.Shape && overlay.kind.isLine) widenedCorners(corners, minSelectionHalf) else corners
                 }
                 val currentProject by rememberUpdatedState(project)
                 val currentSelection by rememberUpdatedState(selected?.id)
@@ -203,6 +216,9 @@ internal fun ImageCanvas(
                 val currentCenter by rememberUpdatedState(selectionCenter)
                 val currentOutputToViewport by rememberUpdatedState(outputToViewport)
                 val currentOutputSize by rememberUpdatedState(plan.outputSize)
+                val currentShapeMode by rememberUpdatedState(shapeMode)
+                // 도형은 크기 손잡이로 가로·세로를 따로 바꾼다(다른 오버레이는 크기·회전).
+                val currentResizable by rememberUpdatedState(selected is ImageOverlay.Shape)
                 val contentRect = viewport.toViewport(RectN.Full)
                 val currentViewport by rememberUpdatedState(viewport)
                 val currentFrame by rememberUpdatedState(cropFrame)
@@ -277,8 +293,54 @@ internal fun ImageCanvas(
                     ImageTool.ROTATE, ImageTool.TEXT -> Modifier
                     ImageTool.DRAW, ImageTool.PRIVACY -> Modifier.pointerInput(Unit) {
                         val minDistance = 2.dp.toPx().toDouble()
+                        val snap = 6.dp.toPx().toDouble()
                         awaitEachGesture {
                             val down = awaitFirstDown()
+                            if (currentShapeMode) {
+                                // 도형 모드: 손잡이나 도형을 잡으면 그 도형을 고쳐 쓰고, 빈 곳을 끌면 새 도형을 그린다.
+                                val selectedId = currentSelection
+                                val handles = currentCorners
+                                if (selectedId != null && handles != null &&
+                                    handleSelectionTouch(down, selectedId, handles, currentCenter, currentTouchRadius, currentResizable, currentViewport.fittedSize, actions, overlayGesture)
+                                ) {
+                                    return@awaitEachGesture
+                                }
+                                val output = currentOutputToViewport.inverted().map(down.position.x.toDouble(), down.position.y.toDouble())
+                                val shapes = currentProject.overlays.filterIsInstance<ImageOverlay.Shape>()
+                                val hit = overlayRenderer.hitTest(shapes, output.x, output.y, currentOutputSize, slopPx = currentTouchRadius / 2)
+                                val fitted = currentViewport.fittedSize
+                                if (hit != null) {
+                                    actions.selectOverlay(hit)
+                                    dragOverlay(down, hit, fitted.width, fitted.height, snap, actions, overlayGesture)
+                                    return@awaitEachGesture
+                                }
+                                val start = currentViewport.toContent(down.position.x.toDouble(), down.position.y.toDouble())
+                                if (start == null) {
+                                    actions.selectOverlay(null)
+                                    return@awaitEachGesture
+                                }
+                                down.consume()
+                                actions.beginShape(start.x, start.y)
+                                var drawing = true
+                                do {
+                                    val event = awaitPointerEvent()
+                                    if (event.changes.count { it.pressed } >= 2) {
+                                        if (drawing) {
+                                            actions.cancelStroke()
+                                            drawing = false
+                                        }
+                                        continue
+                                    }
+                                    val change = event.changes.firstOrNull { it.id == down.id } ?: break
+                                    if (drawing) {
+                                        val point = currentViewport.toContentUnbounded(change.position.x.toDouble(), change.position.y.toDouble())
+                                        actions.dragShape(point.x, point.y, fitted.width / fitted.height)
+                                    }
+                                    change.consume()
+                                } while (event.changes.any { it.pressed })
+                                if (drawing) actions.finishShape()
+                                return@awaitEachGesture
+                            }
                             // 사진 바깥(letterbox)에서 시작한 획은 만들지 않는다.
                             val start = currentViewport.toContent(down.position.x.toDouble(), down.position.y.toDouble())
                             down.consume()
@@ -321,37 +383,10 @@ internal fun ImageCanvas(
                                 val position = down.position
                                 val corners = currentCorners
                                 val selectedId = currentSelection
-                                if (selectedId != null && corners != null) {
-                                    when {
-                                        near(corners[0], position, handleRadius) -> {
-                                            if (waitForUpOrCancellation() != null) actions.deleteOverlay(selectedId)
-                                            return@awaitEachGesture
-                                        }
-                                        near(corners[1], position, handleRadius) -> {
-                                            if (waitForUpOrCancellation() != null) actions.duplicateOverlay(selectedId)
-                                            return@awaitEachGesture
-                                        }
-                                        near(corners[2], position, handleRadius) && currentCenter != null -> {
-                                            // 중심에서 손가락까지의 거리·각도 변화로 크기와 회전을 바꾼다. 한 손으로도 조절할 수 있다.
-                                            val center = Offset(currentCenter!!.x.toFloat(), currentCenter!!.y.toFloat())
-                                            val start = position - center
-                                            if (start.getDistance() < 1f) return@awaitEachGesture
-                                            overlayGesture[0] = true
-                                            actions.beginOverlayGesture(selectedId)
-                                            do {
-                                                val event = awaitPointerEvent()
-                                                val change = event.changes.firstOrNull { it.id == down.id } ?: break
-                                                val now = change.position - center
-                                                val zoom = now.getDistance() / start.getDistance()
-                                                val rotation = Math.toDegrees(atan2(now.y.toDouble(), now.x.toDouble()) - atan2(start.y.toDouble(), start.x.toDouble()))
-                                                actions.updateOverlayGesture(0.0, 0.0, zoom.toDouble(), rotation, 0.0, 0.0)
-                                                change.consume()
-                                            } while (change.pressed)
-                                            actions.finishOverlayGesture()
-                                            overlayGesture[0] = false
-                                            return@awaitEachGesture
-                                        }
-                                    }
+                                if (selectedId != null && corners != null &&
+                                    handleSelectionTouch(down, selectedId, corners, currentCenter, handleRadius, currentResizable, currentViewport.fittedSize, actions, overlayGesture)
+                                ) {
+                                    return@awaitEachGesture
                                 }
                                 val output = currentOutputToViewport.inverted().map(position.x.toDouble(), position.y.toDouble())
                                 val hit = overlayRenderer.hitTest(currentProject.overlays, output.x, output.y, currentOutputSize, slopPx = handleRadius / 2)
@@ -378,34 +413,8 @@ internal fun ImageCanvas(
                                     return@awaitEachGesture
                                 }
                                 val wasSelected = hit == selectedId
-                                overlayGesture[0] = true
-                                actions.beginOverlayGesture(hit)
                                 val fitted = currentViewport.fittedSize
-                                var pan = Offset.Zero
-                                var zoom = 1f
-                                var rotation = 0f
-                                var moved = false
-                                val slop = viewConfiguration.touchSlop
-                                do {
-                                    val event = awaitPointerEvent()
-                                    pan += event.calculatePan()
-                                    zoom *= event.calculateZoom()
-                                    rotation += event.calculateRotation()
-                                    if (!moved && (pan.getDistance() > slop || abs(zoom - 1f) > 0.02f || abs(rotation) > 2f)) moved = true
-                                    if (moved) {
-                                        actions.updateOverlayGesture(
-                                            pan.x / fitted.width,
-                                            pan.y / fitted.height,
-                                            zoom.toDouble(),
-                                            rotation.toDouble(),
-                                            snap / fitted.width,
-                                            snap / fitted.height,
-                                        )
-                                        event.changes.forEach { if (it.positionChanged()) it.consume() }
-                                    }
-                                } while (event.changes.any { it.pressed })
-                                actions.finishOverlayGesture()
-                                overlayGesture[0] = false
+                                val moved = dragOverlay(down, hit, fitted.width, fitted.height, snap, actions, overlayGesture)
                                 val overlay = currentProject.overlays.firstOrNull { it.id == hit }
                                 if (!moved && wasSelected && overlay is ImageOverlay.Text) actions.editText(hit)
                             }
@@ -478,6 +487,139 @@ internal fun ImageCanvas(
 
 private val PREVIEW_PAINT = Paint(Paint.FILTER_BITMAP_FLAG)
 
+/**
+ * 고른 오버레이의 손잡이를 눌렀으면 처리하고 `true`를 돌려준다. [handles]는 0: 삭제, 1: 복제, 2: 크기 손잡이다.
+ *
+ * @param resizable `true`면 크기 손잡이가 가로·세로를 따로 바꾸고(도형), 아니면 한 손가락으로 크기와 회전을 함께 바꾼다.
+ * @param fitted 화면에 맞춘 캔버스 크기(px). 이동량을 정규화 값으로 바꾸는 데 쓴다.
+ */
+private suspend fun AwaitPointerEventScope.handleSelectionTouch(
+    down: PointerInputChange,
+    selectedId: String,
+    handles: List<PointN>,
+    center: PointN?,
+    radius: Double,
+    resizable: Boolean,
+    fitted: Size2D,
+    actions: ImageCanvasActions,
+    overlayGesture: BooleanArray,
+): Boolean {
+    val position = down.position
+    when {
+        near(handles[2], position, radius) && resizable -> {
+            down.consume()
+            overlayGesture[0] = true
+            actions.beginShapeResize(selectedId)
+            do {
+                val event = awaitPointerEvent()
+                val change = event.changes.firstOrNull { it.id == down.id } ?: break
+                val moved = change.position - position
+                actions.resizeShape(moved.x / fitted.width, moved.y / fitted.height, fitted.width / fitted.height)
+                change.consume()
+            } while (change.pressed)
+            actions.finishOverlayGesture()
+            overlayGesture[0] = false
+            return true
+        }
+        near(handles[0], position, radius) -> {
+            down.consume()
+            if (waitForUpOrCancellation() != null) actions.deleteOverlay(selectedId)
+            return true
+        }
+        near(handles[1], position, radius) -> {
+            down.consume()
+            if (waitForUpOrCancellation() != null) actions.duplicateOverlay(selectedId)
+            return true
+        }
+        near(handles[2], position, radius) && center != null -> {
+            // 중심에서 손가락까지의 거리·각도 변화로 크기와 회전을 바꾼다. 한 손으로도 조절할 수 있다.
+            val pivot = Offset(center.x.toFloat(), center.y.toFloat())
+            val start = position - pivot
+            if (start.getDistance() < 1f) return true
+            down.consume()
+            overlayGesture[0] = true
+            actions.beginOverlayGesture(selectedId)
+            do {
+                val event = awaitPointerEvent()
+                val change = event.changes.firstOrNull { it.id == down.id } ?: break
+                val now = change.position - pivot
+                val zoom = now.getDistance() / start.getDistance()
+                val rotation = Math.toDegrees(atan2(now.y.toDouble(), now.x.toDouble()) - atan2(start.y.toDouble(), start.x.toDouble()))
+                actions.updateOverlayGesture(0.0, 0.0, zoom.toDouble(), rotation, 0.0, 0.0)
+                change.consume()
+            } while (change.pressed)
+            actions.finishOverlayGesture()
+            overlayGesture[0] = false
+            return true
+        }
+    }
+    return false
+}
+
+/**
+ * [id] 오버레이를 잡아 한 손가락으로 옮기거나 두 손가락으로 확대·회전한다. 손가락이 움직였으면 `true`.
+ *
+ * @param fittedWidth 화면에 맞춘 캔버스 너비(px). 이동량을 정규화 값으로 바꾸는 데 쓴다.
+ * @param snapPx 가운데 맞춤이 걸리는 거리(px).
+ */
+private suspend fun AwaitPointerEventScope.dragOverlay(
+    down: PointerInputChange,
+    id: String,
+    fittedWidth: Double,
+    fittedHeight: Double,
+    snapPx: Double,
+    actions: ImageCanvasActions,
+    overlayGesture: BooleanArray,
+): Boolean {
+    overlayGesture[0] = true
+    actions.beginOverlayGesture(id)
+    var pan = Offset.Zero
+    var zoom = 1f
+    var rotation = 0f
+    var moved = false
+    val slop = viewConfiguration.touchSlop
+    do {
+        val event = awaitPointerEvent()
+        pan += event.calculatePan()
+        zoom *= event.calculateZoom()
+        rotation += event.calculateRotation()
+        if (!moved && (pan.getDistance() > slop || abs(zoom - 1f) > 0.02f || abs(rotation) > 2f)) moved = true
+        if (moved) {
+            actions.updateOverlayGesture(
+                pan.x / fittedWidth,
+                pan.y / fittedHeight,
+                zoom.toDouble(),
+                rotation.toDouble(),
+                snapPx / fittedWidth,
+                snapPx / fittedHeight,
+            )
+            event.changes.forEach { if (it.positionChanged()) it.consume() }
+        }
+    } while (event.changes.any { it.pressed })
+    actions.finishOverlayGesture()
+    overlayGesture[0] = false
+    return moved
+}
+
+/** 왼쪽 위부터 시계 방향인 [corners]의 틀을 짧은 쪽 반폭이 [minHalf] 이상이 되도록 벌린다. */
+private fun widenedCorners(corners: List<PointN>, minHalf: Double): List<PointN> {
+    val (tl, tr, br, bl) = corners
+    val leftMid = PointN((tl.x + bl.x) / 2, (tl.y + bl.y) / 2)
+    val rightMid = PointN((tr.x + br.x) / 2, (tr.y + br.y) / 2)
+    val half = hypot(bl.x - tl.x, bl.y - tl.y) / 2
+    if (half >= minHalf) return corners
+    // 선 방향에 수직인 단위 벡터. 틀 높이가 0이어도 선 방향에서 구할 수 있다.
+    val length = hypot(rightMid.x - leftMid.x, rightMid.y - leftMid.y).takeIf { it > 0 } ?: return corners
+    val nx = -(rightMid.y - leftMid.y) / length * minHalf
+    val ny = (rightMid.x - leftMid.x) / length * minHalf
+    return listOf(
+        PointN(leftMid.x - nx, leftMid.y - ny),
+        PointN(rightMid.x - nx, rightMid.y - ny),
+        PointN(rightMid.x + nx, rightMid.y + ny),
+        PointN(leftMid.x + nx, leftMid.y + ny),
+    )
+}
+
 private fun near(point: PointN, position: Offset, radius: Double): Boolean {
     val dx = point.x - position.x
     val dy = point.y - position.y
@@ -508,7 +650,7 @@ private fun DrawScope.drawSelection(corners: List<PointN>, handles: List<PointN>
             drawLine(Color.White, center - Offset(mark, 0f), center + Offset(mark, 0f), stroke)
             drawLine(Color.White, center - Offset(0f, mark), center + Offset(0f, mark), stroke)
         } else {
-            // 크기·회전 손잡이: 대각선 양방향 화살표 모양.
+            // 크기 손잡이.
             drawLine(Color.White, center - Offset(mark, mark), center + Offset(mark, mark), stroke)
             drawLine(Color.White, center + Offset(mark, mark), center + Offset(0f, mark), stroke)
             drawLine(Color.White, center + Offset(mark, mark), center + Offset(mark, 0f), stroke)

@@ -69,4 +69,17 @@
     <string name="framekit_cutout_model_ready">Ya puedes quitar el fondo</string>
     <string name="framekit_action_download">Descargar</string>
     <string name="framekit_action_later">Más tarde</string>
+    <string name="framekit_draw_shapes">Formas</string>
+    <string name="framekit_shape_rectangle">Rectángulo</string>
+    <string name="framekit_shape_rounded">Redondeado</string>
+    <string name="framekit_shape_ellipse">Círculo</string>
+    <string name="framekit_shape_triangle">Triángulo</string>
+    <string name="framekit_shape_star">Estrella</string>
+    <string name="framekit_shape_line">Línea</string>
+    <string name="framekit_shape_arrow">Flecha</string>
+    <string name="framekit_shape_double_arrow">Flecha doble</string>
+    <string name="framekit_shape_outline">Contorno</string>
+    <string name="framekit_shape_dashed">Discontinua</string>
+    <string name="framekit_shape_filled">Relleno</string>
+    <string name="framekit_draw_shapes_help">Arrastra sobre la foto para dibujar. Toca una forma para moverla, cambiar su tamaño o su estilo.</string>
 </resources>

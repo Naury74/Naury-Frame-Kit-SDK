@@ -5,6 +5,7 @@ import com.naury.framekit.ui.tool.PrivacySettings
 import com.naury.framekit.android.result.EditorErrorCode
 import com.naury.framekit.core.effect.AdjustmentKind
 import com.naury.framekit.core.overlay.BrushKind
+import com.naury.framekit.core.overlay.ShapeKind
 import com.naury.framekit.core.overlay.EmojiCatalog
 import com.naury.framekit.core.overlay.PrivacyEffect
 import com.naury.framekit.core.document.DocumentQuad
@@ -92,13 +93,23 @@ internal sealed interface SourceMode {
     data object Capture : SourceMode
 }
 
-/** 현재 그리기 도구 설정. UI 상태이며 획을 그리기 전까지는 프로젝트에 포함되지 않는다. */
+/**
+ * 현재 그리기 도구 설정. UI 상태이며 획이나 도형을 그리기 전까지는 프로젝트에 포함되지 않는다.
+ *
+ * @property shapes `true`면 손으로 긋는 대신 [shape]를 끌어서 그린다. 색·굵기·불투명도는 획과 함께 쓴다.
+ */
 internal data class BrushSettings(
     val kind: BrushKind = BrushKind.PEN,
     val colorArgb: Int = 0xFFFFFFFF.toInt(),
     val widthShortEdgeRatio: Double = 0.012,
     val opacity: Double = 1.0,
+    val shapes: Boolean = false,
+    val shape: ShapeKind = ShapeKind.RECTANGLE,
+    val shapeFill: ShapeFill = ShapeFill.OUTLINE,
 )
+
+/** 도형을 긋는 방식. 선·화살표에는 [FILLED]를 쓰지 않는다. */
+internal enum class ShapeFill { OUTLINE, DASHED, FILLED }
 
 /** 배경 제거 요청의 진행 상태. */
 internal sealed interface CutoutStatus {

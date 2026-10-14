@@ -67,4 +67,17 @@
     <string name="framekit_cutout_model_ready">배경 제거를 사용할 수 있어요</string>
     <string name="framekit_action_download">내려받기</string>
     <string name="framekit_action_later">나중에</string>
+    <string name="framekit_draw_shapes">도형</string>
+    <string name="framekit_shape_rectangle">사각형</string>
+    <string name="framekit_shape_rounded">둥근 사각형</string>
+    <string name="framekit_shape_ellipse">원</string>
+    <string name="framekit_shape_triangle">삼각형</string>
+    <string name="framekit_shape_star">별</string>
+    <string name="framekit_shape_line">선</string>
+    <string name="framekit_shape_arrow">화살표</string>
+    <string name="framekit_shape_double_arrow">양쪽 화살표</string>
+    <string name="framekit_shape_outline">테두리</string>
+    <string name="framekit_shape_dashed">점선</string>
+    <string name="framekit_shape_filled">채우기</string>
+    <string name="framekit_draw_shapes_help">사진 위를 끌어 그리세요. 그린 도형을 누르면 옮기거나 크기·모양을 바꿀 수 있어요.</string>
 </resources>

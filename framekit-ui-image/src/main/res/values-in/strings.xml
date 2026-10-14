@@ -67,4 +67,17 @@
     <string name="framekit_cutout_model_ready">Penghapusan latar siap digunakan</string>
     <string name="framekit_action_download">Unduh</string>
     <string name="framekit_action_later">Nanti</string>
+    <string name="framekit_draw_shapes">Bentuk</string>
+    <string name="framekit_shape_rectangle">Persegi panjang</string>
+    <string name="framekit_shape_rounded">Sudut bulat</string>
+    <string name="framekit_shape_ellipse">Lingkaran</string>
+    <string name="framekit_shape_triangle">Segitiga</string>
+    <string name="framekit_shape_star">Bintang</string>
+    <string name="framekit_shape_line">Garis</string>
+    <string name="framekit_shape_arrow">Panah</string>
+    <string name="framekit_shape_double_arrow">Panah ganda</string>
+    <string name="framekit_shape_outline">Garis tepi</string>
+    <string name="framekit_shape_dashed">Putus-putus</string>
+    <string name="framekit_shape_filled">Isi</string>
+    <string name="framekit_draw_shapes_help">Seret di atas foto untuk menggambar. Ketuk bentuk untuk memindahkan, mengubah ukuran, atau gayanya.</string>
 </resources>

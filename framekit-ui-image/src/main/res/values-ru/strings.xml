@@ -70,4 +70,17 @@
     <string name="framekit_cutout_model_ready">Удаление фона готово к работе</string>
     <string name="framekit_action_download">Скачать</string>
     <string name="framekit_action_later">Позже</string>
+    <string name="framekit_draw_shapes">Фигуры</string>
+    <string name="framekit_shape_rectangle">Прямоугольник</string>
+    <string name="framekit_shape_rounded">Скруглённый</string>
+    <string name="framekit_shape_ellipse">Круг</string>
+    <string name="framekit_shape_triangle">Треугольник</string>
+    <string name="framekit_shape_star">Звезда</string>
+    <string name="framekit_shape_line">Линия</string>
+    <string name="framekit_shape_arrow">Стрелка</string>
+    <string name="framekit_shape_double_arrow">Двойная стрелка</string>
+    <string name="framekit_shape_outline">Контур</string>
+    <string name="framekit_shape_dashed">Пунктир</string>
+    <string name="framekit_shape_filled">Заливка</string>
+    <string name="framekit_draw_shapes_help">Проведите по фото, чтобы нарисовать. Нажмите на фигуру, чтобы переместить её, изменить размер или стиль.</string>
 </resources>

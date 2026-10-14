@@ -68,4 +68,17 @@
     <string name="framekit_cutout_model_ready">Hintergrund entfernen ist jetzt verfügbar</string>
     <string name="framekit_action_download">Herunterladen</string>
     <string name="framekit_action_later">Später</string>
+    <string name="framekit_draw_shapes">Formen</string>
+    <string name="framekit_shape_rectangle">Rechteck</string>
+    <string name="framekit_shape_rounded">Abgerundet</string>
+    <string name="framekit_shape_ellipse">Kreis</string>
+    <string name="framekit_shape_triangle">Dreieck</string>
+    <string name="framekit_shape_star">Stern</string>
+    <string name="framekit_shape_line">Linie</string>
+    <string name="framekit_shape_arrow">Pfeil</string>
+    <string name="framekit_shape_double_arrow">Doppelpfeil</string>
+    <string name="framekit_shape_outline">Kontur</string>
+    <string name="framekit_shape_dashed">Gestrichelt</string>
+    <string name="framekit_shape_filled">Gefüllt</string>
+    <string name="framekit_draw_shapes_help">Zum Zeichnen über das Foto ziehen. Tippe auf eine Form, um sie zu verschieben, ihre Größe oder ihren Stil zu ändern.</string>
 </resources>

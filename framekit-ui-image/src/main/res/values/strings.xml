@@ -68,4 +68,17 @@
     <string name="framekit_cutout_model_ready">Background removal is ready to use</string>
     <string name="framekit_action_download">Download</string>
     <string name="framekit_action_later">Later</string>
+    <string name="framekit_draw_shapes">Shapes</string>
+    <string name="framekit_shape_rectangle">Rectangle</string>
+    <string name="framekit_shape_rounded">Rounded</string>
+    <string name="framekit_shape_ellipse">Circle</string>
+    <string name="framekit_shape_triangle">Triangle</string>
+    <string name="framekit_shape_star">Star</string>
+    <string name="framekit_shape_line">Line</string>
+    <string name="framekit_shape_arrow">Arrow</string>
+    <string name="framekit_shape_double_arrow">Double arrow</string>
+    <string name="framekit_shape_outline">Outline</string>
+    <string name="framekit_shape_dashed">Dashed</string>
+    <string name="framekit_shape_filled">Filled</string>
+    <string name="framekit_draw_shapes_help">Drag on the photo to draw. Tap a shape to move, resize or restyle it.</string>
 </resources>

@@ -67,4 +67,17 @@
     <string name="framekit_cutout_model_ready">現在可以使用移除背景了</string>
     <string name="framekit_action_download">下載</string>
     <string name="framekit_action_later">稍後</string>
+    <string name="framekit_draw_shapes">形狀</string>
+    <string name="framekit_shape_rectangle">矩形</string>
+    <string name="framekit_shape_rounded">圓角矩形</string>
+    <string name="framekit_shape_ellipse">圓形</string>
+    <string name="framekit_shape_triangle">三角形</string>
+    <string name="framekit_shape_star">星形</string>
+    <string name="framekit_shape_line">直線</string>
+    <string name="framekit_shape_arrow">箭頭</string>
+    <string name="framekit_shape_double_arrow">雙向箭頭</string>
+    <string name="framekit_shape_outline">外框</string>
+    <string name="framekit_shape_dashed">虛線</string>
+    <string name="framekit_shape_filled">填滿</string>
+    <string name="framekit_draw_shapes_help">在相片上拖曳即可繪製。點一下已繪製的形狀可移動、調整大小或變更樣式。</string>
 </resources>

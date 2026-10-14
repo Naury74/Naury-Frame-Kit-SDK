@@ -69,4 +69,17 @@
     <string name="framekit_cutout_model_ready">La suppression de l\'arrière-plan est prête</string>
     <string name="framekit_action_download">Télécharger</string>
     <string name="framekit_action_later">Plus tard</string>
+    <string name="framekit_draw_shapes">Formes</string>
+    <string name="framekit_shape_rectangle">Rectangle</string>
+    <string name="framekit_shape_rounded">Arrondi</string>
+    <string name="framekit_shape_ellipse">Cercle</string>
+    <string name="framekit_shape_triangle">Triangle</string>
+    <string name="framekit_shape_star">Étoile</string>
+    <string name="framekit_shape_line">Ligne</string>
+    <string name="framekit_shape_arrow">Flèche</string>
+    <string name="framekit_shape_double_arrow">Double flèche</string>
+    <string name="framekit_shape_outline">Contour</string>
+    <string name="framekit_shape_dashed">Pointillé</string>
+    <string name="framekit_shape_filled">Rempli</string>
+    <string name="framekit_draw_shapes_help">Faites glisser sur la photo pour dessiner. Touchez une forme pour la déplacer, la redimensionner ou changer son style.</string>
 </resources>

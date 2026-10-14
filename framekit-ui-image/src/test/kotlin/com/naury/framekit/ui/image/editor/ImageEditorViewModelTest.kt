@@ -31,6 +31,7 @@ import com.naury.framekit.core.effect.FilterSelection
 import com.naury.framekit.core.geometry.CropAspectRatio
 import com.naury.framekit.core.geometry.RectN
 import com.naury.framekit.core.overlay.ImageOverlay
+import com.naury.framekit.core.overlay.ShapeKind
 import com.naury.framekit.core.overlay.MaskShape
 import com.naury.framekit.core.geometry.CropHandle
 import com.naury.framekit.image.export.ImageExportConfig
@@ -693,6 +694,142 @@ class ImageEditorViewModelTest {
         assertThat(ready(viewModel).transaction.history.past).hasSize(1)
         viewModel.undo()
         assertThat(ready(viewModel).displayed.drawing).isEmpty()
+    }
+
+    @Test
+    fun `dragging draws a selected shape in one undo step and tiny drags leave nothing`() {
+        val viewModel = viewModel(EditorInput.FileSource(sourceFile.absolutePath))
+        viewModel.selectTool(ImageTool.DRAW)
+        viewModel.updateBrush { it.copy(shapes = true, shape = ShapeKind.RECTANGLE) }
+
+        viewModel.beginShape(0.5, 0.5)
+        viewModel.dragShape(0.502, 0.501, 2.0)
+        viewModel.finishShape()
+        assertThat(ready(viewModel).displayed.overlays).isEmpty()
+        assertThat(ready(viewModel).transaction.history.canUndo).isFalse()
+
+        // 시작 모서리(0.6, 0.6)를 고정한 채 왼쪽 위로 끈다. 처음에는 1:1로 그린다(캔버스가 가로 2배라 가로 0.3 = 세로 0.6).
+        viewModel.beginShape(0.6, 0.6)
+        viewModel.dragShape(0.2, 0.3, 2.0)
+        viewModel.dragShape(0.3, 0.2, 2.0)
+        viewModel.finishShape()
+
+        val shape = ready(viewModel).displayed.overlays.single() as ImageOverlay.Shape
+        assertThat(shape.widthRatio).isWithin(1e-9).of(0.3)
+        assertThat(shape.heightRatio).isWithin(1e-9).of(0.6)
+        assertThat(shape.transform.center.x).isWithin(1e-9).of(0.45)
+        assertThat(shape.transform.center.y).isWithin(1e-9).of(0.3)
+        assertThat(ready(viewModel).selectedOverlayId).isEqualTo(shape.id)
+        assertThat(ready(viewModel).transaction.history.past).hasSize(1)
+        viewModel.undo()
+        assertThat(ready(viewModel).displayed.overlays).isEmpty()
+    }
+
+    @Test
+    fun `resize handle changes width and height separately keeping the opposite corner`() {
+        val viewModel = viewModel(EditorInput.FileSource(sourceFile.absolutePath))
+        viewModel.selectTool(ImageTool.DRAW)
+        viewModel.updateBrush { it.copy(shapes = true, shape = ShapeKind.RECTANGLE, shapeFill = ShapeFill.FILLED) }
+        viewModel.beginShape(0.2, 0.2)
+        viewModel.dragShape(0.4, 0.6, 2.0)
+        viewModel.finishShape()
+        val drawn = ready(viewModel).displayed.overlays.single() as ImageOverlay.Shape
+        assertThat(drawn.widthRatio * 2).isWithin(1e-9).of(drawn.heightRatio)
+
+        // 채운 도형은 틀과 상자가 같다. 오른쪽으로만 늘리면 높이와 왼쪽 위 모서리는 그대로다.
+        viewModel.beginShapeResize(drawn.id)
+        viewModel.resizeShape(0.1, 0.0, 2.0)
+        viewModel.resizeShape(0.3, 0.0, 2.0)
+        viewModel.finishOverlayGesture()
+        val wide = ready(viewModel).displayed.overlays.single() as ImageOverlay.Shape
+        assertThat(wide.widthRatio).isWithin(1e-9).of(drawn.widthRatio + 0.3)
+        assertThat(wide.heightRatio).isWithin(1e-9).of(drawn.heightRatio)
+        assertThat(wide.transform.center.x - wide.widthRatio / 2).isWithin(1e-9).of(0.2)
+        assertThat(wide.transform.center.y - wide.heightRatio / 2).isWithin(1e-9).of(0.2)
+        assertThat(ready(viewModel).transaction.history.past).hasSize(2)
+
+        // 거의 정사각형으로 되돌리면 정사각형으로 맞춘다.
+        viewModel.beginShapeResize(drawn.id)
+        viewModel.resizeShape(-0.29, 0.0, 2.0)
+        viewModel.finishOverlayGesture()
+        val square = ready(viewModel).displayed.overlays.single() as ImageOverlay.Shape
+        assertThat(square.widthRatio * 2).isWithin(1e-9).of(square.heightRatio)
+    }
+
+    @Test
+    fun `arrows snap to 45 degrees and the end handle keeps the start point`() {
+        val viewModel = viewModel(EditorInput.FileSource(sourceFile.absolutePath))
+        viewModel.selectTool(ImageTool.DRAW)
+        viewModel.updateBrush { it.copy(shapes = true, shape = ShapeKind.ARROW) }
+        viewModel.beginShape(0.5, 0.5)
+        viewModel.dragShape(0.6, 0.71, 2.0)
+        viewModel.finishShape()
+        val arrow = ready(viewModel).displayed.overlays.single() as ImageOverlay.Shape
+        assertThat(arrow.kind).isEqualTo(ShapeKind.ARROW)
+        assertThat(arrow.transform.rotationDegrees).isWithin(1e-9).of(45.0)
+        assertThat(arrow.heightRatio).isEqualTo(0.0)
+
+        // 끝점을 왼쪽 아래로 옮기면 시작점(0.5, 0.5)을 지나는 135도 선이 된다.
+        viewModel.beginShapeResize(arrow.id)
+        viewModel.resizeShape(-0.2, 0.0, 2.0)
+        viewModel.finishOverlayGesture()
+        val turned = ready(viewModel).displayed.overlays.single() as ImageOverlay.Shape
+        assertThat(turned.transform.rotationDegrees).isWithin(1e-9).of(135.0)
+        val radians = Math.toRadians(turned.transform.rotationDegrees)
+        val half = turned.widthRatio * 2 / 2
+        assertThat(turned.transform.center.x - Math.cos(radians) * half / 2).isWithin(1e-9).of(0.5)
+        assertThat(turned.transform.center.y - Math.sin(radians) * half).isWithin(1e-9).of(0.5)
+    }
+
+    @Test
+    fun `changing style while a shape is selected restyles it and sliders commit once`() {
+        val viewModel = viewModel(EditorInput.FileSource(sourceFile.absolutePath))
+        viewModel.selectTool(ImageTool.DRAW)
+        viewModel.updateBrush { it.copy(shapes = true, shape = ShapeKind.RECTANGLE) }
+        viewModel.beginShape(0.2, 0.2)
+        viewModel.dragShape(0.6, 0.7, 1.0)
+        viewModel.finishShape()
+
+        viewModel.updateBrush { it.copy(colorArgb = 0xFFFF0000.toInt(), shapeFill = ShapeFill.FILLED, shape = ShapeKind.STAR) }
+        viewModel.updateBrush(commit = false) { it.copy(opacity = 0.6) }
+        viewModel.updateBrush(commit = false) { it.copy(opacity = 0.5) }
+        viewModel.finishBrushChange()
+
+        val shape = ready(viewModel).displayed.overlays.single() as ImageOverlay.Shape
+        assertThat(shape.kind).isEqualTo(ShapeKind.STAR)
+        assertThat(shape.style.colorArgb).isEqualTo(0xFFFF0000.toInt())
+        assertThat(shape.style.filled).isTrue()
+        assertThat(shape.transform.opacity).isEqualTo(0.5)
+        // 그리기 1 + 모양 바꾸기 1 + 슬라이더 1
+        assertThat(ready(viewModel).transaction.history.past).hasSize(3)
+
+        // 선 종류로 바꾸면 상자 도형은 그대로 두고 선택만 푼다.
+        viewModel.updateBrush { it.copy(shape = ShapeKind.LINE) }
+        assertThat((ready(viewModel).displayed.overlays.single() as ImageOverlay.Shape).kind).isEqualTo(ShapeKind.STAR)
+        assertThat(ready(viewModel).selectedOverlayId).isNull()
+
+        // 다시 고르면 패널이 그 도형의 모양을 보여 준다.
+        viewModel.selectOverlay(shape.id)
+        assertThat(ready(viewModel).brush.shape).isEqualTo(ShapeKind.STAR)
+        assertThat(ready(viewModel).brush.shapeFill).isEqualTo(ShapeFill.FILLED)
+    }
+
+    @Test
+    fun `filled shape is drawn into the exported file`() {
+        val viewModel = viewModel(EditorInput.FileSource(sourceFile.absolutePath))
+        viewModel.selectTool(ImageTool.DRAW)
+        viewModel.updateBrush { it.copy(shapes = true, shape = ShapeKind.RECTANGLE, shapeFill = ShapeFill.FILLED, colorArgb = 0xFF00FF00.toInt()) }
+        viewModel.beginShape(0.1, 0.1)
+        viewModel.dragShape(0.9, 0.9, 2.0)
+        viewModel.finishShape()
+        viewModel.closeTool()
+
+        viewModel.save()
+
+        val exported = BitmapFactory.decodeFile(publishedFiles().single().absolutePath)
+        val center = exported.getPixel(exported.width / 2, exported.height / 2)
+        assertThat(Color.green(center)).isGreaterThan(200)
+        assertThat(Color.red(center)).isLessThan(60)
     }
 
     @Test

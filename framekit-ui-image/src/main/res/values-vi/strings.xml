@@ -67,4 +67,17 @@
     <string name="framekit_cutout_model_ready">Đã có thể dùng tính năng xóa nền</string>
     <string name="framekit_action_download">Tải xuống</string>
     <string name="framekit_action_later">Để sau</string>
+    <string name="framekit_draw_shapes">Hình</string>
+    <string name="framekit_shape_rectangle">Chữ nhật</string>
+    <string name="framekit_shape_rounded">Bo góc</string>
+    <string name="framekit_shape_ellipse">Hình tròn</string>
+    <string name="framekit_shape_triangle">Tam giác</string>
+    <string name="framekit_shape_star">Ngôi sao</string>
+    <string name="framekit_shape_line">Đường thẳng</string>
+    <string name="framekit_shape_arrow">Mũi tên</string>
+    <string name="framekit_shape_double_arrow">Mũi tên hai đầu</string>
+    <string name="framekit_shape_outline">Viền</string>
+    <string name="framekit_shape_dashed">Nét đứt</string>
+    <string name="framekit_shape_filled">Tô màu</string>
+    <string name="framekit_draw_shapes_help">Kéo trên ảnh để vẽ. Chạm vào hình để di chuyển, đổi kích thước hoặc kiểu.</string>
 </resources>

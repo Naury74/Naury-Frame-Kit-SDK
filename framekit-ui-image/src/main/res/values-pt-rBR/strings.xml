@@ -69,4 +69,17 @@
     <string name="framekit_cutout_model_ready">A remoção de fundo está pronta para uso</string>
     <string name="framekit_action_download">Baixar</string>
     <string name="framekit_action_later">Depois</string>
+    <string name="framekit_draw_shapes">Formas</string>
+    <string name="framekit_shape_rectangle">Retângulo</string>
+    <string name="framekit_shape_rounded">Arredondado</string>
+    <string name="framekit_shape_ellipse">Círculo</string>
+    <string name="framekit_shape_triangle">Triângulo</string>
+    <string name="framekit_shape_star">Estrela</string>
+    <string name="framekit_shape_line">Linha</string>
+    <string name="framekit_shape_arrow">Seta</string>
+    <string name="framekit_shape_double_arrow">Seta dupla</string>
+    <string name="framekit_shape_outline">Contorno</string>
+    <string name="framekit_shape_dashed">Tracejado</string>
+    <string name="framekit_shape_filled">Preenchido</string>
+    <string name="framekit_draw_shapes_help">Arraste sobre a foto para desenhar. Toque em uma forma para movê-la, redimensioná-la ou mudar o estilo.</string>
 </resources>

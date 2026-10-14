@@ -418,7 +418,7 @@ private fun ToolArea(
                     StickerToolPanel(category = state.stickerCategory, onCategory = viewModel::selectStickerCategory, onAdd = viewModel::addSticker)
                 }
                 ImageTool.DRAW -> ToolPanelWithActions(viewModel, isDraft = false, scrollPanel, wide) {
-                    DrawToolPanel(brush = state.brush, onBrush = viewModel::updateBrush)
+                    DrawToolPanel(brush = state.brush, onBrush = viewModel::updateBrush, onBrushFinished = viewModel::finishBrushChange)
                 }
                 // 문서 펴기는 적용해야 원본이 바뀐다. 뒤로 가면 아무것도 바뀌지 않는다.
                 ImageTool.DOCUMENT -> ToolPanelWithActions(viewModel, isDraft = false, scrollPanel, wide, onApply = viewModel::applyDocument) {

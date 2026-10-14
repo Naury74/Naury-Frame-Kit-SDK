@@ -67,4 +67,17 @@
     <string name="framekit_cutout_model_ready">背景の削除を使用できるようになりました</string>
     <string name="framekit_action_download">ダウンロード</string>
     <string name="framekit_action_later">後で</string>
+    <string name="framekit_draw_shapes">図形</string>
+    <string name="framekit_shape_rectangle">四角形</string>
+    <string name="framekit_shape_rounded">角丸四角形</string>
+    <string name="framekit_shape_ellipse">円</string>
+    <string name="framekit_shape_triangle">三角形</string>
+    <string name="framekit_shape_star">星</string>
+    <string name="framekit_shape_line">線</string>
+    <string name="framekit_shape_arrow">矢印</string>
+    <string name="framekit_shape_double_arrow">両矢印</string>
+    <string name="framekit_shape_outline">枠線</string>
+    <string name="framekit_shape_dashed">点線</string>
+    <string name="framekit_shape_filled">塗りつぶし</string>
+    <string name="framekit_draw_shapes_help">写真の上をドラッグして描きます。描いた図形をタップすると移動やサイズ・スタイルの変更ができます。</string>
 </resources>

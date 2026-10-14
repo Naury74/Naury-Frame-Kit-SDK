@@ -59,6 +59,7 @@ import com.naury.framekit.core.overlay.MaskShape
 import com.naury.framekit.core.overlay.PrivacyMask
 import com.naury.framekit.core.overlay.EmojiCatalog
 import com.naury.framekit.core.overlay.ImageOverlay
+import com.naury.framekit.core.overlay.OverlayTransform
 import com.naury.framekit.core.overlay.StrokePoint
 import com.naury.framekit.core.overlay.SubjectCutout
 import com.naury.framekit.core.overlay.TextStyleSpec
@@ -138,6 +139,7 @@ internal class ImageEditorViewModel(
     private var straightenStart: GeometryEdit? = null
     private var overlayGestureStart: ImageOverlay? = null
     private var maskAnchor: PointN? = null
+    private var shapeAnchor: PointN? = null
     // 바로 기록되는 도구(보정·필터 등)를 열 때의 프로젝트. 뒤로 가기·취소 때 이 상태로 되돌린다.
     private var toolEntry: ImageProject? = null
 
@@ -653,7 +655,10 @@ internal class ImageEditorViewModel(
     }
 
     override fun selectOverlay(id: String?) = updateReady { ready ->
-        if (ready.activeTool?.isGeometry == true || ready.activeTool == ImageTool.TEXT) ready else ready.copy(selectedOverlayId = id)
+        if (ready.activeTool?.isGeometry == true || ready.activeTool == ImageTool.TEXT) return@updateReady ready
+        // 그리기 도구에서 도형을 고르면 패널이 그 도형의 모양을 보여 주고, 바꾸면 그 도형에 적용된다.
+        val shape = ready.displayed.overlays.firstOrNull { it.id == id } as? ImageOverlay.Shape
+        if (ready.activeTool == ImageTool.DRAW && shape != null) ready.copy(selectedOverlayId = id, brush = ready.brush.matching(shape)) else ready.copy(selectedOverlayId = id)
     }
 
     override fun deleteOverlay(id: String) {
@@ -695,7 +700,77 @@ internal class ImageEditorViewModel(
         updateReady { it.copy(selectedOverlayId = id) }
     }
 
-    fun updateBrush(transform: (BrushSettings) -> BrushSettings) = updateReady { it.copy(brush = transform(it.brush)) }
+    /**
+     * 그리기 설정을 바꾼다. 도형을 고른 상태면 그 도형에도 적용한다.
+     *
+     * @param commit `false`면 슬라이더를 끄는 중이라 커밋을 [finishBrushChange]로 미룬다.
+     */
+    fun updateBrush(commit: Boolean = true, transform: (BrushSettings) -> BrushSettings) {
+        val ready = _state.value as? ImageEditorUiState.Ready ?: return
+        val next = transform(ready.brush)
+        val selected = ready.selectedOverlayId?.let { id -> ready.displayed.overlays.firstOrNull { it.id == id } } as? ImageOverlay.Shape
+        // 선과 상자 도형은 모양을 서로 바꿀 수 없어, 다른 쪽 종류를 고르면 선택을 풀고 새로 그릴 종류로만 쓴다.
+        val keepSelection = selected != null && next.shapes && next.shape.isLine == selected.kind.isLine
+        updateReady { it.copy(brush = next, selectedOverlayId = if (keepSelection || selected == null) it.selectedOverlayId else null) }
+        if (!keepSelection || selected == null) return
+        val restyled = selected.restyled(next)
+        if (restyled == selected) return
+        updateGesture { _, project -> OverlayEditing.replace(project, restyled) }
+        if (commit) finishGesture()
+    }
+
+    /** 슬라이더로 고른 도형 모양을 실행 취소 한 단계로 커밋한다. */
+    fun finishBrushChange() = finishGesture()
+
+    override fun beginShape(x: Double, y: Double) {
+        val ready = _state.value as? ImageEditorUiState.Ready ?: return
+        if (ready.activeTool != ImageTool.DRAW) return
+        shapeAnchor = PointN(x, y)
+        val brush = ready.brush
+        val shape = ImageOverlay.Shape(
+            id = newId(),
+            kind = brush.shape,
+            widthRatio = MIN_SHAPE_RATIO,
+            heightRatio = if (brush.shape.isLine) 0.0 else MIN_SHAPE_RATIO,
+            style = brush.shapeStyle(),
+            transform = OverlayTransform(center = PointN(x, y), opacity = brush.opacity),
+        )
+        updateReady { it.copy(selectedOverlayId = null) }
+        updateGesture { _, project -> project.copy(overlays = project.overlays + shape) }
+    }
+
+    override fun dragShape(x: Double, y: Double, aspect: Double) {
+        val anchor = shapeAnchor ?: return
+        updateGesture { _, project ->
+            val last = project.overlays.lastOrNull() as? ImageOverlay.Shape ?: return@updateGesture project
+            project.copy(overlays = project.overlays.dropLast(1) + ShapeDrawing.span(last, anchor, PointN(x, y), aspect))
+        }
+    }
+
+    override fun beginShapeResize(id: String) {
+        val ready = _state.value as? ImageEditorUiState.Ready ?: return
+        overlayGestureStart = ready.displayed.overlays.firstOrNull { it.id == id } as? ImageOverlay.Shape
+        updateReady { it.copy(selectedOverlayId = id) }
+    }
+
+    override fun resizeShape(dx: Double, dy: Double, aspect: Double) {
+        val start = overlayGestureStart as? ImageOverlay.Shape ?: return
+        // 선 굵기(짧은 변 대비)를 캔버스 높이 단위로 바꾼다.
+        val strokeRatio = start.style.strokeWidthShortEdgeRatio * aspect.coerceAtMost(1.0)
+        updateGesture { _, project -> OverlayEditing.replace(project, ShapeDrawing.resize(start, dx, dy, aspect, strokeRatio)) }
+    }
+
+    override fun finishShape() {
+        shapeAnchor = null
+        val ready = _state.value as? ImageEditorUiState.Ready ?: return
+        val shape = ready.transaction.draft?.overlays?.lastOrNull() as? ImageOverlay.Shape
+        if (shape == null || ShapeDrawing.isTooSmall(shape)) {
+            updateReady { if (it.transaction.isActive) it.copy(transaction = it.transaction.cancel()) else it }
+            return
+        }
+        finishGesture()
+        updateReady { it.copy(selectedOverlayId = shape.id) }
+    }
 
     /**
      * 정규화 캔버스 좌표에서 획을 시작한다. 커밋은 [finishStroke]가 한다. 가리기 도구가 열려 있으면
@@ -727,6 +802,7 @@ internal class ImageEditorViewModel(
 
     override fun cancelStroke() {
         maskAnchor = null
+        shapeAnchor = null
         updateReady { ready -> if (ready.activeTool?.isDraft == true || !ready.transaction.isActive) ready else ready.copy(transaction = ready.transaction.cancel()) }
     }
 
@@ -1651,6 +1727,9 @@ internal class ImageEditorViewModel(
         const val PAGE_THUMBNAIL_DEBOUNCE_MILLIS = 150L
         const val SNAPSHOT_DEBOUNCE_MILLIS = 300L
         const val MIN_MASK_SIZE = 0.01
+
+        // 막 그리기 시작한 도형의 크기. 끌기 전에도 그릴 수 있게 0이 아닌 작은 값으로 둔다.
+        const val MIN_SHAPE_RATIO = 0.001
     }
 }
 

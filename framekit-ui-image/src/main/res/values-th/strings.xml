@@ -67,4 +67,17 @@
     <string name="framekit_cutout_model_ready">ใช้การลบพื้นหลังได้แล้ว</string>
     <string name="framekit_action_download">ดาวน์โหลด</string>
     <string name="framekit_action_later">ไว้ทีหลัง</string>
+    <string name="framekit_draw_shapes">รูปทรง</string>
+    <string name="framekit_shape_rectangle">สี่เหลี่ยม</string>
+    <string name="framekit_shape_rounded">สี่เหลี่ยมมุมมน</string>
+    <string name="framekit_shape_ellipse">วงกลม</string>
+    <string name="framekit_shape_triangle">สามเหลี่ยม</string>
+    <string name="framekit_shape_star">ดาว</string>
+    <string name="framekit_shape_line">เส้น</string>
+    <string name="framekit_shape_arrow">ลูกศร</string>
+    <string name="framekit_shape_double_arrow">ลูกศรสองทาง</string>
+    <string name="framekit_shape_outline">เส้นขอบ</string>
+    <string name="framekit_shape_dashed">เส้นประ</string>
+    <string name="framekit_shape_filled">เติมสี</string>
+    <string name="framekit_draw_shapes_help">ลากบนรูปเพื่อวาด แตะรูปทรงที่วาดแล้วเพื่อย้าย ปรับขนาด หรือเปลี่ยนรูปแบบ</string>
 </resources>
