@@ -15,6 +15,8 @@ import com.naury.framekit.core.overlay.DrawingStroke
 import com.naury.framekit.core.overlay.ImageOverlay
 import com.naury.framekit.core.overlay.MaskShape
 import com.naury.framekit.core.overlay.OverlayTransform
+import com.naury.framekit.core.overlay.ShapeKind
+import com.naury.framekit.core.overlay.ShapeStyle
 import com.naury.framekit.core.overlay.PrivacyEffect
 import com.naury.framekit.core.overlay.PrivacyMask
 import com.naury.framekit.core.overlay.ShadowSpec
@@ -227,10 +229,39 @@ public sealed interface OverlaySnapshot {
         override fun toModel(): ImageOverlay = ImageOverlay.Sticker(id, assetId, widthRatio, transform.toModel())
     }
 
+    /** 도형. [kind]는 [ShapeKind] 이름이고, 모르는 이름은 사각형으로 읽는다. */
+    @Serializable
+    @SerialName("shape")
+    public data class Shape(
+        val id: String,
+        val kind: String,
+        val widthRatio: Double,
+        val heightRatio: Double,
+        val color: Int,
+        val strokeWidth: Double,
+        val filled: Boolean = false,
+        val dashed: Boolean = false,
+        val transform: TransformSnapshot,
+    ) : OverlaySnapshot {
+        override fun toModel(): ImageOverlay = ImageOverlay.Shape(
+            id = id,
+            kind = ShapeKind.entries.firstOrNull { it.name == kind } ?: ShapeKind.RECTANGLE,
+            widthRatio = widthRatio,
+            heightRatio = heightRatio,
+            style = ShapeStyle(color, strokeWidth, filled, dashed),
+            transform = transform.toModel(),
+        )
+    }
+
     public companion object {
         public fun of(overlay: ImageOverlay): OverlaySnapshot = when (overlay) {
             is ImageOverlay.Text -> Text(overlay.id, overlay.text, TextStyleSnapshot.of(overlay.style), TransformSnapshot.of(overlay.transform))
             is ImageOverlay.Sticker -> Sticker(overlay.id, overlay.assetId, overlay.widthRatio, TransformSnapshot.of(overlay.transform))
+            is ImageOverlay.Shape -> Shape(
+                overlay.id, overlay.kind.name, overlay.widthRatio, overlay.heightRatio,
+                overlay.style.colorArgb, overlay.style.strokeWidthShortEdgeRatio, overlay.style.filled, overlay.style.dashed,
+                TransformSnapshot.of(overlay.transform),
+            )
         }
     }
 }

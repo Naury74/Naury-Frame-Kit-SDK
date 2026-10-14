@@ -21,6 +21,8 @@ import com.naury.framekit.core.overlay.DrawingStroke
 import com.naury.framekit.core.overlay.ImageOverlay
 import com.naury.framekit.core.overlay.MaskShape
 import com.naury.framekit.core.overlay.OverlayTransform
+import com.naury.framekit.core.overlay.ShapeKind
+import com.naury.framekit.core.overlay.ShapeStyle
 import com.naury.framekit.core.overlay.PrivacyEffect
 import com.naury.framekit.core.overlay.PrivacyMask
 import com.naury.framekit.core.overlay.StrokePoint
@@ -55,6 +57,8 @@ class EditorSessionStoreTest {
         overlays = listOf(
             ImageOverlay.Text("t", "안녕 👋", TextStyleSpec(stroke = StrokeSpec(-16777216, 0.004), background = BackgroundSpec(0x80000000.toInt())), OverlayTransform(PointN(0.3, 0.7), 1.5, 12.0, 0.9)),
             ImageOverlay.Sticker("s", "emoji:🎉", 0.2, OverlayTransform(PointN(0.8, 0.2))),
+            ImageOverlay.Shape("r", ShapeKind.ROUNDED_RECTANGLE, 0.3, 0.2, ShapeStyle(-16776961, 0.01, filled = true), OverlayTransform(PointN(0.4, 0.4), 1.2, 15.0, 0.7)),
+            ImageOverlay.Shape("a", ShapeKind.ARROW, 0.5, 0.0, ShapeStyle(-1, 0.006, dashed = true), OverlayTransform(PointN(0.5, 0.6), rotationDegrees = -45.0)),
         ),
         privacyMasks = listOf(
             PrivacyMask("m1", MaskShape.Brush(listOf(PointN(0.1, 0.1), PointN(0.2, 0.25)), 0.04), PrivacyEffect.Mosaic(0.03)),
