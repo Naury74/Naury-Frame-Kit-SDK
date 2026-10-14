@@ -501,7 +501,6 @@ private fun DrawScope.drawSelection(corners: List<PointN>, handles: List<PointN>
     handles.forEachIndexed { index, corner ->
         val center = Offset(corner.x.toFloat(), corner.y.toFloat())
         drawCircle(if (index == 0) Color(0xFFFF3B30) else accent, radius, center)
-        drawLine(Color.White, center - Offset(mark, 0f), center + Offset(mark, 0f), stroke)
         if (index == 0) {
             drawLine(Color.White, center - Offset(mark, mark), center + Offset(mark, mark), stroke)
             drawLine(Color.White, center - Offset(mark, -mark), center + Offset(mark, -mark), stroke)
