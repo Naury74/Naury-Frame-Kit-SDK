@@ -1,6 +1,7 @@
 package com.naury.framekit.image.overlay
 
 import android.graphics.Canvas
+import android.graphics.DashPathEffect
 import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.PorterDuff
@@ -19,6 +20,7 @@ import com.naury.framekit.core.overlay.DrawingStroke
 import com.naury.framekit.core.overlay.EmojiCatalog
 import com.naury.framekit.image.catalog.CatalogAssets
 import com.naury.framekit.core.overlay.ImageOverlay
+import com.naury.framekit.core.overlay.ShapeKind
 import com.naury.framekit.core.overlay.TextAlignment
 import com.naury.framekit.core.overlay.TextStyleSpec
 import kotlin.math.abs
@@ -35,7 +37,7 @@ import kotlin.math.sin
 public data class OverlayLayout(val width: Float, val height: Float)
 
 /**
- * 텍스트·스티커·그리기 레이어를 배치하고 그린다.
+ * 텍스트·스티커·도형·그리기 레이어를 배치하고 그린다.
  *
  * 모든 크기는 캔버스 대비 비율에서 나오고 같은 인스턴스가 미리보기·내보내기·터치 hit test를 모두
  * 처리하므로, 오버레이는 어디서나 같은 픽셀에 놓인다. 텍스트는 [StaticLayout]으로 배치하며
@@ -59,6 +61,22 @@ public class OverlayRenderer {
             // 호스트 이미지 스티커는 이미지 비율을 지키고, 이모지는 정사각형이다.
             val image = CatalogAssets.sticker(overlay.assetId)
             OverlayLayout(side, if (image != null) side * image.height / image.width else side)
+        }
+        is ImageOverlay.Shape -> {
+            val stroke = shapeStroke(overlay, canvas)
+            val scale = overlay.transform.scale
+            if (overlay.kind.isLine) {
+                // 선은 길이 방향으로 둥근 끝만큼, 굵기 방향으로 화살촉 폭만큼 상자를 잡는다.
+                val length = (overlay.widthRatio * canvas.width * scale).toFloat()
+                val thickness = if (overlay.kind == ShapeKind.LINE) stroke else max(stroke, arrowHead(stroke, canvas).second * 2)
+                OverlayLayout(length + stroke, thickness)
+            } else {
+                val margin = if (overlay.style.filled) 0f else stroke
+                OverlayLayout(
+                    (overlay.widthRatio * canvas.width * scale).toFloat() + margin,
+                    (overlay.heightRatio * canvas.height * scale).toFloat() + margin,
+                )
+            }
         }
     }
 
@@ -117,6 +135,7 @@ public class OverlayRenderer {
         when (overlay) {
             is ImageOverlay.Text -> drawText(canvas, size, overlay, layout)
             is ImageOverlay.Sticker -> drawSticker(canvas, overlay, layout)
+            is ImageOverlay.Shape -> drawShape(canvas, size, overlay, layout)
         }
         canvas.restoreToCount(checkpoint)
     }
@@ -171,6 +190,100 @@ public class OverlayRenderer {
         val metrics = paint.fontMetrics
         val baseline = box.height / 2 - (metrics.ascent + metrics.descent) / 2
         canvas.drawText(emoji, box.width / 2, baseline, paint)
+    }
+
+    private fun drawShape(canvas: Canvas, size: PixelSize, overlay: ImageOverlay.Shape, box: OverlayLayout) {
+        val style = overlay.style
+        val stroke = shapeStroke(overlay, size)
+        val filled = style.filled && !overlay.kind.isLine
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = style.colorArgb
+            this.style = if (filled) Paint.Style.FILL else Paint.Style.STROKE
+            strokeWidth = stroke
+            strokeCap = Paint.Cap.ROUND
+            strokeJoin = if (overlay.kind == ShapeKind.RECTANGLE) Paint.Join.MITER else Paint.Join.ROUND
+            if (style.dashed && !filled) pathEffect = DashPathEffect(floatArrayOf(stroke * DASH_ON, stroke * DASH_OFF), 0f)
+        }
+        if (overlay.kind.isLine) {
+            drawLineShape(canvas, overlay.kind, box, stroke, paint, size)
+            return
+        }
+        val inset = if (filled) 0f else stroke / 2
+        val rect = RectF(inset, inset, box.width - inset, box.height - inset)
+        when (overlay.kind) {
+            ShapeKind.RECTANGLE -> canvas.drawRect(rect, paint)
+            ShapeKind.ROUNDED_RECTANGLE -> {
+                val corner = min(rect.width(), rect.height()) * ROUNDED_CORNER
+                canvas.drawRoundRect(rect, corner, corner, paint)
+            }
+            ShapeKind.ELLIPSE -> canvas.drawOval(rect, paint)
+            ShapeKind.TRIANGLE -> canvas.drawPath(
+                Path().apply {
+                    moveTo(rect.centerX(), rect.top)
+                    lineTo(rect.right, rect.bottom)
+                    lineTo(rect.left, rect.bottom)
+                    close()
+                },
+                paint,
+            )
+            ShapeKind.STAR -> canvas.drawPath(starPath(rect), paint)
+            ShapeKind.LINE, ShapeKind.ARROW, ShapeKind.DOUBLE_ARROW -> Unit
+        }
+    }
+
+    // 상자 가운데 높이에 선을 긋고, 화살표면 끝에 채운 화살촉을 붙인다. 선이 화살촉 끝을 뚫고 나오지 않게 화살촉 앞에서 멈춘다.
+    private fun drawLineShape(canvas: Canvas, kind: ShapeKind, box: OverlayLayout, stroke: Float, paint: Paint, size: PixelSize) {
+        val y = box.height / 2
+        val start = stroke / 2
+        val end = box.width - stroke / 2
+        val (headLength, headHalf) = arrowHead(stroke, size)
+        val tail = if (kind == ShapeKind.DOUBLE_ARROW) start + headLength * HEAD_OVERLAP else start
+        val tip = if (kind == ShapeKind.LINE) end else end - headLength * HEAD_OVERLAP
+        if (tip > tail) canvas.drawLine(tail, y, tip, y, paint)
+        if (kind == ShapeKind.LINE) return
+        val head = Paint(paint).apply {
+            this.style = Paint.Style.FILL_AND_STROKE
+            strokeWidth = stroke * HEAD_ROUNDING
+            strokeJoin = Paint.Join.ROUND
+            pathEffect = null
+        }
+        fun arrowAt(tipX: Float, direction: Float) {
+            val base = tipX - direction * headLength
+            canvas.drawPath(
+                Path().apply {
+                    moveTo(tipX, y)
+                    lineTo(base, y - headHalf)
+                    lineTo(base, y + headHalf)
+                    close()
+                },
+                head,
+            )
+        }
+        arrowAt(end, 1f)
+        if (kind == ShapeKind.DOUBLE_ARROW) arrowAt(start, -1f)
+    }
+
+    private fun starPath(rect: RectF): Path = Path().apply {
+        val cx = rect.centerX()
+        val cy = rect.centerY()
+        for (i in 0 until STAR_POINTS * 2) {
+            val outer = i % 2 == 0
+            val angle = Math.toRadians(-90.0 + i * 180.0 / STAR_POINTS)
+            val k = if (outer) 1f else STAR_INNER
+            val x = cx + (cos(angle) * rect.width() / 2 * k).toFloat()
+            val y = cy + (sin(angle) * rect.height() / 2 * k).toFloat()
+            if (i == 0) moveTo(x, y) else lineTo(x, y)
+        }
+        close()
+    }
+
+    private fun shapeStroke(overlay: ImageOverlay.Shape, canvas: PixelSize): Float =
+        max(1f, (overlay.style.strokeWidthShortEdgeRatio * min(canvas.width, canvas.height)).toFloat())
+
+    // 화살촉 길이와 반폭(px). 가는 선에서도 화살촉이 보이도록 짧은 변 비율의 최소 크기를 더한다.
+    private fun arrowHead(stroke: Float, canvas: PixelSize): Pair<Float, Float> {
+        val length = stroke * HEAD_PER_STROKE + min(canvas.width, canvas.height) * HEAD_MIN_RATIO
+        return length to length * HEAD_HALF_WIDTH
     }
 
     // 지우개는 DST_OUT으로 이 레이어만 지운다. 사진과 다른 오버레이는 레이어 밖이라 영향이 없다.
@@ -274,6 +387,16 @@ public class OverlayRenderer {
         const val TEXT_CACHE_SIZE = 32
         const val REFERENCE_TEXT_SIZE = 100f
         const val HIGHLIGHTER_ALPHA = 0.4f
+        const val ROUNDED_CORNER = 0.2f
+        const val STAR_POINTS = 5
+        const val STAR_INNER = 0.45f
+        const val DASH_ON = 2.4f
+        const val DASH_OFF = 1.8f
+        const val HEAD_PER_STROKE = 3f
+        const val HEAD_MIN_RATIO = 0.014f
+        const val HEAD_HALF_WIDTH = 0.6f
+        const val HEAD_OVERLAP = 0.8f
+        const val HEAD_ROUNDING = 0.4f
         val STICKER_PAINT = Paint(Paint.FILTER_BITMAP_FLAG or Paint.ANTI_ALIAS_FLAG)
     }
 }
