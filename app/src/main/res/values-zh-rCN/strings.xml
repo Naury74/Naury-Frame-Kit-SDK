@@ -16,7 +16,6 @@
     <string name="example_brand_description">浅色主题、蓝色主色、更圆的边角</string>
     <string name="example_english_title">英文界面</string>
     <string name="example_english_description">无论设备语言如何，编辑器文字均显示为英文</string>
-    <string name="result_back">返回</string>
     <string name="result_image">编辑后的图片</string>
     <string name="result_size">尺寸</string>
     <string name="result_mime">MIME 类型</string>
@@ -124,4 +123,7 @@
     <string name="home_group_audio">音频</string>
     <string name="home_group_watermark">水印</string>
     <string name="home_group_custom">自定义</string>
+    <string name="result_delete_confirm">删除所有结果？</string>
+    <string name="result_delete_confirm_message">编辑后的文件将从此设备中删除，且无法恢复。</string>
+    <string name="result_delete_cancel">取消</string>
 </resources>

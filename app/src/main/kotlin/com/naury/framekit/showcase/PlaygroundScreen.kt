@@ -3,42 +3,43 @@ package com.naury.framekit.showcase
 import android.os.Parcelable
 import androidx.annotation.StringRes
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.border
-import androidx.compose.material3.Button
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Slider
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.naury.framekit.FrameKitRequest
 import com.naury.framekit.android.input.EditorInput
@@ -54,6 +55,23 @@ import com.naury.framekit.ui.image.contract.ImageTool
 import com.naury.framekit.ui.video.contract.VideoEditorConfig
 import com.naury.framekit.ui.video.contract.VideoTool
 import com.naury.framekit.video.export.VideoExportConfig
+import com.naury.kinetica.ui.KAlert
+import com.naury.kinetica.ui.KButton
+import com.naury.kinetica.ui.KButtonSize
+import com.naury.kinetica.ui.KChipGroup
+import com.naury.kinetica.ui.KChipSelection
+import com.naury.kinetica.ui.KHapticType
+import com.naury.kinetica.ui.KSlider
+import com.naury.kinetica.ui.KStatus
+import com.naury.kinetica.ui.KSwitch
+import com.naury.kinetica.ui.KTopAppBar
+import com.naury.kinetica.ui.KVariant
+import com.naury.kinetica.ui.jellyPress
+import com.naury.kinetica.ui.kSelectable
+import com.naury.kinetica.ui.rememberKHaptics
+import com.naury.kinetica.ui.rememberKTopAppBarState
+import com.naury.kinetica.ui.shake
+import java.util.Locale
 import kotlinx.parcelize.Parcelize
 import kotlin.math.roundToInt
 
@@ -108,7 +126,6 @@ data class PlaygroundSettings(
 
 private val PRIMARY_COLORS = listOf(0xFF635BFF, 0xFF1E6BFF, 0xFF12A150, 0xFFFF5A36, 0xFFFFD43B).map { it.toInt() }
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun PlaygroundScreen(onBack: () -> Unit, onLaunch: (FrameKitRequest) -> Unit) {
     var settings by rememberSaveable { mutableStateOf(PlaygroundSettings()) }
@@ -117,111 +134,119 @@ fun PlaygroundScreen(onBack: () -> Unit, onLaunch: (FrameKitRequest) -> Unit) {
     // 프라이머리 색이 패널과 너무 비슷해 선택 표시가 안 보이는지 미리 알려 준다. 위 글자색은 편집기가 자동으로 고른다.
     val darkBase = EditorPalette(0xFF0D0D0E.toInt(), 0xFF171719.toInt(), null, 0xFFFFFFFF.toInt(), 0xFFA1A1AA.toInt(), null, null)
     val contrast = EditorPalette().contrastWarnings(darkBase, settings.primaryArgb)
+    var rejectedLaunches by remember { mutableIntStateOf(0) }
+    val haptics = rememberKHaptics()
 
-    LazyColumn(
-        modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).windowInsetsPadding(WindowInsets.safeDrawing),
-        contentPadding = PaddingValues(20.dp),
-        verticalArrangement = Arrangement.spacedBy(18.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        item {
-            Column(Modifier.widthIn(max = 720.dp).fillMaxWidth()) {
-                TextButton(onClick = onBack) { Text(stringResource(R.string.result_back)) }
-                Text(stringResource(R.string.playground_title), style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.onBackground)
-                Text(stringResource(R.string.playground_description), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    val listState = rememberLazyListState()
+    Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+        KTopAppBar(stringResource(R.string.playground_title), state = rememberKTopAppBarState(listState), onBack = onBack)
+        LazyColumn(
+            modifier = Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal)),
+            state = listState,
+            contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 4.dp, bottom = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(18.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            item {
+                Column(Modifier.widthIn(max = 720.dp).fillMaxWidth()) {
+                    Text(stringResource(R.string.playground_description), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
             }
-        }
-        section(R.string.playground_media) {
-            Chips(listOf(MediaKind.ANY to R.string.playground_any, MediaKind.IMAGE to R.string.home_edit_photo, MediaKind.VIDEO to R.string.home_edit_video), settings.kind) {
-                settings = settings.copy(kind = it)
+            section(R.string.playground_media) {
+                Chips(listOf(MediaKind.ANY to R.string.playground_any, MediaKind.IMAGE to R.string.home_edit_photo, MediaKind.VIDEO to R.string.home_edit_video), settings.kind) {
+                    settings = settings.copy(kind = it)
+                }
             }
-        }
-        section(R.string.playground_image_tools) {
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                ImageTool.entries.forEach { tool ->
-                    Toggle(tool.name.lowercase(), tool in settings.imageTools) { on ->
-                        settings = settings.copy(imageTools = if (on) settings.imageTools + tool else settings.imageTools - tool)
+            section(R.string.playground_image_tools) {
+                MultiChips(ImageTool.entries, settings.imageTools) { settings = settings.copy(imageTools = it) }
+            }
+            section(R.string.playground_video_tools) {
+                MultiChips(VideoTool.entries, settings.videoTools) { settings = settings.copy(videoTools = it) }
+            }
+            section(R.string.playground_history) {
+                SwitchRow(R.string.playground_undo, settings.allowUndo) { settings = settings.copy(allowUndo = it) }
+                SwitchRow(R.string.playground_redo, settings.allowRedo) { settings = settings.copy(allowRedo = it) }
+            }
+            section(R.string.playground_theme) {
+                Chips(listOf(ThemeMode.DARK to R.string.playground_dark, ThemeMode.LIGHT to R.string.playground_light, ThemeMode.SYSTEM to R.string.playground_system), settings.themeMode) {
+                    settings = settings.copy(themeMode = it)
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.padding(top = 8.dp).selectableGroup()) {
+                    PRIMARY_COLORS.forEach { argb ->
+                        val selected = argb == settings.primaryArgb
+                        Box(
+                            Modifier
+                                .jellyPress()
+                                .size(36.dp)
+                                .background(Color(argb), CircleShape)
+                                .border(if (selected) 3.dp else 0.dp, if (selected) MaterialTheme.colorScheme.onBackground else Color.Transparent, CircleShape)
+                                .kSelectable(selected, CircleShape, role = Role.RadioButton) { settings = settings.copy(primaryArgb = argb) }
+                                .semantics { contentDescription = String.format(Locale.ROOT, "#%06X", argb and 0xFFFFFF) },
+                        )
                     }
                 }
+                if (contrast.isNotEmpty()) {
+                    Text(stringResource(R.string.playground_contrast_warning), color = Color(0xFFFFB020), style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 6.dp))
+                }
+                LabeledSlider(stringResource(R.string.playground_corner, settings.cornerRadiusDp), settings.cornerRadiusDp.toFloat(), 0f..40f) {
+                    settings = settings.copy(cornerRadiusDp = it.roundToInt())
+                }
+                // 언어 이름은 각 언어 자체 표기로 보여 준다(日本語, Tiếng Việt 등). 시스템은 기기 언어를 따른다.
+                Chips(
+                    listOf<Pair<String?, Int>>(null to R.string.playground_system) + EDITOR_LANGUAGES.map { it to R.string.playground_system },
+                    settings.localeTag,
+                    label = { tag -> tag?.let { languageName(it) } },
+                ) {
+                    settings = settings.copy(localeTag = it)
+                }
+                SwitchRow(R.string.playground_progress, settings.showProgress) { settings = settings.copy(showProgress = it) }
+                SwitchRow(R.string.playground_haptics, settings.haptics) { settings = settings.copy(haptics = it) }
             }
-        }
-        section(R.string.playground_video_tools) {
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                VideoTool.entries.forEach { tool ->
-                    Toggle(tool.name.lowercase(), tool in settings.videoTools) { on ->
-                        settings = settings.copy(videoTools = if (on) settings.videoTools + tool else settings.videoTools - tool)
+            section(R.string.playground_image_export) {
+                Chips(ImageFormat.entries.map { it to 0 }, settings.imageFormat, label = { it.name }) { settings = settings.copy(imageFormat = it) }
+                LabeledSlider(stringResource(R.string.playground_quality, settings.quality), settings.quality.toFloat(), 0f..100f) {
+                    settings = settings.copy(quality = it.roundToInt())
+                }
+                Chips(listOf<Pair<Int?, Int>>(null to R.string.playground_original_size, 1080 to 0, 2048 to 0), settings.imageMaxSide, label = { it?.let { side -> "$side px" } }) {
+                    settings = settings.copy(imageMaxSide = it)
+                }
+            }
+            section(R.string.playground_video_export) {
+                Chips(listOf(480, 720, 1080, 2160).map { it to 0 }, settings.videoShortSide, label = { "${it}p" }) { settings = settings.copy(videoShortSide = it) }
+                Chips(listOf(24, 30, 60).map { it to 0 }, settings.videoFps, label = { "$it fps" }) { settings = settings.copy(videoFps = it) }
+                Chips(listOf(15, 60, 300).map { it to 0 }, settings.maxDurationSec, label = { if (it < 60) "${it}s" else "${it / 60}min" }) {
+                    settings = settings.copy(maxDurationSec = it)
+                }
+                Chips(listOf(1, 5, 10, 20).map { it to 0 }, settings.maxClips, label = { stringResource(R.string.playground_clips, it) }) {
+                    settings = settings.copy(maxClips = it)
+                }
+            }
+            item {
+                Column(Modifier.widthIn(max = 720.dp).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (issues.isNotEmpty()) {
+                        KAlert(
+                            issues.joinToString("\n") { "${it.path}: ${it.message}" },
+                            Modifier.fillMaxWidth().shake(rejectedLaunches),
+                            status = KStatus.Error,
+                            title = stringResource(R.string.playground_invalid),
+                        )
                     }
+                    // 잘못된 조합이어도 버튼은 눌리게 두고, 누르면 무엇이 문제인지 흔들어 알려 준다.
+                    KButton(
+                        stringResource(R.string.playground_launch),
+                        onClick = {
+                            if (issues.isEmpty()) {
+                                onLaunch(request)
+                            } else {
+                                rejectedLaunches++
+                                haptics.perform(KHapticType.Error)
+                            }
+                        },
+                        size = KButtonSize.Large,
+                        fullWidth = true,
+                    )
+                    KButton(stringResource(R.string.playground_reset), onClick = { settings = PlaygroundSettings() }, variant = KVariant.Text)
                 }
-            }
-        }
-        section(R.string.playground_history) {
-            SwitchRow(R.string.playground_undo, settings.allowUndo) { settings = settings.copy(allowUndo = it) }
-            SwitchRow(R.string.playground_redo, settings.allowRedo) { settings = settings.copy(allowRedo = it) }
-        }
-        section(R.string.playground_theme) {
-            Chips(listOf(ThemeMode.DARK to R.string.playground_dark, ThemeMode.LIGHT to R.string.playground_light, ThemeMode.SYSTEM to R.string.playground_system), settings.themeMode) {
-                settings = settings.copy(themeMode = it)
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.padding(top = 8.dp)) {
-                PRIMARY_COLORS.forEach { argb ->
-                    val selected = argb == settings.primaryArgb
-                    Column(
-                        Modifier
-                            .size(36.dp)
-                            .background(Color(argb), CircleShape)
-                            .border(if (selected) 3.dp else 0.dp, if (selected) MaterialTheme.colorScheme.onBackground else Color.Transparent, CircleShape)
-                            .clickable { settings = settings.copy(primaryArgb = argb) },
-                    ) {}
-                }
-            }
-            if (contrast.isNotEmpty()) {
-                Text(stringResource(R.string.playground_contrast_warning), color = Color(0xFFFFB020), style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 6.dp))
-            }
-            LabeledSlider(stringResource(R.string.playground_corner, settings.cornerRadiusDp), settings.cornerRadiusDp.toFloat(), 0f..40f) {
-                settings = settings.copy(cornerRadiusDp = it.roundToInt())
-            }
-            // 언어 이름은 각 언어 자체 표기로 보여 준다(日本語, Tiếng Việt 등). 시스템은 기기 언어를 따른다.
-            Chips(
-                listOf<Pair<String?, Int>>(null to R.string.playground_system) + EDITOR_LANGUAGES.map { it to R.string.playground_system },
-                settings.localeTag,
-                label = { tag -> tag?.let { languageName(it) } },
-            ) {
-                settings = settings.copy(localeTag = it)
-            }
-            SwitchRow(R.string.playground_progress, settings.showProgress) { settings = settings.copy(showProgress = it) }
-            SwitchRow(R.string.playground_haptics, settings.haptics) { settings = settings.copy(haptics = it) }
-        }
-        section(R.string.playground_image_export) {
-            Chips(ImageFormat.entries.map { it to 0 }, settings.imageFormat, label = { it.name }) { settings = settings.copy(imageFormat = it) }
-            LabeledSlider(stringResource(R.string.playground_quality, settings.quality), settings.quality.toFloat(), 0f..100f) {
-                settings = settings.copy(quality = it.roundToInt())
-            }
-            Chips(listOf<Pair<Int?, Int>>(null to R.string.playground_original_size, 1080 to 0, 2048 to 0), settings.imageMaxSide, label = { it?.let { side -> "$side px" } }) {
-                settings = settings.copy(imageMaxSide = it)
-            }
-        }
-        section(R.string.playground_video_export) {
-            Chips(listOf(480, 720, 1080, 2160).map { it to 0 }, settings.videoShortSide, label = { "${it}p" }) { settings = settings.copy(videoShortSide = it) }
-            Chips(listOf(24, 30, 60).map { it to 0 }, settings.videoFps, label = { "$it fps" }) { settings = settings.copy(videoFps = it) }
-            Chips(listOf(15, 60, 300).map { it to 0 }, settings.maxDurationSec, label = { if (it < 60) "${it}s" else "${it / 60}min" }) {
-                settings = settings.copy(maxDurationSec = it)
-            }
-            Chips(listOf(1, 5, 10, 20).map { it to 0 }, settings.maxClips, label = { stringResource(R.string.playground_clips, it) }) {
-                settings = settings.copy(maxClips = it)
-            }
-        }
-        item {
-            Column(Modifier.widthIn(max = 720.dp).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (issues.isNotEmpty()) {
-                    Text(stringResource(R.string.playground_invalid), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.titleSmall)
-                    issues.forEach { issue ->
-                        Text("• ${issue.path}: ${issue.message}", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
-                    }
-                }
-                Button(onClick = { onLaunch(request) }, enabled = issues.isEmpty(), modifier = Modifier.fillMaxWidth().height(56.dp)) {
-                    Text(stringResource(R.string.playground_launch))
-                }
-                TextButton(onClick = { settings = PlaygroundSettings() }) { Text(stringResource(R.string.playground_reset)) }
             }
         }
     }
@@ -243,30 +268,33 @@ private fun androidx.compose.foundation.lazy.LazyListScope.section(@StringRes ti
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
+/** 하나만 고르는 칩 묶음. 고른 칩을 다시 눌러도 선택은 남는다. */
 @Composable
 private fun <T> Chips(options: List<Pair<T, Int>>, selected: T, label: @Composable (T) -> String? = { null }, onSelect: (T) -> Unit) {
-    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        options.forEach { (value, res) ->
-            FilterChip(
-                selected = value == selected,
-                onClick = { onSelect(value) },
-                label = { Text(label(value) ?: stringResource(res)) },
-            )
-        }
-    }
+    val labels = options.map { (value, res) -> label(value) ?: stringResource(res) }
+    KChipGroup(
+        chips = labels,
+        selected = setOf(options.indexOfFirst { it.first == selected }),
+        onSelectedChange = { picked -> picked.firstOrNull()?.let { onSelect(options[it].first) } },
+    )
 }
 
+/** 여러 개를 켜고 끄는 도구 칩 묶음. */
 @Composable
-private fun Toggle(text: String, on: Boolean, onChange: (Boolean) -> Unit) {
-    FilterChip(selected = on, onClick = { onChange(!on) }, label = { Text(text) })
+private fun <T : Enum<T>> MultiChips(all: List<T>, enabled: Set<T>, onChange: (Set<T>) -> Unit) {
+    KChipGroup(
+        chips = all.map { it.name.lowercase() },
+        selected = all.indices.filterTo(mutableSetOf()) { all[it] in enabled },
+        onSelectedChange = { picked -> onChange(picked.mapTo(mutableSetOf()) { all[it] }) },
+        selection = KChipSelection.Multiple,
+    )
 }
 
 @Composable
 private fun SwitchRow(@StringRes label: Int, checked: Boolean, onChange: (Boolean) -> Unit) {
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Text(stringResource(label), color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.weight(1f))
-        Switch(checked = checked, onCheckedChange = onChange)
+        KSwitch(checked, onChange)
     }
 }
 
@@ -274,7 +302,7 @@ private fun SwitchRow(@StringRes label: Int, checked: Boolean, onChange: (Boolea
 private fun LabeledSlider(label: String, value: Float, range: ClosedFloatingPointRange<Float>, onChange: (Float) -> Unit) {
     Column {
         Text(label, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
-        Slider(value = value, onValueChange = onChange, valueRange = range)
+        KSlider(value, onChange, Modifier.fillMaxWidth(), valueRange = range)
     }
 }
 

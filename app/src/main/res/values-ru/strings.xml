@@ -18,7 +18,6 @@
     <string name="example_english_title">Английский интерфейс</string>
     <string name="example_english_description">Тексты редактора на английском независимо от языка устройства</string>
 
-    <string name="result_back">Назад</string>
     <string name="result_image">Отредактированное изображение</string>
     <string name="result_size">Размер</string>
     <string name="result_mime">MIME-тип</string>
@@ -126,4 +125,7 @@
     <string name="home_group_audio">Аудио</string>
     <string name="home_group_watermark">Водяной знак</string>
     <string name="home_group_custom">Настройка</string>
+    <string name="result_delete_confirm">Удалить все результаты?</string>
+    <string name="result_delete_confirm_message">Отредактированные файлы будут удалены с этого устройства без возможности восстановления.</string>
+    <string name="result_delete_cancel">Отмена</string>
 </resources>

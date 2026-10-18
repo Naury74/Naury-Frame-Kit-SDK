@@ -16,7 +16,6 @@
     <string name="example_brand_description">Giao diện sáng, màu chính xanh dương và góc bo tròn hơn</string>
     <string name="example_english_title">Giao diện tiếng Anh</string>
     <string name="example_english_description">Chữ trong trình chỉnh sửa hiển thị bằng tiếng Anh bất kể ngôn ngữ thiết bị</string>
-    <string name="result_back">Quay lại</string>
     <string name="result_image">Ảnh đã sửa</string>
     <string name="result_size">Kích thước</string>
     <string name="result_mime">Loại MIME</string>
@@ -124,4 +123,7 @@
     <string name="home_group_audio">Âm thanh</string>
     <string name="home_group_watermark">Hình mờ</string>
     <string name="home_group_custom">Tùy chỉnh</string>
+    <string name="result_delete_confirm">Xóa tất cả kết quả?</string>
+    <string name="result_delete_confirm_message">Các tệp đã chỉnh sửa sẽ bị xóa khỏi thiết bị này và không thể khôi phục.</string>
+    <string name="result_delete_cancel">Hủy</string>
 </resources>

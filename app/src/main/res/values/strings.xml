@@ -18,7 +18,6 @@
     <string name="example_english_title">English UI</string>
     <string name="example_english_description">Editor strings in English regardless of the device language</string>
 
-    <string name="result_back">Back</string>
     <string name="result_image">Edited image</string>
     <string name="result_size">Size</string>
     <string name="result_mime">MIME type</string>
@@ -126,4 +125,7 @@
     <string name="home_group_audio">Audio</string>
     <string name="home_group_watermark">Watermark</string>
     <string name="home_group_custom">Customize</string>
+    <string name="result_delete_confirm">Delete all results?</string>
+    <string name="result_delete_confirm_message">The edited files will be removed from this device. This can\'t be undone.</string>
+    <string name="result_delete_cancel">Cancel</string>
 </resources>

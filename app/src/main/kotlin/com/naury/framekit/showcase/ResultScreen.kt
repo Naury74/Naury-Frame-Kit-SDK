@@ -22,6 +22,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -30,16 +32,13 @@ import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.produceState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
@@ -51,6 +50,29 @@ import androidx.compose.ui.unit.dp
 import androidx.core.graphics.createBitmap
 import com.naury.framekit.android.result.EditedMedia
 import com.naury.framekit.core.model.MediaType
+import android.net.Uri
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.produceState
+import androidx.compose.ui.graphics.ImageBitmap
+import com.naury.kinetica.ui.KImageViewer
+import com.naury.kinetica.ui.KImageViewerState
+import com.naury.kinetica.ui.imageViewerSource
+import com.naury.kinetica.ui.kClickable
+import com.naury.kinetica.ui.rememberKImageViewerState
+import com.naury.kinetica.ui.skeleton
+import com.naury.kinetica.ui.staggerIn
+import com.naury.kinetica.ui.KAlertDialog
+import com.naury.kinetica.ui.KButton
+import com.naury.kinetica.ui.KDialogAction
+import com.naury.kinetica.ui.KDialogActionStyle
+import com.naury.kinetica.ui.KTone
+import com.naury.kinetica.ui.KTopAppBar
+import com.naury.kinetica.ui.KVariant
+import com.naury.kinetica.ui.rememberKTopAppBarState
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.util.Locale
@@ -58,42 +80,73 @@ import java.util.Locale
 /** 편집 결과 목록. 사진·영상·PDF를 미리 보고 메타데이터를 확인하며 공유하거나 모두 지운다. */
 @Composable
 fun ResultScreen(outputs: List<EditedMedia>, elapsedMs: Long, onBack: () -> Unit, onDeleteAll: () -> Unit) {
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-            .windowInsetsPadding(WindowInsets.safeDrawing),
-        contentPadding = PaddingValues(20.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        item {
-            Column(Modifier.widthIn(max = 720.dp).fillMaxWidth()) {
-                TextButton(onClick = onBack) { Text(stringResource(R.string.result_back)) }
-                Text(
-                    stringResource(R.string.result_count, outputs.size, elapsedMs),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onBackground,
+    val context = LocalContext.current
+    val listState = rememberLazyListState()
+    var confirmDelete by rememberSaveable { mutableStateOf(false) }
+    // 미리보기는 카드와 전체 화면 뷰어가 함께 쓰므로 화면에서 한 번만 읽는다.
+    val previews = remember(outputs) { mutableStateMapOf<Uri, ImageBitmap>() }
+    outputs.forEach { media ->
+        if (!media.hasStillPreview()) return@forEach
+        key(media.uri) {
+            LaunchedEffect(media.uri) {
+                withContext(Dispatchers.IO) { runCatching { loadPreview(context, media) }.getOrNull() }?.let { previews[media.uri] = it.asImageBitmap() }
+            }
+        }
+    }
+    // 뷰어는 정지 미리보기가 있는 결과만 넘겨 본다.
+    val viewable = outputs.filter { it.hasStillPreview() }
+    val viewer = rememberKImageViewerState()
+    Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+        KTopAppBar(stringResource(R.string.result_count, outputs.size, elapsedMs), state = rememberKTopAppBarState(listState), onBack = onBack)
+        LazyColumn(
+            modifier = Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal)),
+            state = listState,
+            contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 4.dp, bottom = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            itemsIndexed(outputs, key = { _, media -> media.uri.toString() }) { index, media ->
+                val page = viewable.indexOf(media)
+                ResultCard(media, preview = previews[media.uri], viewer = viewer, viewerPage = page, modifier = Modifier.staggerIn(index))
+            }
+            item {
+                KButton(
+                    stringResource(R.string.result_delete),
+                    onClick = { confirmDelete = true },
+                    modifier = Modifier.widthIn(max = 720.dp),
+                    variant = KVariant.Outlined,
+                    tone = KTone.Destructive,
+                    fullWidth = true,
                 )
             }
         }
-        items(outputs, key = { it.uri.toString() }) { media -> ResultCard(media) }
-        item {
-            OutlinedButton(onClick = onDeleteAll, modifier = Modifier.widthIn(max = 720.dp).fillMaxWidth()) {
-                Text(stringResource(R.string.result_delete))
-            }
-        }
     }
+    // 핀치·두 번 탭으로 확대해 편집 결과를 자세히 본다.
+    KImageViewer(
+        viewer,
+        pageCount = viewable.size,
+        aspectRatio = { page -> previews[viewable[page].uri]?.let { it.width.toFloat() / it.height } },
+    ) { page ->
+        previews[viewable[page].uri]?.let { Image(it, contentDescription = stringResource(viewable[page].previewLabel()), modifier = Modifier.fillMaxSize()) }
+    }
+    // 지운 파일은 되돌릴 수 없으므로 한 번 더 묻는다. 버튼을 누르면 대화상자는 스스로 닫힌다.
+    KAlertDialog(
+        visible = confirmDelete,
+        onDismissRequest = { confirmDelete = false },
+        title = stringResource(R.string.result_delete_confirm),
+        message = stringResource(R.string.result_delete_confirm_message),
+        actions = listOf(
+            KDialogAction(stringResource(R.string.result_delete_cancel), KDialogActionStyle.Cancel),
+            KDialogAction(stringResource(R.string.result_delete), KDialogActionStyle.Destructive, onClick = onDeleteAll),
+        ),
+    )
 }
 
 @Composable
-private fun ResultCard(media: EditedMedia) {
+private fun ResultCard(media: EditedMedia, preview: ImageBitmap?, viewer: KImageViewerState, viewerPage: Int, modifier: Modifier = Modifier) {
     val context = LocalContext.current
-    val preview by produceState<Bitmap?>(null, media.uri) {
-        value = withContext(Dispatchers.IO) { runCatching { loadPreview(context, media) }.getOrNull() }
-    }
     Column(
-        Modifier
+        modifier
             .widthIn(max = 720.dp)
             .fillMaxWidth()
             .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(14.dp))
@@ -106,20 +159,17 @@ private fun ResultCard(media: EditedMedia) {
                 AudioPreview(media)
             } else if (media.mediaType == MediaType.ANIMATED_IMAGE && Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                 AnimatedPreview(media)
-            } else preview?.let {
+            } else if (preview == null) {
+                Box(Modifier.fillMaxWidth().height(220.dp).skeleton(visible = true))
+            } else {
                 Image(
-                    it.asImageBitmap(),
-                    contentDescription = stringResource(
-                        when (media.mediaType) {
-                            MediaType.VIDEO -> R.string.result_video
-                            MediaType.DOCUMENT -> R.string.result_document
-                            MediaType.ANIMATED_IMAGE -> R.string.result_animated
-                            MediaType.AUDIO -> R.string.result_audio
-                            else -> R.string.result_image
-                        },
-                    ),
+                    preview,
+                    contentDescription = stringResource(media.previewLabel()),
                     contentScale = ContentScale.Fit,
-                    modifier = Modifier.fillMaxWidth().heightIn(max = 420.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 420.dp)
+                        .then(if (viewerPage >= 0) Modifier.imageViewerSource(viewer, viewerPage).kClickable { viewer.open(viewerPage) } else Modifier),
                 )
             }
         }
@@ -132,9 +182,21 @@ private fun ResultCard(media: EditedMedia) {
         MetadataRow(stringResource(R.string.result_file_size), Formatter.formatShortFileSize(context, media.fileSize))
         MetadataRow(stringResource(R.string.result_warnings), media.warnings.joinToString("\n").ifEmpty { stringResource(R.string.result_none) })
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Button(onClick = { share(context, media) }) { Text(stringResource(R.string.result_share)) }
+            KButton(stringResource(R.string.result_share), onClick = { share(context, media) }, variant = KVariant.Tonal)
         }
     }
+}
+
+/** 움직이는 이미지는 Android 9 이상에서 움직이는 채로 보여 주므로 정지 미리보기를 만들지 않는다. */
+private fun EditedMedia.hasStillPreview(): Boolean =
+    mediaType != MediaType.AUDIO && !(mediaType == MediaType.ANIMATED_IMAGE && Build.VERSION.SDK_INT >= Build.VERSION_CODES.P)
+
+private fun EditedMedia.previewLabel(): Int = when (mediaType) {
+    MediaType.VIDEO -> R.string.result_video
+    MediaType.DOCUMENT -> R.string.result_document
+    MediaType.ANIMATED_IMAGE -> R.string.result_animated
+    MediaType.AUDIO -> R.string.result_audio
+    else -> R.string.result_image
 }
 
 @androidx.annotation.RequiresApi(Build.VERSION_CODES.P)
@@ -169,10 +231,10 @@ private fun AudioPreview(media: EditedMedia) {
         }
         onDispose { player.release() }
     }
-    Button(onClick = {
+    KButton(stringResource(if (playing) R.string.result_audio_pause else R.string.result_audio_play), onClick = {
         if (playing) player.pause() else player.start()
         playing = !playing
-    }) { Text(stringResource(if (playing) R.string.result_audio_pause else R.string.result_audio_play)) }
+    })
 }
 
 @Composable

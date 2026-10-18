@@ -16,7 +16,6 @@
     <string name="example_brand_description">淺色主題、藍色主色、更圓的邊角</string>
     <string name="example_english_title">英文介面</string>
     <string name="example_english_description">無論裝置語言為何，編輯器文字均以英文顯示</string>
-    <string name="result_back">返回</string>
     <string name="result_image">編輯後的圖片</string>
     <string name="result_size">尺寸</string>
     <string name="result_mime">MIME 類型</string>
@@ -124,4 +123,7 @@
     <string name="home_group_audio">音訊</string>
     <string name="home_group_watermark">浮水印</string>
     <string name="home_group_custom">自訂</string>
+    <string name="result_delete_confirm">要刪除所有結果嗎？</string>
+    <string name="result_delete_confirm_message">編輯後的檔案將從這部裝置刪除，且無法復原。</string>
+    <string name="result_delete_cancel">取消</string>
 </resources>

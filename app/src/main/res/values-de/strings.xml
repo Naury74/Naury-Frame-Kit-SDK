@@ -18,7 +18,6 @@
     <string name="example_english_title">Englische UI</string>
     <string name="example_english_description">Editor-Texte auf Englisch, unabhängig von der Gerätesprache</string>
 
-    <string name="result_back">Zurück</string>
     <string name="result_image">Bearbeitetes Bild</string>
     <string name="result_size">Größe</string>
     <string name="result_mime">MIME-Typ</string>
@@ -126,4 +125,7 @@
     <string name="home_group_audio">Audio</string>
     <string name="home_group_watermark">Wasserzeichen</string>
     <string name="home_group_custom">Anpassung</string>
+    <string name="result_delete_confirm">Alle Ergebnisse löschen?</string>
+    <string name="result_delete_confirm_message">Die bearbeiteten Dateien werden von diesem Gerät entfernt. Das kann nicht rückgängig gemacht werden.</string>
+    <string name="result_delete_cancel">Abbrechen</string>
 </resources>

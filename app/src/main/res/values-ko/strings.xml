@@ -17,7 +17,6 @@
     <string name="example_english_title">영어 UI</string>
     <string name="example_english_description">기기 언어와 관계없이 편집기 문구를 영어로 표시</string>
 
-    <string name="result_back">뒤로</string>
     <string name="result_image">편집한 이미지</string>
     <string name="result_size">크기</string>
     <string name="result_mime">MIME 형식</string>
@@ -125,4 +124,7 @@
     <string name="home_group_audio">음성</string>
     <string name="home_group_watermark">워터마크</string>
     <string name="home_group_custom">맞춤 설정</string>
+    <string name="result_delete_confirm">결과를 모두 지울까요?</string>
+    <string name="result_delete_confirm_message">편집한 파일이 이 기기에서 지워지며 되돌릴 수 없습니다.</string>
+    <string name="result_delete_cancel">취소</string>
 </resources>

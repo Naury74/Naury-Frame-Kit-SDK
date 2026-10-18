@@ -2,10 +2,8 @@ package com.naury.framekit.showcase
 
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -26,7 +24,6 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -36,15 +33,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.StrokeJoin
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
-import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -52,6 +43,15 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.naury.framekit.ui.config.ThemeMode
+import com.naury.kinetica.ui.KAlert
+import com.naury.kinetica.ui.KListItem
+import com.naury.kinetica.ui.KListLeading
+import com.naury.kinetica.ui.KListSection
+import com.naury.kinetica.ui.KListTrailing
+import com.naury.kinetica.ui.KSegmentedControl
+import com.naury.kinetica.ui.KStatus
+import com.naury.kinetica.ui.jellyPress
+import com.naury.kinetica.ui.kClickable
 import com.naury.framekit.ui.R as UiR
 
 /**
@@ -60,7 +60,8 @@ import com.naury.framekit.ui.R as UiR
  */
 @Composable
 fun HomeScreen(
-    message: String?,
+    failure: String?,
+    onDismissFailure: () -> Unit,
     editorTheme: ThemeMode,
     onEditorTheme: (ThemeMode) -> Unit,
     onLaunch: (ShowcaseExample) -> Unit,
@@ -80,9 +81,9 @@ fun HomeScreen(
                 Header(editorTheme, onEditorTheme)
                 Spacer(Modifier.height(22.dp))
                 QuickStart(onLaunch)
-                if (message != null) {
+                if (failure != null) {
                     Spacer(Modifier.height(10.dp))
-                    MessageBanner(message)
+                    KAlert(failure, status = KStatus.Error, onDismiss = onDismissFailure)
                 }
                 Spacer(Modifier.height(10.dp))
                 PlaygroundCard(onPlayground)
@@ -90,13 +91,10 @@ fun HomeScreen(
         }
         groups.forEach { (group, examples) ->
             item(key = group.name) {
-                Column(Modifier.widthIn(max = CONTENT_MAX_WIDTH).fillMaxWidth().padding(top = 26.dp)) {
-                    GroupHeader(group)
-                    Spacer(Modifier.height(7.dp))
-                    GroupCard {
-                        examples.forEachIndexed { index, example ->
-                            if (index > 0) HorizontalDivider(Modifier.padding(start = 58.dp), thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
-                            ListRow(example.icon, group.accent, stringResource(example.title), stringResource(example.description)) { onLaunch(example) }
+                KListSection(Modifier.widthIn(max = CONTENT_MAX_WIDTH).fillMaxWidth().padding(top = 26.dp), header = stringResource(group.title)) {
+                    examples.forEach { example ->
+                        item(example.name) {
+                            ExampleRow(example.icon, group.accent, stringResource(example.title), stringResource(example.description)) { onLaunch(example) }
                         }
                     }
                 }
@@ -143,29 +141,13 @@ private fun Header(editorTheme: ThemeMode, onEditorTheme: (ThemeMode) -> Unit) {
 
 @Composable
 private fun ThemeToggle(selected: ThemeMode, onSelect: (ThemeMode) -> Unit) {
-    val colors = MaterialTheme.colorScheme
-    Row(
-        Modifier
-            .clip(CircleShape)
-            .background(colors.surfaceVariant)
-            .padding(2.dp),
-    ) {
-        listOf(ThemeMode.LIGHT to R.string.home_theme_light, ThemeMode.DARK to R.string.home_theme_dark).forEach { (mode, label) ->
-            val on = mode == selected
-            Text(
-                stringResource(label),
-                color = if (on) colors.onSurface else colors.onSurfaceVariant,
-                fontSize = 13.sp,
-                fontWeight = if (on) FontWeight.SemiBold else FontWeight.Medium,
-                modifier = Modifier
-                    .clip(CircleShape)
-                    .background(if (on) colors.surface else Color.Transparent)
-                    .clickable(role = Role.Tab) { onSelect(mode) }
-                    .semantics { this.selected = on }
-                    .padding(horizontal = 14.dp, vertical = 6.dp),
-            )
-        }
-    }
+    val modes = listOf(ThemeMode.LIGHT, ThemeMode.DARK)
+    KSegmentedControl(
+        options = listOf(stringResource(R.string.home_theme_light), stringResource(R.string.home_theme_dark)),
+        selectedIndex = modes.indexOf(selected).coerceAtLeast(0),
+        onSelect = { onSelect(modes[it]) },
+        modifier = Modifier.width(160.dp),
+    )
 }
 
 private class QuickTile(
@@ -199,12 +181,14 @@ private fun QuickStart(onLaunch: (ShowcaseExample) -> Unit) {
 @Composable
 private fun QuickTileCard(tile: QuickTile, modifier: Modifier, onClick: () -> Unit) {
     val colors = MaterialTheme.colorScheme
+    val shape = RoundedCornerShape(18.dp)
     Column(
         modifier
+            .jellyPress()
             .height(116.dp)
-            .clip(RoundedCornerShape(18.dp))
+            .clip(shape)
             .background(colors.surface)
-            .clickable(role = Role.Button, onClick = onClick)
+            .kClickable(shape, onClick = onClick)
             .padding(14.dp),
     ) {
         IconBadge(tile.icon, tile.accent, size = 36.dp)
@@ -222,84 +206,30 @@ private fun IconBadge(@DrawableRes icon: Int, color: Color, size: Dp) {
 }
 
 @Composable
-private fun MessageBanner(message: String) {
-    Text(
-        message,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        fontSize = 14.sp,
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
-            .background(MaterialTheme.colorScheme.surface)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-    )
-}
-
-@Composable
 private fun PlaygroundCard(onClick: () -> Unit) {
-    GroupCard {
-        ListRow(
-            icon = UiR.drawable.framekit_ic_filter,
-            accent = MaterialTheme.colorScheme.primary,
-            title = stringResource(R.string.home_playground),
-            description = stringResource(R.string.home_playground_description),
-            onClick = onClick,
-        )
+    KListSection {
+        item {
+            ExampleRow(
+                icon = UiR.drawable.framekit_ic_filter,
+                accent = MaterialTheme.colorScheme.primary,
+                title = stringResource(R.string.home_playground),
+                description = stringResource(R.string.home_playground_description),
+                onClick = onClick,
+            )
+        }
     }
 }
 
 @Composable
-private fun GroupHeader(group: ExampleGroup) {
-    Text(
-        stringResource(group.title),
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        fontSize = 13.sp,
-        fontWeight = FontWeight.Medium,
-        modifier = Modifier.padding(start = 16.dp).semantics { heading() },
+private fun ExampleRow(@DrawableRes icon: Int, accent: Color, title: String, description: String, onClick: () -> Unit) {
+    KListItem(
+        headline = title,
+        supporting = description,
+        supportingMaxLines = 3,
+        leading = KListLeading.PainterIcon(painterResource(icon), container = accent),
+        trailing = KListTrailing.Disclosure(),
+        onClick = onClick,
     )
-}
-
-@Composable
-private fun GroupCard(content: @Composable () -> Unit) {
-    Column(
-        Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .background(MaterialTheme.colorScheme.surface),
-    ) { content() }
-}
-
-@Composable
-private fun ListRow(@DrawableRes icon: Int, accent: Color, title: String, description: String, onClick: () -> Unit) {
-    val colors = MaterialTheme.colorScheme
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .clickable(role = Role.Button, onClick = onClick)
-            .padding(start = 14.dp, end = 14.dp, top = 11.dp, bottom = 11.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        IconBadge(icon, accent, size = 30.dp)
-        Spacer(Modifier.width(14.dp))
-        Column(Modifier.weight(1f)) {
-            Text(title, color = colors.onSurface, fontSize = 16.sp)
-            Text(description, color = colors.onSurfaceVariant, fontSize = 13.sp, lineHeight = 18.sp)
-        }
-        Spacer(Modifier.width(8.dp))
-        Chevron(colors.onSurfaceVariant.copy(alpha = 0.55f))
-    }
-}
-
-@Composable
-private fun Chevron(color: Color) {
-    Canvas(Modifier.size(width = 8.dp, height = 14.dp)) {
-        val path = Path().apply {
-            moveTo(size.width * 0.15f, size.height * 0.1f)
-            lineTo(size.width * 0.85f, size.height * 0.5f)
-            lineTo(size.width * 0.15f, size.height * 0.9f)
-        }
-        drawPath(path, color, style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round))
-    }
 }
 
 private val CONTENT_MAX_WIDTH = 720.dp

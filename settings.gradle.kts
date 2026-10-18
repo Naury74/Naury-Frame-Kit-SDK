@@ -19,6 +19,13 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+        // -PnaurylabDev=true일 때만 배포 전 개발 판(Kinetica 등)을 로컬 저장소에서 받는다. com.naurylab 묶음만 찾는다.
+        if (providers.gradleProperty("naurylabDev").orNull == "true") {
+            maven {
+                url = uri("${System.getProperty("user.home")}/.naurylab/dev-repo")
+                content { includeGroup("com.naurylab") }
+            }
+        }
     }
 }
 

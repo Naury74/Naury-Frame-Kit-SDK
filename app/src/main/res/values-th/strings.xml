@@ -16,7 +16,6 @@
     <string name="example_brand_description">ธีมสว่าง สีหลักน้ำเงิน และมุมโค้งมนขึ้น</string>
     <string name="example_english_title">UI ภาษาอังกฤษ</string>
     <string name="example_english_description">แสดงข้อความในตัวแก้ไขเป็นภาษาอังกฤษไม่ว่าอุปกรณ์จะใช้ภาษาใด</string>
-    <string name="result_back">กลับ</string>
     <string name="result_image">รูปภาพที่แก้ไขแล้ว</string>
     <string name="result_size">ขนาด</string>
     <string name="result_mime">ประเภท MIME</string>
@@ -124,4 +123,7 @@
     <string name="home_group_audio">เสียง</string>
     <string name="home_group_watermark">ลายน้ำ</string>
     <string name="home_group_custom">ปรับแต่งเอง</string>
+    <string name="result_delete_confirm">ลบผลลัพธ์ทั้งหมดไหม</string>
+    <string name="result_delete_confirm_message">ไฟล์ที่แก้ไขจะถูกลบออกจากอุปกรณ์นี้และกู้คืนไม่ได้</string>
+    <string name="result_delete_cancel">ยกเลิก</string>
 </resources>

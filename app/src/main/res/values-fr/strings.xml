@@ -18,7 +18,6 @@
     <string name="example_english_title">Interface en anglais</string>
     <string name="example_english_description">Textes de l\'éditeur en anglais, quelle que soit la langue de l\'appareil</string>
 
-    <string name="result_back">Retour</string>
     <string name="result_image">Image retouchée</string>
     <string name="result_size">Dimensions</string>
     <string name="result_mime">Type MIME</string>
@@ -126,4 +125,7 @@
     <string name="home_group_audio">Audio</string>
     <string name="home_group_watermark">Filigrane</string>
     <string name="home_group_custom">Personnaliser</string>
+    <string name="result_delete_confirm">Supprimer tous les résultats ?</string>
+    <string name="result_delete_confirm_message">Les fichiers modifiés seront supprimés de cet appareil. Cette action est irréversible.</string>
+    <string name="result_delete_cancel">Annuler</string>
 </resources>

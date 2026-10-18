@@ -43,6 +43,9 @@ dependencies {
     // 배경 제거를 시연하기 위한 선택 모듈. 이 줄이 없으면 편집기에서 배경 제거 도구가 숨겨진다.
     implementation(project(":framekit-segmentation"))
     implementation(project(":framekit-ocr"))
+    // 샘플 앱 화면(홈·Playground·결과)의 화면 이동, 목록, 조작부, 알림에만 쓴다. SDK 모듈은 의존하지 않는다.
+    // -PkineticaVersion=…-SNAPSHOT(-PnaurylabDev=true와 함께)으로 배포 전 판을 시험한다. 주지 않으면 카탈로그 버전을 쓴다.
+    implementation("com.naurylab:kinetica-ui:${providers.gradleProperty("kineticaVersion").getOrElse(libs.versions.kinetica.get())}")
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)

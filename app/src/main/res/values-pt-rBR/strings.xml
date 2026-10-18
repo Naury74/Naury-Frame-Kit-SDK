@@ -18,7 +18,6 @@
     <string name="example_english_title">Interface em inglês</string>
     <string name="example_english_description">Textos do editor em inglês, independentemente do idioma do dispositivo</string>
 
-    <string name="result_back">Voltar</string>
     <string name="result_image">Imagem editada</string>
     <string name="result_size">Tamanho</string>
     <string name="result_mime">Tipo MIME</string>
@@ -126,4 +125,7 @@
     <string name="home_group_audio">Áudio</string>
     <string name="home_group_watermark">Marca d\'água</string>
     <string name="home_group_custom">Personalizar</string>
+    <string name="result_delete_confirm">Excluir todos os resultados?</string>
+    <string name="result_delete_confirm_message">Os arquivos editados serão removidos deste dispositivo. Não é possível desfazer.</string>
+    <string name="result_delete_cancel">Cancelar</string>
 </resources>

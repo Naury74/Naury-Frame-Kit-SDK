@@ -16,7 +16,6 @@
     <string name="example_brand_description">ライトテーマ、青のプライマリカラー、より丸い角</string>
     <string name="example_english_title">英語 UI</string>
     <string name="example_english_description">端末の言語に関係なくエディタを英語で表示</string>
-    <string name="result_back">戻る</string>
     <string name="result_image">編集した画像</string>
     <string name="result_size">サイズ</string>
     <string name="result_mime">MIME タイプ</string>
@@ -124,4 +123,7 @@
     <string name="home_group_audio">音声</string>
     <string name="home_group_watermark">透かし</string>
     <string name="home_group_custom">カスタマイズ</string>
+    <string name="result_delete_confirm">結果をすべて削除しますか？</string>
+    <string name="result_delete_confirm_message">編集したファイルはこの端末から削除され、元に戻せません。</string>
+    <string name="result_delete_cancel">キャンセル</string>
 </resources>

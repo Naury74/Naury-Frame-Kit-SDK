@@ -9,6 +9,7 @@ minSdk = "26"
 androidxActivity = "1.13.0"
 camerax = "1.6.2"
 androidxComposeBom = "2026.09.00"
+kinetica = "1.0.0-alpha02"
 androidxCore = "1.19.1"
 androidxExifInterface = "1.4.2"
 androidxLifecycle = "2.11.0"
@@ -44,6 +45,7 @@ androidx-window = { module = "androidx.window:window", version.ref = "androidxWi
 androidx-lifecycle-viewmodel-savedstate = { module = "androidx.lifecycle:lifecycle-viewmodel-savedstate", version.ref = "androidxLifecycle" }
 
 androidx-compose-bom = { module = "androidx.compose:compose-bom", version.ref = "androidxComposeBom" }
+kinetica-ui = { module = "com.naurylab:kinetica-ui", version.ref = "kinetica" }
 androidx-compose-foundation = { module = "androidx.compose.foundation:foundation" }
 androidx-compose-material3 = { module = "androidx.compose.material3:material3" }
 androidx-compose-material-icons-core = { module = "androidx.compose.material:material-icons-core" }

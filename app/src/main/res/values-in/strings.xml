@@ -16,7 +16,6 @@
     <string name="example_brand_description">Tema terang dengan warna utama biru dan sudut lebih bulat</string>
     <string name="example_english_title">UI bahasa Inggris</string>
     <string name="example_english_description">Teks editor dalam bahasa Inggris apa pun bahasa perangkatnya</string>
-    <string name="result_back">Kembali</string>
     <string name="result_image">Gambar hasil edit</string>
     <string name="result_size">Ukuran</string>
     <string name="result_mime">Jenis MIME</string>
@@ -124,4 +123,7 @@
     <string name="home_group_audio">Audio</string>
     <string name="home_group_watermark">Tanda air</string>
     <string name="home_group_custom">Kustomisasi</string>
+    <string name="result_delete_confirm">Hapus semua hasil?</string>
+    <string name="result_delete_confirm_message">File yang diedit akan dihapus dari perangkat ini dan tidak dapat dikembalikan.</string>
+    <string name="result_delete_cancel">Batal</string>
 </resources>
