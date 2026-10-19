@@ -6,14 +6,15 @@
 
 ```kotlin
 dependencies {
-    implementation("com.naurylab:framekit:1.0.0-alpha07")             // 사진·영상 모두
-    // implementation("com.naurylab:framekit-ui-image:1.0.0-alpha07") // 사진만 (Media3 없음)
-    // implementation("com.naurylab:framekit-ui-video:1.0.0-alpha07") // 영상만
+    implementation("com.naurylab:framekit:1.0.0-alpha08")             // 사진·영상 모두
+    // implementation("com.naurylab:framekit-ui-image:1.0.0-alpha08") // 사진만 (Media3 없음)
+    // implementation("com.naurylab:framekit-ui-video:1.0.0-alpha08") // 영상만
 }
 ```
 
 - 호스트는 Kotlin 2.2 이상이면 됩니다. SDK는 Kotlin 2.4로 빌드하지만 언어·API 버전과 `kotlin-stdlib` 의존을 2.2로 맞춰 배포합니다.
 - 호스트가 Compose를 쓰지 않아도 됩니다. 편집 화면의 Compose 의존은 SDK가 가져옵니다.
+- 편집 화면은 Kinetica UI 키트(`com.naurylab:kinetica-ui`)로 그립니다. SDK가 함께 가져오므로 따로 넣지 않아도 됩니다. 앱이 kinetica-ui를 직접 쓴다면 1.0.0-alpha05 이상을 쓰세요. 두 버전이 다르면 Gradle이 높은 쪽을 고릅니다.
 - 이미지 전용 앱은 `framekit-ui-image`만 쓰면 Media3가 들어오지 않습니다.
 
 SDK manifest는 편집 Activity(`exported=false`), 통합 모듈의 투명 라우터 Activity, 결과 전용 FileProvider만 merge합니다. 권한은 추가하지 않습니다.
@@ -375,8 +376,10 @@ audio.launch(AudioEditorRequest(EditorInput.UriSource(audioUri), export = AudioE
 `framekit-picker`는 시스템 사진 선택기 대신 쓸 수 있는 갤러리 화면입니다. 앨범별 보기, 고른 순서 번호, 크게 보기(확대·축소), 개수·파일 크기·영상 길이·형식 제한을 지원합니다. 통합 모듈(`framekit`)에 들어 있고, 개별 모듈만 쓴다면 따로 추가합니다.
 
 ```kotlin
-implementation("com.naurylab:framekit-picker:1.0.0-alpha07")
+implementation("com.naurylab:framekit-picker:1.0.0-alpha08")
 ```
+
+상단 바는 사진이 바 아래로 지나가며 흐리게 비칩니다. 블러는 Android 12 이상에서 그려지고, 그보다 낮은 버전에서는 거의 불투명한 바탕색으로 칠합니다.
 
 ### 단독으로 쓰기
 
@@ -431,7 +434,7 @@ SDK는 권한을 추가하지 않습니다. 앱 안 갤러리는 호스트가 �
 `framekit-scanner`는 카메라 미리보기에서 문서 테두리를 실시간으로 찾아 표시하고, 테두리가 잠시 흔들리지 않으면 자동으로 찍는 문서 스캐너입니다. 여러 쪽을 이어서 찍을 수 있고, 찍은 쪽은 반듯하게 펴서 스캔 보정(컬러·흑백 등)을 적용합니다. 통합 모듈(`framekit`)에 들어 있고, 개별 모듈만 쓴다면 따로 추가합니다.
 
 ```kotlin
-implementation("com.naurylab:framekit-scanner:1.0.0-alpha07")
+implementation("com.naurylab:framekit-scanner:1.0.0-alpha08")
 ```
 
 ### FrameKit에서
@@ -481,7 +484,7 @@ implementation(project(":framekit-segmentation"))
 ## 글자 인식(OCR) 선택 모듈
 
 ```kotlin
-implementation("com.naurylab:framekit-ocr:1.0.0-alpha07")
+implementation("com.naurylab:framekit-ocr:1.0.0-alpha08")
 ```
 
 - 추가하면 PDF로 저장할 때 쪽마다 글자를 인식해 **보이지 않는 글자 레이어**를 겹칩니다. PDF 뷰어에서 검색·선택·복사가 되고, 이미지는 그대로 보입니다. `PdfOptions.recognizeText = false`로 끌 수 있습니다.
