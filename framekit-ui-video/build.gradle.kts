@@ -37,6 +37,7 @@ kotlin {
 dependencies {
     api(project(":framekit-ui"))
     api(project(":framekit-video"))
+    implementation(libs.kinetica.ui)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)

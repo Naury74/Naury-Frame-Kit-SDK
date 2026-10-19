@@ -43,9 +43,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import com.naury.kinetica.ui.KProgressRing
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -149,7 +149,7 @@ internal fun ScannerScreen(viewModel: ScannerViewModel, maxPages: Int, onClose: 
         if (state.busy) {
             Box(Modifier.align(Alignment.Center).frameKitGlass(RoundedCornerShape(18.dp)).padding(horizontal = 20.dp, vertical = 14.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    CircularProgressIndicator(color = colors.accent, strokeWidth = 2.dp, modifier = Modifier.size(18.dp))
+                    KProgressRing(progress = null, modifier = Modifier.size(18.dp), thickness = 2.dp)
                     Spacer(Modifier.width(10.dp))
                     Text(stringResource(R.string.framekit_scan_working), color = colors.foreground, fontSize = 15.sp)
                 }

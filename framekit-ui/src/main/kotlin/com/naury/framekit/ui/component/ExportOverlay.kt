@@ -1,5 +1,9 @@
 package com.naury.framekit.ui.component
 
+import com.naury.kinetica.ui.KButton
+import com.naury.kinetica.ui.KProgressRing
+import com.naury.kinetica.ui.KTone
+import com.naury.kinetica.ui.KVariant
 import kotlin.math.roundToInt
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -9,7 +13,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -20,12 +23,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.runtime.getValue
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
@@ -86,18 +86,13 @@ public fun ExportOverlay(stage: ExportStageUi, onCancel: () -> Unit, modifier: M
         ) {
             // 진행률을 알 수 있으면 링 안에 퍼센트를 크게 보여 준다.
             Box(Modifier.size(84.dp), contentAlignment = Alignment.Center) {
-                if (determinate) {
-                    val animated by animateFloatAsState(progress!!.coerceIn(0f, 1f), label = "export-progress")
-                    CircularProgressIndicator(
-                        progress = { animated },
-                        color = colors.accent,
-                        trackColor = colors.raised,
-                        strokeWidth = 6.dp,
-                        modifier = Modifier.size(84.dp),
-                    )
-                    Text("${(animated * 100).roundToInt()}%", color = colors.foreground, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                } else {
-                    CircularProgressIndicator(color = colors.accent, trackColor = colors.raised, strokeWidth = 6.dp, modifier = Modifier.size(84.dp))
+                // 링은 진행률을 스스로 부드럽게 따라가고, 퍼센트 글자도 같은 속도로 맞춘다.
+                val target = if (determinate) progress!!.coerceIn(0f, 1f) else null
+                KProgressRing(target, Modifier.size(84.dp)) {
+                    if (target != null) {
+                        val animated by animateFloatAsState(target, label = "export-progress")
+                        Text("${(animated * 100).roundToInt()}%", color = colors.foreground, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                    }
                 }
             }
             Text(
@@ -108,14 +103,13 @@ public fun ExportOverlay(stage: ExportStageUi, onCancel: () -> Unit, modifier: M
                 modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
             )
             if (stage != ExportStageUi.CANCELLING) {
-                OutlinedButton(
+                KButton(
+                    stringResource(R.string.framekit_action_cancel),
                     onClick = onCancel,
-                    modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
-                    shape = MaterialTheme.shapes.medium,
-                    border = BorderStroke(1.dp, colors.raised),
-                ) {
-                    Text(stringResource(R.string.framekit_action_cancel), color = colors.foreground)
-                }
+                    variant = KVariant.Tonal,
+                    tone = KTone.Neutral,
+                    fullWidth = true,
+                )
             }
         }
     }

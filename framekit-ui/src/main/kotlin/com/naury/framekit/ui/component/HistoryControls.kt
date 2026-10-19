@@ -23,13 +23,15 @@ import androidx.compose.ui.semantics.toggleableState
 import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.unit.dp
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import com.naury.framekit.ui.R
 import com.naury.framekit.ui.design.FrameKitTheme
+import com.naury.kinetica.ui.KIconButton
+import com.naury.kinetica.ui.KTone
+import com.naury.kinetica.ui.KVariant
 
 /**
  * 캔버스 위에 떠 있는 실행 취소/다시 실행 버튼. 위치가 튀지 않도록 비활성 버튼도 계속 보이며,
@@ -47,25 +49,28 @@ public fun HistoryControls(
     onCompare: ((Boolean) -> Unit)? = null,
 ) {
     if (!showUndo && !showRedo && onCompare == null) return
-    val colors = FrameKitTheme.colors
     Row(modifier.frameKitGlass(CircleShape).padding(horizontal = 4.dp)) {
         if (showUndo) {
-            IconButton(onClick = onUndo, enabled = canUndo) {
-                Icon(
-                    painterResource(R.drawable.framekit_ic_undo),
-                    contentDescription = stringResource(R.string.framekit_action_undo),
-                    tint = if (canUndo) colors.foreground else colors.foregroundMuted.copy(alpha = 0.4f),
-                )
-            }
+            KIconButton(
+                painterResource(R.drawable.framekit_ic_undo),
+                stringResource(R.string.framekit_action_undo),
+                onUndo,
+                variant = KVariant.Text,
+                tone = KTone.Neutral,
+                size = 48.dp,
+                enabled = canUndo,
+            )
         }
         if (showRedo) {
-            IconButton(onClick = onRedo, enabled = canRedo) {
-                Icon(
-                    painterResource(R.drawable.framekit_ic_redo),
-                    contentDescription = stringResource(R.string.framekit_action_redo),
-                    tint = if (canRedo) colors.foreground else colors.foregroundMuted.copy(alpha = 0.4f),
-                )
-            }
+            KIconButton(
+                painterResource(R.drawable.framekit_ic_redo),
+                stringResource(R.string.framekit_action_redo),
+                onRedo,
+                variant = KVariant.Text,
+                tone = KTone.Neutral,
+                size = 48.dp,
+                enabled = canRedo,
+            )
         }
         if (onCompare != null) CompareButton(onCompare)
     }

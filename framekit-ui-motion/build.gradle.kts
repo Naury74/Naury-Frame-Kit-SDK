@@ -42,6 +42,7 @@ dependencies {
     implementation(project(":framekit-video"))
     // 프로세스가 끝나도 편집을 이어 가도록 편집 내용을 JSON으로 저장한다.
     implementation(libs.kotlinx.serialization.json)
+    implementation(libs.kinetica.ui)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)

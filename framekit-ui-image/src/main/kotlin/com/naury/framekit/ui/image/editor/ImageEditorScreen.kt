@@ -54,14 +54,11 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalClipboardManager
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.Icons
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.Text
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Icon
 import androidx.compose.ui.draw.shadow
 import androidx.compose.foundation.shape.CircleShape
@@ -104,7 +101,6 @@ import com.naury.framekit.ui.tool.AdjustToolPanel
 import com.naury.framekit.ui.tool.CropToolPanel
 import com.naury.framekit.ui.image.tool.CutoutModelDownloadDialog
 import com.naury.framekit.ui.image.tool.CutoutToolPanel
-import androidx.compose.material3.CircularProgressIndicator
 import kotlin.math.roundToInt
 import com.naury.framekit.ui.image.tool.DocumentToolPanel
 import com.naury.framekit.ui.image.tool.DrawToolPanel
@@ -114,6 +110,11 @@ import com.naury.framekit.ui.tool.StickerToolPanel
 import com.naury.framekit.ui.tool.TextToolPanel
 import com.naury.framekit.ui.tool.RotateToolPanel
 import com.naury.framekit.ui.R as UiR
+import com.naury.kinetica.ui.KButton
+import com.naury.kinetica.ui.KButtonSize
+import com.naury.kinetica.ui.KIconButton
+import com.naury.kinetica.ui.KProgressRing
+import com.naury.kinetica.ui.KVariant
 
 @Composable
 internal fun ImageEditorScreen(viewModel: ImageEditorViewModel, posture: FoldPosture = FoldPosture.Flat) {
@@ -575,7 +576,7 @@ private fun CutoutCanvasStatus(status: CutoutStatus?, modifier: Modifier) {
         modifier.shadow(8.dp, CircleShape).background(colors.raised.copy(alpha = 0.94f), CircleShape).padding(horizontal = 18.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        CircularProgressIndicator(color = colors.accent, strokeWidth = 2.dp, modifier = Modifier.size(18.dp))
+        KProgressRing(progress = null, modifier = Modifier.size(18.dp), thickness = 2.dp)
         Text(text, color = colors.foreground, style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(start = 10.dp))
     }
 }
@@ -594,11 +595,16 @@ private fun DocumentPill(text: String, action: String, onAction: () -> Unit, onC
     ) {
         Icon(painterResource(UiR.drawable.framekit_ic_document), contentDescription = null, tint = colors.accent, modifier = Modifier.size(18.dp))
         Text(text, color = colors.foreground, style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(start = 8.dp, end = 4.dp))
-        TextButton(onClick = onAction) { Text(action, color = colors.accent, fontWeight = FontWeight.SemiBold) }
+        KButton(action, onClick = onAction, variant = KVariant.Text, size = KButtonSize.Small)
         if (onClose != null) {
-            IconButton(onClick = onClose, modifier = Modifier.size(36.dp)) {
-                Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.framekit_action_close_dialog), tint = colors.foregroundMuted, modifier = Modifier.size(18.dp))
-            }
+            KIconButton(
+                Icons.Filled.Close,
+                stringResource(R.string.framekit_action_close_dialog),
+                onClose,
+                variant = KVariant.Text,
+                size = 36.dp,
+                contentColor = colors.foregroundMuted,
+            )
         }
     }
 }

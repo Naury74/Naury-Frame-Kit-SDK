@@ -7,6 +7,19 @@ plugins {
     alias(libs.plugins.kotlin.serialization) apply false
 }
 
+// -PnaurylabDev=true -PkineticaVersion=…-SNAPSHOT을 주면 모든 모듈이 배포 전 Kinetica 판으로 빌드된다. 플래그가 없으면 카탈로그 버전을 쓴다.
+val kineticaDevVersion = providers.gradleProperty("kineticaVersion").orNull
+    ?.takeIf { providers.gradleProperty("naurylabDev").orNull == "true" }
+if (kineticaDevVersion != null) {
+    subprojects {
+        configurations.configureEach {
+            resolutionStrategy.eachDependency {
+                if (requested.group == "com.naurylab" && requested.name.startsWith("kinetica-")) useVersion(kineticaDevVersion)
+            }
+        }
+    }
+}
+
 // SDK 모듈은 같은 좌표·POM으로 배포한다. 저장소의 app(Showcase)은 배포하지 않는다.
 val sdkModules = mapOf(
     "framekit-core" to "편집 모델, 좌표·시간 계산, 실행 취소, 검증 (Kotlin JVM)",

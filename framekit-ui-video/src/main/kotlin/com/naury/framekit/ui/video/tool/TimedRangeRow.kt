@@ -6,11 +6,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -20,6 +17,10 @@ import com.naury.framekit.core.video.TimeRangeUs
 import com.naury.framekit.ui.design.FrameKitTheme
 import com.naury.framekit.ui.video.R
 import com.naury.framekit.ui.video.timeline.formatTime
+import com.naury.kinetica.ui.KButton
+import com.naury.kinetica.ui.KButtonSize
+import com.naury.kinetica.ui.KIconButton
+import com.naury.kinetica.ui.KVariant
 
 /**
  * 고른 구간 항목(마스크·텍스트·스티커)의 표시 구간과 시작·끝 조정, 삭제 버튼. 고른 것이 없으면 [hint]를 보여 준다.
@@ -46,13 +47,18 @@ internal fun TimedRangeRow(
                 style = MaterialTheme.typography.labelLarge,
                 modifier = Modifier.weight(1f),
             )
-            IconButton(onClick = onDelete) {
-                Icon(Icons.Filled.Delete, contentDescription = stringResource(R.string.framekit_item_delete), tint = colors.foregroundMuted)
-            }
+            KIconButton(
+                Icons.Filled.Delete,
+                stringResource(R.string.framekit_item_delete),
+                onDelete,
+                variant = KVariant.Text,
+                size = 48.dp,
+                contentColor = colors.foregroundMuted,
+            )
         }
         Row {
-            TextButton(onClick = onStartHere) { Text(stringResource(R.string.framekit_mask_start_here), color = colors.accent) }
-            TextButton(onClick = onEndHere) { Text(stringResource(R.string.framekit_mask_end_here), color = colors.accent) }
+            KButton(stringResource(R.string.framekit_mask_start_here), onClick = onStartHere, variant = KVariant.Text, size = KButtonSize.Small)
+            KButton(stringResource(R.string.framekit_mask_end_here), onClick = onEndHere, variant = KVariant.Text, size = KButtonSize.Small)
         }
     }
 }

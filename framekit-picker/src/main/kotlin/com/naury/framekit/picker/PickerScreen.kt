@@ -10,8 +10,6 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.Image
@@ -72,16 +70,33 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.lazy.grid.LazyGridState
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
+import com.naury.kinetica.ui.GlassStyles
+import com.naury.kinetica.ui.KIconButton
+import com.naury.kinetica.ui.KTopAppBar
+import com.naury.kinetica.ui.KTopAppBarDropdownTitle
+import com.naury.kinetica.ui.KineticaScaffold
+import com.naury.kinetica.ui.KineticaTheme
+import com.naury.kinetica.ui.SurfaceStyle
+import com.naury.kinetica.ui.rememberKTopAppBarState
+import com.naury.kinetica.ui.KButton
+import com.naury.kinetica.ui.KButtonSize
+import com.naury.kinetica.ui.KEmptyIcon
+import com.naury.kinetica.ui.KEmptyIconKind
+import com.naury.kinetica.ui.KEmptyState
+import com.naury.kinetica.ui.KLoadingIndicator
+import com.naury.kinetica.ui.KSelectionBadge
+import com.naury.kinetica.ui.KTone
+import com.naury.kinetica.ui.KVariant
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -90,7 +105,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
@@ -103,6 +117,7 @@ import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -115,9 +130,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.naury.framekit.ui.component.FrameKitNavigationBar
 import com.naury.framekit.ui.component.FrameKitSnackbarHost
-import com.naury.framekit.ui.component.NavigationIcon
 import com.naury.framekit.ui.design.FrameKitTheme
 import com.naury.framekit.ui.design.frameKitGlass
 import java.util.Calendar
@@ -169,44 +182,97 @@ internal fun PickerScreen(
     }
     val trayVisible = multiple && state.selection.isNotEmpty()
     val doneEnabled = state.selection.size >= request.minItems
+    val gridState = rememberLazyGridState()
+    val barState = rememberKTopAppBarState(gridState)
+    val glass = rememberPickerGlass()
+    // 바만 블러하고 칸·버튼·트레이는 지금처럼 단색으로 그리도록 테마의 표면을 콘텐츠 표면으로 넘긴다.
+    val solid = KineticaTheme.surface
     Box(Modifier.fillMaxSize().background(colors.background)) {
-        Column(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)) {
-            FrameKitNavigationBar(
-                title = null,
-                navigationIcon = NavigationIcon.CLOSE,
-                onNavigate = onClose,
-                actionLabel = if (multiple) doneLabel(state.selection.size) else null,
-                actionEnabled = doneEnabled,
-                onAction = viewModel::confirm,
-                titleContent = {
-                    AlbumButton(
-                        title = state.album?.let { albumName(it) } ?: stringResource(R.string.framekit_picker_recent),
-                        expanded = state.showAlbums,
-                        onClick = { viewModel.toggleAlbums(!state.showAlbums) },
-                    )
-                },
-            )
-            Box(Modifier.weight(1f)) {
+        KineticaScaffold(
+            surface = glass,
+            contentSurface = solid,
+            topBar = {
+                KTopAppBar(
+                    title = {
+                        KTopAppBarDropdownTitle(
+                            text = state.album?.let { albumName(it) } ?: stringResource(R.string.framekit_picker_recent),
+                            expanded = state.showAlbums,
+                            onClick = { viewModel.toggleAlbums(!state.showAlbums) },
+                            onClickLabel = stringResource(R.string.framekit_picker_choose_album),
+                            maxTextWidth = ALBUM_TITLE_MAX_WIDTH,
+                        )
+                    },
+                    state = barState,
+                    navigationIcon = {
+                        KIconButton(Icons.Filled.Close, stringResource(UiR.string.framekit_action_close), onClose, variant = KVariant.Text, tone = KTone.Neutral)
+                    },
+                    actions = {
+                        if (multiple) {
+                            KButton(doneLabel(state.selection.size), onClick = viewModel::confirm, enabled = doneEnabled, size = KButtonSize.Small, modifier = Modifier.padding(end = 8.dp))
+                        }
+                    },
+                    surface = glass,
+                )
+            },
+            backdropColor = colors.background,
+            // 상단 바가 상태 표시줄까지 덮으므로 그 아래를 따로 흐리게 할 필요가 없다.
+            edgeFade = false,
+        ) { padding ->
+            val top = padding.calculateTopPadding()
+            val bottomInset = WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom).asPaddingValues().calculateBottomPadding() + padding.calculateBottomPadding()
+            Box(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal))) {
                 when {
-                    state.items.isEmpty() && state.loading -> CircularProgressIndicator(color = colors.accent, strokeWidth = 2.5.dp, modifier = Modifier.size(32.dp).align(Alignment.Center))
-                    state.items.isEmpty() -> EmptyState(onSystemPicker, Modifier.align(Alignment.Center))
+                    state.items.isEmpty() && state.loading -> Box(Modifier.fillMaxSize().padding(top = top, bottom = bottomInset)) {
+                        KLoadingIndicator(Modifier.align(Alignment.Center), label = stringResource(UiR.string.framekit_loading))
+                    }
+                    state.items.isEmpty() -> Box(Modifier.fillMaxSize().padding(top = top, bottom = bottomInset)) {
+                        EmptyState(onSystemPicker, Modifier.align(Alignment.Center))
+                    }
                     else -> MediaGrid(
                         state = state,
+                        gridState = gridState,
                         multiple = multiple,
                         viewModel = viewModel,
                         loader = loader,
                         header = if (state.access == Access.PARTIAL) ({ PartialBanner(onManageAccess) }) else null,
-                        bottomPadding = if (trayVisible) TRAY_HEIGHT + 24.dp else 12.dp,
+                        topPadding = top,
+                        bottomPadding = bottomInset + if (trayVisible) TRAY_HEIGHT + 24.dp else 12.dp,
                     )
                 }
-                SelectionTray(trayVisible, state, loader, onOpen = viewModel::openPreviewOf, onRemove = viewModel::toggle, modifier = Modifier.align(Alignment.BottomCenter))
-                AlbumSheet(state, loader, onDismiss = { viewModel.toggleAlbums(false) }, onSelect = viewModel::selectAlbum)
+                SelectionTray(
+                    trayVisible,
+                    state,
+                    loader,
+                    onOpen = viewModel::openPreviewOf,
+                    onRemove = viewModel::toggle,
+                    modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = bottomInset),
+                )
+                AlbumSheet(state, loader, top = top, onDismiss = { viewModel.toggleAlbums(false) }, onSelect = viewModel::selectAlbum)
             }
         }
         state.preview?.let { index -> PreviewOverlay(state, index, multiple, doneEnabled, loader, viewModel) }
         FrameKitSnackbarHost(
             snackbar,
             Modifier.align(Alignment.BottomCenter).windowInsetsPadding(WindowInsets.navigationBars).padding(bottom = if (trayVisible || state.preview != null) TRAY_HEIGHT + 28.dp else 16.dp),
+        )
+    }
+}
+
+/**
+ * 상단 바 글래스. 사진 격자 위에서도 제목이 읽히도록 화면 폭 바용 프리셋의 진한 덮는 색을 쓰되, 색은 테마 바탕색에 맞춘다.
+ * 블러를 못 쓰는 Android 11 이하에서는 거의 불투명한 바탕색으로 칠해 지나가는 사진이 글자를 방해하지 않는다.
+ */
+@Composable
+private fun rememberPickerGlass(): SurfaceStyle {
+    val colors = FrameKitTheme.colors
+    return remember(colors) {
+        val base = if (colors.isDark) GlassStyles.BarDark else GlassStyles.Bar
+        SurfaceStyle.Glass(
+            base.copy(
+                tint = colors.background.copy(alpha = base.tint.alpha),
+                fallback = colors.background.copy(alpha = base.fallback.alpha),
+                onGlass = colors.foreground,
+            ),
         )
     }
 }
@@ -218,28 +284,6 @@ private fun doneLabel(count: Int): String =
 // ---- 상단 ----
 
 @Composable
-private fun AlbumButton(title: String, expanded: Boolean, onClick: () -> Unit) {
-    val colors = FrameKitTheme.colors
-    val arrow by animateFloatAsState(if (expanded) 180f else 0f, tween(220), label = "album-arrow")
-    Row(
-        Modifier.height(42.dp)
-            .frameKitGlass(CircleShape)
-            .clickable(onClick = onClick)
-            .padding(start = 16.dp, end = 10.dp)
-            .semantics { heading() },
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(title, color = colors.foreground, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.widthIn(max = 180.dp))
-        Icon(
-            Icons.Default.KeyboardArrowDown,
-            contentDescription = stringResource(R.string.framekit_picker_choose_album),
-            tint = colors.foregroundMuted,
-            modifier = Modifier.padding(start = 2.dp).size(20.dp).rotate(arrow),
-        )
-    }
-}
-
-@Composable
 private fun PartialBanner(onManage: () -> Unit) {
     val colors = FrameKitTheme.colors
     Row(
@@ -247,23 +291,20 @@ private fun PartialBanner(onManage: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(stringResource(R.string.framekit_picker_partial), color = colors.foregroundMuted, style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f).padding(vertical = 12.dp))
-        TextButton(onClick = onManage) { Text(stringResource(R.string.framekit_picker_partial_manage), color = colors.accent, fontWeight = FontWeight.SemiBold) }
+        KButton(stringResource(R.string.framekit_picker_partial_manage), onClick = onManage, variant = KVariant.Text, size = KButtonSize.Small)
     }
 }
 
 @Composable
 private fun EmptyState(onSystemPicker: () -> Unit, modifier: Modifier) {
-    val colors = FrameKitTheme.colors
-    Column(modifier.padding(32.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(stringResource(R.string.framekit_picker_empty), color = colors.foregroundMuted, style = MaterialTheme.typography.bodyMedium)
-        Button(
-            onClick = onSystemPicker,
-            modifier = Modifier.padding(top = 16.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = colors.surface, contentColor = colors.foreground),
-        ) {
-            Text(stringResource(R.string.framekit_picker_open_system))
-        }
-    }
+    KEmptyState(
+        title = stringResource(R.string.framekit_picker_empty),
+        modifier = modifier.padding(32.dp),
+        art = { KEmptyIcon(KEmptyIconKind.EmptyInbox) },
+        action = {
+            KButton(stringResource(R.string.framekit_picker_open_system), onClick = onSystemPicker, variant = KVariant.Tonal, tone = KTone.Neutral)
+        },
+    )
 }
 
 // ---- 칸 ----
@@ -277,10 +318,12 @@ private sealed interface GridEntry {
 @Composable
 private fun MediaGrid(
     state: PickerUiState,
+    gridState: LazyGridState,
     multiple: Boolean,
     viewModel: PickerViewModel,
     loader: ThumbnailLoader,
     header: (@Composable () -> Unit)?,
+    topPadding: Dp,
     bottomPadding: Dp,
 ) {
     val items = state.albumItems
@@ -290,7 +333,8 @@ private fun MediaGrid(
     LazyVerticalGrid(
         columns = GridCells.Adaptive(GRID_CELL),
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = GRID_PADDING, end = GRID_PADDING, top = 4.dp, bottom = bottomPadding),
+        state = gridState,
+        contentPadding = PaddingValues(start = GRID_PADDING, end = GRID_PADDING, top = topPadding + 4.dp, bottom = bottomPadding),
         horizontalArrangement = Arrangement.spacedBy(GRID_GAP),
         verticalArrangement = Arrangement.spacedBy(GRID_GAP),
     ) {
@@ -417,14 +461,9 @@ private fun VideoBadge(durationMs: Long, modifier: Modifier) {
 /** 고른 순서 번호. 고르지 않았으면 0. */
 @Composable
 private fun SelectionMark(order: Int, modifier: Modifier, size: Dp = 22.dp) {
-    val colors = FrameKitTheme.colors
-    Box(modifier.size(size), contentAlignment = Alignment.Center) {
-        Box(Modifier.fillMaxSize().clip(CircleShape).background(Color.Black.copy(alpha = 0.18f)).border(1.5.dp, Color.White.copy(alpha = 0.9f), CircleShape))
-        AnimatedVisibility(order > 0, enter = scaleIn(spring(dampingRatio = Spring.DampingRatioMediumBouncy)) + fadeIn(), exit = scaleOut() + fadeOut()) {
-            Box(Modifier.size(size).clip(CircleShape).background(colors.accent), contentAlignment = Alignment.Center) {
-                Text(if (order > 0) "$order" else "", color = colors.onAccent, fontSize = (size.value * 0.52f).sp, fontWeight = FontWeight.Bold, style = CenteredDigits)
-            }
-        }
+    // 선택 상태는 바깥 칸·버튼 설명이 이미 읽으므로 표시가 덧붙이는 상태 낭독은 지운다.
+    Box(modifier.clearAndSetSemantics { }) {
+        KSelectionBadge(order = order, size = size)
     }
 }
 
@@ -455,16 +494,17 @@ private fun ExpandMark(modifier: Modifier) {
 // ---- 앨범 ----
 
 @Composable
-private fun BoxScope.AlbumSheet(state: PickerUiState, loader: ThumbnailLoader, onDismiss: () -> Unit, onSelect: (String) -> Unit) {
+private fun BoxScope.AlbumSheet(state: PickerUiState, loader: ThumbnailLoader, top: Dp, onDismiss: () -> Unit, onSelect: (String) -> Unit) {
     val colors = FrameKitTheme.colors
-    AnimatedVisibility(state.showAlbums, enter = fadeIn(tween(180)), exit = fadeOut(tween(180)), modifier = Modifier.matchParentSize()) {
+    // 어둡게 덮는 막은 바 아래부터 깐다. 바 글래스가 막을 비추면 앨범을 고르는 동안 바까지 어두워진다.
+    AnimatedVisibility(state.showAlbums, enter = fadeIn(tween(180)), exit = fadeOut(tween(180)), modifier = Modifier.matchParentSize().padding(top = top)) {
         Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.5f)).clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, onClick = onDismiss))
     }
     AnimatedVisibility(
         state.showAlbums,
         enter = fadeIn(tween(180)) + slideInVertically(tween(220)) { -it / 6 },
         exit = fadeOut(tween(150)) + slideOutVertically(tween(150)) { -it / 6 },
-        modifier = Modifier.align(Alignment.TopCenter),
+        modifier = Modifier.align(Alignment.TopCenter).padding(top = top).windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom)),
     ) {
         val sizePx = with(LocalDensity.current) { ALBUM_THUMB.roundToPx() }
         LazyColumn(
@@ -860,6 +900,7 @@ private val CORNER_TOUCH = 44.dp
 private val ALBUM_THUMB = 52.dp
 private val TRAY_THUMB = 52.dp
 private val TRAY_HEIGHT = 72.dp
+private val ALBUM_TITLE_MAX_WIDTH = 180.dp
 
 // 넓은 화면에서 목록이 화면 끝까지 늘어나지 않도록 폭을 제한한다.
 private val ALBUM_SHEET_MAX_WIDTH = 440.dp

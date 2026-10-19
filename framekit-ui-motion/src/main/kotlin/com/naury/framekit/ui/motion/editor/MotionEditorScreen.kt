@@ -33,8 +33,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import com.naury.kinetica.ui.KIconButton
+import com.naury.kinetica.ui.KTone
+import com.naury.kinetica.ui.KVariant
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
@@ -392,13 +393,14 @@ private fun PlaybackRow(state: MotionEditorUiState.Ready, viewModel: MotionEdito
     val colors = FrameKitTheme.colors
     val duration = remember(state.displayed, state.sourceDurationMs) { durationOf(state) }
     Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-        IconButton(onClick = viewModel::togglePlayback) {
-            Icon(
-                painterResource(if (state.playing) UiR.drawable.framekit_ic_pause else UiR.drawable.framekit_ic_play),
-                contentDescription = stringResource(if (state.playing) R.string.framekit_motion_pause else R.string.framekit_motion_play),
-                tint = colors.foreground,
-            )
-        }
+        KIconButton(
+            painterResource(if (state.playing) UiR.drawable.framekit_ic_pause else UiR.drawable.framekit_ic_play),
+            stringResource(if (state.playing) R.string.framekit_motion_pause else R.string.framekit_motion_play),
+            viewModel::togglePlayback,
+            variant = KVariant.Text,
+            tone = KTone.Neutral,
+            size = 48.dp,
+        )
         Slider(
             value = state.positionMs.toFloat().coerceIn(0f, duration.toFloat().coerceAtLeast(1f)),
             onValueChange = { viewModel.seekTo(it.toLong()) },

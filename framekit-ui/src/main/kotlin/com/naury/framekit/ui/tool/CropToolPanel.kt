@@ -17,8 +17,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -36,6 +34,9 @@ import com.naury.framekit.core.geometry.CropAspectRatio
 import com.naury.framekit.ui.R
 import com.naury.framekit.ui.component.ChoiceChips
 import com.naury.framekit.ui.design.FrameKitTheme
+import com.naury.kinetica.ui.KIconButton
+import com.naury.kinetica.ui.KTone
+import com.naury.kinetica.ui.KVariant
 
 /**
  * 자르기 도구의 비율 칩과 빠른 회전·뒤집기 버튼. 프레임 자체는 캔버스에서 드래그한다.
@@ -74,21 +75,14 @@ public fun CropToolPanel(
         )
         if (onRotateLeft != null || onRotateRight != null || onFlipHorizontal != null) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
-                val tint = FrameKitTheme.colors.foreground
                 onRotateLeft?.let {
-                    IconButton(onClick = it) {
-                        Icon(painterResource(R.drawable.framekit_ic_rotate_left), stringResource(R.string.framekit_rotate_left), tint = tint)
-                    }
+                    KIconButton(painterResource(R.drawable.framekit_ic_rotate_left), stringResource(R.string.framekit_rotate_left), it, variant = KVariant.Text, tone = KTone.Neutral, size = 48.dp)
                 }
                 onRotateRight?.let {
-                    IconButton(onClick = it) {
-                        Icon(painterResource(R.drawable.framekit_ic_rotate_right), stringResource(R.string.framekit_rotate_right), tint = tint)
-                    }
+                    KIconButton(painterResource(R.drawable.framekit_ic_rotate_right), stringResource(R.string.framekit_rotate_right), it, variant = KVariant.Text, tone = KTone.Neutral, size = 48.dp)
                 }
                 onFlipHorizontal?.let {
-                    IconButton(onClick = it) {
-                        Icon(painterResource(R.drawable.framekit_ic_flip_horizontal), stringResource(R.string.framekit_flip_horizontal), tint = tint)
-                    }
+                    KIconButton(painterResource(R.drawable.framekit_ic_flip_horizontal), stringResource(R.string.framekit_flip_horizontal), it, variant = KVariant.Text, tone = KTone.Neutral, size = 48.dp)
                 }
             }
         }

@@ -36,6 +36,7 @@ kotlin {
 
 dependencies {
     api(project(":framekit-ui"))
+    implementation(libs.kinetica.ui)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)

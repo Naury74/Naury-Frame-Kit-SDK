@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -70,9 +71,7 @@ import com.naury.kinetica.ui.KButton
 import com.naury.kinetica.ui.KDialogAction
 import com.naury.kinetica.ui.KDialogActionStyle
 import com.naury.kinetica.ui.KTone
-import com.naury.kinetica.ui.KTopAppBar
 import com.naury.kinetica.ui.KVariant
-import com.naury.kinetica.ui.rememberKTopAppBarState
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.util.Locale
@@ -96,12 +95,13 @@ fun ResultScreen(outputs: List<EditedMedia>, elapsedMs: Long, onBack: () -> Unit
     // 뷰어는 정지 미리보기가 있는 결과만 넘겨 본다.
     val viewable = outputs.filter { it.hasStillPreview() }
     val viewer = rememberKImageViewerState()
-    Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
-        KTopAppBar(stringResource(R.string.result_count, outputs.size, elapsedMs), state = rememberKTopAppBarState(listState), onBack = onBack)
+    // 목록이 상단 바 아래로 지나가도록 바 높이와 내비게이션 바는 목록 여백으로 받는다.
+    val navigationBar = WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom).asPaddingValues().calculateBottomPadding()
+    BlurBarScaffold(stringResource(R.string.result_count, outputs.size, elapsedMs), listState, onBack) { padding ->
         LazyColumn(
-            modifier = Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal)),
+            modifier = Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal)),
             state = listState,
-            contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 4.dp, bottom = 20.dp),
+            contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = padding.calculateTopPadding() + 4.dp, bottom = navigationBar + 20.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {

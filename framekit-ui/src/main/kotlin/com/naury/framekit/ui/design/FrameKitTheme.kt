@@ -85,7 +85,7 @@ public object FrameKitTheme {
         @Composable get() = LocalFrameKitDesign.current.config
 }
 
-/** [config]에 기술된 에디터 색상, 모양, Material 테마를 적용한다. */
+/** [config]에 기술된 에디터 색상, 모양, Material 테마를 적용하고, 같은 값으로 안쪽 Kinetica 컴포넌트의 테마도 맞춘다. */
 @Composable
 public fun FrameKitTheme(config: EditorUiConfig, content: @Composable () -> Unit) {
     val dark = when (config.themeMode) {
@@ -111,8 +111,9 @@ public fun FrameKitTheme(config: EditorUiConfig, content: @Composable () -> Unit
                 medium = RoundedCornerShape(radius),
                 large = RoundedCornerShape(radius),
             ),
-            content = content,
-        )
+        ) {
+            ProvideKinetica(colors, radius, fontFamily, config.enableHaptics, content)
+        }
     }
 }
 

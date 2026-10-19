@@ -9,29 +9,21 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Switch
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.selection.toggleable
-import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.unit.dp
+import com.naury.kinetica.ui.KSwitch
 import com.naury.framekit.ui.component.ValueSlider
 import com.naury.framekit.ui.design.FrameKitTheme
 import com.naury.framekit.ui.video.R
-import com.naury.framekit.ui.video.timeline.formatTime
 import kotlin.math.roundToInt
 
 /** 선택한 클립의 원본 소리(음소거·볼륨)와 배경 음악·음성 트랙(추가·녹음·볼륨·반복·시작 위치·삭제). */
@@ -127,11 +119,8 @@ private fun SwitchRow(label: String, checked: Boolean, onChange: (Boolean) -> Un
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(label, color = colors.foreground, style = MaterialTheme.typography.labelLarge, modifier = Modifier.weight(1f))
-        Switch(
-            checked = checked,
-            onCheckedChange = null,
-            colors = SwitchDefaults.colors(checkedTrackColor = colors.accent, checkedThumbColor = colors.onAccent),
-        )
+        // 줄이 이미 스위치 역할을 하므로 안쪽 스위치는 화면 읽기 프로그램에 따로 드러내지 않는다.
+        KSwitch(checked = checked, onCheckedChange = onChange, modifier = Modifier.clearAndSetSemantics {})
     }
 }
 

@@ -5,16 +5,13 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -30,6 +27,7 @@ import com.naury.framekit.core.video.AudioRole
 import com.naury.framekit.ui.component.ValueSlider
 import com.naury.framekit.ui.design.FrameKitTheme
 import com.naury.framekit.ui.video.R
+import com.naury.kinetica.ui.KLabeledIconButton
 import java.util.Locale
 import kotlin.math.roundToInt
 import com.naury.framekit.ui.R as UiR
@@ -154,12 +152,7 @@ private fun OriginalSelectionPanel(state: VideoEditorUiState.Ready, viewModel: V
 
 @Composable
 private fun ActionButton(icon: Painter, label: String, tint: Color, onClick: () -> Unit) {
-    TextButton(onClick = onClick) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(20.dp))
-            Text(label, color = tint, style = MaterialTheme.typography.labelSmall, maxLines = 1)
-        }
-    }
+    KLabeledIconButton(icon, label, onClick, tint = tint)
 }
 
 private const val MAX_FADE_US = 5_000_000L

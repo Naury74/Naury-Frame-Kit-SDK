@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
@@ -31,7 +30,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -57,6 +55,10 @@ import com.naury.framekit.ui.R
 import com.naury.framekit.ui.component.ValueSlider
 import com.naury.framekit.ui.component.horizontalFadingEdges
 import com.naury.framekit.ui.design.FrameKitTheme
+import com.naury.kinetica.ui.KButton
+import com.naury.kinetica.ui.KButtonSize
+import com.naury.kinetica.ui.KTone
+import com.naury.kinetica.ui.KVariant
 import kotlin.math.roundToInt
 
 /**
@@ -95,11 +97,15 @@ public fun WatermarkToolPanel(
                 modifier = Modifier.weight(1f),
             )
             if (onRemove != null) {
-                TextButton(onClick = onRemove, modifier = Modifier.padding(start = 4.dp)) {
-                    Icon(Icons.Filled.Delete, contentDescription = null, tint = colors.foregroundMuted, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(4.dp))
-                    Text(stringResource(R.string.framekit_watermark_remove), color = colors.foregroundMuted)
-                }
+                KButton(
+                    stringResource(R.string.framekit_watermark_remove),
+                    onClick = onRemove,
+                    modifier = Modifier.padding(start = 4.dp),
+                    variant = KVariant.Text,
+                    tone = KTone.Neutral,
+                    size = KButtonSize.Small,
+                    icon = Icons.Filled.Delete,
+                )
             }
         }
         if (suggestions.isNotEmpty()) SuggestionRow(suggestions, watermark.text) { text -> onChange { it.copy(text = text) } }

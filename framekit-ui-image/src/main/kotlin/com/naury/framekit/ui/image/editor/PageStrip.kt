@@ -24,7 +24,6 @@ import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -42,6 +41,9 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.naury.framekit.ui.design.FrameKitTheme
 import com.naury.framekit.ui.image.R
+import com.naury.kinetica.ui.KIconButton
+import com.naury.kinetica.ui.KTone
+import com.naury.kinetica.ui.KVariant
 
 /**
  * 여러 장 편집의 쪽 목록. 썸네일을 눌러 사진을 바꾸고, 지금 사진을 앞뒤로 옮기거나 빼고, 사진을 더한다.
@@ -130,8 +132,5 @@ internal fun PageStrip(
 
 @Composable
 private fun PageAction(icon: ImageVector, label: Int, enabled: Boolean, onClick: () -> Unit) {
-    val colors = FrameKitTheme.colors
-    IconButton(onClick = onClick, enabled = enabled) {
-        Icon(icon, contentDescription = stringResource(label), tint = if (enabled) colors.foreground else colors.foregroundMuted.copy(alpha = 0.4f))
-    }
+    KIconButton(icon, stringResource(label), onClick, variant = KVariant.Text, tone = KTone.Neutral, size = 48.dp, enabled = enabled)
 }

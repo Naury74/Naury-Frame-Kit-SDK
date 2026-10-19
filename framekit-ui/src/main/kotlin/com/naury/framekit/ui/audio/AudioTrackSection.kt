@@ -6,22 +6,18 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
@@ -29,6 +25,11 @@ import androidx.compose.ui.unit.dp
 import com.naury.framekit.ui.R
 import com.naury.framekit.ui.component.ValueSlider
 import com.naury.framekit.ui.design.FrameKitTheme
+import com.naury.kinetica.ui.KButton
+import com.naury.kinetica.ui.KButtonSize
+import com.naury.kinetica.ui.KIconButton
+import com.naury.kinetica.ui.KSwitch
+import com.naury.kinetica.ui.KVariant
 import java.util.Locale
 import kotlin.math.roundToInt
 
@@ -82,15 +83,15 @@ public fun AudioTrackSection(
         )
         if (track == null) {
             Row(Modifier.padding(horizontal = 8.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                TextButton(onClick = onAddFile, enabled = !busy) {
-                    Icon(Icons.Filled.Add, contentDescription = null, tint = colors.accent)
-                    Text(addLabel, color = colors.accent, modifier = Modifier.padding(start = 6.dp))
-                }
+                KButton(addLabel, onClick = onAddFile, variant = KVariant.Text, icon = Icons.Filled.Add, enabled = !busy)
                 if (onRecord != null) {
-                    TextButton(onClick = onRecord, enabled = !busy) {
-                        Icon(painterResource(R.drawable.framekit_ic_mic), contentDescription = null, tint = colors.accent, modifier = Modifier.size(20.dp))
-                        Text(stringResource(R.string.framekit_voice_record), color = colors.accent, modifier = Modifier.padding(start = 6.dp))
-                    }
+                    KButton(
+                        stringResource(R.string.framekit_voice_record),
+                        onClick = onRecord,
+                        variant = KVariant.Text,
+                        icon = ImageVector.vectorResource(R.drawable.framekit_ic_mic),
+                        enabled = !busy,
+                    )
                 }
             }
             return@Column
@@ -104,15 +105,25 @@ public fun AudioTrackSection(
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f),
             )
-            TextButton(onClick = onAddFile, enabled = !busy) { Text(stringResource(R.string.framekit_track_replace), color = colors.accent) }
+            KButton(stringResource(R.string.framekit_track_replace), onClick = onAddFile, variant = KVariant.Text, size = KButtonSize.Small, enabled = !busy)
             if (onRecord != null) {
-                IconButton(onClick = onRecord, enabled = !busy) {
-                    Icon(painterResource(R.drawable.framekit_ic_mic), contentDescription = stringResource(R.string.framekit_voice_record), tint = colors.accent)
-                }
+                KIconButton(
+                    painterResource(R.drawable.framekit_ic_mic),
+                    stringResource(R.string.framekit_voice_record),
+                    onRecord,
+                    variant = KVariant.Text,
+                    size = 48.dp,
+                    enabled = !busy,
+                )
             }
-            IconButton(onClick = onRemove) {
-                Icon(Icons.Filled.Delete, contentDescription = stringResource(R.string.framekit_track_remove), tint = colors.foregroundMuted)
-            }
+            KIconButton(
+                Icons.Filled.Delete,
+                stringResource(R.string.framekit_track_remove),
+                onRemove,
+                variant = KVariant.Text,
+                size = 48.dp,
+                contentColor = colors.foregroundMuted,
+            )
         }
         ValueSlider(
             label = stringResource(R.string.framekit_track_volume),
@@ -139,11 +150,11 @@ public fun AudioTrackSection(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(stringResource(R.string.framekit_track_loop), color = colors.foreground, style = MaterialTheme.typography.labelLarge, modifier = Modifier.weight(1f))
-            Switch(checked = track.loop, onCheckedChange = null, colors = SwitchDefaults.colors(checkedTrackColor = colors.accent, checkedThumbColor = colors.onAccent))
+            KSwitch(checked = track.loop, onCheckedChange = null)
         }
         Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
             Text(formatAudioTime(track.startUs), color = colors.foregroundMuted, style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(start = 8.dp).weight(1f))
-            TextButton(onClick = onStartHere) { Text(stringResource(R.string.framekit_track_start_here), color = colors.accent) }
+            KButton(stringResource(R.string.framekit_track_start_here), onClick = onStartHere, variant = KVariant.Text, size = KButtonSize.Small)
         }
     }
 }

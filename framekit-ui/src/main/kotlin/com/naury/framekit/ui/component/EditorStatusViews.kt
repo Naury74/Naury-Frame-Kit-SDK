@@ -1,15 +1,16 @@
 package com.naury.framekit.ui.component
 
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import com.naury.kinetica.ui.KButton
+import com.naury.kinetica.ui.KLoadingIndicator
+import com.naury.kinetica.ui.KTone
+import com.naury.kinetica.ui.KVariant
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -28,8 +29,9 @@ public fun EditorLoadingView(modifier: Modifier = Modifier) {
     val colors = FrameKitTheme.colors
     Box(modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            CircularProgressIndicator(color = colors.accent)
-            Text(stringResource(R.string.framekit_loading), color = colors.foregroundMuted)
+            val label = stringResource(R.string.framekit_loading)
+            KLoadingIndicator(label = label)
+            Text(label, color = colors.foregroundMuted, modifier = Modifier.clearAndSetSemantics {})
         }
     }
 }
@@ -52,12 +54,9 @@ public fun EditorErrorView(
                 textAlign = TextAlign.Center,
             )
             if (onChooseAnother != null) {
-                Button(
-                    onClick = onChooseAnother,
-                    colors = ButtonDefaults.buttonColors(containerColor = colors.accent, contentColor = colors.onAccent),
-                ) { Text(stringResource(R.string.framekit_action_choose_another)) }
+                KButton(stringResource(R.string.framekit_action_choose_another), onClick = onChooseAnother)
             }
-            OutlinedButton(onClick = onClose) { Text(stringResource(R.string.framekit_action_close), color = colors.foreground) }
+            KButton(stringResource(R.string.framekit_action_close), onClick = onClose, variant = KVariant.Tonal, tone = KTone.Neutral)
         }
     }
 }

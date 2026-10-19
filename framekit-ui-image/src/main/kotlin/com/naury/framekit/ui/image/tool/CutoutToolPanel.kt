@@ -16,13 +16,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -47,6 +42,11 @@ import com.naury.framekit.ui.component.FrameKitDialog
 import com.naury.framekit.ui.design.FrameKitTheme
 import com.naury.framekit.ui.image.R
 import com.naury.framekit.ui.image.editor.CutoutStatus
+import com.naury.kinetica.ui.KButton
+import com.naury.kinetica.ui.KProgressBar
+import com.naury.kinetica.ui.KProgressRing
+import com.naury.kinetica.ui.KTone
+import com.naury.kinetica.ui.KVariant
 import kotlin.math.roundToInt
 import com.naury.framekit.ui.R as UiR
 
@@ -74,11 +74,7 @@ internal fun CutoutToolPanel(
                 title = stringResource(R.string.framekit_cutout_model_title),
                 body = stringResource(R.string.framekit_cutout_model_body),
             ) {
-                Button(
-                    onClick = onDownloadModel,
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(containerColor = colors.accent, contentColor = colors.onAccent),
-                ) { Text(stringResource(R.string.framekit_cutout_model_download), fontWeight = FontWeight.SemiBold) }
+                KButton(stringResource(R.string.framekit_cutout_model_download), onClick = onDownloadModel, fullWidth = true)
             }
             status is CutoutStatus.ModelDownloading -> DownloadProgress(status)
             status is CutoutStatus.ModelDownloadFailed -> {
@@ -87,9 +83,7 @@ internal fun CutoutToolPanel(
                     color = colors.error,
                     style = MaterialTheme.typography.bodyMedium,
                 )
-                OutlinedButton(onClick = onRetryDownload, modifier = Modifier.fillMaxWidth()) {
-                    Text(stringResource(UiR.string.framekit_action_retry), color = colors.foreground)
-                }
+                KButton(stringResource(UiR.string.framekit_action_retry), onClick = onRetryDownload, variant = KVariant.Tonal, tone = KTone.Neutral, fullWidth = true)
             }
             // 다시 눌러도 같은 결과이므로 버튼 대신 안내만 둔다. 이미 적용한 배경 제거는 복원 버튼으로 끌 수 있다.
             (status == CutoutStatus.DeviceUnsupported || status == CutoutStatus.NoPlayServices) && !applied -> Text(
@@ -99,20 +93,10 @@ internal fun CutoutToolPanel(
             )
             // 이미 지운 사진이면 다시 지우거나 원래 배경으로 되돌릴 수 있게 둘 다 보여 준다.
             applied -> {
-                Button(
-                    onClick = onRemove,
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(containerColor = colors.accent, contentColor = colors.onAccent),
-                ) { Text(stringResource(R.string.framekit_cutout_remove_again)) }
-                OutlinedButton(onClick = onRestore, modifier = Modifier.fillMaxWidth()) {
-                    Text(stringResource(R.string.framekit_cutout_restore), color = colors.foreground)
-                }
+                KButton(stringResource(R.string.framekit_cutout_remove_again), onClick = onRemove, fullWidth = true)
+                KButton(stringResource(R.string.framekit_cutout_restore), onClick = onRestore, variant = KVariant.Tonal, tone = KTone.Neutral, fullWidth = true)
             }
-            else -> Button(
-                onClick = onRemove,
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(containerColor = colors.accent, contentColor = colors.onAccent),
-            ) { Text(stringResource(R.string.framekit_cutout_remove)) }
+            else -> KButton(stringResource(R.string.framekit_cutout_remove), onClick = onRemove, fullWidth = true)
         }
         if (status is CutoutStatus.Failed) {
             Text(
@@ -131,7 +115,7 @@ private fun ProgressRow(text: String) {
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
     ) {
-        CircularProgressIndicator(color = FrameKitTheme.colors.accent, modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+        KProgressRing(progress = null, modifier = Modifier.size(24.dp), thickness = 2.dp)
         Text(text, color = FrameKitTheme.colors.foreground)
     }
 }
@@ -174,9 +158,9 @@ private fun DownloadProgress(status: CutoutStatus.ModelDownloading) {
         }
         // 크기를 아직 모르거나 설치 중이면 끝을 알 수 없는 막대로 보여 준다.
         if (fraction != null && !status.installing) {
-            LinearProgressIndicator(progress = { fraction }, color = colors.accent, trackColor = colors.background, modifier = Modifier.fillMaxWidth())
+            KProgressBar(progress = fraction, modifier = Modifier.fillMaxWidth(), thickness = 4.dp)
         } else {
-            LinearProgressIndicator(color = colors.accent, trackColor = colors.background, modifier = Modifier.fillMaxWidth())
+            KProgressBar(progress = null, modifier = Modifier.fillMaxWidth(), thickness = 4.dp)
         }
         if (status.total > 0) {
             Text(

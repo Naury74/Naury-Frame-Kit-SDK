@@ -4,7 +4,6 @@ import kotlin.math.roundToInt
 import com.naury.framekit.motion.model.MotionAudio
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
-import androidx.compose.material3.TextButton
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Refresh
 import com.naury.framekit.android.input.MediaKind
@@ -21,7 +20,6 @@ import androidx.compose.ui.platform.LocalContext
 import android.graphics.Bitmap
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -41,11 +39,16 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.annotation.StringRes
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import com.naury.kinetica.ui.KButton
+import com.naury.kinetica.ui.KIconButton
+import com.naury.kinetica.ui.KLabeledIconButton
+import com.naury.kinetica.ui.KTone
+import com.naury.kinetica.ui.KVariant
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -317,12 +320,7 @@ private fun SelectedAudioControls(audio: MotionAudio, viewModel: MotionEditorVie
 
 @Composable
 private fun SmallAction(icon: androidx.compose.ui.graphics.painter.Painter, label: String, tint: androidx.compose.ui.graphics.Color, onClick: () -> Unit) {
-    TextButton(onClick = onClick) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(20.dp))
-            Text(label, color = tint, style = MaterialTheme.typography.labelSmall, maxLines = 1)
-        }
-    }
+    KLabeledIconButton(icon, label, onClick, tint = tint)
 }
 
 /** 텍스트·스티커의 움직임 고르기. */
@@ -340,14 +338,14 @@ internal fun StickerSelection(selected: MotionOverlay?, viewModel: MotionEditorV
         return
     }
     OverlayAnimationChips(selected.animation, viewModel::setOverlayAnimation)
-    OutlinedButton(
+    KButton(
+        text = stringResource(R.string.framekit_motion_delete_item),
         onClick = viewModel::deleteSelectedOverlay,
-        border = BorderStroke(1.dp, FrameKitTheme.colors.raised),
         modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
-    ) {
-        Icon(Icons.Filled.Delete, contentDescription = null, tint = FrameKitTheme.colors.error, modifier = Modifier.size(18.dp))
-        Text(stringResource(R.string.framekit_motion_delete_item), color = FrameKitTheme.colors.foreground, modifier = Modifier.padding(start = 6.dp))
-    }
+        variant = KVariant.Tonal,
+        tone = KTone.Destructive,
+        icon = Icons.Filled.Delete,
+    )
 }
 
 /** 슬라이드쇼의 사진 목록. 눌러서 그 사진으로 옮기고, 추가·순서 바꾸기·빼기를 한다. */
@@ -369,15 +367,9 @@ internal fun SlideStrip(state: MotionEditorUiState.Ready, viewModel: MotionEdito
                 style = MaterialTheme.typography.labelMedium,
                 modifier = Modifier.weight(1f),
             )
-            IconButton(onClick = { viewModel.moveSlide(-1) }, enabled = enabled && state.selectedSlide > 0) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.framekit_motion_slide_earlier), tint = colors.foreground)
-            }
-            IconButton(onClick = { viewModel.moveSlide(1) }, enabled = enabled && state.selectedSlide < ids.lastIndex) {
-                Icon(Icons.AutoMirrored.Filled.ArrowForward, stringResource(R.string.framekit_motion_slide_later), tint = colors.foreground)
-            }
-            IconButton(onClick = viewModel::removeSlide, enabled = enabled && ids.size > 1) {
-                Icon(Icons.Filled.Delete, stringResource(R.string.framekit_motion_slide_remove), tint = colors.foreground)
-            }
+            SlideAction(Icons.AutoMirrored.Filled.ArrowBack, R.string.framekit_motion_slide_earlier, enabled && state.selectedSlide > 0) { viewModel.moveSlide(-1) }
+            SlideAction(Icons.AutoMirrored.Filled.ArrowForward, R.string.framekit_motion_slide_later, enabled && state.selectedSlide < ids.lastIndex) { viewModel.moveSlide(1) }
+            SlideAction(Icons.Filled.Delete, R.string.framekit_motion_slide_remove, enabled && ids.size > 1, viewModel::removeSlide)
         }
         val scroll = rememberScrollState()
         Row(
@@ -396,6 +388,11 @@ internal fun SlideStrip(state: MotionEditorUiState.Ready, viewModel: MotionEdito
             }
         }
     }
+}
+
+@Composable
+private fun SlideAction(icon: ImageVector, @StringRes label: Int, enabled: Boolean, onClick: () -> Unit) {
+    KIconButton(icon, stringResource(label), onClick, variant = KVariant.Text, tone = KTone.Neutral, size = 48.dp, enabled = enabled)
 }
 
 @Composable

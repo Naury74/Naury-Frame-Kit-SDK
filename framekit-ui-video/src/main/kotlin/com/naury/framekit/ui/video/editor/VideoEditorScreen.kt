@@ -20,7 +20,10 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material3.CircularProgressIndicator
+import com.naury.kinetica.ui.KIconButton
+import com.naury.kinetica.ui.KProgressRing
+import com.naury.kinetica.ui.KTone
+import com.naury.kinetica.ui.KVariant
 import androidx.compose.foundation.layout.size
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -69,8 +72,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.wrapContentWidth
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
@@ -400,13 +401,14 @@ private fun PlaybackRow(state: VideoEditorUiState.Ready, viewModel: VideoEditorV
     val colors = FrameKitTheme.colors
     val playback by viewModel.playback.collectAsStateWithLifecycle()
     Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-        IconButton(onClick = viewModel::togglePlayback) {
-            Icon(
-                painterResource(if (playback.isPlaying) UiR.drawable.framekit_ic_pause else UiR.drawable.framekit_ic_play),
-                contentDescription = stringResource(if (playback.isPlaying) R.string.framekit_pause else R.string.framekit_play),
-                tint = colors.foreground,
-            )
-        }
+        KIconButton(
+            painterResource(if (playback.isPlaying) UiR.drawable.framekit_ic_pause else UiR.drawable.framekit_ic_play),
+            stringResource(if (playback.isPlaying) R.string.framekit_pause else R.string.framekit_play),
+            viewModel::togglePlayback,
+            variant = KVariant.Text,
+            tone = KTone.Neutral,
+            size = 48.dp,
+        )
         Text(
             stringResource(R.string.framekit_time_position, formatTime(playback.positionUs), formatTime(state.durationUs)),
             color = colors.foregroundMuted,
@@ -416,13 +418,15 @@ private fun PlaybackRow(state: VideoEditorUiState.Ready, viewModel: VideoEditorV
         // 소리 도구를 열지 않고도 바로 음소거할 수 있게 재생 줄에 둔다. 한 번 누를 때마다 실행 취소 한 단계다.
         if (state.source.metadata.hasAudio && VideoTool.AUDIO in viewModel.config.enabledTools && state.export == null) {
             val muted = state.clip.muted
-            IconButton(onClick = { viewModel.setMuted(!muted) }, enabled = !state.transaction.isActive) {
-                Icon(
-                    painterResource(if (muted) UiR.drawable.framekit_ic_volume_off else UiR.drawable.framekit_ic_volume),
-                    contentDescription = stringResource(if (muted) R.string.framekit_audio_unmute else R.string.framekit_audio_mute),
-                    tint = if (muted) colors.accent else colors.foreground,
-                )
-            }
+            KIconButton(
+                painterResource(if (muted) UiR.drawable.framekit_ic_volume_off else UiR.drawable.framekit_ic_volume),
+                stringResource(if (muted) R.string.framekit_audio_unmute else R.string.framekit_audio_mute),
+                { viewModel.setMuted(!muted) },
+                variant = KVariant.Text,
+                tone = if (muted) KTone.Accent else KTone.Neutral,
+                size = 48.dp,
+                enabled = !state.transaction.isActive,
+            )
         }
     }
 }
@@ -560,7 +564,6 @@ private fun TimelineRow(state: VideoEditorUiState.Ready, viewModel: VideoEditorV
 @Composable
 private fun ClipActionBar(state: VideoEditorUiState.Ready, viewModel: VideoEditorViewModel) {
     if (!viewModel.multiClip) return
-    val colors = FrameKitTheme.colors
     val picker = rememberLauncherForActivityResult(
         ActivityResultContracts.PickMultipleVisualMedia(maxOf(2, VideoEditorConfig.MAX_CLIPS)),
     ) { uris -> viewModel.addClips(uris) }
@@ -574,7 +577,7 @@ private fun ClipActionBar(state: VideoEditorUiState.Ready, viewModel: VideoEdito
         ClipAction(Icons.AutoMirrored.Filled.ArrowBack, R.string.framekit_clip_move_left, enabled && index > 0) { viewModel.moveSelectedClip(-1) }
         ClipAction(Icons.AutoMirrored.Filled.ArrowForward, R.string.framekit_clip_move_right, enabled && index in 0 until state.clips.size - 1) { viewModel.moveSelectedClip(1) }
         ClipAction(Icons.Filled.Delete, R.string.framekit_clip_delete, enabled && state.clips.size > 1, viewModel::deleteSelectedClip)
-        if (state.busy) CircularProgressIndicator(Modifier.size(20.dp), color = colors.accent, strokeWidth = 2.dp)
+        if (state.busy) KProgressRing(progress = null, modifier = Modifier.size(20.dp), thickness = 2.dp)
     }
 }
 
@@ -584,10 +587,7 @@ private fun ClipAction(icon: ImageVector, label: Int, enabled: Boolean, onClick:
 
 @Composable
 private fun ClipAction(icon: Painter, label: Int, enabled: Boolean, onClick: () -> Unit) {
-    val colors = FrameKitTheme.colors
-    IconButton(onClick = onClick, enabled = enabled) {
-        Icon(icon, contentDescription = stringResource(label), tint = if (enabled) colors.foreground else colors.foregroundMuted.copy(alpha = 0.4f))
-    }
+    KIconButton(icon, stringResource(label), onClick, variant = KVariant.Text, tone = KTone.Neutral, size = 48.dp, enabled = enabled)
 }
 
 @Composable

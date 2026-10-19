@@ -32,11 +32,14 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import com.naury.kinetica.ui.KButton
+import com.naury.kinetica.ui.KIconButton
+import com.naury.kinetica.ui.KLabeledIconButton
+import com.naury.kinetica.ui.KTone
+import com.naury.kinetica.ui.KVariant
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -256,11 +259,17 @@ private fun PlaybackRow(state: AudioEditorUiState.Ready, viewModel: AudioEditorV
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (viewModel.config.allowUndo) {
-            IconButton(onClick = viewModel::undo, enabled = history.canUndo && !state.transaction.isActive) {
-                Icon(painterResource(UiR.drawable.framekit_ic_undo), stringResource(R.string.framekit_audio_undo), tint = if (history.canUndo) colors.foreground else colors.foregroundMuted.copy(alpha = 0.4f))
-            }
+            KIconButton(
+                painterResource(UiR.drawable.framekit_ic_undo),
+                stringResource(R.string.framekit_audio_undo),
+                viewModel::undo,
+                variant = KVariant.Text,
+                tone = KTone.Neutral,
+                size = 48.dp,
+                enabled = history.canUndo && !state.transaction.isActive,
+            )
         }
-        TextButton(onClick = { viewModel.skip(-SKIP_US) }) { Text("−5s", color = colors.foreground, style = MaterialTheme.typography.labelLarge) }
+        KButton("−5s", onClick = { viewModel.skip(-SKIP_US) }, variant = KVariant.Text, tone = KTone.Neutral)
         Box(
             Modifier
                 .size(64.dp)
@@ -276,11 +285,17 @@ private fun PlaybackRow(state: AudioEditorUiState.Ready, viewModel: AudioEditorV
                 modifier = Modifier.size(30.dp),
             )
         }
-        TextButton(onClick = { viewModel.skip(SKIP_US) }) { Text("+5s", color = colors.foreground, style = MaterialTheme.typography.labelLarge) }
+        KButton("+5s", onClick = { viewModel.skip(SKIP_US) }, variant = KVariant.Text, tone = KTone.Neutral)
         if (viewModel.config.allowRedo) {
-            IconButton(onClick = viewModel::redo, enabled = history.canRedo && !state.transaction.isActive) {
-                Icon(painterResource(UiR.drawable.framekit_ic_redo), stringResource(R.string.framekit_audio_redo), tint = if (history.canRedo) colors.foreground else colors.foregroundMuted.copy(alpha = 0.4f))
-            }
+            KIconButton(
+                painterResource(UiR.drawable.framekit_ic_redo),
+                stringResource(R.string.framekit_audio_redo),
+                viewModel::redo,
+                variant = KVariant.Text,
+                tone = KTone.Neutral,
+                size = 48.dp,
+                enabled = history.canRedo && !state.transaction.isActive,
+            )
         }
     }
 }
@@ -420,12 +435,7 @@ private fun PillButton(icon: Painter, label: String, container: Color, content: 
 
 @Composable
 private fun SmallAction(icon: Painter, label: String, tint: Color, onClick: () -> Unit) {
-    TextButton(onClick = onClick) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(20.dp))
-            Text(label, color = tint, style = MaterialTheme.typography.labelSmall, maxLines = 1)
-        }
-    }
+    KLabeledIconButton(icon, label, onClick, tint = tint)
 }
 
 private const val SKIP_US = 5_000_000L

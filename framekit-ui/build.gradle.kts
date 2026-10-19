@@ -33,6 +33,8 @@ dependencies {
     api(libs.androidx.compose.foundation)
     api(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.material.icons.core)
+    // 버튼, 스위치, 진행 표시 같은 일반 컨트롤을 그린다. 공개 API에는 Kinetica 타입을 드러내지 않는다.
+    implementation(libs.kinetica.ui)
     api(libs.androidx.window)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.androidx.activity.compose)

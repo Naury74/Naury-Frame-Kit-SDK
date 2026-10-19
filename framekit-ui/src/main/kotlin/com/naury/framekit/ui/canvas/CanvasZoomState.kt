@@ -6,8 +6,6 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
@@ -24,6 +22,10 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.naury.framekit.ui.R
 import com.naury.framekit.ui.design.FrameKitTheme
+import com.naury.kinetica.ui.KButton
+import com.naury.kinetica.ui.KButtonSize
+import com.naury.kinetica.ui.KTone
+import com.naury.kinetica.ui.KVariant
 import kotlinx.coroutines.launch
 import kotlin.math.min
 import kotlin.math.roundToInt
@@ -131,10 +133,12 @@ public fun ZoomResetButton(state: CanvasZoomState, modifier: Modifier = Modifier
     if (!state.isZoomed) return
     val colors = FrameKitTheme.colors
     val scope = rememberCoroutineScope()
-    TextButton(
+    KButton(
+        stringResource(R.string.framekit_zoom_fit, (state.zoom * 100).roundToInt()),
         onClick = { scope.launch { state.animateTo(1f, Offset.Zero) } },
         modifier = modifier.padding(8.dp).background(colors.surface.copy(alpha = 0.86f), MaterialTheme.shapes.small),
-    ) {
-        Text(stringResource(R.string.framekit_zoom_fit, (state.zoom * 100).roundToInt()), color = colors.foreground)
-    }
+        variant = KVariant.Text,
+        tone = KTone.Neutral,
+        size = KButtonSize.Small,
+    )
 }

@@ -7,8 +7,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalResources
@@ -17,8 +15,10 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.naury.framekit.core.geometry.GeometryEdit
 import com.naury.framekit.ui.component.DialSlider
-import com.naury.framekit.ui.design.FrameKitTheme
 import com.naury.framekit.ui.R
+import com.naury.kinetica.ui.KIconButton
+import com.naury.kinetica.ui.KTone
+import com.naury.kinetica.ui.KVariant
 import java.util.Locale
 
 /** 90° 회전, 뒤집기, 수평 보정 슬라이더. */
@@ -60,7 +60,5 @@ public fun RotateToolPanel(
 
 @Composable
 private fun ToolIconButton(@DrawableRes icon: Int, @StringRes label: Int, onClick: () -> Unit) {
-    IconButton(onClick = onClick) {
-        Icon(painterResource(icon), contentDescription = stringResource(label), tint = FrameKitTheme.colors.foreground)
-    }
+    KIconButton(painterResource(icon), stringResource(label), onClick, variant = KVariant.Text, tone = KTone.Neutral, size = 48.dp)
 }

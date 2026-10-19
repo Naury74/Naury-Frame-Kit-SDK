@@ -7,11 +7,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -20,12 +16,15 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.BorderStroke
 import com.naury.framekit.core.document.ScanMode
 import com.naury.framekit.ui.component.ChoiceChips
 import com.naury.framekit.ui.design.FrameKitTheme
 import com.naury.framekit.ui.image.R
 import com.naury.framekit.ui.image.editor.DocumentBatch
+import com.naury.kinetica.ui.KButton
+import com.naury.kinetica.ui.KProgressRing
+import com.naury.kinetica.ui.KTone
+import com.naury.kinetica.ui.KVariant
 
 /**
  * 문서 보정 도구의 안내와 버튼. 모서리는 캔버스에서 끌어 맞춘다.
@@ -52,7 +51,7 @@ internal fun DocumentToolPanel(
     Column(modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
         if (busy) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.heightIn(min = 48.dp)) {
-                CircularProgressIndicator(color = colors.accent, strokeWidth = 2.dp, modifier = Modifier.size(18.dp))
+                KProgressRing(progress = null, modifier = Modifier.size(18.dp), thickness = 2.dp)
                 val label = if (batch != null) {
                     stringResource(R.string.framekit_document_scanning_pages, minOf(batch.done + 1, batch.total), batch.total)
                 } else {
@@ -92,27 +91,19 @@ internal fun DocumentToolPanel(
         }
         if (pageCount > 1) {
             // 지금 쪽은 맞춘 모서리로, 나머지 쪽은 자동으로 찾아 같은 스캔 방식으로 편다.
-            Button(
+            KButton(
+                pluralStringResource(R.plurals.framekit_document_scan_all, pageCount, pageCount),
                 onClick = onScanAll,
-                modifier = Modifier.fillMaxWidth().padding(top = 8.dp).heightIn(min = 44.dp),
-                shape = MaterialTheme.shapes.medium,
-                colors = ButtonDefaults.buttonColors(containerColor = colors.raised, contentColor = colors.foreground),
-            ) {
-                Text(pluralStringResource(R.plurals.framekit_document_scan_all, pageCount, pageCount), style = MaterialTheme.typography.labelLarge, maxLines = 1)
-            }
+                modifier = Modifier.padding(top = 8.dp).heightIn(min = 44.dp),
+                variant = KVariant.Tonal,
+                tone = KTone.Neutral,
+                fullWidth = true,
+            )
         }
     }
 }
 
 @Composable
 private fun PanelButton(label: String, onClick: () -> Unit, modifier: Modifier) {
-    val colors = FrameKitTheme.colors
-    OutlinedButton(
-        onClick = onClick,
-        modifier = modifier.heightIn(min = 44.dp),
-        shape = MaterialTheme.shapes.medium,
-        border = BorderStroke(1.dp, colors.raised),
-    ) {
-        Text(label, color = colors.foreground, style = MaterialTheme.typography.labelLarge, maxLines = 1)
-    }
+    KButton(label, onClick = onClick, modifier = modifier.heightIn(min = 44.dp), variant = KVariant.Tonal, tone = KTone.Neutral)
 }
