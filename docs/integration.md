@@ -130,6 +130,21 @@ editor.launch(FrameKitRequest(input, chooser = EditorChooser.ASK, chooserActions
 - 시트를 닫으면 `Cancelled`입니다. 카메라 촬영(`Capture`)은 시트 없이 바로 엽니다.
 - **편집 없이 보내기**는 원본을 그대로 `Success`로 돌려줍니다. 각 `EditedMedia`의 `isOriginal`이 `true`이고, `uri`는 넘긴(또는 고른) 원본 그대로입니다. 사진 선택기로 고른 원본의 읽기 권한은 앱 프로세스가 끝나면 사라질 수 있으니, 오래 쓰려면 복사해 두세요.
 
+## 앱 전용 필터, 스티커, 폰트
+
+앱에서 만든 필터와 스티커, 폰트를 편집기 목록에 더할 수 있습니다.
+
+```kotlin
+FrameKitRequest(
+    EditorInput.Pick(MediaKind.ANY),
+    catalog = EditorCatalog(
+        filters = listOf(CustomFilter("brand-warm", "Warm", temperature = 0.4)),
+        stickers = listOf(CustomSticker("logo", "Logo", CatalogFile.Asset("stickers/logo.png"))),
+        fonts = listOf(CustomFont("brand", "Brand", CatalogFile.Asset("fonts/brand.ttf"))),
+    ),
+)
+```
+
 ## 결과
 
 `FrameKitResult`는 한 번의 실행에 정확히 한 번 전달됩니다.
