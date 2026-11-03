@@ -81,6 +81,8 @@ public class Media3VideoPreviewEngine(context: Context, private val scope: Corou
     override val state: StateFlow<VideoPlaybackState> = _state.asStateFlow()
     private var poller: Job? = null
     private var released = false
+    private var attachedSurface: Surface? = null
+    private var attachedSize: Size? = null
 
     // 지금 계획의 출력 길이(µs). 끝에 닿은 뒤 플레이어가 이보다 큰 위치를 알려 줘도 이 안으로 맞춘다.
     private var planDurationUs = 0L
@@ -143,11 +145,25 @@ public class Media3VideoPreviewEngine(context: Context, private val scope: Corou
     }
 
     override fun attachSurface(surface: Surface, width: Int, height: Int) {
-        if (!released && width > 0 && height > 0) player.setVideoSurface(surface, Size(width, height))
+        if (released || width <= 0 || height <= 0) return
+        val size = Size(width, height)
+        val resized = surface == attachedSurface && size != attachedSize
+        attachedSurface = surface
+        attachedSize = size
+        // 같은 surface에 크기만 바꾸면 버퍼는 예전 크기로 남아 화면이 한쪽으로 몰린다. 떼었다 붙여 새 크기로 만들고,
+        // 멈춘 상태에서는 새 프레임이 오지 않으므로 지금 위치를 다시 그린다.
+        if (resized) player.clearVideoSurface(surface)
+        player.setVideoSurface(surface, size)
+        if (resized && !player.isPlaying) player.seekTo(player.currentPosition)
     }
 
     override fun detachSurface(surface: Surface) {
-        if (!released) player.clearVideoSurface(surface)
+        if (released) return
+        if (surface == attachedSurface) {
+            attachedSurface = null
+            attachedSize = null
+        }
+        player.clearVideoSurface(surface)
     }
 
     override fun release() {
