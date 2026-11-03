@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Android 문자열·아이콘을 iOS 리소스로 옮긴다.
 
-- framekit-ui, framekit-ui-image, framekit-ui-video의 strings.xml(13개 언어) → ios/FrameKit/Resources/Localizable.xcstrings
-- framekit-ui의 벡터 아이콘(채움 경로만) → ios/FrameKit/Resources/Icons.xcassets (템플릿 렌더링)
+- framekit-ui, framekit-ui-image, framekit-ui-video, framekit-ui-motion의 strings.xml(13개 언어) → ios/FrameKit/Resources/Localizable.xcstrings
+- framekit-ui, framekit-ui-motion의 벡터 아이콘(채움 경로만) → ios/FrameKit/Resources/Icons.xcassets (템플릿 렌더링)
 
 Android 쪽 문자열이나 아이콘을 바꾼 뒤 다시 실행한다.
 """
@@ -12,7 +12,8 @@ import re
 import xml.etree.ElementTree as ET
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-MODULES = ["framekit-ui", "framekit-ui-image", "framekit-ui-video"]
+MODULES = ["framekit-ui", "framekit-ui-image", "framekit-ui-video", "framekit-ui-motion"]
+ICON_MODULES = ["framekit-ui", "framekit-ui-motion"]
 OUT = os.path.join(ROOT, "ios", "FrameKit", "Resources")
 ANDROID_NS = "{http://schemas.android.com/apk/res/android}"
 
@@ -33,7 +34,14 @@ def android_text(element):
 
 
 # iOS에서 뜻이 달라지는 문구. iOS는 WebP로 저장할 수 없고 HEIC를 쓴다.
-IOS_REPLACEMENTS = {"cutout_description": [("WEBP", "HEIC"), ("WebP", "HEIC")]}
+IOS_REPLACEMENTS = {
+    "cutout_description": [("WEBP", "HEIC"), ("WebP", "HEIC")],
+    # iOS는 움직이는 WebP로 저장하지 않는다.
+    "track_sound_mp4_only": [("GIF und WebP können", "GIF kann"), ("GIF and WebP can't", "GIF can't"), ("GIF y WebP no pueden", "GIF no puede"),
+                             ("Les GIF et WebP", "Les GIF"), ("GIF e WebP não podem", "GIF não pode"), ("GIF и WebP не могут", "GIF не может"),
+                             ("GIF dan WebP", "GIF"), ("GIF・WebP", "GIF"), ("GIF·WebP", "GIF"), ("GIF และ WebP", "GIF"), ("GIF và WebP", "GIF"),
+                             ("GIF 和 WebP", "GIF")],
+}
 
 
 def read_strings():
@@ -76,13 +84,14 @@ def write_strings():
 
 
 def write_icons():
-    drawables = os.path.join(ROOT, "framekit-ui", "src", "main", "res", "drawable")
     assets = os.path.join(OUT, "Icons.xcassets")
     os.makedirs(assets, exist_ok=True)
     with open(os.path.join(assets, "Contents.json"), "w") as f:
         json.dump({"info": {"author": "xcode", "version": 1}}, f, indent=2)
     count = 0
-    for name in sorted(os.listdir(drawables)):
+    files = sorted((name, os.path.join(ROOT, module, "src", "main", "res", "drawable"))
+                   for module in ICON_MODULES for name in os.listdir(os.path.join(ROOT, module, "src", "main", "res", "drawable")))
+    for name, drawables in files:
         if not (name.startswith("framekit_ic_") and name.endswith(".xml")):
             continue
         root = ET.parse(os.path.join(drawables, name)).getroot()

@@ -97,28 +97,7 @@ enum VideoCompositionBuilder {
         }
         let duration = cursor
         var params: [AVMutableAudioMixInputParameters] = originalParams.map { [$0] } ?? []
-        for clip in edit.audio where audio.indices.contains(clip.source) {
-            let segments = clip.segments(videoDuration: duration)
-            guard !segments.isEmpty, let track = composition.addMutableTrack(withMediaType: .audio, preferredTrackID: kCMPersistentTrackID_Invalid)
-            else { continue }
-            for segment in segments {
-                try? track.insertTimeRange(CMTimeRange(start: segment.source.start.cmTime, duration: segment.source.duration.cmTime),
-                                           of: audio[clip.source].track, at: segment.output.cmTime)
-            }
-            let p = AVMutableAudioMixInputParameters(track: track)
-            let range = clip.outputRange(videoDuration: duration)
-            let volume = Float(clip.volume)
-            let fadeIn = min(clip.fadeIn, range.duration / 2), fadeOut = min(clip.fadeOut, range.duration / 2)
-            p.setVolume(fadeIn > 0 ? 0 : volume, at: .zero)
-            if fadeIn > 0 {
-                p.setVolumeRamp(fromStartVolume: 0, toEndVolume: volume, timeRange: CMTimeRange(start: range.start.cmTime, duration: fadeIn.cmTime))
-            }
-            if fadeOut > 0 {
-                p.setVolumeRamp(fromStartVolume: volume, toEndVolume: 0,
-                                timeRange: CMTimeRange(start: (range.end - fadeOut).cmTime, duration: fadeOut.cmTime))
-            }
-            params.append(p)
-        }
+        params += AudioClipMixer.add(edit.audio, sources: audio, duration: duration, to: composition)
         let videoComposition = AVMutableVideoComposition()
         videoComposition.customVideoCompositorClass = FrameKitCompositor.self
         videoComposition.renderSize = size
@@ -140,6 +119,37 @@ enum VideoCompositionBuilder {
         let place = CGAffineTransform(scaleX: scale, y: scale)
             .concatenating(CGAffineTransform(translationX: (canvas.width - w * scale) / 2, y: (canvas.height - h * scale) / 2))
         return source.orientation.concatenating(geometry).concatenating(place)
+    }
+}
+
+/// 음악·음성 조각을 합성에 넣고 볼륨·페이드를 정한다.
+enum AudioClipMixer {
+    static func add(_ clips: [AudioClipState], sources: [AudioSource], duration: Micros, to composition: AVMutableComposition)
+        -> [AVMutableAudioMixInputParameters] {
+        var params: [AVMutableAudioMixInputParameters] = []
+        for clip in clips where sources.indices.contains(clip.source) {
+            let segments = clip.segments(videoDuration: duration)
+            guard !segments.isEmpty, let track = composition.addMutableTrack(withMediaType: .audio, preferredTrackID: kCMPersistentTrackID_Invalid)
+            else { continue }
+            for segment in segments {
+                try? track.insertTimeRange(CMTimeRange(start: segment.source.start.cmTime, duration: segment.source.duration.cmTime),
+                                           of: sources[clip.source].track, at: segment.output.cmTime)
+            }
+            let p = AVMutableAudioMixInputParameters(track: track)
+            let range = clip.outputRange(videoDuration: duration)
+            let volume = Float(clip.volume)
+            let fadeIn = min(clip.fadeIn, range.duration / 2), fadeOut = min(clip.fadeOut, range.duration / 2)
+            p.setVolume(fadeIn > 0 ? 0 : volume, at: .zero)
+            if fadeIn > 0 {
+                p.setVolumeRamp(fromStartVolume: 0, toEndVolume: volume, timeRange: CMTimeRange(start: range.start.cmTime, duration: fadeIn.cmTime))
+            }
+            if fadeOut > 0 {
+                p.setVolumeRamp(fromStartVolume: volume, toEndVolume: 0,
+                                timeRange: CMTimeRange(start: (range.end - fadeOut).cmTime, duration: fadeOut.cmTime))
+            }
+            params.append(p)
+        }
+        return params
     }
 }
 

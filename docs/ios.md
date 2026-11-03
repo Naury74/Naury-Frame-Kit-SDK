@@ -114,9 +114,30 @@ UIKit은 `FrameKitVideoEditorViewController(request:completion:)`를 씁니다.
 - 결과: H.264 + AAC MP4(SDR). `VideoExportConfig`의 `maxShortSide`(기본 1080, 144~2160)와 `maxFrameRate`(기본 30, 1~60)로 크기와 초당 프레임을 정합니다. 원본보다 키우지 않고 긴 변은 4096을 넘지 않습니다. `EditedMedia.durationMs`에 길이가 들어갑니다.
 - HDR 영상은 SDR로 바꾸고 `hdrConvertedToSDR` 경고를, 초당 프레임을 줄였으면 `frameRateReduced` 경고를 붙입니다.
 
+## 움직이는 이미지 편집기
+
+```swift
+Button("움직이는 이미지") { showMotion = true }
+    .frameKitMotionEditor(isPresented: $showMotion, request: MotionEditorRequest(input: .pickMultiple(maxItems: 20))) { result in
+        if case .success(let output, _) = result { print(output.url, output.mediaType, output.durationMs ?? 0) }
+    }
+```
+
+UIKit은 `FrameKitMotionEditorViewController(request:completion:)`를 씁니다.
+
+- 사진 한 장이 움직이는 GIF·WebP·PNG면 그 원본을 편집하고, 그 밖에는 사진들(최대 `maxImageCount`, 기본 20·최대 50)로 슬라이드쇼를 만듭니다. 여러 장 가운데 움직이는 이미지는 첫 프레임만 씁니다.
+- 원본: `.pick`·`.pickMultiple`, `.file`·`.files`, `.data`. `.capture`는 쓸 수 없습니다.
+- 도구: 움직임(사진마다 확대·이동), 전환(페이드·밀기·줌), 길이(사진당 시간, 움직이는 원본은 속도·구간), 반복(반복·부메랑), 화면 비율(채우기·맞추기, 배경 색), 보정, 필터, 텍스트·스티커(나타나기·팝·올라오기·통통·흔들기·두근두근), 소리(음악·음성 파일, 녹음).
+- 움직이는 원본은 `maxAnimationFrames`(기본 300, 10~1000)까지 읽고 나머지는 버립니다. 100MB가 넘는 파일은 `sourceTooLarge`로 열지 않습니다.
+- 저장: 사용자가 저장 시트에서 형식과 크기를 고릅니다. `MotionExportConfig.formats`로 보일 형식을, `format`·`size`로 처음 고른 값을 정합니다.
+  - MP4(H.264, 소리는 AAC): 긴 변 540·720·1080px. `mediaType`은 `.video`.
+  - GIF: 긴 변 240·360·480px, 프레임마다 256색. 소리는 담기지 않습니다. `loopCount`(0은 무한)로 반복 횟수를 정합니다. `mediaType`은 `.animatedImage`.
+  - 초당 프레임은 `frameRate`(5~60, 기본 MP4 30·GIF 15)이고, 움직이는 원본은 원본보다 촘촘하게 만들지 않습니다. 그림이 바뀌지 않는 구간은 한 프레임으로 합칩니다.
+- 움직이는 WebP로는 저장할 수 없습니다(Android만 지원).
+
 ## 주의
 
 - 배경 제거는 기기 안 Vision을 씁니다. 지원하지 않는 기기(시뮬레이터 포함)에서는 도구가 보이지 않습니다.
 - 넓은 색 영역(Display P3) 사진은 sRGB로 저장하고 `colorSpaceConvertedToSRGB` 경고를 붙입니다. HDR 게인 맵은 저장하지 않습니다.
 - 메모리가 모자라면 `insufficientMemory`, 저장 공간이 모자라면 `insufficientStorage`로 실패합니다. `maxOutputPixels`를 줄이면 피할 수 있습니다.
-- 움직이는 이미지·음성 편집기와 앱 안 갤러리, 실시간 문서 스캐너는 아직 iOS에 없습니다.
+- 음성 편집기와 앱 안 갤러리, 실시간 문서 스캐너는 아직 iOS에 없습니다.

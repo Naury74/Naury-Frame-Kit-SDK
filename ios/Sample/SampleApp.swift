@@ -1,5 +1,7 @@
 import FrameKit
+import ImageIO
 import SwiftUI
+import UniformTypeIdentifiers
 
 @main
 struct SampleApp: App {
@@ -19,6 +21,8 @@ struct ContentView: View {
     @State private var showEditor = false
     @State private var videoRequest: VideoEditorRequest?
     @State private var showVideo = false
+    @State private var motionRequest: MotionEditorRequest?
+    @State private var showMotion = false
 
     var body: some View {
         NavigationStack {
@@ -34,6 +38,11 @@ struct ContentView: View {
                 Section("영상") {
                     Button("영상 고르기") { openVideo(.pickMultiple(maxItems: 5)) }
                     Button("샘플 영상(2개)") { Task { openVideo(.files(await SampleVideo.files())) } }
+                }
+                Section("움직이는 이미지") {
+                    Button("사진 고르기(슬라이드쇼·GIF)") { openMotion(.pickMultiple(maxItems: 20)) }
+                    Button("샘플 사진(3장)") { openMotion(.files(SampleImage.files(count: 3))) }
+                    Button("샘플 GIF") { openMotion(.data(SampleImage.gif())) }
                 }
                 Section("설정") {
                     Picker("저장 형식", selection: $format) {
@@ -71,6 +80,11 @@ struct ContentView: View {
             if arguments.contains("-openSamples") { open(.files(SampleImage.files(count: 3))) }
             if arguments.contains("-openDocument") { open(.data(SampleImage.document())) }
             if arguments.contains("-openVideo") { Task { openVideo(.files(await SampleVideo.files())) } }
+            if arguments.contains("-openMotion") { openMotion(.files(SampleImage.files(count: 3))) }
+            if arguments.contains("-openGif") { openMotion(.data(SampleImage.gif())) }
+        }
+        .frameKitMotionEditor(isPresented: $showMotion, request: motionRequest ?? MotionEditorRequest(input: .pick)) { result in
+            handle(result)
         }
         .frameKitVideoEditor(isPresented: $showVideo, request: videoRequest ?? VideoEditorRequest(input: .pick)) { result in
             handle(result)
@@ -96,6 +110,11 @@ struct ContentView: View {
     private func openVideo(_ input: EditorInput) {
         videoRequest = VideoEditorRequest(input: input, ui: EditorUIConfig(themeMode: theme, localeIdentifier: locale.isEmpty ? nil : locale))
         showVideo = true
+    }
+
+    private func openMotion(_ input: EditorInput) {
+        motionRequest = MotionEditorRequest(input: input, ui: EditorUIConfig(themeMode: theme, localeIdentifier: locale.isEmpty ? nil : locale))
+        showMotion = true
     }
 
     private func handle(_ result: FrameKitResult) {
@@ -125,6 +144,27 @@ enum SampleImage {
             try? make(label: "Page \(index)").write(to: url)
             return url
         }
+    }
+
+    /// 원이 좌우로 오가는 12프레임 GIF.
+    static func gif() -> Data {
+        let data = NSMutableData()
+        let count = 12
+        guard let destination = CGImageDestinationCreateWithData(data, UTType.gif.identifier as CFString, count, nil) else { return Data() }
+        CGImageDestinationSetProperties(destination, [kCGImagePropertyGIFDictionary: [kCGImagePropertyGIFLoopCount: 0]] as CFDictionary)
+        for i in 0..<count {
+            let renderer = UIGraphicsImageRenderer(size: CGSize(width: 320, height: 240), format: { let f = UIGraphicsImageRendererFormat(); f.scale = 1; return f }())
+            let image = renderer.image { context in
+                UIColor(hue: CGFloat(i) / CGFloat(count), saturation: 0.35, brightness: 0.95, alpha: 1).setFill()
+                context.fill(CGRect(x: 0, y: 0, width: 320, height: 240))
+                UIColor.systemIndigo.setFill()
+                let x = 40 + 240 * (0.5 - 0.5 * cos(Double(i) / Double(count) * 2 * .pi))
+                context.cgContext.fillEllipse(in: CGRect(x: x - 30, y: 90, width: 60, height: 60))
+            }
+            CGImageDestinationAddImage(destination, image.cgImage!, [kCGImagePropertyGIFDictionary: [kCGImagePropertyGIFDelayTime: 0.08]] as CFDictionary)
+        }
+        CGImageDestinationFinalize(destination)
+        return data as Data
     }
 
     /// 책상 위에 기울어진 종이 사진.
