@@ -134,6 +134,8 @@ struct MotionEditorScreen: View {
                 .buttonStyle(PressFadeStyle())
                 .accessibilityLabel(strings(model.activeTool == nil ? "action_close" : "action_back"))
                 Spacer()
+                // 도구 화면에는 적용 버튼이 있어 저장은 숨긴다.
+                if model.activeTool == nil {
                 Button { model.requestSave() } label: {
                     Text(strings("action_save")).scaledFont(16, weight: .semibold).foregroundStyle(theme.onAccent)
                         .padding(.horizontal, 18).frame(height: 42)
@@ -142,6 +144,7 @@ struct MotionEditorScreen: View {
                 }
                 .buttonStyle(PressFadeStyle())
                 .disabled(model.export != nil)
+                }
             }
         }
         .padding(.horizontal, 12)
