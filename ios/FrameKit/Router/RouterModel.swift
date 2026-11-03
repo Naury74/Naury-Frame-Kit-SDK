@@ -31,10 +31,13 @@ final class RouterModel {
     private(set) var thumbnails: [Int: CGImage] = [:]
     /// 진입점이 만든 임시 파일. 끝나면 지운다.
     private var temporary: [URL] = []
+    /// 연 편집기가 마지막으로 적용한 편집을 남기는 곳. 사진과 영상을 함께 편집하면 남기지 않는다.
+    private let session: EditSession?
 
     init(request: FrameKitRequest, onFinish: @escaping (FrameKitResult) -> Void) {
         self.request = request
         self.onFinish = onFinish
+        session = EditSession(slot: "router", input: request.input)
     }
 
     func start() {
@@ -51,13 +54,18 @@ final class RouterModel {
             finish(.failure(error))
             return
         }
+        if let stored = session?.storedKind, resume(stored) { return }
+        openInput()
+    }
+
+    private func openInput() {
         let kind = request.mediaKind
         switch request.input {
         case .capture:
             switch kind {
-            case .image: open(.image(EditorModel(request: request.imageRequest(.capture), onFinish: finishEditor)))
-            case .video: open(.video(VideoEditorModel(request: request.videoRequest(.capture), onFinish: finishEditor)))
-            case .audio: open(.audio(AudioEditorModel(request: request.audioRequest(.capture), onFinish: finishEditor)))
+            case .image: open(.image(EditorModel(request: request.imageRequest(.capture), session: session(.image), onFinish: finishEditor)))
+            case .video: open(.video(VideoEditorModel(request: request.videoRequest(.capture), session: session(.video), onFinish: finishEditor)))
+            case .audio: open(.audio(AudioEditorModel(request: request.audioRequest(.capture), session: session(.audio), onFinish: finishEditor)))
             case .any: finish(.failure(EditorError(code: .invalidConfiguration)))
             }
         case .pick, .pickMultiple:
@@ -84,9 +92,9 @@ final class RouterModel {
     private func delegatePick(_ kind: MediaKind, limit: Int) {
         func input(_ max: Int) -> EditorInput { min(limit, max) <= 1 ? .pick : .pickMultiple(maxItems: min(limit, max)) }
         switch kind {
-        case .image: open(.image(EditorModel(request: request.imageRequest(input(request.image.maxImageCount)), onFinish: finishEditor)))
-        case .video: open(.video(VideoEditorModel(request: request.videoRequest(input(request.video.maxClipCount)), onFinish: finishEditor)))
-        case .audio: open(.audio(AudioEditorModel(request: request.audioRequest(input(request.audio.maxSourceCount)), onFinish: finishEditor)))
+        case .image: open(.image(EditorModel(request: request.imageRequest(input(request.image.maxImageCount)), session: session(.image), onFinish: finishEditor)))
+        case .video: open(.video(VideoEditorModel(request: request.videoRequest(input(request.video.maxClipCount)), session: session(.video), onFinish: finishEditor)))
+        case .audio: open(.audio(AudioEditorModel(request: request.audioRequest(input(request.audio.maxSourceCount)), session: session(.audio), onFinish: finishEditor)))
         case .any: phase = .picking(kind, limit)
         }
     }
@@ -158,11 +166,11 @@ final class RouterModel {
             return chosen.count == 1 ? .file(chosen[0]) : .files(chosen)
         }
         switch action {
-        case .editPhoto: open(.image(EditorModel(request: request.imageRequest(files(request.image.maxImageCount)), onFinish: finishEditor)))
-        case .makePDF: open(.image(EditorModel(request: request.imageRequest(files(request.image.maxImageCount), pdf: true), onFinish: finishEditor)))
-        case .motion: open(.motion(MotionEditorModel(request: request.motionRequest(files(request.motion.maxImageCount)), onFinish: finishEditor)))
-        case .editVideo: open(.video(VideoEditorModel(request: request.videoRequest(files(request.video.maxClipCount)), onFinish: finishEditor)))
-        case .editAudio: open(.audio(AudioEditorModel(request: request.audioRequest(files(request.audio.maxSourceCount)), onFinish: finishEditor)))
+        case .editPhoto: open(.image(EditorModel(request: request.imageRequest(files(request.image.maxImageCount)), session: session(.image), onFinish: finishEditor)))
+        case .makePDF: open(.image(EditorModel(request: request.imageRequest(files(request.image.maxImageCount), pdf: true), session: session(.pdf), onFinish: finishEditor)))
+        case .motion: open(.motion(MotionEditorModel(request: request.motionRequest(files(request.motion.maxImageCount)), session: session(.motion), onFinish: finishEditor)))
+        case .editVideo: open(.video(VideoEditorModel(request: request.videoRequest(files(request.video.maxClipCount)), session: session(.video), onFinish: finishEditor)))
+        case .editAudio: open(.audio(AudioEditorModel(request: request.audioRequest(files(request.audio.maxSourceCount)), session: session(.audio), onFinish: finishEditor)))
         case .editEach: open(.mixed(MixedEditorModel(request: request, urls: urls, kinds: kinds, onFinish: finishEditor)))
         case .sendOriginal:
             phase = .working
@@ -181,6 +189,41 @@ final class RouterModel {
 
     private func open(_ editor: Editor) { phase = .editor(editor) }
 
+    // MARK: - 세션
+
+    private enum SessionEditor: String { case image, pdf, video, motion, audio }
+
+    /// 편집기에 넘길 세션. 남길 때 어느 편집기였는지 함께 적는다.
+    private func session(_ editor: SessionEditor) -> EditSession? {
+        session?.kind = editor.rawValue
+        return session
+    }
+
+    /// 남은 세션의 편집기를 바로 연다. 그 편집기가 이어 열지 못하면 요청 입력으로 처음부터 연다.
+    private func resume(_ stored: String) -> Bool {
+        guard let editor = SessionEditor(rawValue: stored) else { session?.discard(); return false }
+        let restart: () -> Void = { [weak self] in self?.openInput() }
+        switch editor {
+        case .image, .pdf:
+            let model = EditorModel(request: request.imageRequest(.pick, pdf: editor == .pdf), session: session(editor), onFinish: finishEditor)
+            model.onRestoreFailed = restart
+            open(.image(model))
+        case .video:
+            let model = VideoEditorModel(request: request.videoRequest(.pick), session: session(editor), onFinish: finishEditor)
+            model.onRestoreFailed = restart
+            open(.video(model))
+        case .motion:
+            let model = MotionEditorModel(request: request.motionRequest(.pick), session: session(editor), onFinish: finishEditor)
+            model.onRestoreFailed = restart
+            open(.motion(model))
+        case .audio:
+            let model = AudioEditorModel(request: request.audioRequest(.pick), session: session(editor), onFinish: finishEditor)
+            model.onRestoreFailed = restart
+            open(.audio(model))
+        }
+        return true
+    }
+
     private func finishEditor(_ result: FrameKitResult) { finish(result) }
 
     func cancelChooser() { finish(.cancelled) }
@@ -188,6 +231,7 @@ final class RouterModel {
     func finish(_ result: FrameKitResult) {
         guard !delivered else { return }
         delivered = true
+        session?.discard()
         temporary.forEach { try? FileManager.default.removeItem(at: $0) }
         onFinish(result)
     }

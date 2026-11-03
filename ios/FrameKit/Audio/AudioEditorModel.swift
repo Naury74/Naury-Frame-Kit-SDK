@@ -28,11 +28,15 @@ final class AudioEditorModel {
     private let onFinish: (FrameKitResult) -> Void
     private var delivered = false
     private var started = false
+    /// 마지막으로 적용한 편집을 남기는 곳.
+    let session: EditSession?
+    /// 세션을 이어 열지 못했을 때 부른다. 없으면 요청 입력으로 처음부터 연다.
+    var onRestoreFailed: (() -> Void)?
 
-    private(set) var phase: Phase
+    private(set) var phase: Phase { didSet { persistSession() } }
     private(set) var sources: [AudioSource] = []
     private(set) var waveforms: [Int: Waveform] = [:]
-    private(set) var history = AudioHistory(AudioProjectState())
+    private(set) var history = AudioHistory(AudioProjectState()) { didSet { persistSession() } }
     private(set) var draft: AudioProjectState?
     private(set) var position: Micros = 0
     private(set) var isPlaying = false
@@ -52,18 +56,23 @@ final class AudioEditorModel {
     private var noticeTask: Task<Void, Never>?
     private var dragStart: (project: AudioProjectState, range: TimeRangeUs?)?
 
-    init(request: AudioEditorRequest, onFinish: @escaping (FrameKitResult) -> Void) {
+    init(request: AudioEditorRequest, session: EditSession? = nil, onFinish: @escaping (FrameKitResult) -> Void) {
         self.request = request
+        self.session = session
         self.onFinish = onFinish
         var seen = Set<AudioTool>()
         tools = request.config.enabledTools.filter { seen.insert($0).inserted && ($0 != .record || VoiceRecorder.micDeclared) }
         recorder = VoiceRecorder(maxDuration: request.config.maxRecordingDuration)
-        switch request.input {
-        case .pick, .pickMultiple: phase = .awaitingSource
-        case .capture: phase = .recording
-        default: phase = .loading
-        }
+        phase = session?.storedKind == nil ? Self.initialPhase(request.input) : .loading
         player.actionAtItemEnd = .pause
+    }
+
+    private static func initialPhase(_ input: EditorInput) -> Phase {
+        switch input {
+        case .pick, .pickMultiple: .awaitingSource
+        case .capture: .recording
+        default: .loading
+        }
     }
 
     // MARK: - 표시 값
@@ -95,6 +104,10 @@ final class AudioEditorModel {
         }
         observePlayer()
         recorder.onLimit = { [weak self] in self?.recordingLimitReached() }
+        if !restoreSession() { openInput() }
+    }
+
+    private func openInput() {
         switch request.input {
         case .capture:
             guard VoiceRecorder.micDeclared else {
@@ -154,6 +167,49 @@ final class AudioEditorModel {
                 phase = .ready
             }
         }
+    }
+
+    // MARK: - 세션
+
+    /// 남은 세션이 있으면 이어 연다. 열기 시작했으면 `true`.
+    private func restoreSession() -> Bool {
+        guard let session, let state = session.load(AudioSessionState.self), !state.sources.isEmpty else { return false }
+        guard let urls = session.restoreFiles(state.sources.map(\.file)) else { session.discard(); return false }
+        phase = .loading
+        Task {
+            var opened: [AudioSource] = []
+            do {
+                for (url, saved) in zip(urls, state.sources) { opened.append(try await AudioSource.open(url: url, name: saved.name)) }
+            } catch {
+                opened.forEach { $0.close() }
+                urls.dropFirst(opened.count).forEach { try? FileManager.default.removeItem(at: $0) }
+                restoreFailed()
+                return
+            }
+            sources = opened
+            sources.indices.forEach(loadWaveform)
+            history = AudioHistory(current: state.current, baseline: state.baseline)
+            draft = nil
+            position = 0
+            phase = .ready
+            showNotice("audio_restored")
+        }
+        return true
+    }
+
+    private func restoreFailed() {
+        session?.discard()
+        guard onRestoreFailed == nil else { onRestoreFailed?(); return }
+        phase = Self.initialPhase(request.input)
+        openInput()
+    }
+
+    /// 적용한 편집만 남긴다. 고르는 중인 구간·끌기 값은 남기지 않는다.
+    private func persistSession() {
+        guard let session, phase == .ready, !delivered, !sources.isEmpty else { return }
+        var files = Set<String>()
+        let saved = session.audioFiles(sources, into: &files)
+        session.save(AudioSessionState(sources: saved, current: history.current, baseline: history.baseline), files: files)
     }
 
     private func place(_ opened: [AudioSource], at: Micros, target: RecordTarget) {
@@ -536,6 +592,7 @@ final class AudioEditorModel {
     func finish(_ result: FrameKitResult) {
         guard !delivered else { return }
         delivered = true
+        session?.discard()
         rebuildTask?.cancel()
         exportTask?.cancel()
         if recorder.state != .idle { recorder.discard() }

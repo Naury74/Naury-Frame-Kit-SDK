@@ -2,7 +2,7 @@ import Foundation
 internal import FrameKitCore
 
 /// 정규화 사각형(0...1). core `RectN`과 같다.
-struct NRect: Hashable, Sendable {
+struct NRect: Hashable, Sendable, Codable {
     var left: Double
     var top: Double
     var right: Double
@@ -28,7 +28,7 @@ struct NRect: Hashable, Sendable {
 }
 
 /// 기하 편집. core `GeometryEdit`과 같다.
-struct GeometryState: Hashable, Sendable {
+struct GeometryState: Hashable, Sendable, Codable {
     /// 0...3, 시계 방향.
     var quarterTurns = 0
     /// -45...45, 시계 방향.
@@ -56,7 +56,7 @@ struct GeometryState: Hashable, Sendable {
 }
 
 /// 보정 종류. 순서는 화면에 보이는 순서다.
-enum AdjustKind: String, CaseIterable, Sendable {
+enum AdjustKind: String, CaseIterable, Sendable, Codable {
     case brightness, exposure, contrast, highlights, shadows, saturation, temperature, tint, sharpness, fade, vignette, grain
 
     var kotlin: AdjustmentKind {
@@ -88,7 +88,7 @@ enum AdjustKind: String, CaseIterable, Sendable {
 }
 
 /// 사진 한 장의 편집 상태.
-struct PhotoEdit: Hashable, Sendable {
+struct PhotoEdit: Hashable, Sendable, Codable {
     var geometry = GeometryState()
     var adjustments: [AdjustKind: Double] = [:]
     var filterId = "original"
@@ -102,6 +102,11 @@ struct PhotoEdit: Hashable, Sendable {
     var watermark: WatermarkSpec?
     /// 배경 제거 마스크. 다른 편집보다 먼저 적용한다.
     var cutout: CutoutMask?
+
+    /// 배경 제거 마스크는 세션이 따로 PNG로 남긴다.
+    private enum CodingKeys: String, CodingKey {
+        case geometry, adjustments, filterId, filterIntensity, grainSeed, privacyMasks, drawing, overlays, watermark
+    }
 
     init(grainSeed: Int64 = Int64.random(in: Int64.min...Int64.max)) {
         self.grainSeed = grainSeed

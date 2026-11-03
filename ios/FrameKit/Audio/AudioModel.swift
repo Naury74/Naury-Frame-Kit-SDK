@@ -6,7 +6,7 @@ import Foundation
 /// - 겹친 줄(`music`): 본 줄 위에 자유롭게 놓인다.
 ///
 /// 결과 길이는 본 줄 끝이고, 본 줄이 비면 반복하지 않는 겹친 조각의 끝이다. Android AudioProject와 같은 계산이다.
-struct AudioProjectState: Hashable, Sendable {
+struct AudioProjectState: Hashable, Sendable, Codable {
     static let unbounded: Micros = Micros.max / 4
 
     var clips: [AudioClipState] = []
@@ -201,6 +201,12 @@ struct AudioHistory {
     init(_ initial: AudioProjectState) {
         current = initial
         baseline = initial
+    }
+
+    /// 세션에서 복원한다. 실행 취소 기록은 비어 있다.
+    init(current: AudioProjectState, baseline: AudioProjectState) {
+        self.current = current
+        self.baseline = baseline
     }
 
     var canUndo: Bool { !past.isEmpty }

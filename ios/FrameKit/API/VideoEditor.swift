@@ -12,7 +12,7 @@ public final class FrameKitVideoEditorViewController: UIViewController {
     public init(request: VideoEditorRequest, completion: @escaping @MainActor (FrameKitResult) -> Void) {
         self.completion = completion
         var finish: ((FrameKitResult) -> Void)?
-        model = VideoEditorModel(request: request) { finish?($0) }
+        model = VideoEditorModel(request: request, session: EditSession(slot: "video", input: request.input)) { finish?($0) }
         super.init(nibName: nil, bundle: nil)
         finish = { [weak self] in self?.finished($0) }
         modalPresentationStyle = .fullScreen
@@ -87,7 +87,7 @@ private final class EmbeddedVideoController: UIHostingController<AnyView> {
     private let model: VideoEditorModel
 
     init(request: VideoEditorRequest, onResult: @escaping @MainActor (FrameKitResult) -> Void) {
-        model = VideoEditorModel(request: request) { onResult($0) }
+        model = VideoEditorModel(request: request, session: EditSession(slot: "video", input: request.input)) { onResult($0) }
         super.init(rootView: AnyView(EmptyView()))
         rootView = AnyView(VideoEditorRoot(model: model))
     }

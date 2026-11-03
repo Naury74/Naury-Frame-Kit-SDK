@@ -6,7 +6,7 @@ internal import FrameKitCore
 typealias Micros = Int64
 
 /// 반열린 시간 범위 [start, end).
-struct TimeRangeUs: Hashable, Sendable {
+struct TimeRangeUs: Hashable, Sendable, Codable {
     var start: Micros
     var end: Micros
 
@@ -30,7 +30,7 @@ struct TimeRangeUs: Hashable, Sendable {
 }
 
 /// 클립 하나의 기하·색 편집.
-struct ClipEffects: Hashable, Sendable {
+struct ClipEffects: Hashable, Sendable, Codable {
     var geometry = GeometryState()
     var adjustments: [AdjustKind: Double] = [:]
     var filterId = "original"
@@ -48,7 +48,7 @@ struct ClipEffects: Hashable, Sendable {
 }
 
 /// 영상 클립. 타임라인 위치는 저장하지 않고 순서로 정한다.
-struct VideoClipState: Hashable, Sendable, Identifiable {
+struct VideoClipState: Hashable, Sendable, Codable, Identifiable {
     static let minSpeed = 0.25
     static let maxSpeed = 4.0
     static let maxVolume = 2.0
@@ -71,10 +71,10 @@ struct VideoClipState: Hashable, Sendable, Identifiable {
     var outputDuration: Micros { Micros((Double(sourceRange.duration) / speed).rounded()) }
 }
 
-enum AudioRole: String, Hashable, Sendable { case music, voice }
+enum AudioRole: String, Hashable, Sendable, Codable { case music, voice }
 
 /// 배경 음악·음성 조각.
-struct AudioClipState: Hashable, Sendable, Identifiable {
+struct AudioClipState: Hashable, Sendable, Codable, Identifiable {
     var id: String
     /// 소리 원본 목록에서의 위치.
     var source: Int
@@ -118,27 +118,27 @@ struct AudioClipState: Hashable, Sendable, Identifiable {
 }
 
 /// 시간이 정해진 요소·가리기(결과 시간 기준).
-struct TimedOverlay: Hashable, Sendable {
+struct TimedOverlay: Hashable, Sendable, Codable {
     var overlay: Overlay
     var range: TimeRangeUs
 }
 
-struct TimedMask: Hashable, Sendable {
+struct TimedMask: Hashable, Sendable, Codable {
     var mask: PrivacyMask
     var range: TimeRangeUs
 }
 
-enum CanvasFit: String, Hashable, Sendable, CaseIterable { case fit, fill }
+enum CanvasFit: String, Hashable, Sendable, Codable, CaseIterable { case fit, fill }
 
 /// 결과 화면 비율. 비율이 없으면 첫 클립의 편집 결과 비율.
-struct CanvasState: Hashable, Sendable {
+struct CanvasState: Hashable, Sendable, Codable {
     var aspectWidth: Int?
     var aspectHeight: Int?
     var fit = CanvasFit.fit
 }
 
 /// 영상 편집 상태 전체.
-struct VideoEdit: Hashable, Sendable {
+struct VideoEdit: Hashable, Sendable, Codable {
     static let maxPrivacyMasks = 8
 
     var clips: [VideoClipState]
