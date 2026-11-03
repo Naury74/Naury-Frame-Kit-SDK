@@ -44,12 +44,10 @@ final class MixedEditorModel {
         self.request = request
         self.onFinish = onFinish
         for (url, kind) in zip(urls, kinds).prefix(Self.maxItems) {
-            // 항목마다 편집기 하나. 사진은 한 장, 영상은 클립 하나로 연다.
+            // 항목마다 편집기 하나. 사진은 한 장으로 열고, 영상은 일반 영상 편집기처럼 나누고 클립을 더할 수 있다. 결과는 항목마다 하나다.
             let item: Item
             if kind.mediaKind == .video {
-                var video = request.videoRequest(.file(url))
-                video.config.maxClipCount = 1
-                item = Item(url: url, kind: kind, editor: .video(VideoEditorModel(request: video, onFinish: { _ in })))
+                item = Item(url: url, kind: kind, editor: .video(VideoEditorModel(request: request.videoRequest(.file(url)), onFinish: { _ in })))
             } else {
                 var image = request.imageRequest(.file(url))
                 image.config.maxImageCount = 1
