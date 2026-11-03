@@ -12,25 +12,44 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache%202.0-blue" alt="License"></a>
 </p>
 
-**FrameKit**은 Android·iOS 앱에 사진, 영상, 움직이는 이미지, 음성 편집 화면을 붙이는 SDK입니다. iOS는 [iOS](#ios)와 [iOS 문서](docs/ios.md)를 보세요.
-편집기를 열면 사용자가 고르고 고치고 저장하는 화면까지 모두 들어 있고, 앱은 결과 파일만 받으면 됩니다. 원본 파일은 바꾸지 않습니다.
+**FrameKit**은 Android와 iOS 앱에 사진, 영상, 움직이는 이미지, 음성 편집 화면을 붙이는 SDK입니다.
+편집기를 열면 고르기부터 편집, 저장까지 화면이 모두 들어 있고, 앱은 결과 파일만 받으면 됩니다. 원본 파일은 바꾸지 않습니다. 두 플랫폼의 기능과 화면, 결과 형식은 같고, 한쪽에서 쓸 수 없는 기능만 빠져 있습니다.
 
 ![FrameKit](docs/images/hero.png)
 
+## 지원 환경
+
+| | Android | iOS |
+| --- | --- | --- |
+| 최소 버전 | Android 8.0 (API 26) | iOS 17 |
+| 개발 환경 | Kotlin 2.2 이상, Compose 없이도 사용 | Xcode 16 이상, Swift 5·6 |
+| 배포 | Maven Central `com.naurylab:framekit` | Swift Package Manager (컴파일된 `FrameKit.xcframework`) |
+| 진입점 | `FrameKitContract` (Activity Result) | `.frameKitEditor` (SwiftUI), `FrameKitViewController` (UIKit) |
+
 ## 기능
 
-- **사진**: 자르기와 회전, 보정과 필터, 텍스트와 스티커, 그리기와 도형, 모자이크, 배경 제거를 여러 장에 한 번에 씁니다.
-- **문서 스캔과 PDF**: 카메라가 문서 테두리를 찾아 자동으로 찍고 반듯하게 펴서, 글자 검색이 되는 PDF로 묶습니다.
+- **사진**: 자르기와 회전, 보정과 필터, 텍스트와 스티커, 그리기와 도형, 모자이크, 배경 제거를 여러 장에 한 번에 씁니다. 여러 장을 글자 검색이 되는 PDF로 묶습니다.
 - **영상**: 여러 클립을 잇고 자르며, 필터와 속도, 배경 음악과 녹음, 텍스트를 넣어 MP4로 저장합니다.
-- **움직이는 이미지**: 사진으로 슬라이드쇼를 만들거나 GIF와 WebP를 고쳐 MP4, GIF, WebP로 저장합니다.
+- **움직이는 이미지**: 사진으로 슬라이드쇼를 만들거나 GIF를 고쳐 MP4나 GIF로 저장합니다.
 - **음성**: 탭하거나 누르고 말해서 녹음하고, 파형을 보며 나누고 끼워 넣어 M4A로 저장합니다.
+- **한 번에 열기**: 고른 파일 종류에 맞는 편집기를 열고, 할 일(편집, PDF, 움직이는 이미지, 원본 보내기)을 묻는 시트도 띄울 수 있습니다. 사진과 영상을 섞어 고르면 항목을 바꿔 가며 편집하고 한 번에 저장합니다.
 - **워터마크**: 사진과 영상에 문구를 한 곳, 반복, 대각선, 띠 모양으로 넣고 사용자가 지우지 못하게 잠글 수 있습니다.
-- **갤러리**: 앨범과 날짜별로 보고, 고른 순서를 보여 주고, 크게 보며 고릅니다. 권한이 없으면 시스템 사진 선택기를 씁니다.
-- **폴드와 태블릿**: 넓은 화면에서는 도구를 옆으로 옮기고, 반쯤 접으면 접힌 선을 따라 화면과 조작부를 나눕니다.
-- **꾸미기**: 다크와 라이트 테마, 브랜드 색, 모서리, 글꼴을 앱에 맞추고 13개 언어로 보여 줍니다. 화면은 [Kinetica](https://github.com/Naury74/Kinetica-Kit-SDK) UI 키트로 그립니다.
-- **화면 없이 처리**: 편집 화면을 띄우지 않고 코드만으로 같은 편집을 적용해 저장할 수 있습니다.
+- **꾸미기**: 다크와 라이트 테마, 브랜드 색, 모서리, 글꼴을 앱에 맞추고 13개 언어로 보여 줍니다.
+- **여러 화면 형태**: 가로 화면과 태블릿에서는 도구를 옆으로 옮깁니다. Android 폴드는 반쯤 접으면 접힌 선을 따라 나누고, iOS는 상태 바가 옆에 있는 기기와 iPad 분할 화면에서도 조작부가 가려지지 않습니다.
+
+플랫폼마다 다른 기능입니다.
+
+| 기능 | Android | iOS |
+| --- | --- | --- |
+| 문서 감지·펴기, 실시간 문서 스캐너 | 있음 | 없음 |
+| 앱 안 갤러리 | 있음 (권한이 없으면 시스템 선택기) | 없음 (시스템 사진 선택기) |
+| WebP 저장 (사진·움직이는 이미지) | 있음 | 없음 (사진은 HEIC 저장) |
+| 화면 없이 코드로 처리 | 있음 | 없음 |
+| 배경 제거 | Google Play 서비스 | 기기 안 Vision (지원 기기만) |
 
 ## 화면
+
+### Android
 
 윗줄은 다크 테마, 아랫줄은 라이트 테마입니다.
 
@@ -49,7 +68,7 @@
   </tr>
 </table>
 
-넓은 화면에서는 이렇게 보입니다.
+폴드에서는 이렇게 보입니다.
 
 <table>
   <tr>
@@ -59,11 +78,26 @@
   </tr>
 </table>
 
+### iOS
+
+<table>
+  <tr>
+    <td align="center" width="20%"><img src="docs/images/ios-chooser.png" width="160" alt="iOS 고르기"><br><b>고르기</b></td>
+    <td align="center" width="20%"><img src="docs/images/ios-photo.png" width="160" alt="iOS 사진 편집"><br><b>사진 편집</b></td>
+    <td align="center" width="20%"><img src="docs/images/ios-video.png" width="160" alt="iOS 영상 편집"><br><b>영상 편집</b></td>
+    <td align="center" width="20%"><img src="docs/images/ios-motion.png" width="160" alt="iOS 움직이는 이미지"><br><b>움직이는 이미지</b></td>
+    <td align="center" width="20%"><img src="docs/images/ios-audio.png" width="160" alt="iOS 음성 편집"><br><b>음성 편집</b></td>
+  </tr>
+</table>
+
 ## 샘플 앱
 
-[framekit-showcase.apk](https://github.com/Naury74/Naury-Frame-Kit-SDK/releases/latest/download/framekit-showcase.apk)를 받으면 소스 없이 모든 편집기를 써 볼 수 있습니다. 기능별 예제와 설정을 바꿔 가며 편집기를 여는 Playground가 들어 있습니다. Android 8.0 이상에서 설치되고, 처음에는 "출처를 알 수 없는 앱" 설치를 허용해야 합니다.
+- **Android**: [framekit-showcase.apk](https://github.com/Naury74/Naury-Frame-Kit-SDK/releases/latest/download/framekit-showcase.apk)를 받으면 소스 없이 모든 편집기를 써 볼 수 있습니다. 기능별 예제와 설정을 바꿔 가며 편집기를 여는 Playground가 들어 있습니다. 처음에는 "출처를 알 수 없는 앱" 설치를 허용해야 합니다.
+- **iOS**: 저장소의 `ios/FrameKit.xcodeproj`에서 `FrameKitSample`을 실행합니다. 편집기별 예제, 결과 보기, 테마·언어·저장 형식을 바꾸는 설정 탭이 들어 있습니다.
 
 ## 설치
+
+### Android
 
 ```kotlin
 // settings.gradle.kts
@@ -94,9 +128,19 @@ dependencies {
 | `framekit-segmentation` | 배경 제거 (선택) |
 | `framekit-ocr` | PDF 글자 검색 (선택) |
 
-minSdk 26, Kotlin 2.2 이상이면 됩니다. 앱이 Compose를 쓰지 않아도 되고, R8 규칙을 따로 넣을 필요도 없습니다.
+R8 규칙을 따로 넣을 필요는 없습니다.
+
+### iOS
+
+Xcode에서 **File › Add Package Dependencies…**를 고르고 아래 주소를 넣습니다. `FrameKit` 하나에 모든 편집기가 들어 있습니다.
+
+```
+https://github.com/Naury74/Naury-Frame-Kit-SDK
+```
 
 ## 사용법
+
+### Android
 
 ```kotlin
 class MainActivity : ComponentActivity() {
@@ -134,57 +178,68 @@ FrameKitRequest(
 )
 ```
 
-문서를 스캔해 PDF로 받으려면 `imageExport`를 PDF로 두고 카메라로 엽니다.
+결과 파일은 앱 내부 저장소에 저장되고 `content://` Uri로 옵니다. 다른 앱과 공유할 때는 Intent에 `FLAG_GRANT_READ_URI_PERMISSION`을 붙이고, 필요 없어지면 `FrameKitOutputs.deleteOutput(context, uri)`로 지웁니다. 할 일 고르기 시트, 문서 스캔, 화면 없이 처리, 앱 전용 필터와 스티커는 [연동 가이드](docs/integration.md)에 있습니다.
 
-```kotlin
-val pdf = ImageExportConfig(format = ImageFormat.PDF, pdf = PdfOptions(pageSize = PdfPageSize.A4))
-editor.launch(FrameKitRequest(EditorInput.Capture(MediaKind.IMAGE), imageExport = pdf))
+### iOS
+
+```swift
+import FrameKit
+
+struct ContentView: View {
+    @State private var showEditor = false
+
+    var body: some View {
+        // 사용자가 고른 파일 종류에 맞는 편집기가 열린다.
+        Button("편집") { showEditor = true }
+            .frameKitEditor(isPresented: $showEditor, request: FrameKitRequest(input: .pickMultiple(maxItems: 10))) { result in
+                switch result {
+                case .success(_, let outputs): show(outputs.map(\.url))
+                case .cancelled: break
+                case .failure(let error): showError(error.code)
+                }
+            }
+    }
+}
 ```
 
-결과 파일은 앱 내부 저장소에 저장되고 `content://` Uri로 옵니다. 다른 앱과 공유할 때는 Intent에 `FLAG_GRANT_READ_URI_PERMISSION`을 붙이고, 필요 없어지면 `FrameKitOutputs.deleteOutput(context, uri)`로 지웁니다.
+UIKit은 `FrameKitViewController(request:completion:)`를 `present`합니다. 입력은 `.pick`, `.pickMultiple(maxItems:)`, `.file(URL)`, `.files([URL])`, `.data(Data)`, `.capture`로 고르고, 도구·저장 형식·테마는 Android와 같은 이름의 설정으로 넘깁니다.
 
-작업 고르기 화면, 화면 없이 처리, 앱 전용 필터와 스티커, 갤러리와 스캐너 단독 사용은 [연동 가이드](docs/integration.md)에 있습니다.
+```swift
+FrameKitRequest(
+    input: .file(url),
+    image: ImageEditorConfig(enabledTools: [.crop, .rotate]),
+    imageExport: ImageExportConfig(format: .png, maxWidth: 2048),
+    ui: EditorUIConfig(themeMode: .light, primaryARGB: 0xFF1E6BFF)
+)
+```
+
+결과 파일은 앱의 `Application Support/FrameKit/Exports` 안에 저장되고 파일 URL로 옵니다. 필요 없어지면 `FrameKitOutputs.delete(_:)`로 지웁니다. 자세한 내용은 [iOS 문서](docs/ios.md)에 있습니다.
 
 ## 주의사항
+
+- 결과는 앱 안에만 저장하고, 위치 정보 같은 민감한 메타데이터는 기본으로 지웁니다.
+- 사진과 영상을 섞어 편집할 때 영상은 항목마다 클립 하나만 다루고, 한 번에 최대 20개까지 엽니다. 소리는 다른 종류와 섞을 수 없습니다.
+
+**Android**
 
 - 기본 모듈은 권한을 추가하지 않습니다. 원본을 읽을 권한은 앱이 확보합니다.
 - 앱 안 갤러리는 앱이 `READ_MEDIA_IMAGES`, `READ_MEDIA_VIDEO`를 선언했을 때만 열립니다. Google Play 정책상 사진 전체 접근이 핵심 기능인 앱만 선언할 수 있고, 선언하지 않으면 시스템 사진 선택기를 씁니다.
 - 녹음은 앱이 `RECORD_AUDIO`를 선언해야 보입니다. 실시간 문서 스캐너는 `CAMERA`를 선언했을 때만 쓰고, 아니면 기기 카메라 앱으로 찍습니다.
 - 배경 제거와 글자 검색은 Google Play 서비스가 필요하고 `INTERNET` 권한이 함께 들어옵니다. 처음 쓸 때 모델을 내려받을 수 있습니다.
-- 사진과 영상을 섞어 한 번에 편집할 수는 없습니다.
-- 결과는 앱 내부 저장소에만 저장합니다. 위치 정보 같은 민감한 메타데이터는 기본으로 지웁니다.
 - 편집 중 앱이 종료되면 편집 내용은 복원되지만 실행 취소 기록은 복원되지 않습니다.
 - 앱이 kinetica-ui를 직접 쓴다면 1.0.0-alpha05 이상을 쓰세요.
 
-## iOS
+**iOS**
 
-Swift Package Manager로 `https://github.com/Naury74/Naury-Frame-Kit-SDK`를 추가합니다(iOS 17 이상). 컴파일된 `FrameKit.xcframework`로 배포합니다.
-
-```swift
-import FrameKit
-
-Button("편집") { show = true }
-    .frameKitEditor(isPresented: $show, request: FrameKitRequest(input: .pickMultiple(maxItems: 10), chooser: .ask)) { result in
-        if case .success(_, let outputs) = result { print(outputs.map(\.url)) }
-    }
-```
-
-사진·영상·움직이는 이미지·음성 편집기와 하나의 진입점(`FrameKitRequest`)을 제공합니다. 문서 감지·스캐너, 앱 안 갤러리, WebP 저장은 iOS에 없습니다. 자세한 내용은 [iOS 문서](docs/ios.md)를 보세요. iOS 샘플 앱은 저장소의 `ios/` 폴더에서 `FrameKit.xcodeproj`의 `FrameKitSample`을 실행합니다.
-
-<table>
-  <tr>
-    <td align="center" width="20%"><img src="docs/images/ios-chooser.png" width="160" alt="iOS 고르기"><br><b>고르기</b></td>
-    <td align="center" width="20%"><img src="docs/images/ios-photo.png" width="160" alt="iOS 사진 편집"><br><b>사진 편집</b></td>
-    <td align="center" width="20%"><img src="docs/images/ios-video.png" width="160" alt="iOS 영상 편집"><br><b>영상 편집</b></td>
-    <td align="center" width="20%"><img src="docs/images/ios-motion.png" width="160" alt="iOS 움직이는 이미지"><br><b>움직이는 이미지</b></td>
-    <td align="center" width="20%"><img src="docs/images/ios-audio.png" width="160" alt="iOS 음성 편집"><br><b>음성 편집</b></td>
-  </tr>
-</table>
+- 사진 고르기는 시스템 선택기를 써서 사진 접근 권한이 필요 없습니다. 카메라는 `NSCameraUsageDescription`, 녹음은 `NSMicrophoneUsageDescription`이 Info.plist에 있어야 하고, 없으면 녹음 도구가 보이지 않습니다.
+- 앱 확장(공유 확장 등)에서는 쓸 수 없습니다.
+- 배경 제거는 지원하지 않는 기기(시뮬레이터 포함)에서 도구가 보이지 않습니다.
+- 미리 보기 소리는 앱의 오디오 세션 설정을 따르고, 녹음이 끝나면 앱이 쓰던 오디오 세션 설정으로 돌립니다.
 
 ## 문서
 
+- [Android 연동 가이드](docs/integration.md)
 - [iOS](docs/ios.md)
-- [연동 가이드](docs/integration.md)
 - [설정](docs/configuration.md)
 - [화면 없이 처리](docs/headless.md)
 - [지원 형식](docs/supported-formats.md)
