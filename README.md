@@ -11,7 +11,7 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache%202.0-blue" alt="License"></a>
 </p>
 
-**FrameKit**은 Android 앱에 사진, 영상, 음성 편집 화면을 붙이는 SDK입니다.
+**FrameKit**은 Android 앱에 사진, 영상, 음성 편집 화면을 붙이는 SDK입니다. iOS 사진 편집기는 [iOS 문서](docs/ios.md)를 보세요.
 편집기를 열면 사용자가 고르고 고치고 저장하는 화면까지 모두 들어 있고, 앱은 결과 파일만 받으면 됩니다. 원본 파일은 바꾸지 않습니다.
 
 ![FrameKit](docs/images/hero.png)
