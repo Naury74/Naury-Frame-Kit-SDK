@@ -33,8 +33,9 @@ enum VideoCompositionBuilder {
     /// - Parameters:
     ///   - frameRate: 초당 프레임. 저장은 상한, 미리 보기는 30.
     ///   - singleClip: 자르기·회전 도구에서 그 클립만 자르기 없이 보여 줄 때의 클립 위치.
+    /// - Parameter overlays: `false`면 요소·워터마크를 빼고 만든다(미리 보기는 화면 위에 따로 그린다). 가리기는 항상 넣는다.
     static func build(_ edit: VideoEdit, sources: [VideoSource], audio: [AudioSource], maxShortSide: Int, frameRate: Int,
-                      includeLayers: Bool = true, singleClip: Int? = nil) throws(EditorError) -> BuiltComposition {
+                      overlays: Bool = true, singleClip: Int? = nil) throws(EditorError) -> BuiltComposition {
         var edit = edit
         if let index = singleClip, edit.clips.indices.contains(index) {
             var clip = edit.clips[index]
@@ -51,8 +52,8 @@ enum VideoCompositionBuilder {
         let originalAudio = edit.clips.contains { sources[$0.source].hasAudio && !$0.muted }
             ? composition.addMutableTrack(withMediaType: .audio, preferredTrackID: kCMPersistentTrackID_Invalid) : nil
         let originalParams = originalAudio.map { AVMutableAudioMixInputParameters(track: $0) }
-        let frame = VideoFrameExtras(size: size, masks: includeLayers ? edit.masks : [], overlays: includeLayers ? edit.overlays : [],
-                                     watermark: includeLayers ? edit.watermark : nil)
+        let frame = VideoFrameExtras(size: size, masks: singleClip == nil ? edit.masks : [], overlays: overlays ? edit.overlays : [],
+                                     watermark: overlays ? edit.watermark : nil)
         var instructions: [VideoInstruction] = []
         var cursor: Micros = 0
         do {

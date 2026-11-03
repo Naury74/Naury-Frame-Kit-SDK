@@ -51,7 +51,8 @@ final class VideoEditorModel: ColorToolHost {
     }
 
     /// 이번 판에서 화면이 있는 도구.
-    static let implemented: Set<VideoTool> = [.trim, .crop, .rotate, .canvas, .adjust, .filter, .speed, .audio]
+    static let implemented = Set(VideoTool.allCases)
+    static let defaultItemUs: Micros = 3_000_000
     static let previewShortSide = 720
     static let frameUs: Micros = 33_333
 
@@ -62,7 +63,7 @@ final class VideoEditorModel: ColorToolHost {
 
     private(set) var phase: Phase
     private(set) var sources: [VideoSource] = []
-    private(set) var audioSources: [AudioSource] = []
+    var audioSources: [AudioSource] = []
     var history = VideoHistory(VideoEdit(clips: []))
     var working: VideoEdit?
     private(set) var activeTool: VideoTool?
@@ -77,7 +78,7 @@ final class VideoEditorModel: ColorToolHost {
     var showDiscardDialog = false
     var showDraftDialog = false
     private(set) var notice: String?
-    private(set) var busy = false
+    var busy = false
     private(set) var thumbnailer: VideoThumbnailer?
     /// 자르기·회전 도구에서 보여 줄 클립 프레임(똑바로 선 원본).
     private(set) var cropFrame: CGImage?
@@ -85,6 +86,23 @@ final class VideoEditorModel: ColorToolHost {
     var adjustKind: AdjustKind = .brightness
     private(set) var filterThumbnails: [String: CGImage] = [:]
     var showAddPicker = false
+    // 요소·가리기·소리 선택
+    var selectedOverlayId: String?
+    var selectedMaskId: String?
+    var selectedAudioId: String?
+    var originalSelected = false
+    /// 소리를 끌 구간(결과 시간). 있으면 구간 음소거 막대가 보인다.
+    var muteSelection: TimeRangeUs?
+    var liveStroke: [NPoint]?
+    var privacy = PrivacySettings(mode: .rectangle)
+    var stickerCategory = 0
+    /// 화면 위에 그린 지금 시각의 요소·워터마크(미리 보기 크기).
+    var overlayImage: CGImage?
+    var overlayKey = ""
+    var showMusicPicker = false
+    var musicPickerRole = AudioRole.music
+    var showRecorder = false
+    private var lastWatermark: WatermarkSpec?
 
     private var rebuildTask: Task<Void, Never>?
     private var exportTask: Task<Void, Never>?
@@ -123,7 +141,15 @@ final class VideoEditorModel: ColorToolHost {
     var railTools: [VideoTool] { tools.filter { $0 != .trim || request.config.maxClipCount == 1 } }
     var toolHasChanges: Bool {
         guard activeTool != nil else { return false }
-        if activeTool?.isDraft == true { return working.map { !$0.sameContent(as: history.current) } ?? false }
+        if activeTool?.isDraft == true {
+            guard var working else { return false }
+            working.overlays.removeAll { timed in
+                if case .text(let text, _) = timed.overlay.content { return text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+                return false
+            }
+            if let watermark = working.watermark, !watermark.isValid { working.watermark = history.current.watermark }
+            return !working.sameContent(as: history.current)
+        }
         return toolEntry.map { !$0.sameContent(as: displayed) } ?? false
     }
     var selectedHasAudio: Bool { selectedSource?.hasAudio == true }
@@ -259,6 +285,7 @@ final class VideoEditorModel: ColorToolHost {
                 guard let self else { return }
                 let local = time.micros
                 self.position = min(self.duration, self.globalTime(local))
+                self.refreshOverlayImage()
                 self.isPlaying = self.player.timeControlStatus == .playing
             }
         }
@@ -306,7 +333,7 @@ final class VideoEditorModel: ColorToolHost {
             guard !Task.isCancelled, !edit.clips.isEmpty else { return }
             do {
                 let built = try VideoCompositionBuilder.build(edit, sources: sources, audio: audio, maxShortSide: Self.previewShortSide,
-                                                              frameRate: 30, singleClip: single)
+                                                              frameRate: 30, overlays: false, singleClip: single)
                 let item = AVPlayerItem(asset: built.asset)
                 item.videoComposition = built.videoComposition
                 item.audioMix = built.audioMix
@@ -315,6 +342,7 @@ final class VideoEditorModel: ColorToolHost {
                 player.replaceCurrentItem(with: item)
                 renderSize = built.size
                 previewFailed = false
+                refreshOverlayImage(force: true)
                 seek(to: position)
                 if wasPlaying { player.play() }
             } catch {
@@ -333,12 +361,27 @@ final class VideoEditorModel: ColorToolHost {
         if tool == .crop { cropAspect = .free }
         if tool == .filter { makeFilterThumbnails() }
         if tool.isGeometry { loadCropFrame() }
+        clearSelection()
+        if tool == .text { beginText() }
+        if tool == .watermark, working?.watermark == nil {
+            working?.watermark = lastWatermark ?? request.config.watermark.map { config in
+                var spec = config.spec
+                if !config.applyOnOpen { spec.text = "" }
+                return spec
+            } ?? WatermarkSpec(text: "")
+        }
         rebuildPreview(immediately: true)
     }
 
     func applyTool() {
         guard let tool = activeTool else { return }
         if tool.isDraft, var working {
+            working.overlays.removeAll { timed in
+                if case .text(let text, _) = timed.overlay.content { return text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+                return false
+            }
+            if let watermark = working.watermark, !watermark.isValid { working.watermark = nil }
+            if let watermark = working.watermark { lastWatermark = watermark }
             working.clampTimed()
             history.commit(working)
         }
@@ -405,6 +448,7 @@ final class VideoEditorModel: ColorToolHost {
             history.commit(edit)
         }
         rebuildPreview()
+        refreshOverlayImage(force: true)
     }
 
     func commitGesture() {
@@ -550,6 +594,14 @@ final class VideoEditorModel: ColorToolHost {
         case .filter: changeSelectedClip { $0.effects.filterId = "original"; $0.effects.filterIntensity = 0 }
         case .audio: changeSelectedClip { $0.muted = false; $0.volume = 1 }
         case .canvas: change { $0.canvas = CanvasState() }
+        case .text: setTextStyle { $0 = TextStyle() }
+        case .sticker:
+            change { edit in edit.overlays.removeAll { if case .sticker = $0.overlay.content { true } else { false } } }
+            showNotice("cleared")
+        case .privacy:
+            change { $0.masks = [] }
+            showNotice("cleared")
+        case .watermark: setWatermark { spec in spec = WatermarkSpec(text: spec.text) }
         default: break
         }
     }
@@ -615,6 +667,7 @@ final class VideoEditorModel: ColorToolHost {
         player.replaceCurrentItem(with: nil)
         if let timeObserver { player.removeTimeObserver(timeObserver) }
         sources.forEach { $0.close() }
+        audioSources.forEach { $0.close() }
         onFinish(result)
     }
 

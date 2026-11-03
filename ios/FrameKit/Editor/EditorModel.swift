@@ -80,6 +80,8 @@ final class EditorModel {
     var documentSuggestionDismissed = false
     /// 배경 제거 상태.
     var cutoutBusy = false
+    /// 이 기기에서 배경 제거를 할 수 있으면 `true`. 확인이 끝나기 전에는 도구를 보이지 않는다.
+    var cutoutAvailable = false
     var cutoutError: EditorError?
     /// 문서를 편 뒤 인식한 글자.
     var documentText: String?
@@ -150,6 +152,12 @@ final class EditorModel {
 
     func start() {
         OutputStore.removeStalePartials()
+        if tools.contains(.cutout) {
+            Task.detached(priority: .utility) {
+                let supported = SubjectCutout.isSupported
+                await MainActor.run { self.cutoutAvailable = supported }
+            }
+        }
         let issues = request.validate()
         guard issues.isEmpty else {
             frameKitLog.error("invalid configuration: \(issues.map(\.description).joined(separator: ", "), privacy: .public)")

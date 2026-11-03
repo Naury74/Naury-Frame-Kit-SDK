@@ -1,8 +1,8 @@
 import SwiftUI
 
 /// 편집 결과 위의 조작층. [rect]는 사진이 그려진 영역(뷰 좌표)이다.
-struct CanvasInteraction: View {
-    let model: EditorModel
+struct CanvasInteraction<Host: LayerToolHost>: View {
+    let model: Host
     let rect: CGRect
     let zoom: CGFloat
     @Environment(\.editorTheme) private var theme
@@ -13,7 +13,7 @@ struct CanvasInteraction: View {
 
     private enum DragMode { case move, draw, handle(center: CGPoint, startVector: CGVector) }
 
-    private var drawing: Bool { model.activeTool == .draw || model.activeTool == .privacy }
+    private var drawing: Bool { model.isDrawingMode }
     /// 뷰 pt당 캔버스 px.
     private var pxPerPt: CGFloat { model.renderedCanvas.width / max(1, rect.width) }
 
@@ -48,8 +48,8 @@ struct CanvasInteraction: View {
         let before = model.selectedOverlayId
         guard model.canManipulateOverlays else { model.toggleChrome(); return }
         model.selectOverlay(at: CGPoint(x: point.x, y: point.y))
-        if let id = model.selectedOverlayId, id == before, model.selectedOverlay?.isText == true, model.activeTool == nil {
-            model.selectTool(.text)
+        if let id = model.selectedOverlayId, id == before, model.selectedOverlay?.isText == true {
+            model.editSelectedText()
         } else if model.selectedOverlayId == nil && before == nil {
             model.toggleChrome()
         }
@@ -191,18 +191,17 @@ struct CanvasInteraction: View {
     private func liveStrokeView(_ points: [NPoint]) -> some View {
         let canvasShort = min(model.renderedCanvas.width, model.renderedCanvas.height) / pxPerPt
         let viewPoints = points.map { CGPoint(x: rect.minX + $0.x * rect.width, y: rect.minY + $0.y * rect.height) }
-        let isShape = (model.activeTool == .draw && model.brush.shapes) || (model.activeTool == .privacy && model.privacy.mode != .brush)
+        let isShape = model.liveStrokeIsShape
         return Group {
             if isShape, let a = viewPoints.first, let b = viewPoints.last {
                 Path { $0.addRect(CGRect(x: min(a.x, b.x), y: min(a.y, b.y), width: abs(b.x - a.x), height: abs(b.y - a.y))) }
                     .stroke(theme.accent, style: StrokeStyle(lineWidth: 1.5, dash: [6, 4]))
             } else {
-                let width = model.activeTool == .privacy ? model.privacy.brushRatio * canvasShort : model.brush.widthRatio * canvasShort
-                let color: Color = model.activeTool == .privacy ? Color.white.opacity(0.5)
-                    : (model.brush.kind == .eraser ? Color.white.opacity(0.35)
-                        : Color(argb: model.brush.color).opacity(model.brush.opacity * (model.brush.kind == .highlighter ? 0.4 : 1)))
+                let style = model.liveStrokeStyle
+                let width = style.widthRatio * canvasShort
+                let color = style.color
                 Path { $0.addLines(viewPoints) }
-                    .stroke(color, style: StrokeStyle(lineWidth: width, lineCap: model.brush.kind == .marker ? .square : .round, lineJoin: .round))
+                    .stroke(color, style: StrokeStyle(lineWidth: width, lineCap: style.square ? .square : .round, lineJoin: .round))
             }
         }
         .allowsHitTesting(false)

@@ -15,6 +15,21 @@ final class CutoutMask: Hashable, @unchecked Sendable {
 
 /// 기기 안에서 피사체를 찾아 배경 마스크를 만든다(Vision).
 enum SubjectCutout {
+    /// 이 기기에서 피사체 분리를 할 수 있는지. 작은 이미지로 한 번 시험해 보고 기억한다.
+    static let isSupported: Bool = {
+        guard let context = BitmapContext.make(width: 64, height: 64) else { return false }
+        context.setFillColor(CGColor(gray: 0.5, alpha: 1))
+        context.fill(CGRect(x: 0, y: 0, width: 64, height: 64))
+        guard let image = context.makeImage() else { return false }
+        do {
+            try VNImageRequestHandler(cgImage: image, options: [:]).perform([VNGenerateForegroundInstanceMaskRequest()])
+            return true
+        } catch {
+            frameKitLog.info("subject cutout unavailable: \(error.localizedDescription, privacy: .public)")
+            return false
+        }
+    }()
+
     /// - Throws: 기기가 지원하지 않으면 `unsupportedOperation`, 피사체가 없으면 `invalidSource`.
     static func mask(for image: CGImage) throws(EditorError) -> CutoutMask {
         let request = VNGenerateForegroundInstanceMaskRequest()

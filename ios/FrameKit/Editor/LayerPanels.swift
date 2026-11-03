@@ -1,5 +1,59 @@
 import SwiftUI
 
+/// 텍스트·스티커·가리기·워터마크 패널과 사진 위 조작층이 쓰는 동작. 사진·영상 편집기가 함께 쓴다.
+@MainActor
+protocol LayerToolHost: AnyObject, Observable {
+    var catalog: EditorCatalog { get }
+    var editingText: (text: String, style: TextStyle)? { get }
+    func setText(_ text: String)
+    func setTextStyle(_ change: (inout TextStyle) -> Void)
+    func mutateSelected(_ change: (inout Overlay) -> Void)
+    var selectedOverlay: Overlay? { get }
+    var selectedOverlayId: String? { get }
+    var stickerCategory: Int { get set }
+    var customStickerIds: [String] { get }
+    func addSticker(_ assetId: String)
+    var privacy: PrivacySettings { get set }
+    var privacyModes: [PrivacySettings.Mode] { get }
+    var watermarkDraft: WatermarkSpec? { get }
+    func setWatermark(_ change: (inout WatermarkSpec) -> Void)
+    func removeWatermark()
+    var hasCommittedWatermark: Bool { get }
+    var watermarkSuggestions: [String] { get }
+    // 사진 위 조작
+    var renderedCanvas: CGSize { get }
+    var liveStroke: [NPoint]? { get }
+    var canManipulateOverlays: Bool { get }
+    var isDrawingMode: Bool { get }
+    var liveStrokeIsShape: Bool { get }
+    /// 그리는 중인 획 모양(짧은 변 대비 굵기, 색, 네모 끝).
+    var liveStrokeStyle: (widthRatio: Double, color: Color, square: Bool) { get }
+    func toggleChrome()
+    func selectOverlay(at point: CGPoint)
+    func editSelectedText()
+    func strokeBegan(_ point: NPoint)
+    func strokeMoved(_ point: NPoint)
+    func strokeEnded()
+    func transformSelected(from start: OverlayTransform, move: CGSize, scale: Double, rotation: Double)
+    func commitGesture()
+    func deleteSelected()
+    func duplicateSelected()
+}
+
+extension EditorModel: LayerToolHost {
+    var privacyModes: [PrivacySettings.Mode] { PrivacySettings.Mode.allCases }
+    var hasCommittedWatermark: Bool { history.current.watermark != nil }
+    var watermarkSuggestions: [String] { request.config.watermark?.suggestions ?? [] }
+    var isDrawingMode: Bool { activeTool == .draw || activeTool == .privacy }
+    var liveStrokeIsShape: Bool { (activeTool == .draw && brush.shapes) || (activeTool == .privacy && privacy.mode != .brush) }
+    var liveStrokeStyle: (widthRatio: Double, color: Color, square: Bool) {
+        if activeTool == .privacy { return (privacy.brushRatio, Color.white.opacity(0.5), false) }
+        if brush.kind == .eraser { return (brush.widthRatio, Color.white.opacity(0.35), false) }
+        return (brush.widthRatio, Color(argb: brush.color).opacity(brush.opacity * (brush.kind == .highlighter ? 0.4 : 1)), brush.kind == .marker)
+    }
+    func editSelectedText() { if activeTool == nil { selectTool(.text) } }
+}
+
 /// 글자·그리기 색(Android PaletteColors와 같은 순서).
 enum Palette {
     static let colors: [(argb: UInt32, key: String)] = [
@@ -93,8 +147,8 @@ private func percent(_ v: Double) -> String { "\(Int((v * 100).rounded()))%" }
 
 // MARK: - 글자
 
-struct TextPanel: View {
-    let model: EditorModel
+struct TextPanel<Host: LayerToolHost>: View {
+    let model: Host
     @Environment(\.strings) private var strings
     @FocusState private var focused: Bool
 
@@ -111,7 +165,7 @@ struct TextPanel: View {
                     .background(RoundedRectangle(cornerRadius: 10).fill(Color.gray.opacity(0.18)))
                     .padding(.horizontal, 16)
                     .onAppear { focused = editing.text.isEmpty }
-                chips((model.request.catalog.showDefaultFonts ? fonts : ["sans"]) + FontAssets.ids, selected: style.fontId, title: { id in
+                chips((model.catalog.showDefaultFonts ? fonts : ["sans"]) + FontAssets.ids, selected: style.fontId, title: { id in
                     FontAssets.label(for: id) ?? strings("font_\(id.replacingOccurrences(of: "-", with: "_"))")
                 }) { id in model.setTextStyle { $0.fontId = id } }
                 label("text_color")
@@ -196,8 +250,8 @@ func chips(_ ids: [String], selected: String, title: @escaping (String) -> Strin
 
 // MARK: - 스티커
 
-struct StickerPanel: View {
-    @Bindable var model: EditorModel
+struct StickerPanel<Host: LayerToolHost>: View {
+    @Bindable var model: Host
     @Environment(\.strings) private var strings
     @Environment(\.editorTheme) private var theme
 
@@ -205,7 +259,7 @@ struct StickerPanel: View {
         var result: [(String, [String])] = []
         let custom = model.customStickerIds
         if !custom.isEmpty { result.append(("sticker_custom", custom)) }
-        guard model.request.catalog.showDefaultStickers else { return result }
+        guard model.catalog.showDefaultStickers else { return result }
         result += EditorModel.emojiGroups.map { ($0.key, $0.emoji.map { EmojiCatalog.prefix + $0 }) }
         return result
     }
@@ -290,8 +344,8 @@ struct DrawPanel: View {
 
 // MARK: - 가리기
 
-struct PrivacyPanel: View {
-    @Bindable var model: EditorModel
+struct PrivacyPanel<Host: LayerToolHost>: View {
+    @Bindable var model: Host
     @Environment(\.strings) private var strings
     @Environment(\.editorTheme) private var theme
 
@@ -301,7 +355,7 @@ struct PrivacyPanel: View {
             chips(["mosaic", "blur"], selected: settings.mosaic ? "mosaic" : "blur", title: { strings("privacy_\($0)") }) {
                 model.privacy.mosaic = $0 == "mosaic"
             }
-            chips(PrivacySettings.Mode.allCases.map(\.rawValue), selected: settings.mode.rawValue, title: { strings("privacy_\($0)") }) {
+            chips(model.privacyModes.map(\.rawValue), selected: settings.mode.rawValue, title: { strings("privacy_\($0)") }) {
                 model.privacy.mode = PrivacySettings.Mode(rawValue: $0) ?? .brush
             }
             ValueSlider(label: strings("privacy_strength"), value: settings.strength * 100, range: 0...100, format: { "\(Int($0.rounded()))" }) {
@@ -321,8 +375,8 @@ struct PrivacyPanel: View {
 
 // MARK: - 워터마크
 
-struct WatermarkPanel: View {
-    let model: EditorModel
+struct WatermarkPanel<Host: LayerToolHost>: View {
+    let model: Host
     @Environment(\.strings) private var strings
     @Environment(\.editorTheme) private var theme
 
@@ -333,12 +387,13 @@ struct WatermarkPanel: View {
                 TextField(strings("watermark_hint"), text: Binding(get: { spec.text }, set: { v in model.setWatermark { $0.text = v } }))
                     .padding(12)
                     .background(RoundedRectangle(cornerRadius: 10).fill(Color.gray.opacity(0.18)))
-                if model.history.current.watermark != nil {
+                if model.hasCommittedWatermark {
                     Button(strings("watermark_remove")) { model.removeWatermark() }.foregroundStyle(theme.error)
                 }
             }
             .padding(.horizontal, 16)
-            if let suggestions = model.request.config.watermark?.suggestions, !suggestions.isEmpty {
+            if !model.watermarkSuggestions.isEmpty {
+                let suggestions = model.watermarkSuggestions
                 chips(suggestions, selected: spec.text, title: { $0 }) { v in model.setWatermark { $0.text = v } }
             }
             chips(WatermarkPattern.allCases.map(\.rawValue), selected: spec.pattern.rawValue, title: { strings("watermark_\($0)") }) { raw in

@@ -106,6 +106,8 @@ final class AudioSource: @unchecked Sendable {
         }
     }
 
+    func close() { try? FileManager.default.removeItem(at: url) }
+
     private init(url: URL, asset: AVURLAsset, track: AVAssetTrack, duration: Micros, name: String) {
         self.url = url
         self.asset = asset

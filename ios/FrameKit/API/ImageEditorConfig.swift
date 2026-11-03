@@ -8,7 +8,7 @@ public enum ImageTool: String, Sendable, CaseIterable {
     case rotate
     /// 문서 네 모서리를 찾아 반듯하게 펴고 스캔처럼 보정한다. 문서가 보이거나 PDF로 저장할 때만 나온다.
     case document
-    /// 피사체만 남기고 배경을 지운다(기기 안 처리). 지원하지 않는 기기에서는 나오지 않는다.
+    /// 피사체만 남기고 배경을 지운다(기기 안 처리). 이 기기가 지원하지 않으면 도구 목록에서 빠진다.
     case cutout
     /// 12가지 보정.
     case adjust

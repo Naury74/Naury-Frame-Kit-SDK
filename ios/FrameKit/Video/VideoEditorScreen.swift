@@ -96,6 +96,20 @@ struct VideoEditorScreen: View {
             if exportError?.recoverable == true { Button(strings("action_retry")) { model.retryExport() } }
             Button(strings("action_keep_editing"), role: .cancel) { model.dismissExportError() }
         } message: { Text(exportError.map { strings(errorKey($0.code)) } ?? "") }
+        .sheet(isPresented: $model.showMusicPicker) {
+            AudioFilePicker { url in
+                model.showMusicPicker = false
+                if let url { model.addAudio(url: url, role: model.musicPickerRole) }
+                model.musicPickerRole = .music
+            }
+            .ignoresSafeArea()
+        }
+        .sheet(isPresented: $model.showRecorder) {
+            VoiceRecorderSheet { url in
+                model.showRecorder = false
+                if let url { model.addAudio(url: url, role: .voice, copy: false) }
+            }
+        }
         .sheet(isPresented: $model.showAddPicker) {
             VideoPicker(limit: max(1, model.request.config.maxClipCount - model.displayed.clips.count)) { model.picked($0, append: true) }
                 .ignoresSafeArea()
@@ -148,13 +162,28 @@ struct VideoEditorScreen: View {
             if model.activeTool?.isGeometry == true {
                 VideoCropCanvas(model: model)
             } else {
-                PlayerSurface(player: model.player)
-                    .aspectRatio(model.renderSize, contentMode: .fit)
-                    .padding(16)
-                    .contentShape(Rectangle())
-                    .onTapGesture { if model.activeTool == nil { model.togglePlay() } }
-                    .accessibilityLabel(strings(model.isPlaying ? "pause" : "play"))
-                    .accessibilityAddTraits(.isButton)
+                GeometryReader { geo in
+                    let rect = fit(model.renderSize, in: CGRect(origin: .zero, size: geo.size).insetBy(dx: 16, dy: 16))
+                    ZStack {
+                        PlayerSurface(player: model.player)
+                            .frame(width: rect.width, height: rect.height).position(x: rect.midX, y: rect.midY)
+                            .accessibilityHidden(true)
+                        if let overlay = model.overlayImage {
+                            Image(decorative: overlay, scale: 1).resizable()
+                                .frame(width: rect.width, height: rect.height).position(x: rect.midX, y: rect.midY)
+                                .allowsHitTesting(false).accessibilityHidden(true)
+                        }
+                        if model.activeTool == .privacy { maskOutlines(rect) }
+                        if [VideoTool.text, .sticker, .privacy].contains(model.activeTool) {
+                            CanvasInteraction(model: model, rect: rect, zoom: 1)
+                        } else {
+                            Color.clear.contentShape(Rectangle())
+                                .onTapGesture { if model.activeTool == nil { model.togglePlay() } }
+                                .accessibilityLabel(strings(model.isPlaying ? "pause" : "play"))
+                                .accessibilityAddTraits(.isButton)
+                        }
+                    }
+                }
             }
             if model.previewFailed {
                 Text(strings("preview_unavailable")).font(.system(size: 14)).foregroundStyle(theme.foreground)
@@ -184,7 +213,30 @@ struct VideoEditorScreen: View {
     }
 
     private func noticeText(_ key: String) -> String {
-        key == "clip_limit" ? String.localizedStringWithFormat(strings(key), model.request.config.maxClipCount) : strings(key)
+        switch key {
+        case "clip_limit": String.localizedStringWithFormat(strings(key), model.request.config.maxClipCount)
+        case "mask_limit": String.localizedStringWithFormat(strings(key), VideoEdit.maxPrivacyMasks)
+        default: strings(key)
+        }
+    }
+
+    /// 지금 켜진 가리기와 고른 가리기의 테두리.
+    private func maskOutlines(_ rect: CGRect) -> some View {
+        let masks = model.displayed.masks.filter { $0.range.contains(model.position) || $0.mask.id == model.selectedMaskId }
+        return ForEach(masks, id: \.mask.id) { timed in
+            let r: NRect? = switch timed.mask.shape {
+            case .rectangle(let r), .ellipse(let r): r
+            case .brush: nil
+            }
+            if let r {
+                let box = CGRect(x: rect.minX + r.left * rect.width, y: rect.minY + r.top * rect.height, width: r.width * rect.width, height: r.height * rect.height)
+                Group {
+                    if case .ellipse = timed.mask.shape { Ellipse().stroke(timed.mask.id == model.selectedMaskId ? theme.accent : .white, lineWidth: 2) }
+                    else { Rectangle().stroke(timed.mask.id == model.selectedMaskId ? theme.accent : .white, lineWidth: 2) }
+                }
+                .frame(width: box.width, height: box.height).position(x: box.midX, y: box.midY).allowsHitTesting(false)
+            }
+        }
     }
 
     // MARK: - 재생 줄·타임라인·클립 동작
@@ -220,7 +272,7 @@ struct VideoEditorScreen: View {
             } else {
                 TrackTimeline(model: model).padding(.vertical, 4)
             }
-            if model.activeTool == nil && model.request.config.maxClipCount > 1 {
+            if model.activeTool == nil && !model.hasTimelineSelection && model.request.config.maxClipCount > 1 {
                 clipActions
             }
         }
@@ -269,6 +321,10 @@ struct VideoEditorScreen: View {
                     .padding(.horizontal, 16).padding(.vertical, 8)
                 }
                 .transition(.opacity)
+            } else if model.hasTimelineSelection {
+                ScrollView(.vertical, showsIndicators: false) { TimelineSelectionPanel(model: model) }
+                    .scrollBounceBehavior(.basedOnSize)
+                    .transition(.opacity)
             } else if !model.railTools.isEmpty {
                 rail(wide: wide).transition(.opacity)
             }
@@ -286,8 +342,19 @@ struct VideoEditorScreen: View {
         case .filter: FilterPanel(model: model)
         case .canvas: CanvasPanel(model: model)
         case .speed: SpeedPanel(model: model)
-        case .audio: AudioPanel(model: model)
-        default: EmptyView()
+        case .audio: VideoAudioPanel(model: model)
+        case .text: TextPanel(model: model)
+        case .sticker:
+            VStack(spacing: 8) {
+                TimedRangeRow(model: model, help: strings("sticker_help"))
+                StickerPanel(model: model)
+            }
+        case .privacy:
+            VStack(spacing: 8) {
+                TimedRangeRow(model: model, help: strings("mask_help"))
+                PrivacyPanel(model: model)
+            }
+        case .watermark: WatermarkPanel(model: model)
         }
     }
 

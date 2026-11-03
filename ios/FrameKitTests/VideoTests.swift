@@ -101,3 +101,31 @@ struct VideoEngineTests {
         #expect(pixel(b, x: 20, y: 120).b > 200)
     }
 }
+
+struct VideoLayerTests {
+    @Test func timedOverlayAndMaskAppearOnlyInRange() async throws {
+        let source = try await VideoSource.open(url: try await makeTestVideo(seconds: 2), removeOnClose: true)
+        defer { source.close() }
+        var edit = VideoEdit(clips: [VideoClipState(id: "a", source: 0, sourceRange: TimeRangeUs(start: 0, end: 2_000_000))])
+        edit.overlays = [TimedOverlay(
+            overlay: Overlay(id: "box", content: .shape(.rectangle, widthRatio: 0.2, heightRatio: 0.2, ShapeStyle(color: 0xFFFF_FF00, filled: true)),
+                             transform: OverlayTransform(center: NPoint(x: 0.75, y: 0.5))),
+            range: TimeRangeUs(start: 0, end: 1_000_000))]
+        edit.watermark = WatermarkSpec(text: "WM", pattern: .band, position: .bottomCenter)
+        let media = try await VideoExporter.export(edit, sources: [source], audio: [], config: VideoExportConfig()) { _ in }
+        defer { FrameKitOutputs.delete(media.url) }
+        let generator = AVAssetImageGenerator(asset: AVURLAsset(url: media.url))
+        generator.requestedTimeToleranceBefore = .zero
+        generator.requestedTimeToleranceAfter = .zero
+        let early = try await generator.image(at: CMTime(seconds: 0.5, preferredTimescale: 600)).image
+        let late = try await generator.image(at: CMTime(seconds: 1.5, preferredTimescale: 600)).image
+        let pe = pixel(early, x: early.width * 3 / 4, y: early.height / 2)
+        let pl = pixel(late, x: late.width * 3 / 4, y: late.height / 2)
+        #expect(pe.r > 200 && pe.g > 200 && pe.b < 80)   // 노란 상자
+        #expect(pl.b > 200 && pl.g < 60)                  // 원래 파랑
+        // 워터마크 띠는 끝까지 있다(아래쪽이 어두워짐).
+        let band = pixel(late, x: late.width / 4, y: late.height - 3)
+        let above = pixel(late, x: late.width / 4, y: late.height / 2)
+        #expect(band.r + 15 < above.r)
+    }
+}

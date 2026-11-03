@@ -7,7 +7,7 @@ extension EditorModel {
         guard pages.indices.contains(pageIndex) else { return tools }
         let page = pages[pageIndex]
         let showDocument = page.detection != nil || page.original != nil || request.export.format == .pdf
-        var result = tools.filter { ($0 != .document || showDocument) && ($0 != .cutout || Self.cutoutSupported) }
+        var result = tools.filter { ($0 != .document || showDocument) && ($0 != .cutout || cutoutAvailable) }
         // PDF로 저장하면 문서 보정을 맨 앞에 둔다.
         if request.export.format == .pdf, let index = result.firstIndex(of: .document) {
             result.insert(result.remove(at: index), at: 0)
@@ -179,8 +179,6 @@ extension EditorModel {
 }
 
 extension EditorModel {
-    /// 배경 제거(Vision 피사체 분리, iOS 17 이상). 기기가 지원하지 않으면 실행할 때 오류를 보인다.
-    static let cutoutSupported = true
 
     var hasCutout: Bool { displayed.cutout != nil }
 
