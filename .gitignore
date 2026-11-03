@@ -36,3 +36,11 @@ keystore.properties
 # OS
 .DS_Store
 Thumbs.db
+
+# iOS
+ios/Frameworks/
+ios/build/
+ios/.build/
+xcuserdata/
+*.xcuserstate
+DerivedData/
