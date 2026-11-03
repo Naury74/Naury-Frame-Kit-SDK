@@ -31,20 +31,13 @@ enum ImageExporter {
         try Task.checkCancellation()
 
         progress(.rendering)
-        let crop = math.cropPixelSize(edit.geometry.crop)
-        let scale = min(1, Double(output.width) / crop.width, Double(output.height) / crop.height)
-        let longEdge = Int((Double(max(source.uprightSize.width, source.uprightSize.height)) * scale).rounded(.up)) + 2
-        let decoded = try source.decode(maxLongEdge: longEdge)
-        try Task.checkCancellation()
         let background: UInt32? = config.format.supportsAlpha ? nil : config.jpegBackgroundARGB
-        let rendered = try PhotoRenderer.render(
-            image: decoded, uprightSize: source.uprightSize, edit: edit, crop: edit.geometry.crop,
-            output: output, background: background, includeCanvasEffects: true
-        )
+        let rendered = try render(source: source, edit: edit, output: output, background: background)
         try Task.checkCancellation()
 
         progress(.encoding)
-        let (final, partial) = try OutputStore.reserve(extension: config.format.fileExtension)
+        let (slot, partial) = try OutputStore.reserve(extension: config.format.fileExtension)
+        let final: URL
         do {
             guard let destination = CGImageDestinationCreateWithURL(partial as CFURL, destinationType.identifier as CFString, 1, nil) else {
                 throw EditorError.logged(.encodeFailed, "destination")
@@ -59,7 +52,7 @@ enum ImageExporter {
 
             progress(.finalizing)
             try verify(partial, output: output, type: destinationType)
-            try OutputStore.publish(partial: partial, to: final)
+            final = try OutputStore.publish(partial: partial, to: slot)
         } catch {
             try? FileManager.default.removeItem(at: partial)
             throw error
@@ -69,7 +62,37 @@ enum ImageExporter {
         if !source.isSRGB { warnings.append(.colorSpaceConvertedToSRGB) }
         if source.hasGainMap { warnings.append(.hdrGainMapDropped) }
         return EditedMedia(url: final, mediaType: .image, width: output.width, height: output.height, mimeType: config.format.mimeType,
-                           fileSize: size, warnings: warnings, pageCount: nil, isOriginal: false)
+                           fileSize: size, warnings: warnings, pageCount: nil, recognizedText: nil, isOriginal: false)
+    }
+
+    /// 결과 크기에 필요한 만큼만 디코딩해 그린다.
+    static func render(source: SourceImage, edit: PhotoEdit, output: PixelSizeValue, background: UInt32?) throws -> CGImage {
+        let math = GeometryMath(source: source.uprightSize, geometry: edit.geometry)
+        let crop = math.cropPixelSize(edit.geometry.crop)
+        let scale = min(1, Double(output.width) / crop.width, Double(output.height) / crop.height)
+        let longEdge = Int((Double(max(source.uprightSize.width, source.uprightSize.height)) * scale).rounded(.up)) + 2
+        let decoded = try source.decode(maxLongEdge: longEdge)
+        try Task.checkCancellation()
+        return try PhotoRenderer.render(image: decoded, uprightSize: source.uprightSize, edit: edit, crop: edit.geometry.crop,
+                                        output: output, background: background, includeCanvasEffects: true)
+    }
+
+    /// 여러 장을 장마다 파일로 저장한다. 하나라도 실패하면 만든 파일을 모두 지운다.
+    static func exportAll(pages: [(SourceImage, PhotoEdit)], config: ImageExportConfig,
+                          progress: @Sendable (ExportStage, Double) -> Void) throws -> [EditedMedia] {
+        var outputs: [EditedMedia] = []
+        do {
+            for (index, page) in pages.enumerated() {
+                let media = try export(source: page.0, edit: page.1, config: config) { stage in
+                    progress(stage, (Double(index) + (stage == .finalizing ? 1 : 0.5)) / Double(pages.count))
+                }
+                outputs.append(media)
+            }
+            return outputs
+        } catch {
+            outputs.forEach { FrameKitOutputs.delete($0.url) }
+            throw error
+        }
     }
 
     private static func destinationType(for format: ImageFormat) -> UTType? {
@@ -77,7 +100,9 @@ enum ImageExporter {
         case .jpeg: .jpeg
         case .png: .png
         case .heic: .heic
+        case .pdf: .pdf
         }
+        guard format != .pdf else { return nil }
         let available = CGImageDestinationCopyTypeIdentifiers() as? [String] ?? []
         return available.contains(type.identifier) ? type : nil
     }

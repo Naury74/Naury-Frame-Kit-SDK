@@ -24,6 +24,17 @@ public struct ImageEditorRequest: Sendable, Hashable {
         var issues: [ConfigurationIssue] = []
         if case .file(let url) = input, !url.isFileURL { issues.append(.init(path: "input", reason: .invalidValue)) }
         if case .data(let data) = input, data.isEmpty { issues.append(.init(path: "input", reason: .invalidValue)) }
+        if !(1...ImageEditorConfig.maxImages).contains(config.maxImageCount) {
+            issues.append(.init(path: "config.maxImageCount", reason: .outOfRange))
+        }
+        if case .pickMultiple(let max) = input, !(1...config.maxImageCount).contains(max) {
+            issues.append(.init(path: "input", reason: .outOfRange))
+        }
+        if case .files(let urls) = input, urls.isEmpty || urls.count > config.maxImageCount || urls.contains(where: { !$0.isFileURL }) {
+            issues.append(.init(path: "input", reason: .invalidValue))
+        }
+        if !(0...50).contains(export.pdf.marginMm) { issues.append(.init(path: "export.pdf.marginMm", reason: .outOfRange)) }
+        if !(72...600).contains(export.pdf.dpi) { issues.append(.init(path: "export.pdf.dpi", reason: .outOfRange)) }
         if config.allowRedo && !config.allowUndo { issues.append(.init(path: "config.allowRedo", reason: .requiresOther)) }
         if let watermark = config.watermark { issues += watermark.issues(path: "config.watermark") }
         if !(0...100).contains(export.quality) { issues.append(.init(path: "export.quality", reason: .outOfRange)) }

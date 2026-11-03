@@ -20,6 +20,8 @@ public enum MediaType: String, Sendable {
 
 /// 저장하며 원본과 달라진 점.
 public enum ExportWarning: String, Sendable {
+    /// 글자 인식을 할 수 없어 PDF에 글자 레이어를 넣지 않았다.
+    case textRecognitionSkipped
     /// 넓은 색 영역(Display P3 등) 원본을 sRGB로 바꿨다.
     case colorSpaceConvertedToSRGB
     /// HDR 게인 맵을 버리고 SDR로 저장했다.
@@ -42,6 +44,8 @@ public struct EditedMedia: Sendable, Hashable {
     public let warnings: [ExportWarning]
     /// PDF 쪽 수. 사진이면 `nil`.
     public let pageCount: Int?
+    /// PDF에서 인식한 글자(최대 10만 자). 인식하지 않았으면 `nil`.
+    public let recognizedText: String?
     /// 편집하지 않은 원본을 그대로 돌려준 경우 `true`.
     public let isOriginal: Bool
 }

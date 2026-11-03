@@ -36,15 +36,20 @@ public struct ImageEditorConfig: Sendable, Hashable {
     public var allowUndo: Bool
     /// 다시 실행 단추를 보인다. `allowUndo`가 `true`여야 한다.
     public var allowRedo: Bool
-    /// 호스트가 정하는 워터마크. `nil`이면 사용자가 워터마크 도구로 직접 넣는다.
+    /// 호스트가 정하는 워터마크. `nil`이면 사용자가 워터마크 도구로 직접 넣는다. 여러 장이면 모든 장에 같게 들어간다.
     public var watermark: WatermarkConfig?
+    /// 한 번에 편집할 수 있는 사진 수, 1...100. 여러 장 입력과 '사진 추가'를 제한한다.
+    public var maxImageCount: Int
+
+    public static let maxImages = 100
 
     public init(enabledTools: [ImageTool] = ImageTool.defaults, allowUndo: Bool = true, allowRedo: Bool = true,
-                watermark: WatermarkConfig? = nil) {
+                watermark: WatermarkConfig? = nil, maxImageCount: Int = 20) {
         self.enabledTools = enabledTools
         self.allowUndo = allowUndo
         self.allowRedo = allowRedo
         self.watermark = watermark
+        self.maxImageCount = maxImageCount
     }
 }
 
@@ -151,12 +156,15 @@ public enum ImageFormat: String, Sendable, CaseIterable {
     case png
     /// HEIC(HEVC). 투명 유지.
     case heic
+    /// PDF. 쪽마다 JPEG(`quality`)로 넣는다. 설정은 `ImageExportConfig.pdf`.
+    case pdf
 
     public var mimeType: String {
         switch self {
         case .jpeg: "image/jpeg"
         case .png: "image/png"
         case .heic: "image/heic"
+        case .pdf: "application/pdf"
         }
     }
 
@@ -165,10 +173,11 @@ public enum ImageFormat: String, Sendable, CaseIterable {
         case .jpeg: "jpg"
         case .png: "png"
         case .heic: "heic"
+        case .pdf: "pdf"
         }
     }
 
-    var supportsAlpha: Bool { self != .jpeg }
+    var supportsAlpha: Bool { self == .png || self == .heic }
 }
 
 /// 원본 메타데이터를 얼마나 옮길지. JPEG·HEIC에만 쓴다. 방향은 항상 '정상'으로, 크기는 결과 크기로 쓰고 원본 썸네일은 버린다.
@@ -195,6 +204,7 @@ public struct ImageExportConfig: Sendable, Hashable {
     public var metadataPolicy: MetadataPolicy
     /// JPEG의 투명 영역을 채울 색(0xAARRGGBB). 알파는 무시한다.
     public var jpegBackgroundARGB: UInt32
+    public var pdf: PdfOptions
 
     public init(
         format: ImageFormat = .jpeg,
@@ -203,7 +213,8 @@ public struct ImageExportConfig: Sendable, Hashable {
         maxHeight: Int? = nil,
         maxOutputPixels: Int = 16_000_000,
         metadataPolicy: MetadataPolicy = .safe,
-        jpegBackgroundARGB: UInt32 = 0xFF00_0000
+        jpegBackgroundARGB: UInt32 = 0xFF00_0000,
+        pdf: PdfOptions = PdfOptions()
     ) {
         self.format = format
         self.quality = quality
@@ -212,7 +223,45 @@ public struct ImageExportConfig: Sendable, Hashable {
         self.maxOutputPixels = maxOutputPixels
         self.metadataPolicy = metadataPolicy
         self.jpegBackgroundARGB = jpegBackgroundARGB
+        self.pdf = pdf
     }
 
     static let maxPixelsLimit = 100_000_000
+}
+
+/// PDF 쪽 크기.
+public enum PdfPageSizeOption: String, Sendable, CaseIterable {
+    /// 쪽을 사진 크기에 맞춘다.
+    case fitImage
+    case a4, a5, letter, legal
+}
+
+/// PDF 쪽 방향. `auto`는 사진이 가로로 길면 가로 쪽을 쓴다.
+public enum PdfOrientationOption: String, Sendable, CaseIterable { case auto, portrait, landscape }
+
+/// PDF 저장 설정.
+public struct PdfOptions: Sendable, Hashable {
+    public var pageSize: PdfPageSizeOption
+    public var orientation: PdfOrientationOption
+    /// 네 변 여백(mm), 0...50.
+    public var marginMm: Double
+    /// 쪽 이미지 해상도, 72...600.
+    public var dpi: Int
+    /// 쪽 바탕색(0xAARRGGBB).
+    public var backgroundARGB: UInt32
+    /// `true`면 모든 장을 한 PDF로, `false`면 장마다 PDF 하나.
+    public var combinePages: Bool
+    /// 기기 안에서 글자를 인식해 보이지 않는 글자 레이어를 넣는다(검색·복사 가능).
+    public var recognizeText: Bool
+
+    public init(pageSize: PdfPageSizeOption = .a4, orientation: PdfOrientationOption = .auto, marginMm: Double = 10, dpi: Int = 200,
+                backgroundARGB: UInt32 = 0xFFFF_FFFF, combinePages: Bool = true, recognizeText: Bool = true) {
+        self.pageSize = pageSize
+        self.orientation = orientation
+        self.marginMm = marginMm
+        self.dpi = dpi
+        self.backgroundARGB = backgroundARGB
+        self.combinePages = combinePages
+        self.recognizeText = recognizeText
+    }
 }

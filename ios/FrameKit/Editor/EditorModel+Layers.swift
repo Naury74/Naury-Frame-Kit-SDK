@@ -49,8 +49,10 @@ final class PreviewCache: @unchecked Sendable {
         let grainSeed: Int64
         let width: Int
         let height: Int
+        let source: ObjectIdentifier
 
-        init(edit: PhotoEdit, output: PixelSizeValue) {
+        init(edit: PhotoEdit, output: PixelSizeValue, source: ObjectIdentifier) {
+            self.source = source
             geometry = edit.geometry
             adjustments = edit.adjustments.filter { $0.value != 0 }
             filterId = edit.filterId
@@ -276,5 +278,25 @@ extension EditorModel {
 enum EmojiCatalog_core {
     static let groups: [(key: String, emoji: [String])] = FrameKitCore.EmojiCatalog.shared.groups.map { group in
         ("sticker_\(group.category.name.lowercased())", group.emoji)
+    }
+}
+
+/// 편집 중인 사진 한 장.
+struct EditorPage {
+    let source: SourceImage
+    let preview: UprightImage
+    var history: EditHistory
+    var thumbnail: CGImage?
+}
+
+extension UprightImage {
+    /// 긴 변이 [maxSide] 이하인 작은 그림.
+    func thumbnail(maxSide: Int) -> CGImage? {
+        let scale = min(1, Double(maxSide) / Double(max(cgImage.width, cgImage.height)))
+        let w = max(1, Int(Double(cgImage.width) * scale)), h = max(1, Int(Double(cgImage.height) * scale))
+        guard let context = BitmapContext.make(width: w, height: h) else { return nil }
+        context.interpolationQuality = .medium
+        context.draw(cgImage, in: CGRect(x: 0, y: 0, width: w, height: h))
+        return context.makeImage()
     }
 }

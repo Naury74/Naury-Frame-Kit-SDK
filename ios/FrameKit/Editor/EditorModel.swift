@@ -23,7 +23,7 @@ enum CropAspect: Hashable {
 
 /// 저장 진행 상태.
 enum ExportUI: Equatable {
-    case running(ExportStage?)
+    case running(ExportStage?, Double?)
     case cancelling
     case failed(EditorError)
 }
@@ -45,7 +45,17 @@ final class EditorModel {
     private var delivered = false
 
     private(set) var phase: Phase
-    var history = EditHistory(PhotoEdit())
+    /// 편집 중인 사진들. 순서가 저장 순서다.
+    private(set) var pages: [EditorPage] = []
+    private(set) var pageIndex = 0
+    /// 사진 추가 선택기를 띄운다.
+    var showAddPicker = false
+
+    /// 현재 장의 실행 취소 기록.
+    var history: EditHistory {
+        get { pages.indices.contains(pageIndex) ? pages[pageIndex].history : EditHistory(PhotoEdit()) }
+        set { if pages.indices.contains(pageIndex) { pages[pageIndex].history = newValue } }
+    }
     /// 적용 전 도구 편집이나 끌기 중인 값. 있으면 화면은 이것을 그린다.
     var working: PhotoEdit?
     private(set) var activeTool: ImageTool?
@@ -63,10 +73,10 @@ final class EditorModel {
     private(set) var draggingCrop = false
 
     /// 미리 보기 결과(현재 편집, 출력 화면 크기).
-    private(set) var rendered: CGImage?
+    var rendered: CGImage?
     /// 자르기·회전 도구에서 보이는 자르기 전 이미지.
     private(set) var boundsImage: CGImage?
-    private(set) var filterThumbnails: [String: CGImage] = [:]
+    var filterThumbnails: [String: CGImage] = [:]
 
     /// 고른 요소(글자·스티커·도형).
     var selectedOverlayId: String?
@@ -80,8 +90,9 @@ final class EditorModel {
     private let previewCache = PreviewCache()
     private var nextId = 0
 
-    private(set) var source: SourceImage?
-    private(set) var preview: UprightImage?
+    var source: SourceImage? { pages.indices.contains(pageIndex) ? pages[pageIndex].source : nil }
+    var preview: UprightImage? { pages.indices.contains(pageIndex) ? pages[pageIndex].preview : nil }
+    var pageLimit: Int { request.config.maxImageCount }
     private var viewport = CGSize(width: 1000, height: 1000)
     private var renderTask: Task<Void, Never>?
     private var renderGeneration = 0
@@ -102,7 +113,9 @@ final class EditorModel {
     // MARK: - 표시 값
 
     var displayed: PhotoEdit { working ?? history.current }
-    var isDirty: Bool { history.isDirty || (working.map { !$0.sameContent(as: history.current) } ?? false) }
+    var isDirty: Bool {
+        pages.contains { $0.history.isDirty } || (working.map { !$0.sameContent(as: history.current) } ?? false)
+    }
     var canUndo: Bool { request.config.allowUndo && history.canUndo && export == nil && working == nil }
     var canRedo: Bool { request.config.allowRedo && history.canRedo && export == nil && working == nil }
     var uprightSize: PixelSizeValue { source?.uprightSize ?? PixelSizeValue(width: 1, height: 1) }
@@ -131,57 +144,137 @@ final class EditorModel {
             return
         }
         switch request.input {
-        case .file(let url): load { try Self.copyToTemporary(url) }
-        case .data(let data): load { try Self.writeTemporary(data) }
-        case .pick: phase = .awaitingSource
+        case .file(let url): load([{ try Self.copyToTemporary(url) }], append: false)
+        case .files(let urls): load(urls.map { url in { try Self.copyToTemporary(url) } }, append: false)
+        case .data(let data): load([{ try Self.writeTemporary(data) }], append: false)
+        case .pick, .pickMultiple: phase = .awaitingSource
         }
     }
 
-    /// 사진 선택기 결과. `nil`이면 닫은 것이다.
-    func picked(_ provider: NSItemProvider?) {
-        guard let provider else { finish(.cancelled); return }
-        phase = .loading
+    /// 처음 선택기에서 고를 수 있는 장 수.
+    var initialPickLimit: Int {
+        if case .pickMultiple(let max) = request.input { return min(max, pageLimit) }
+        return 1
+    }
+
+    /// 사진 선택기 결과. 비어 있으면 닫은 것이다.
+    func picked(_ providers: [NSItemProvider], append: Bool = false) {
+        showAddPicker = false
+        guard !providers.isEmpty else {
+            if !append { finish(.cancelled) }
+            return
+        }
+        let room = append ? max(0, pageLimit - pages.count) : pageLimit
+        let chosen = Array(providers.prefix(room))
+        if chosen.count < providers.count { showNotice("page_limit") }
+        guard !chosen.isEmpty else { return }
+        if !append { phase = .loading }
+        Task { @MainActor in
+            var prepares: [@Sendable () throws -> URL] = []
+            for provider in chosen {
+                let copied = await Self.copy(from: ItemProviderBox(provider: provider))
+                prepares.append { try copied.get() }
+            }
+            self.load(prepares, append: append)
+        }
+    }
+
+    /// 선택기가 넘긴 항목. 한 번만 읽고 버린다.
+    struct ItemProviderBox: @unchecked Sendable { let provider: NSItemProvider }
+
+    nonisolated private static func copy(from box: ItemProviderBox) async -> Result<URL, EditorError> {
+        let provider = box.provider
         let type = provider.registeredTypeIdentifiers.compactMap(UTType.init).first { t in
             SourceImage.supportedTypes.contains { t.conforms(to: $0) }
         } ?? .image
-        provider.loadFileRepresentation(forTypeIdentifier: type.identifier) { url, error in
-            // 이 콜백이 끝나면 url은 지워지므로 그 전에 복사한다.
-            let copied = Result<URL, EditorError> { () throws(EditorError) -> URL in
-                guard let url else { throw .logged(.sourceUnavailable, "picker: \(String(describing: error))") }
-                return try Self.copyToTemporary(url)
+        return await withCheckedContinuation { continuation in
+            provider.loadFileRepresentation(forTypeIdentifier: type.identifier) { url, error in
+                // 이 콜백이 끝나면 url은 지워지므로 그 전에 복사한다.
+                continuation.resume(returning: Result { () throws(EditorError) -> URL in
+                    guard let url else { throw .logged(.sourceUnavailable, "picker: \(String(describing: error))") }
+                    return try copyToTemporary(url)
+                })
             }
-            Task { @MainActor in self.load { try copied.get() } }
         }
     }
 
-    private func load(_ prepare: @escaping @Sendable () throws -> URL) {
-        phase = .loading
+    private func load(_ prepares: [@Sendable () throws -> URL], append: Bool) {
+        if !append { phase = .loading }
         Task.detached(priority: .userInitiated) {
+            var opened: [(SourceImage, UprightImage)] = []
             do {
-                let url = try prepare()
-                let source = try SourceImage(url: url, removeOnClose: true)
-                // 미리 보기는 긴 변 2048px로 디코딩한다.
-                let preview = try source.decode(maxLongEdge: 2048)
-                await MainActor.run { self.opened(source, preview) }
-            } catch let error as EditorError {
-                await MainActor.run { self.phase = .failed(error) }
+                for prepare in prepares {
+                    let source = try SourceImage(url: try prepare(), removeOnClose: true)
+                    // 미리 보기는 긴 변 2048px로 디코딩한다.
+                    opened.append((source, try source.decode(maxLongEdge: 2048)))
+                }
+                let result = opened
+                await MainActor.run { self.opened(result, append: append) }
             } catch {
-                await MainActor.run { self.phase = .failed(.logged(.unknown, "load: \(error)")) }
+                opened.forEach { $0.0.close() }
+                let editorError = (error as? EditorError) ?? .logged(.unknown, "load: \(error)")
+                await MainActor.run {
+                    if append { self.showNotice(errorKey(editorError.code)) } else { self.phase = .failed(editorError) }
+                }
             }
         }
     }
 
-    private func opened(_ source: SourceImage, _ preview: UprightImage) {
-        self.source?.close()
-        self.source = source
-        self.preview = preview
+    private func opened(_ items: [(SourceImage, UprightImage)], append: Bool) {
+        if !append {
+            pages.forEach { $0.source.close() }
+            pages = []
+        }
         var initial = PhotoEdit()
         if let config = request.config.watermark, config.applyOnOpen, config.spec.isValid { initial.watermark = config.spec }
-        history = EditHistory(initial)
-        working = nil
-        activeTool = nil
-        phase = .ready
+        // 이미 있는 장에 워터마크가 있으면 새 장에도 같게 넣는다.
+        if append, let shared = pages.first?.history.current.watermark { initial.watermark = shared }
+        for (source, preview) in items {
+            var edit = initial
+            edit.grainSeed = Int64.random(in: Int64.min...Int64.max)
+            pages.append(EditorPage(source: source, preview: preview, history: EditHistory(edit), thumbnail: preview.thumbnail(maxSide: 160)))
+        }
+        if !append {
+            pageIndex = 0
+            working = nil
+            activeTool = nil
+            phase = .ready
+        } else {
+            selectPage(pages.count - 1)
+        }
         requestRender()
+    }
+
+    // MARK: - 여러 장
+
+    func selectPage(_ index: Int) {
+        guard pages.indices.contains(index), index != pageIndex || working == nil, activeTool == nil, export == nil else { return }
+        pageIndex = index
+        selectedOverlayId = nil
+        filterThumbnails = [:]
+        rendered = nil
+        requestRender()
+    }
+
+    func removePage(_ index: Int) {
+        guard pages.count > 1, pages.indices.contains(index), activeTool == nil, export == nil else { return }
+        pages[index].source.close()
+        pages.remove(at: index)
+        pageIndex = min(pageIndex, pages.count - 1)
+        rendered = nil
+        requestRender()
+    }
+
+    func movePage(_ index: Int, by offset: Int) {
+        let target = index + offset
+        guard pages.indices.contains(index), pages.indices.contains(target), activeTool == nil else { return }
+        pages.swapAt(index, target)
+        if pageIndex == index { pageIndex = target } else if pageIndex == target { pageIndex = index }
+    }
+
+    func requestAddPages() {
+        guard pages.count < pageLimit else { showNotice("page_limit"); return }
+        showAddPicker = true
     }
 
     nonisolated private static func copyToTemporary(_ url: URL) throws(EditorError) -> URL {
@@ -248,7 +341,7 @@ final class EditorModel {
                                                      background: nil, includeCanvasEffects: false)
                 } else {
                     // 기하·색이 같으면 앞서 만든 바탕을 다시 쓰고 겹쳐 그리기만 새로 한다.
-                    let key = PreviewCache.Key(edit: edit, output: output)
+                    let key = PreviewCache.Key(edit: edit, output: output, source: ObjectIdentifier(preview.cgImage))
                     let base: CGImage
                     if let cached = cache.image(for: key) {
                         base = cached
@@ -272,6 +365,9 @@ final class EditorModel {
                 } else {
                     self.rendered = image
                     self.renderedCanvas = CGSize(width: image.width, height: image.height)
+                    if self.pages.indices.contains(self.pageIndex) {
+                        self.pages[self.pageIndex].thumbnail = UprightImage(cgImage: image).thumbnail(maxSide: 160)
+                    }
                 }
             }
         }
@@ -345,6 +441,14 @@ final class EditorModel {
             }
             if let watermark = working.watermark, !watermark.isValid { working.watermark = nil }
             history.commit(working)
+            if tool == .watermark {
+                // 워터마크는 모든 장에 같게 넣는다.
+                for index in pages.indices where index != pageIndex {
+                    var edit = pages[index].history.current
+                    edit.watermark = working.watermark
+                    pages[index].history.commit(edit)
+                }
+            }
         }
         closeTool()
     }
@@ -536,19 +640,27 @@ final class EditorModel {
     // MARK: - 저장
 
     func save() {
-        guard phase == .ready, export == nil, let source else { return }
+        guard phase == .ready, export == nil, !pages.isEmpty else { return }
         if let tool = activeTool {
             if tool.isDraft { applyTool() } else if working != nil { showNotice("apply_first"); return } else { closeTool() }
         }
-        let edit = history.current
+        let items = pages.map { ($0.source, $0.history.current) }
         let config = request.export
-        export = .running(nil)
+        export = .running(nil, nil)
         exportTask = Task.detached(priority: .userInitiated) {
+            let report: @Sendable (ExportStage, Double?) -> Void = { stage, fraction in
+                Task { @MainActor in if case .running = self.export { self.export = .running(stage, fraction) } }
+            }
             do {
-                let media = try ImageExporter.export(source: source, edit: edit, config: config) { stage in
-                    Task { @MainActor in if case .running = self.export { self.export = .running(stage) } }
+                let outputs: [EditedMedia]
+                if config.format == .pdf {
+                    outputs = try PdfExporter.export(pages: items, config: config) { report($0, $1) }
+                } else if items.count > 1 {
+                    outputs = try ImageExporter.exportAll(pages: items, config: config) { report($0, $1) }
+                } else {
+                    outputs = [try ImageExporter.export(source: items[0].0, edit: items[0].1, config: config) { report($0, nil) }]
                 }
-                await MainActor.run { self.finish(.success(output: media, outputs: [media])) }
+                await MainActor.run { self.finish(.success(output: outputs[0], outputs: outputs)) }
             } catch is CancellationError {
                 await MainActor.run { self.export = nil }
             } catch let error as EditorError {
@@ -574,7 +686,7 @@ final class EditorModel {
 
     // MARK: - 끝내기
 
-    private func showNotice(_ key: String) {
+    func showNotice(_ key: String) {
         notice = key
         noticeTask?.cancel()
         noticeTask = Task { @MainActor in
@@ -588,7 +700,7 @@ final class EditorModel {
         delivered = true
         renderTask?.cancel()
         exportTask?.cancel()
-        source?.close()
+        pages.forEach { $0.source.close() }
         onFinish(result)
     }
 

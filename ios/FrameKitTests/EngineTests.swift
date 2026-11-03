@@ -310,3 +310,55 @@ struct CanvasLayerTests {
         #expect(pixel(result, x: 150, y: 50).g > 200)
     }
 }
+
+import PDFKit
+import UIKit
+
+struct PdfExportTests {
+    /// 글자가 큰 흰 바탕 이미지 파일.
+    private func textSource(_ text: String) throws -> URL {
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        let image = UIGraphicsImageRenderer(size: CGSize(width: 1200, height: 800), format: format).image { _ in
+            UIColor.white.setFill()
+            UIRectFill(CGRect(x: 0, y: 0, width: 1200, height: 800))
+            (text as NSString).draw(at: CGPoint(x: 80, y: 300), withAttributes: [.font: UIFont.boldSystemFont(ofSize: 120), .foregroundColor: UIColor.black])
+        }
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".jpg")
+        try image.jpegData(compressionQuality: 0.95)!.write(to: url)
+        return url
+    }
+
+    @Test func combinesPagesWithTextLayer() throws {
+        let a = try SourceImage(url: try textSource("Hello PDF"), removeOnClose: true)
+        let b = try SourceImage(url: try textSource("Second page"), removeOnClose: true)
+        defer { a.close(); b.close() }
+        let config = ImageExportConfig(format: .pdf)
+        let outputs = try PdfExporter.export(pages: [(a, PhotoEdit(grainSeed: 1)), (b, PhotoEdit(grainSeed: 2))], config: config) { _, _ in }
+        defer { outputs.forEach { FrameKitOutputs.delete($0.url) } }
+        #expect(outputs.count == 1)
+        let media = outputs[0]
+        #expect(media.mediaType == .document && media.pageCount == 2 && media.mimeType == "application/pdf")
+        // A4 세로 쪽(가로 사진이라 가로 방향): 842×595pt.
+        #expect(media.width == 842 && media.height == 595)
+        let document = try #require(PDFDocument(url: media.url))
+        #expect(document.pageCount == 2)
+        if !media.warnings.contains(.textRecognitionSkipped) {
+            #expect(media.recognizedText?.contains("Hello") == true)
+            #expect(!document.findString("Second", withOptions: .caseInsensitive).isEmpty)
+        }
+    }
+
+    @Test func separatePdfsAndImages() throws {
+        let a = try SourceImage(url: try textSource("A"), removeOnClose: true)
+        let b = try SourceImage(url: try textSource("B"), removeOnClose: true)
+        defer { a.close(); b.close() }
+        let pages = [(a, PhotoEdit(grainSeed: 1)), (b, PhotoEdit(grainSeed: 2))]
+        let pdfs = try PdfExporter.export(pages: pages, config: ImageExportConfig(format: .pdf, pdf: PdfOptions(combinePages: false, recognizeText: false))) { _, _ in }
+        defer { pdfs.forEach { FrameKitOutputs.delete($0.url) } }
+        #expect(pdfs.count == 2 && pdfs.allSatisfy { $0.pageCount == 1 && $0.recognizedText == nil })
+        let images = try ImageExporter.exportAll(pages: pages, config: ImageExportConfig(format: .png)) { _, _ in }
+        defer { images.forEach { FrameKitOutputs.delete($0.url) } }
+        #expect(images.count == 2 && Set(images.map(\.url)).count == 2)
+    }
+}

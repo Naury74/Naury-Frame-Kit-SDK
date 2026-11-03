@@ -28,28 +28,37 @@ enum OutputStore {
         }
     }
 
-    /// 새 결과 파일 이름(`FrameKit_yyyyMMdd_HHmmss[_n].ext`)과 그 임시 파일.
-    static func reserve(extension ext: String) throws(EditorError) -> (final: URL, partial: URL) {
+    private static let lock = NSLock()
+
+    /// 새 결과 파일 자리. 임시 파일은 고유 이름이고, 최종 이름은 `publish`에서 정한다.
+    static func reserve(extension ext: String) throws(EditorError) -> (final: OutputSlot, partial: URL) {
         let dir = try directory
+        return (OutputSlot(directory: dir, ext: ext), dir.appendingPathComponent(".\(UUID().uuidString).\(ext).partial"))
+    }
+
+    /// 임시 파일을 `FrameKit_yyyyMMdd_HHmmss[_n].ext`로 옮기고 그 URL을 돌려준다. 같은 이름이 있으면 번호를 붙인다.
+    @discardableResult
+    static func publish(partial: URL, to slot: OutputSlot) throws(EditorError) -> URL {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "en_US_POSIX")
         formatter.dateFormat = "yyyyMMdd_HHmmss"
         let stem = "FrameKit_" + formatter.string(from: Date())
-        var name = "\(stem).\(ext)"
-        var n = 1
-        while FileManager.default.fileExists(atPath: dir.appendingPathComponent(name).path) {
-            name = "\(stem)_\(n).\(ext)"
+        lock.lock()
+        defer { lock.unlock() }
+        var n = 0
+        while true {
+            let name = n == 0 ? "\(stem).\(slot.ext)" : "\(stem)_\(n).\(slot.ext)"
+            let target = slot.directory.appendingPathComponent(name)
+            if !FileManager.default.fileExists(atPath: target.path) {
+                do {
+                    try FileManager.default.moveItem(at: partial, to: target)
+                    return target
+                } catch {
+                    try? FileManager.default.removeItem(at: partial)
+                    throw .logged(.outputWriteFailed, "publish: \(error)")
+                }
+            }
             n += 1
-        }
-        return (dir.appendingPathComponent(name), dir.appendingPathComponent(".\(name).partial"))
-    }
-
-    static func publish(partial: URL, to final: URL) throws(EditorError) {
-        do {
-            try FileManager.default.moveItem(at: partial, to: final)
-        } catch {
-            try? FileManager.default.removeItem(at: partial)
-            throw .logged(.outputWriteFailed, "publish: \(error)")
         }
     }
 
@@ -72,6 +81,12 @@ enum OutputStore {
               let free = values.volumeAvailableCapacityForImportantUsage else { return }
         if free < bytes { throw .logged(.insufficientStorage, "need \(bytes) free \(free)") }
     }
+}
+
+/// 결과 파일이 놓일 폴더와 확장자.
+struct OutputSlot {
+    let directory: URL
+    let ext: String
 }
 
 /// 결과 파일 관리.

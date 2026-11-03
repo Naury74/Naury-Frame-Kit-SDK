@@ -4,8 +4,12 @@ import Foundation
 public enum EditorInput: Sendable, Hashable {
     /// 앱이 읽을 수 있는 파일 URL. 보안 범위 URL이면 SDK가 접근을 열고 닫는다.
     case file(URL)
-    /// 시스템 사진 선택기로 고른다. 닫으면 `cancelled`. 사진 접근 권한은 필요 없다.
+    /// 시스템 사진 선택기로 한 장 고른다. 닫으면 `cancelled`. 사진 접근 권한은 필요 없다.
     case pick
+    /// 시스템 사진 선택기로 여러 장(1...`maxItems`) 고른다. 고른 순서가 편집·저장 순서다.
+    case pickMultiple(maxItems: Int)
+    /// 여러 파일. 순서가 편집·저장 순서다. 1...`maxImageCount`장.
+    case files([URL])
     /// 이미지 데이터(JPEG·PNG·HEIC 등). SDK가 임시 파일로 복사하고 편집 뒤 지운다.
     case data(Data)
 }

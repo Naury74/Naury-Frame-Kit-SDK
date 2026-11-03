@@ -23,7 +23,7 @@ struct EditorRoot: View {
     private var content: some View {
         switch model.phase {
         case .awaitingSource:
-            PhotoPicker { model.picked($0) }.ignoresSafeArea()
+            PhotoPicker(limit: model.initialPickLimit) { model.picked($0) }.ignoresSafeArea()
         case .loading:
             StatusView(model: model, error: nil)
         case .failed(let error):
@@ -124,9 +124,18 @@ struct EditorScreen: View {
         } message: {
             Text(exportError.map { strings(errorKey($0.code)) } ?? "")
         }
+        .sheet(isPresented: $model.showAddPicker) {
+            PhotoPicker(limit: max(1, model.pageLimit - model.pages.count)) { model.picked($0, append: true) }
+                .ignoresSafeArea()
+        }
         .onChange(of: model.export) { _, new in
             UIApplication.shared.isIdleTimerDisabled = new != nil
         }
+    }
+
+    private var exportFraction: Double? {
+        if case .running(_, let fraction) = model.export { return fraction }
+        return nil
     }
 
     private var toolName: String { model.activeTool.map { strings($0.labelKey) } ?? "" }
@@ -232,8 +241,9 @@ struct EditorScreen: View {
             if let tool = model.activeTool {
                 ToolPanel(model: model, tool: tool)
                     .transition(.opacity)
-            } else if !model.tools.isEmpty {
-                Group {
+            } else if !model.tools.isEmpty || model.pageLimit > 1 {
+                VStack(spacing: 0) {
+                    if model.pageLimit > 1 { PageStrip(model: model) }
                     if wide { toolGrid } else { toolRail }
                 }
                 .transition(.opacity)
@@ -311,7 +321,7 @@ struct EditorScreen: View {
         if let export = model.export, export != .failed(exportError ?? EditorError(code: .unknown)) {
             let stage: String = switch export {
             case .cancelling: strings("export_cancelling")
-            case .running(let stage?) where model.request.ui.showExportProgress:
+            case .running(let stage?, _) where model.request.ui.showExportProgress:
                 switch stage {
                 case .preparing: strings("export_preparing")
                 case .rendering: strings("export_rendering")
@@ -325,7 +335,7 @@ struct EditorScreen: View {
                     .contentShape(Rectangle())
                     .onTapGesture {}
                 VStack(spacing: 16) {
-                    ProgressRing(progress: nil)
+                    ProgressRing(progress: exportFraction)
                     Text(stage).font(.system(size: 15, weight: .medium)).foregroundStyle(theme.foreground)
                         .accessibilityAddTraits(.updatesFrequently)
                     if case .running = export {
@@ -365,14 +375,16 @@ private struct CompareButton: View {
     }
 }
 
-/// 시스템 사진 선택기(한 장). 권한이 필요 없다.
+/// 시스템 사진 선택기. 권한이 필요 없다. 닫으면 빈 목록을 넘긴다.
 struct PhotoPicker: UIViewControllerRepresentable {
-    let onPick: (NSItemProvider?) -> Void
+    var limit = 1
+    let onPick: ([NSItemProvider]) -> Void
 
     func makeUIViewController(context: Context) -> PHPickerViewController {
         var config = PHPickerConfiguration()
         config.filter = .images
-        config.selectionLimit = 1
+        config.selectionLimit = max(1, limit)
+        config.selection = .ordered
         config.preferredAssetRepresentationMode = .current
         let picker = PHPickerViewController(configuration: config)
         picker.delegate = context.coordinator
@@ -384,17 +396,83 @@ struct PhotoPicker: UIViewControllerRepresentable {
     func makeCoordinator() -> Coordinator { Coordinator(onPick: onPick) }
 
     final class Coordinator: NSObject, PHPickerViewControllerDelegate {
-        let onPick: (NSItemProvider?) -> Void
+        let onPick: ([NSItemProvider]) -> Void
         private var done = false
 
-        init(onPick: @escaping (NSItemProvider?) -> Void) {
+        init(onPick: @escaping ([NSItemProvider]) -> Void) {
             self.onPick = onPick
         }
 
         func picker(_: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
             guard !done else { return }
             done = true
-            onPick(results.first?.itemProvider)
+            onPick(results.map(\.itemProvider))
         }
+    }
+}
+
+/// 여러 장 목록. 누르면 그 장을 편집하고, 길게 누르면 순서 바꾸기·빼기가 나온다.
+struct PageStrip: View {
+    let model: EditorModel
+    @Environment(\.editorTheme) private var theme
+    @Environment(\.strings) private var strings
+
+    var body: some View {
+        ScrollViewReader { proxy in
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(Array(model.pages.enumerated()), id: \.offset) { index, page in
+                        thumbnail(index, page).id(index)
+                    }
+                    if model.pages.count < model.pageLimit {
+                        Button { model.requestAddPages() } label: {
+                            Image(systemName: "plus").font(.system(size: 20, weight: .semibold)).foregroundStyle(theme.foreground)
+                                .frame(width: 52, height: 52)
+                                .background(theme.raised, in: RoundedRectangle(cornerRadius: theme.radius / 2))
+                                .frame(minWidth: 52, minHeight: 56)
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(PressFadeStyle())
+                        .accessibilityLabel(strings("page_add"))
+                    }
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 6)
+            }
+            .onChange(of: model.pageIndex) { _, new in proxy.scrollTo(new, anchor: .center) }
+        }
+    }
+
+    private func thumbnail(_ index: Int, _ page: EditorPage) -> some View {
+        let selected = index == model.pageIndex
+        return Button { model.selectPage(index) } label: {
+            ZStack(alignment: .bottomTrailing) {
+                Group {
+                    if let image = page.thumbnail {
+                        Image(decorative: image, scale: 1).resizable().scaledToFill()
+                    } else {
+                        theme.raised
+                    }
+                }
+                .frame(width: 52, height: 52)
+                .clipShape(RoundedRectangle(cornerRadius: theme.radius / 2))
+                .overlay { RoundedRectangle(cornerRadius: theme.radius / 2).strokeBorder(theme.accent, lineWidth: selected ? 2.5 : 0) }
+                Text("\(index + 1)").font(.system(size: 11, weight: .bold).monospacedDigit())
+                    .foregroundStyle(theme.onAccent)
+                    .padding(.horizontal, 5).padding(.vertical, 1)
+                    .background(selected ? theme.accent : Color.black.opacity(0.6), in: Capsule())
+                    .offset(x: 3, y: 3)
+            }
+            .frame(minHeight: 56)
+        }
+        .buttonStyle(PressFadeStyle())
+        .contextMenu {
+            if index > 0 { Button(strings("page_move_earlier"), systemImage: "arrow.left") { model.movePage(index, by: -1) } }
+            if index < model.pages.count - 1 { Button(strings("page_move_later"), systemImage: "arrow.right") { model.movePage(index, by: 1) } }
+            if model.pages.count > 1 { Button(strings("page_remove"), systemImage: "trash", role: .destructive) { model.removePage(index) } }
+        }
+        .accessibilityLabel(strings("page_label", index + 1))
+        .accessibilityValue(strings("page_position", index + 1, model.pages.count))
+        .accessibilityAddTraits(selected ? [.isSelected] : [])
     }
 }

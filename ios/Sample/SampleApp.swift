@@ -24,6 +24,8 @@ struct ContentView: View {
                 Section("열기") {
                     Button("사진 고르기") { open(.pick) }
                     Button("샘플 이미지") { open(.data(SampleImage.make())) }
+                    Button("여러 장 고르기") { open(.pickMultiple(maxItems: 10)) }
+                    Button("여러 장 샘플(3장)") { open(.files(SampleImage.files(count: 3))) }
                 }
                 Section("설정") {
                     Picker("저장 형식", selection: $format) {
@@ -55,7 +57,10 @@ struct ContentView: View {
         }
         .onAppear {
             // 자동 확인용: -openSample 인자로 실행하면 샘플 이미지를 바로 연다.
-            if ProcessInfo.processInfo.arguments.contains("-openSample") { open(.data(SampleImage.make())) }
+            let arguments = ProcessInfo.processInfo.arguments
+            if arguments.contains("-pdf") { format = .pdf }
+            if arguments.contains("-openSample") { open(.data(SampleImage.make())) }
+            if arguments.contains("-openSamples") { open(.files(SampleImage.files(count: 3))) }
         }
         .frameKitImageEditor(isPresented: $showEditor, request: request ?? ImageEditorRequest(input: .pick)) { result in
             handle(result)
@@ -77,8 +82,10 @@ struct ContentView: View {
 
     private func handle(_ result: FrameKitResult) {
         switch result {
-        case .success(let output, _):
-            lastResult = "\(output.width)×\(output.height) \(output.mimeType) \(output.fileSize / 1024)KB\n\(output.url.lastPathComponent)"
+        case .success(let output, let outputs):
+            lastResult = outputs.map { "\($0.width)×\($0.height) \($0.mimeType) \($0.fileSize / 1024)KB \($0.pageCount.map { "\($0)쪽" } ?? "")\n\($0.url.lastPathComponent)" }
+                .joined(separator: "\n")
+            if let text = output.recognizedText, !text.isEmpty { lastResult += "\n인식한 글자: \(text.prefix(80))" }
             resultImage = UIImage(contentsOfFile: output.url.path)
         case .cancelled:
             lastResult = "취소됨"
@@ -92,7 +99,16 @@ struct ContentView: View {
 
 /// 사진 없이 시험할 수 있는 3000×2000 JPEG.
 enum SampleImage {
-    static func make() -> Data {
+    /// 번호를 적은 샘플 파일들.
+    static func files(count: Int) -> [URL] {
+        (1...count).map { index in
+            let url = FileManager.default.temporaryDirectory.appendingPathComponent("sample-\(index).jpg")
+            try? make(label: "Page \(index)").write(to: url)
+            return url
+        }
+    }
+
+    static func make(label: String = "FrameKit") -> Data {
         let size = CGSize(width: 3000, height: 2000)
         let format = UIGraphicsImageRendererFormat()
         format.scale = 1
@@ -104,7 +120,7 @@ enum SampleImage {
             UIBezierPath(ovalIn: CGRect(x: 1900, y: 300, width: 700, height: 700)).fill()
             UIColor.black.withAlphaComponent(0.35).setFill()
             UIBezierPath(rect: CGRect(x: 0, y: 1500, width: 3000, height: 500)).fill()
-            let text = "FrameKit" as NSString
+            let text = label as NSString
             text.draw(at: CGPoint(x: 220, y: 760), withAttributes: [.font: UIFont.systemFont(ofSize: 360, weight: .heavy), .foregroundColor: UIColor.white])
         }
         return image.jpegData(compressionQuality: 0.92)!
