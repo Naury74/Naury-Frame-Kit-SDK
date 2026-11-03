@@ -1,6 +1,6 @@
 # iOS
 
-iOS 앱에 사진·영상 편집 화면을 붙이는 방법입니다. 기능과 화면, 결과 형식은 Android 판과 같습니다.
+iOS 앱에 사진·영상·움직이는 이미지·음성 편집 화면을 붙이는 방법입니다. 기능과 화면, 결과 형식은 Android 판과 같고, iOS에서 쓸 수 없는 기능은 빠져 있습니다(맨 아래 "Android와 다른 점").
 
 ## 요구 사항
 
@@ -20,6 +20,29 @@ https://github.com/Naury74/Naury-Frame-Kit-SDK
 ```
 
 SDK는 컴파일된 바이너리(`FrameKit.xcframework`)로만 배포합니다. 소스나 내부 모듈은 들어 있지 않습니다.
+
+## 한 번에 열기
+
+`FrameKitRequest` 하나로 고른 원본의 종류에 맞는 편집기를 엽니다. 사진은 사진 편집기, 영상은 영상 편집기, 움직이는 GIF·WebP·PNG 한 장은 움직이는 이미지 편집기, 소리는 음성 편집기로 갑니다.
+
+```swift
+Button("편집") { show = true }
+    .frameKitEditor(isPresented: $show, request: FrameKitRequest(input: .pickMultiple(maxItems: 10), chooser: .ask)) { result in
+        if case .success(_, let outputs) = result { print(outputs.map(\.url)) }
+    }
+```
+
+UIKit은 `FrameKitViewController(request:completion:)`를 씁니다.
+
+- `mediaKind`: `.pick`·`.pickMultiple`·`.capture`로 고를 종류. `.image`, `.video`, `.any`(사진과 영상), `.audio`. `.capture`에는 `.any`를 쓸 수 없습니다.
+- `chooser`: `.auto`는 바로 편집기를 열고, `.ask`는 할 일을 묻는 시트를 보입니다. 할 일이 하나뿐이면 묻지 않습니다.
+- `chooserActions`: 시트에 보일 할 일(`editPhoto`, `makePDF`, `motion`, `editVideo`, `editAudio`, `sendOriginal`).
+  - 사진: 사진 편집, PDF로 묶기, 움직이는 이미지 만들기, 원본 보내기
+  - 움직이는 이미지 한 장: 움직이는 이미지 편집, 첫 장면만 사진으로 편집, 원본 보내기
+  - 영상: 영상 편집, 원본 보내기 / 소리: 음성 편집, 원본 보내기
+  - 종류가 섞이면(예: 사진과 영상) 원본 보내기만 보입니다. `.auto`에서는 `unsupportedOperation`으로 실패합니다.
+- 원본 보내기는 파일을 결과 폴더로 복사해 `isOriginal == true`로 돌려줍니다.
+- `image`·`imageExport`·`video`·`videoExport`·`motion`·`motionExport`·`audio`·`audioExport`·`ui`·`catalog`는 각 편집기 설정 그대로 쓰입니다. `openAnimatedInMotionEditor`(기본 `true`)가 `false`면 GIF도 사진 편집기로 엽니다.
 
 ## 편집기 열기
 
@@ -89,9 +112,11 @@ ImageEditorRequest(
 ```
 
 - 범위를 벗어난 설정은 `request.validate()`로 미리 확인할 수 있고, 그대로 열면 편집기가 `invalidConfiguration`으로 끝납니다.
-- 도구: 자르기, 회전, 문서 보정, 배경 제거, 보정, 필터, 텍스트, 스티커, 그리기, 가리기, 워터마크. 문서 보정은 문서가 보이거나 PDF로 저장할 때만 나옵니다.
+- 도구: 자르기, 회전, 배경 제거, 보정, 필터, 텍스트, 스티커, 그리기, 가리기, 워터마크.
 - 저장 형식: JPEG, PNG, HEIC, PDF. PDF는 `PdfOptions`로 쪽 크기, 방향, 여백, 해상도를 정하고, 기기 안에서 글자를 인식해 검색·복사가 되는 글자 레이어를 넣습니다.
 - 메타데이터: `safe`는 촬영 시각과 카메라 설정만, `none`은 아무것도, `all`은 위치 정보까지 옮깁니다. 방향은 항상 '정상'으로 저장합니다.
+- 모양: `EditorUIConfig`의 `themeMode`, `primaryARGB`(강조색), `cornerRadius`, `palette`(배경·표면·글자 등 7가지 색), `uiFontId`(`catalog.fonts`의 글꼴을 편집기 글자에 씀), `enableHaptics`, `showExportProgress`(`false`면 저장 단계 이름과 진행률을 숨김). `EditorPalette.contrastWarnings(themeMode:primaryARGB:)`로 명암비가 낮은 색 조합을 미리 확인할 수 있습니다.
+- 글자 크기: 시스템 글자 크기 설정을 따르고, 조작부가 가려지지 않도록 접근성 1단계 크기까지만 커집니다.
 - 언어: 13개 언어(한국어, 영어, 일본어, 중국어 간체·번체, 베트남어, 태국어, 인도네시아어, 러시아어, 스페인어, 포르투갈어(브라질), 프랑스어, 독일어). 없는 언어는 영어로 보입니다.
 
 ## 결과
@@ -165,4 +190,13 @@ UIKit은 `FrameKitAudioEditorViewController(request:completion:)`를 씁니다.
 - 메모리가 모자라면 `insufficientMemory`, 저장 공간이 모자라면 `insufficientStorage`로 실패합니다. `maxOutputPixels`를 줄이면 피할 수 있습니다.
 - 저장하는 동안 화면이 꺼지지 않게 하고, 끝나면 앱이 정해 둔 값으로 돌립니다. 녹음이 끝나면 오디오 세션의 카테고리·모드·옵션도 앱이 쓰던 값으로 돌립니다.
 - 미리 보기 소리는 앱의 오디오 세션 설정을 따릅니다. 카테고리가 `.ambient`·`.soloAmbient`면 무음 모드에서 소리가 나지 않습니다.
-- 앱 안 갤러리와 실시간 문서 스캐너는 아직 iOS에 없습니다. 사진·영상은 시스템 사진 선택기로 고릅니다.
+
+## Android와 다른 점
+
+iOS에서 쓸 수 없거나 같은 결과를 낼 수 없는 기능은 iOS SDK에 넣지 않았습니다.
+
+- 문서 감지·펴기(사진 편집기의 문서 보정 도구)와 실시간 문서 스캐너는 없습니다. PDF로 묶기는 사진을 그대로 PDF 쪽으로 만듭니다.
+- 앱 안 갤러리(`picker`)는 없고, 권한이 필요 없는 시스템 사진 선택기와 파일 앱을 씁니다.
+- WebP로 저장할 수 없습니다(사진·움직이는 이미지). 사진은 HEIC로 저장할 수 있습니다.
+- 결과 위치(`OutputTarget`)는 따로 고르지 않습니다. 결과는 앱 Application Support 안 파일 URL입니다.
+- 영상 인코더 대체(`allowFallback`, `encoderFallbackApplied` 경고)는 없습니다.

@@ -8,10 +8,11 @@
 <p align="center">
   <a href="https://central.sonatype.com/artifact/com.naurylab/framekit"><img src="https://img.shields.io/maven-central/v/com.naurylab/framekit?label=Maven%20Central&color=6C5CE7" alt="Maven Central"></a>
   <img src="https://img.shields.io/badge/minSdk-26-3DDC84" alt="minSdk 26">
+  <img src="https://img.shields.io/badge/iOS-17%2B-000000" alt="iOS 17+">
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache%202.0-blue" alt="License"></a>
 </p>
 
-**FrameKit**은 Android 앱에 사진, 영상, 음성 편집 화면을 붙이는 SDK입니다. iOS 사진 편집기는 [iOS 문서](docs/ios.md)를 보세요.
+**FrameKit**은 Android·iOS 앱에 사진, 영상, 움직이는 이미지, 음성 편집 화면을 붙이는 SDK입니다. iOS는 [iOS](#ios)와 [iOS 문서](docs/ios.md)를 보세요.
 편집기를 열면 사용자가 고르고 고치고 저장하는 화면까지 모두 들어 있고, 앱은 결과 파일만 받으면 됩니다. 원본 파일은 바꾸지 않습니다.
 
 ![FrameKit](docs/images/hero.png)
@@ -155,8 +156,34 @@ editor.launch(FrameKitRequest(EditorInput.Capture(MediaKind.IMAGE), imageExport 
 - 편집 중 앱이 종료되면 편집 내용은 복원되지만 실행 취소 기록은 복원되지 않습니다.
 - 앱이 kinetica-ui를 직접 쓴다면 1.0.0-alpha05 이상을 쓰세요.
 
+## iOS
+
+Swift Package Manager로 `https://github.com/Naury74/Naury-Frame-Kit-SDK`를 추가합니다(iOS 17 이상). 컴파일된 `FrameKit.xcframework`로 배포합니다.
+
+```swift
+import FrameKit
+
+Button("편집") { show = true }
+    .frameKitEditor(isPresented: $show, request: FrameKitRequest(input: .pickMultiple(maxItems: 10), chooser: .ask)) { result in
+        if case .success(_, let outputs) = result { print(outputs.map(\.url)) }
+    }
+```
+
+사진·영상·움직이는 이미지·음성 편집기와 하나의 진입점(`FrameKitRequest`)을 제공합니다. 문서 감지·스캐너, 앱 안 갤러리, WebP 저장은 iOS에 없습니다. 자세한 내용은 [iOS 문서](docs/ios.md)를 보세요. iOS 샘플 앱은 저장소의 `ios/` 폴더에서 `FrameKit.xcodeproj`의 `FrameKitSample`을 실행합니다.
+
+<table>
+  <tr>
+    <td align="center" width="20%"><img src="docs/images/ios-chooser.png" width="160" alt="iOS 고르기"><br><b>고르기</b></td>
+    <td align="center" width="20%"><img src="docs/images/ios-photo.png" width="160" alt="iOS 사진 편집"><br><b>사진 편집</b></td>
+    <td align="center" width="20%"><img src="docs/images/ios-video.png" width="160" alt="iOS 영상 편집"><br><b>영상 편집</b></td>
+    <td align="center" width="20%"><img src="docs/images/ios-motion.png" width="160" alt="iOS 움직이는 이미지"><br><b>움직이는 이미지</b></td>
+    <td align="center" width="20%"><img src="docs/images/ios-audio.png" width="160" alt="iOS 음성 편집"><br><b>음성 편집</b></td>
+  </tr>
+</table>
+
 ## 문서
 
+- [iOS](docs/ios.md)
 - [연동 가이드](docs/integration.md)
 - [설정](docs/configuration.md)
 - [화면 없이 처리](docs/headless.md)
