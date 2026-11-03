@@ -12,6 +12,12 @@ struct EditHistory {
         baseline = initial
     }
 
+    /// 세션에서 복원한다. 실행 취소 기록은 비어 있다.
+    init(current: PhotoEdit, baseline: PhotoEdit) {
+        self.current = current
+        self.baseline = baseline
+    }
+
     var canUndo: Bool { !past.isEmpty }
     var canRedo: Bool { !future.isEmpty }
     var isDirty: Bool { !current.sameContent(as: baseline) }

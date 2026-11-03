@@ -50,10 +50,14 @@ final class EditorModel {
     var isFinished: Bool { delivered }
     /// 혼합 편집 화면이 결과를 받는다.
     var onExternalFinish: ((FrameKitResult) -> Void)?
+    /// 마지막으로 적용한 편집을 남기는 곳.
+    let session: EditSession?
+    /// 세션을 이어 열지 못했을 때 부른다. 없으면 요청 입력으로 처음부터 연다.
+    var onRestoreFailed: (() -> Void)?
 
-    private(set) var phase: Phase
+    private(set) var phase: Phase { didSet { persistSession() } }
     /// 편집 중인 사진들. 순서가 저장 순서다.
-    var pages: [EditorPage] = []
+    var pages: [EditorPage] = [] { didSet { persistSession() } }
     private(set) var pageIndex = 0
     /// 사진 추가 선택기를 띄운다.
     var showAddPicker = false
@@ -113,13 +117,14 @@ final class EditorModel {
     private var straightenStart: GeometryState?
     private var noticeTask: Task<Void, Never>?
 
-    init(request: ImageEditorRequest, onFinish: @escaping (FrameKitResult) -> Void) {
+    init(request: ImageEditorRequest, session: EditSession? = nil, onFinish: @escaping (FrameKitResult) -> Void) {
         self.request = request
+        self.session = session
         self.onFinish = onFinish
         var seen = Set<ImageTool>()
         let locked = request.config.watermark?.locked == true
         tools = request.config.enabledTools.filter { seen.insert($0).inserted && !($0 == .watermark && locked) }
-        if case .pick = request.input { phase = .awaitingSource } else { phase = .loading }
+        if case .pick = request.input, session?.storedKind == nil { phase = .awaitingSource } else { phase = .loading }
     }
 
     // MARK: - 표시 값
@@ -176,6 +181,10 @@ final class EditorModel {
             finish(.failure(error))
             return
         }
+        if !restoreSession() { openInput() }
+    }
+
+    private func openInput() {
         switch request.input {
         case .file(let url): load([{ try Self.copyToTemporary(url) }], append: false)
         case .files(let urls): load(urls.prefix(request.config.maxImageCount).map { url in { try Self.copyToTemporary(url) } }, append: false)
@@ -307,6 +316,81 @@ final class EditorModel {
             selectPage(pages.count - 1)
         }
         requestRender()
+    }
+
+    // MARK: - 세션
+
+    /// 남은 세션이 있으면 이어 연다. 열기 시작했으면 `true`.
+    private func restoreSession() -> Bool {
+        guard let session, let state = session.load(ImageSessionState.self), !state.pages.isEmpty else { return false }
+        guard let urls = session.restoreFiles(state.pages.map(\.file)) else {
+            session.discard()
+            return false
+        }
+        phase = .loading
+        Task.detached(priority: .userInitiated) {
+            var opened: [(SourceImage, UprightImage)] = []
+            do {
+                for url in urls {
+                    let source = try SourceImage(url: url, removeOnClose: true)
+                    opened.append((source, try source.decode(maxLongEdge: 2048)))
+                }
+                let result = opened
+                await MainActor.run { self.restored(state, result) }
+            } catch {
+                opened.forEach { $0.0.close() }
+                await MainActor.run { self.restoreFailed() }
+            }
+        }
+        return true
+    }
+
+    private func restored(_ state: ImageSessionState, _ items: [(SourceImage, UprightImage)]) {
+        guard let session else { return }
+        var restored: [EditorPage] = []
+        for (saved, (source, preview)) in zip(state.pages, items) {
+            var current = saved.current, baseline = saved.baseline
+            current.cutout = saved.cutout.flatMap(session.restoreMask)
+            baseline.cutout = saved.baselineCutout.flatMap(session.restoreMask)
+            guard (saved.cutout == nil) == (current.cutout == nil), (saved.baselineCutout == nil) == (baseline.cutout == nil) else {
+                items.forEach { $0.0.close() }
+                restoreFailed()
+                return
+            }
+            restored.append(EditorPage(source: source, preview: preview, history: EditHistory(current: current, baseline: baseline),
+                                       thumbnail: preview.thumbnail(maxSide: 160)))
+        }
+        pages = restored
+        pageIndex = min(max(0, state.pageIndex), pages.count - 1)
+        working = nil
+        activeTool = nil
+        phase = .ready
+        showNotice("session_restored")
+        requestRender()
+    }
+
+    private func restoreFailed() {
+        session?.discard()
+        if let onRestoreFailed { onRestoreFailed() } else { openInput() }
+    }
+
+    /// 적용한 편집만 남긴다. 도구에서 바꾸는 중인 값은 남기지 않는다.
+    private func persistSession() {
+        guard let session, phase == .ready, !delivered, !pages.isEmpty else { return }
+        var files = Set<String>()
+        func mask(_ mask: CutoutMask?) -> String? {
+            guard let mask else { return nil }
+            let name = session.name(for: mask)
+            files.insert(name)
+            return name
+        }
+        let saved = pages.map { page in
+            let file = session.name(for: page.source.url)
+            files.insert(file)
+            return ImageSessionState.Page(file: file, current: page.history.current, baseline: page.history.baseline,
+                                          cutout: mask(page.history.current.cutout), baselineCutout: mask(page.history.baseline.cutout))
+        }
+        session.save(ImageSessionState(pages: saved, pageIndex: pageIndex), files: files)
     }
 
     // MARK: - 여러 장
@@ -770,6 +854,7 @@ final class EditorModel {
     func finish(_ result: FrameKitResult) {
         guard !delivered else { return }
         delivered = true
+        session?.discard()
         onExternalFinish?(result)
         renderTask?.cancel()
         exportTask?.cancel()

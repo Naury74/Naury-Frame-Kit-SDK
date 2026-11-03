@@ -2,16 +2,16 @@ import CoreGraphics
 import Foundation
 internal import FrameKitCore
 
-enum MotionKind: Hashable, Sendable { case slideshow, animation }
+enum MotionKind: Hashable, Sendable, Codable { case slideshow, animation }
 
-enum CameraMotion: String, Hashable, Sendable, CaseIterable { case auto, none, zoomIn, zoomOut, panLeft, panRight }
+enum CameraMotion: String, Hashable, Sendable, Codable, CaseIterable { case auto, none, zoomIn, zoomOut, panLeft, panRight }
 
-enum MotionTransition: String, Hashable, Sendable, CaseIterable { case none, fade, slide, zoom }
+enum MotionTransition: String, Hashable, Sendable, Codable, CaseIterable { case none, fade, slide, zoom }
 
-enum LoopMode: String, Hashable, Sendable, CaseIterable { case forward, boomerang }
+enum LoopMode: String, Hashable, Sendable, Codable, CaseIterable { case forward, boomerang }
 
 /// 결과 화면 비율. `original`은 첫 원본 비율.
-enum MotionAspect: String, Hashable, Sendable, CaseIterable {
+enum MotionAspect: String, Hashable, Sendable, Codable, CaseIterable {
     case original, square, portrait45, story916, wide169
 
     var widthOverHeight: Double? {
@@ -26,22 +26,22 @@ enum MotionAspect: String, Hashable, Sendable, CaseIterable {
 }
 
 /// `fill`은 잘라 채우고, `fit`은 배경 색으로 남는 곳을 채운다.
-enum MotionFit: String, Hashable, Sendable, CaseIterable { case fill, fit }
+enum MotionFit: String, Hashable, Sendable, Codable, CaseIterable { case fill, fit }
 
-enum OverlayAnimation: String, Hashable, Sendable, CaseIterable {
+enum OverlayAnimation: String, Hashable, Sendable, Codable, CaseIterable {
     case none, fadeIn, pop, slideUp, bounce, wiggle, pulse
 
     /// 처음에 한 번만 움직이는 효과.
     var isEntrance: Bool { self == .fadeIn || self == .pop || self == .slideUp }
 }
 
-struct MotionOverlay: Hashable, Sendable {
+struct MotionOverlay: Hashable, Sendable, Codable {
     var overlay: Overlay
     var animation = OverlayAnimation.none
 }
 
 /// 움직이는 이미지 편집 상태. 시간은 밀리초, 소리 조각만 마이크로초다.
-struct MotionProject: Hashable, Sendable {
+struct MotionProject: Hashable, Sendable, Codable {
     static let minSlideMs: Int64 = 300
     static let maxSlideMs: Int64 = 10_000
     static let defaultTransitionMs: Int64 = 500
@@ -244,6 +244,12 @@ struct MotionHistory {
     init(_ initial: MotionProject) {
         current = initial
         baseline = initial
+    }
+
+    /// 세션에서 복원한다. 실행 취소 기록은 비어 있다.
+    init(current: MotionProject, baseline: MotionProject) {
+        self.current = current
+        self.baseline = baseline
     }
 
     var canUndo: Bool { !past.isEmpty }

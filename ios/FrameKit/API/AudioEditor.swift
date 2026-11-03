@@ -12,7 +12,7 @@ public final class FrameKitAudioEditorViewController: UIViewController {
     public init(request: AudioEditorRequest, completion: @escaping @MainActor (FrameKitResult) -> Void) {
         self.completion = completion
         var finish: ((FrameKitResult) -> Void)?
-        model = AudioEditorModel(request: request) { finish?($0) }
+        model = AudioEditorModel(request: request, session: EditSession(slot: "audio", input: request.input)) { finish?($0) }
         super.init(nibName: nil, bundle: nil)
         finish = { [weak self] in self?.finished($0) }
         modalPresentationStyle = .fullScreen
@@ -87,7 +87,7 @@ private final class EmbeddedAudioController: UIHostingController<AnyView> {
     private let model: AudioEditorModel
 
     init(request: AudioEditorRequest, onResult: @escaping @MainActor (FrameKitResult) -> Void) {
-        model = AudioEditorModel(request: request) { onResult($0) }
+        model = AudioEditorModel(request: request, session: EditSession(slot: "audio", input: request.input)) { onResult($0) }
         super.init(rootView: AnyView(EmptyView()))
         rootView = AnyView(AudioEditorRoot(model: model))
     }

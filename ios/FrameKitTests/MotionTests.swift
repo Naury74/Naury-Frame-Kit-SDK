@@ -6,14 +6,14 @@ import Testing
 import UniformTypeIdentifiers
 @testable import FrameKit
 
-private func solid(_ argb: UInt32, width: Int = 64, height: Int = 48) -> CGImage {
+func solid(_ argb: UInt32, width: Int = 64, height: Int = 48) -> CGImage {
     let context = BitmapContext.make(width: width, height: height)!
     context.setFillColor(CGColor.argb(argb))
     context.fill(CGRect(x: 0, y: 0, width: width, height: height))
     return context.makeImage()!
 }
 
-private func stillFile(_ argb: UInt32, width: Int = 64, height: Int = 48) -> URL {
+func stillFile(_ argb: UInt32, width: Int = 64, height: Int = 48) -> URL {
     let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".png")
     let destination = CGImageDestinationCreateWithURL(url as CFURL, UTType.png.identifier as CFString, 1, nil)!
     CGImageDestinationAddImage(destination, solid(argb, width: width, height: height), nil)

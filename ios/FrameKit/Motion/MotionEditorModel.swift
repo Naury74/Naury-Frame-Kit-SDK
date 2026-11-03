@@ -24,14 +24,19 @@ final class MotionEditorModel {
     private let onFinish: (FrameKitResult) -> Void
     private var delivered = false
     private var started = false
+    /// 마지막으로 적용한 편집을 남기는 곳.
+    let session: EditSession?
+    /// 세션을 이어 열지 못했을 때 부른다. 없으면 요청 입력으로 처음부터 연다.
+    var onRestoreFailed: (() -> Void)?
+    private var restoring: (state: MotionSessionState, audio: [AudioSource])?
 
-    private(set) var phase: Phase
+    private(set) var phase: Phase { didSet { persistSession() } }
     private(set) var sources: [MotionSource] = []
     private(set) var media: MotionMedia?
     var audioSources: [AudioSource] = []
     /// 소리 원본 위치별 파형.
     private(set) var audioWaves: [Int: Waveform] = [:]
-    var history = MotionHistory(MotionProject(kind: .slideshow, slides: []))
+    var history = MotionHistory(MotionProject(kind: .slideshow, slides: [])) { didSet { persistSession() } }
     var working: MotionProject?
     private(set) var activeTool: MotionTool?
     private var toolEntry: MotionProject?
@@ -68,15 +73,16 @@ final class MotionEditorModel {
     private var renderAgain = false
     private var audioDragStart: Micros?
 
-    init(request: MotionEditorRequest, onFinish: @escaping (FrameKitResult) -> Void) {
+    init(request: MotionEditorRequest, session: EditSession? = nil, onFinish: @escaping (FrameKitResult) -> Void) {
         self.request = request
+        self.session = session
         self.onFinish = onFinish
         var seen = Set<MotionTool>()
         tools = request.config.enabledTools.filter { seen.insert($0).inserted }
         saveFormat = request.export.format
         saveSize = request.export.size
         switch request.input {
-        case .pick, .pickMultiple: phase = .awaitingSource
+        case .pick, .pickMultiple: phase = session?.storedKind == nil ? .awaitingSource : .loading
         default: phase = .loading
         }
         audioPlayer.actionAtItemEnd = .pause
@@ -142,6 +148,10 @@ final class MotionEditorModel {
             finish(.failure(error))
             return
         }
+        if !restoreSession() { openInput() }
+    }
+
+    private func openInput() {
         switch request.input {
         case .file(let url): load([{ try Self.copyToTemporary(url) }], append: false)
         case .files(let urls): load(urls.prefix(maxImageCount).map { url in { try Self.copyToTemporary(url) } }, append: false)
@@ -207,7 +217,15 @@ final class MotionEditorModel {
                 if append { appendSlides(opened) } else { didOpen(opened, animation: animation) }
                 if trimmed { showNotice("motion_notice_frames_trimmed") }
             case .failure(let error):
-                if append { showNotice(errorKey(error.code)) } else { phase = .failed(error) }
+                if append {
+                    showNotice(errorKey(error.code))
+                } else if let restoring {
+                    restoring.audio.forEach { $0.close() }
+                    self.restoring = nil
+                    restoreFailed()
+                } else {
+                    phase = .failed(error)
+                }
             }
         }
     }
@@ -221,9 +239,77 @@ final class MotionEditorModel {
         project.transitionMs = min(MotionProject.defaultTransitionMs, project.slideDurationMs / 2)
         if animation != nil { project.cameraMotion = .none }
         history = MotionHistory(project)
+        if let restoring {
+            self.restoring = nil
+            let state = restoring.state
+            let indices = state.current.slides + state.baseline.slides
+            guard state.current.kind == project.kind, state.baseline.kind == project.kind, indices.allSatisfy(sources.indices.contains),
+                  (state.current.audio + state.baseline.audio).allSatisfy({ restoring.audio.indices.contains($0.source) }) else {
+                sources.forEach { $0.close() }
+                sources = []
+                restoring.audio.forEach { $0.close() }
+                restoreFailed()
+                return
+            }
+            audioSources = restoring.audio
+            audioSources.indices.forEach(loadWave)
+            history = MotionHistory(current: state.current, baseline: state.baseline)
+            showNotice("motion_notice_restored")
+        }
         phase = .ready
         makeThumbnails(opened.indices)
         requestRender()
+    }
+
+    // MARK: - 세션
+
+    /// 남은 세션이 있으면 이어 연다. 열기 시작했으면 `true`.
+    private func restoreSession() -> Bool {
+        guard let session, let state = session.load(MotionSessionState.self), !state.sources.isEmpty else { return false }
+        guard let urls = session.restoreFiles(state.sources) else { session.discard(); return false }
+        guard let audioURLs = session.restoreFiles(state.audio.map(\.file)) else {
+            urls.forEach { try? FileManager.default.removeItem(at: $0) }
+            session.discard()
+            return false
+        }
+        phase = .loading
+        Task {
+            var audio: [AudioSource] = []
+            do {
+                for (url, saved) in zip(audioURLs, state.audio) { audio.append(try await AudioSource.open(url: url, name: saved.name)) }
+            } catch {
+                audio.forEach { $0.close() }
+                urls.forEach { try? FileManager.default.removeItem(at: $0) }
+                restoreFailed()
+                return
+            }
+            restoring = (state, audio)
+            load(urls.map { url in { url } }, append: false)
+        }
+        return true
+    }
+
+    private func restoreFailed() {
+        session?.discard()
+        guard onRestoreFailed == nil else { onRestoreFailed?(); return }
+        switch request.input {
+        case .pick, .pickMultiple: phase = .awaitingSource
+        default: phase = .loading
+        }
+        openInput()
+    }
+
+    /// 적용한 편집만 남긴다. 도구에서 바꾸는 중인 값은 남기지 않는다.
+    private func persistSession() {
+        guard let session, phase == .ready, !delivered, !sources.isEmpty else { return }
+        var files = Set<String>()
+        let images = sources.map { source in
+            let file = session.name(for: source.url)
+            files.insert(file)
+            return file
+        }
+        let audio = session.audioFiles(audioSources, into: &files)
+        session.save(MotionSessionState(sources: images, audio: audio, current: history.current, baseline: history.baseline), files: files)
     }
 
     private func appendSlides(_ opened: [MotionSource]) {
@@ -773,6 +859,7 @@ final class MotionEditorModel {
     func finish(_ result: FrameKitResult) {
         guard !delivered else { return }
         delivered = true
+        session?.discard()
         isPlaying = false
         playTask?.cancel()
         exportTask?.cancel()

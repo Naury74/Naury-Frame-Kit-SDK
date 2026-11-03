@@ -17,6 +17,12 @@ struct VideoHistory {
         baseline = initial
     }
 
+    /// 세션에서 복원한다. 실행 취소 기록은 비어 있다.
+    init(current: VideoEdit, baseline: VideoEdit) {
+        self.current = current
+        self.baseline = baseline
+    }
+
     var canUndo: Bool { !past.isEmpty }
     var canRedo: Bool { !future.isEmpty }
     var isDirty: Bool { !current.sameContent(as: baseline) }
@@ -64,14 +70,18 @@ final class VideoEditorModel: ColorToolHost {
     var isFinished: Bool { delivered }
     /// 혼합 편집 화면이 결과를 받는다.
     var onExternalFinish: ((FrameKitResult) -> Void)?
+    /// 마지막으로 적용한 편집을 남기는 곳.
+    let session: EditSession?
+    /// 세션을 이어 열지 못했을 때 부른다. 없으면 요청 입력으로 처음부터 연다.
+    var onRestoreFailed: (() -> Void)?
     private var started = false
 
-    private(set) var phase: Phase
+    private(set) var phase: Phase { didSet { persistSession() } }
     private(set) var sources: [VideoSource] = []
     var audioSources: [AudioSource] = []
     /// 소리 원본 위치별 파형.
     var audioWaves: [Int: Waveform] = [:]
-    var history = VideoHistory(VideoEdit(clips: []))
+    var history = VideoHistory(VideoEdit(clips: [])) { didSet { persistSession() } }
     var working: VideoEdit?
     private(set) var activeTool: VideoTool?
     private var toolEntry: VideoEdit?
@@ -120,14 +130,15 @@ final class VideoEditorModel: ColorToolHost {
     private(set) var draggingCrop = false
     private var trimStart: VideoClipState?
 
-    init(request: VideoEditorRequest, onFinish: @escaping (FrameKitResult) -> Void) {
+    init(request: VideoEditorRequest, session: EditSession? = nil, onFinish: @escaping (FrameKitResult) -> Void) {
         self.request = request
+        self.session = session
         self.onFinish = onFinish
         var seen = Set<VideoTool>()
         let locked = request.config.watermark?.locked == true
         tools = request.config.enabledTools.filter { seen.insert($0).inserted && !($0 == .watermark && locked) && Self.implemented.contains($0) }
         switch request.input {
-        case .pick, .pickMultiple, .capture: phase = .awaitingSource
+        case .pick, .pickMultiple, .capture: phase = session?.storedKind == nil ? .awaitingSource : .loading
         default: phase = .loading
         }
         player.actionAtItemEnd = .pause
@@ -180,6 +191,10 @@ final class VideoEditorModel: ColorToolHost {
             finish(.failure(error))
             return
         }
+        if !restoreSession() { openInput() }
+    }
+
+    private func openInput() {
         switch request.input {
         case .file(let url): open([url], append: false, copy: true)
         case .files(let urls): open(Array(urls.prefix(request.config.maxClipCount)), append: false, copy: true)
@@ -272,6 +287,67 @@ final class VideoEditorModel: ColorToolHost {
             }
             rebuildPreview(immediately: true)
         }
+    }
+
+    // MARK: - 세션
+
+    /// 남은 세션이 있으면 이어 연다. 열기 시작했으면 `true`.
+    private func restoreSession() -> Bool {
+        guard let session, let state = session.load(VideoSessionState.self), !state.current.clips.isEmpty else { return false }
+        guard let videoURLs = session.restoreFiles(state.sources) else { session.discard(); return false }
+        guard let audioURLs = session.restoreFiles(state.audio.map(\.file)) else {
+            videoURLs.forEach { try? FileManager.default.removeItem(at: $0) }
+            session.discard()
+            return false
+        }
+        phase = .loading
+        Task {
+            var opened: [VideoSource] = []
+            var audio: [AudioSource] = []
+            do {
+                for url in videoURLs { opened.append(try await VideoSource.open(url: url, removeOnClose: true)) }
+                for (url, saved) in zip(audioURLs, state.audio) { audio.append(try await AudioSource.open(url: url, name: saved.name)) }
+            } catch {
+                opened.forEach { $0.close() }
+                audio.forEach { $0.close() }
+                restoreFailed()
+                return
+            }
+            sources = opened
+            audioSources = audio
+            thumbnailer = VideoThumbnailer(sources: sources)
+            audioSources.indices.forEach(loadWave)
+            history = VideoHistory(current: state.current, baseline: state.baseline)
+            selectedClipId = state.current.clips.first?.id
+            phase = .ready
+            observePlayer()
+            showNotice("session_restored")
+            rebuildPreview(immediately: true)
+        }
+        return true
+    }
+
+    private func restoreFailed() {
+        session?.discard()
+        guard onRestoreFailed == nil else { onRestoreFailed?(); return }
+        switch request.input {
+        case .pick, .pickMultiple, .capture: phase = .awaitingSource
+        default: phase = .loading
+        }
+        openInput()
+    }
+
+    /// 적용한 편집만 남긴다. 도구에서 바꾸는 중인 값은 남기지 않는다.
+    private func persistSession() {
+        guard let session, phase == .ready, !delivered, !history.current.clips.isEmpty else { return }
+        var files = Set<String>()
+        let videos = sources.map { source in
+            let file = session.name(for: source.url)
+            files.insert(file)
+            return file
+        }
+        let audio = session.audioFiles(audioSources, into: &files)
+        session.save(VideoSessionState(sources: videos, audio: audio, current: history.current, baseline: history.baseline), files: files)
     }
 
     /// 선택기가 넘긴 항목.
@@ -677,6 +753,7 @@ final class VideoEditorModel: ColorToolHost {
     func finish(_ result: FrameKitResult) {
         guard !delivered else { return }
         delivered = true
+        session?.discard()
         onExternalFinish?(result)
         rebuildTask?.cancel()
         exportTask?.cancel()

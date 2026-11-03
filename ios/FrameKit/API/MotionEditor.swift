@@ -12,7 +12,7 @@ public final class FrameKitMotionEditorViewController: UIViewController {
     public init(request: MotionEditorRequest, completion: @escaping @MainActor (FrameKitResult) -> Void) {
         self.completion = completion
         var finish: ((FrameKitResult) -> Void)?
-        model = MotionEditorModel(request: request) { finish?($0) }
+        model = MotionEditorModel(request: request, session: EditSession(slot: "motion", input: request.input)) { finish?($0) }
         super.init(nibName: nil, bundle: nil)
         finish = { [weak self] in self?.finished($0) }
         modalPresentationStyle = .fullScreen
@@ -87,7 +87,7 @@ private final class EmbeddedMotionController: UIHostingController<AnyView> {
     private let model: MotionEditorModel
 
     init(request: MotionEditorRequest, onResult: @escaping @MainActor (FrameKitResult) -> Void) {
-        model = MotionEditorModel(request: request) { onResult($0) }
+        model = MotionEditorModel(request: request, session: EditSession(slot: "motion", input: request.input)) { onResult($0) }
         super.init(rootView: AnyView(EmptyView()))
         rootView = AnyView(MotionEditorRoot(model: model))
     }
