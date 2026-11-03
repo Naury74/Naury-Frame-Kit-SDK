@@ -11,8 +11,8 @@ let package = Package(
     targets: [
         .binaryTarget(
             name: "FrameKit",
-            url: "https://github.com/Naury74/Naury-Frame-Kit-SDK/releases/download/ios-1.0.0-alpha09/FrameKit.xcframework.zip",
-            checksum: "396e5e754f8d1aa1140b0b83210be1e36aaab1a7d59d2966235d49a34b3f1d31"
+            url: "https://github.com/Naury74/Naury-Frame-Kit-SDK/releases/download/ios-1.0.0-alpha10/FrameKit.xcframework.zip",
+            checksum: "081429bfc2f8b4040ec222b44e1ed7e54ef66d78edfc0290485efbf9bc85216a"
         ),
     ]
 )
