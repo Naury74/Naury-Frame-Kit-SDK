@@ -52,6 +52,6 @@ private fun ImageEditorUiState.embedded(): EmbeddedEditorState = when (this) {
         exporting = export is ExportUiState.Running,
         exportFailure = (export as? ExportUiState.Failed)?.code,
     )
-    is ImageEditorUiState.LoadFailed -> EmbeddedEditorState(failed = true)
+    is ImageEditorUiState.LoadFailed -> EmbeddedEditorState(failed = true, failure = code)
     else -> EmbeddedEditorState()
 }

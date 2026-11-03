@@ -25,4 +25,7 @@
     </plurals>
     <string name="framekit_chooser_each">하나씩 편집</string>
     <string name="framekit_chooser_each_body">사진과 영상을 오가며 각각 편집하고 한 번에 저장해요</string>
+    <string name="framekit_mixed_saved_locked">저장했어요. 이 항목은 더 고칠 수 없어요.</string>
+    <string name="framekit_mixed_skip_title">일부 항목을 빼고 저장할까요?</string>
+    <string name="framekit_mixed_skip_message">열지 못한 항목은 빼고 저장해요.</string>
 </resources>

@@ -25,4 +25,7 @@
     </plurals>
     <string name="framekit_chooser_each">แก้ไขทีละรายการ</string>
     <string name="framekit_chooser_each_body">สลับระหว่างรูปและวิดีโอเพื่อแก้ไขแต่ละรายการ แล้วบันทึกทั้งหมดในครั้งเดียว</string>
+    <string name="framekit_mixed_saved_locked">บันทึกแล้ว รายการนี้แก้ไขไม่ได้อีก</string>
+    <string name="framekit_mixed_skip_title">บันทึกโดยไม่รวมบางรายการไหม</string>
+    <string name="framekit_mixed_skip_message">รายการที่เปิดไม่ได้จะไม่ถูกบันทึก</string>
 </resources>

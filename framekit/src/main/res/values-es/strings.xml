@@ -27,4 +27,7 @@
     </plurals>
     <string name="framekit_chooser_each">Editar uno por uno</string>
     <string name="framekit_chooser_each_body">Cambia entre fotos y vídeos para editar cada uno y guárdalos todos a la vez</string>
+    <string name="framekit_mixed_saved_locked">Guardado. Este elemento ya no se puede cambiar.</string>
+    <string name="framekit_mixed_skip_title">¿Guardar sin algunos elementos?</string>
+    <string name="framekit_mixed_skip_message">Los elementos que no se pudieron abrir se omitirán.</string>
 </resources>

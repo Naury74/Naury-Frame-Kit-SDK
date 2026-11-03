@@ -25,4 +25,7 @@
     </plurals>
     <string name="framekit_chooser_each">逐个编辑</string>
     <string name="framekit_chooser_each_body">在照片和视频之间切换分别编辑，然后一次保存全部</string>
+    <string name="framekit_mixed_saved_locked">已保存。此项目无法再修改。</string>
+    <string name="framekit_mixed_skip_title">要排除部分项目后保存吗？</string>
+    <string name="framekit_mixed_skip_message">无法打开的项目将不会保存。</string>
 </resources>

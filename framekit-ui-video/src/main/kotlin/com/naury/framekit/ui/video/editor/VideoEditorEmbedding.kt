@@ -52,6 +52,6 @@ private fun VideoEditorUiState.embedded(): EmbeddedEditorState = when (this) {
         exporting = export is ExportUiState.Running,
         exportFailure = (export as? ExportUiState.Failed)?.code,
     )
-    is VideoEditorUiState.LoadFailed -> EmbeddedEditorState(failed = true)
+    is VideoEditorUiState.LoadFailed -> EmbeddedEditorState(failed = true, failure = code)
     else -> EmbeddedEditorState()
 }

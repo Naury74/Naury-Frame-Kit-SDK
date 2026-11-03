@@ -27,4 +27,7 @@
     </plurals>
     <string name="framekit_chooser_each">Modifier un par un</string>
     <string name="framekit_chooser_each_body">Passez des photos aux vidéos pour modifier chacune, puis enregistrez tout d\'un coup</string>
+    <string name="framekit_mixed_saved_locked">Enregistré. Cet élément ne peut plus être modifié.</string>
+    <string name="framekit_mixed_skip_title">Enregistrer sans certains éléments ?</string>
+    <string name="framekit_mixed_skip_message">Les éléments qui n\'ont pas pu être ouverts seront ignorés.</string>
 </resources>

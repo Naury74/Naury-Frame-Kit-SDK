@@ -28,4 +28,7 @@
     </plurals>
     <string name="framekit_chooser_each">Редактировать по одному</string>
     <string name="framekit_chooser_each_body">Переключайтесь между фото и видео, редактируйте каждое и сохраняйте всё сразу</string>
+    <string name="framekit_mixed_saved_locked">Сохранено. Этот элемент больше нельзя изменить.</string>
+    <string name="framekit_mixed_skip_title">Сохранить без некоторых элементов?</string>
+    <string name="framekit_mixed_skip_message">Элементы, которые не удалось открыть, будут пропущены.</string>
 </resources>

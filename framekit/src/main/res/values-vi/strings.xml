@@ -25,4 +25,7 @@
     </plurals>
     <string name="framekit_chooser_each">Chỉnh sửa từng mục</string>
     <string name="framekit_chooser_each_body">Chuyển giữa ảnh và video để chỉnh sửa từng mục, rồi lưu tất cả một lần</string>
+    <string name="framekit_mixed_saved_locked">Đã lưu. Không thể thay đổi mục này nữa.</string>
+    <string name="framekit_mixed_skip_title">Lưu mà bỏ qua một số mục?</string>
+    <string name="framekit_mixed_skip_message">Các mục không mở được sẽ bị bỏ qua.</string>
 </resources>

@@ -25,4 +25,7 @@
     </plurals>
     <string name="framekit_chooser_each">Edit satu per satu</string>
     <string name="framekit_chooser_each_body">Beralih antara foto dan video untuk mengedit masing-masing, lalu simpan semuanya</string>
+    <string name="framekit_mixed_saved_locked">Tersimpan. Item ini tidak dapat diubah lagi.</string>
+    <string name="framekit_mixed_skip_title">Simpan tanpa beberapa item?</string>
+    <string name="framekit_mixed_skip_message">Item yang tidak dapat dibuka tidak akan disertakan.</string>
 </resources>

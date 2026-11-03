@@ -26,4 +26,7 @@
     </plurals>
     <string name="framekit_chooser_each">Einzeln bearbeiten</string>
     <string name="framekit_chooser_each_body">Zwischen Fotos und Videos wechseln, jedes bearbeiten und alle zusammen speichern</string>
+    <string name="framekit_mixed_saved_locked">Gespeichert. Dieses Element kann nicht mehr geändert werden.</string>
+    <string name="framekit_mixed_skip_title">Ohne einige Elemente speichern?</string>
+    <string name="framekit_mixed_skip_message">Elemente, die nicht geöffnet werden konnten, werden ausgelassen.</string>
 </resources>

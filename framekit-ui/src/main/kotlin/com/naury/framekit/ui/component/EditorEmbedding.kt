@@ -21,6 +21,7 @@ public val LocalEditorEmbedded: ProvidableCompositionLocal<Boolean> = staticComp
  *
  * @property ready 원본을 열어 편집할 수 있다.
  * @property failed 원본을 열지 못했다.
+ * @property failure 원본을 열지 못한 이유. [failed]가 아니면 `null`.
  * @property exportFailure 마지막 저장이 실패한 이유. 실패하지 않았으면 `null`.
  */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
@@ -31,6 +32,7 @@ public data class EmbeddedEditorState(
     val toolOpen: Boolean = false,
     val exporting: Boolean = false,
     val exportFailure: EditorErrorCode? = null,
+    val failure: EditorErrorCode? = null,
 )
 
 /** 혼합 편집 화면이 다루는 에디터 하나. 저장은 [save]를 부른 뒤 [result]가 채워지는 것으로 끝난다. */

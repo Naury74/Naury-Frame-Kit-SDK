@@ -25,4 +25,7 @@
     </plurals>
     <string name="framekit_chooser_each">1つずつ編集</string>
     <string name="framekit_chooser_each_body">写真と動画を切り替えながらそれぞれ編集し、まとめて保存します</string>
+    <string name="framekit_mixed_saved_locked">保存済みです。この項目はこれ以上変更できません。</string>
+    <string name="framekit_mixed_skip_title">一部の項目を除いて保存しますか？</string>
+    <string name="framekit_mixed_skip_message">開けなかった項目は除いて保存します。</string>
 </resources>

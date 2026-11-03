@@ -26,4 +26,7 @@
     </plurals>
     <string name="framekit_chooser_each">Edit one by one</string>
     <string name="framekit_chooser_each_body">Switch between photos and videos to edit each, then save them all</string>
+    <string name="framekit_mixed_saved_locked">Saved. This item can no longer be changed.</string>
+    <string name="framekit_mixed_skip_title">Save without some items?</string>
+    <string name="framekit_mixed_skip_message">Items that couldn\'t be opened will be left out.</string>
 </resources>
