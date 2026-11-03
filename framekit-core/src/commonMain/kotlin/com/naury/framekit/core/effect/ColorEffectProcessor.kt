@@ -20,6 +20,7 @@ public object ColorEffectProcessor {
      * @param includeCanvasEffects `false`이면 vignette와 grain을 건너뛴다. 최종 캔버스를 보여주지 않는
      *   미리보기(예: 자르기 도구의 자르기 전 화면)용이다.
      */
+    @Throws(IllegalArgumentException::class, IllegalStateException::class)
     public fun process(pixels: IntArray, width: Int, height: Int, spec: ColorEffectSpec, includeCanvasEffects: Boolean = true) {
         require(pixels.size >= width * height) { "Pixel buffer is too small" }
         val rgb = FloatArray(3)

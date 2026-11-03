@@ -46,6 +46,7 @@ public object PdfLayout {
      * @param marginMm 네 변의 여백.
      * @param maxPixels 한 쪽 이미지의 픽셀 수 상한.
      */
+    @Throws(IllegalArgumentException::class, IllegalStateException::class)
     public fun layout(
         imageSize: PixelSize,
         pageSize: PdfPageSize,

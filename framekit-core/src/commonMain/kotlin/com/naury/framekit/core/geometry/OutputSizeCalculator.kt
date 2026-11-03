@@ -16,6 +16,7 @@ public object OutputSizeCalculator {
      * @param maxHeight 출력 높이의 선택적 상한.
      * @throws IllegalArgumentException 한도가 양수가 아니거나 [cropSize]가 비어 있을 때.
      */
+    @Throws(IllegalArgumentException::class, IllegalStateException::class)
     public fun compute(cropSize: Size2D, maxPixels: Long, maxWidth: Int? = null, maxHeight: Int? = null): PixelSize {
         require(cropSize.width > 0.0 && cropSize.height > 0.0) { "Crop size must be positive" }
         require(maxPixels > 0) { "maxPixels must be positive" }

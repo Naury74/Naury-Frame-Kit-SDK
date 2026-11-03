@@ -186,15 +186,20 @@ struct GeometryMath {
     }
 
     /// 자른 크기와 한도로 정한 출력 크기.
-    func outputSize(crop: NRect, maxPixels: Int, maxWidth: Int?, maxHeight: Int?) -> PixelSizeValue {
+    /// - Throws: 자른 영역이 비었거나 한도가 0 이하일 때 `invalidProject`.
+    func outputSize(crop: NRect, maxPixels: Int, maxWidth: Int?, maxHeight: Int?) throws(EditorError) -> PixelSizeValue {
         let crop = frame.cropPixelSize(crop: crop.kotlin)
-        let size = OutputSizeCalculator.shared.compute(
-            cropSize: crop,
-            maxPixels: Int64(maxPixels),
-            maxWidth: maxWidth.map { KotlinInt(int: Int32(clamping: $0)) },
-            maxHeight: maxHeight.map { KotlinInt(int: Int32(clamping: $0)) }
-        )
-        return PixelSizeValue(width: Int(size.width), height: Int(size.height))
+        do {
+            let size = try OutputSizeCalculator.shared.compute(
+                cropSize: crop,
+                maxPixels: Int64(max(1, maxPixels)),
+                maxWidth: maxWidth.map { KotlinInt(int: Int32(clamping: max(1, $0))) },
+                maxHeight: maxHeight.map { KotlinInt(int: Int32(clamping: max(1, $0))) }
+            )
+            return PixelSizeValue(width: Int(size.width), height: Int(size.height))
+        } catch {
+            throw .logged(.invalidProject, "output size: \(error)")
+        }
     }
 }
 

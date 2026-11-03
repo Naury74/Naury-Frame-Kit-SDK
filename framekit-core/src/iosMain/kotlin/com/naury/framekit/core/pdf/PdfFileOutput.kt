@@ -14,10 +14,11 @@ import platform.posix.fwrite
  * @throws IllegalArgumentException 파일을 열 수 없을 때(폴더가 없거나 권한이 없음).
  */
 @OptIn(ExperimentalForeignApi::class)
-public class PdfFileOutput(path: String) : PdfOutput {
+public class PdfFileOutput @Throws(IllegalArgumentException::class) constructor(path: String) : PdfOutput {
     private val file = fopen(path, "wb") ?: throw IllegalArgumentException("Cannot open $path")
     private var closed = false
 
+    @Throws(IllegalArgumentException::class, IllegalStateException::class)
     override fun write(bytes: ByteArray, offset: Int, length: Int) {
         check(!closed) { "Output is closed" }
         require(offset >= 0 && length >= 0 && offset + length <= bytes.size) { "Range out of bounds" }
@@ -26,6 +27,7 @@ public class PdfFileOutput(path: String) : PdfOutput {
         check(written.toInt() == length) { "Write failed" }
     }
 
+    @Throws(IllegalStateException::class)
     override fun close() {
         if (closed) return
         closed = true

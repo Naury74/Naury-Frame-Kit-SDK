@@ -242,7 +242,7 @@ final class EditorModel {
             do {
                 let math = GeometryMath(source: upright, geometry: edit.geometry)
                 let crop = bounds ? NRect.full : edit.geometry.crop
-                let output = math.outputSize(crop: crop, maxPixels: Int(Int32.max), maxWidth: maxW, maxHeight: maxH)
+                let output = try math.outputSize(crop: crop, maxPixels: Int(Int32.max), maxWidth: maxW, maxHeight: maxH)
                 if bounds {
                     image = try PhotoRenderer.render(image: preview, uprightSize: upright, edit: edit, crop: crop, output: output,
                                                      background: nil, includeCanvasEffects: false)
@@ -289,8 +289,8 @@ final class EditorModel {
             thumbEdit.filterId = "original"
             thumbEdit.filterIntensity = 0
             let math = GeometryMath(source: upright, geometry: base.geometry)
-            let output = math.outputSize(crop: base.geometry.crop, maxPixels: 160 * 160, maxWidth: 200, maxHeight: 200)
-            guard let small = try? PhotoRenderer.render(image: preview, uprightSize: upright, edit: thumbEdit, crop: base.geometry.crop,
+            guard let output = try? math.outputSize(crop: base.geometry.crop, maxPixels: 160 * 160, maxWidth: 200, maxHeight: 200),
+                  let small = try? PhotoRenderer.render(image: preview, uprightSize: upright, edit: thumbEdit, crop: base.geometry.crop,
                                                         output: output, background: nil, includeCanvasEffects: true) else { return }
             let smallImage = UprightImage(cgImage: small)
             let size = PixelSizeValue(width: small.width, height: small.height)

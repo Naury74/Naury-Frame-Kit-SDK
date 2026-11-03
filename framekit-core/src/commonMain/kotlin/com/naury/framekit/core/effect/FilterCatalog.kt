@@ -105,6 +105,7 @@ public object FilterCatalog {
      *
      * @throws IllegalArgumentException 내장 프리셋과 id가 겹치거나 id가 중복될 때.
      */
+    @Throws(IllegalArgumentException::class, IllegalStateException::class)
     public fun install(custom: List<FilterPreset>) {
         require(custom.none { preset -> presets.any { it.id == preset.id } }) { "Custom filter ids must not reuse built-in ids" }
         require(custom.map { it.id }.toSet().size == custom.size) { "Custom filter ids must be unique" }

@@ -21,7 +21,7 @@ enum ImageExporter {
         progress(.preparing)
         guard edit.isValid(uprightSize: source.uprightSize) else { throw EditorError.logged(.invalidProject, "edit out of range") }
         let math = GeometryMath(source: source.uprightSize, geometry: edit.geometry)
-        let output = math.outputSize(crop: edit.geometry.crop, maxPixels: config.maxOutputPixels,
+        let output = try math.outputSize(crop: edit.geometry.crop, maxPixels: config.maxOutputPixels,
                                      maxWidth: config.maxWidth, maxHeight: config.maxHeight)
         let bytesPerPixel: Int64 = config.format == .png ? 4 : 1
         try OutputStore.checkFreeSpace(bytes: Int64(output.width) * Int64(output.height) * bytesPerPixel + 5_000_000)

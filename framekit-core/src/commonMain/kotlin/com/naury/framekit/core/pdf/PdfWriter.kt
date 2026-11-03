@@ -17,9 +17,11 @@ public data class PdfTextLine(val text: String, val left: Float, val top: Float,
 /** [PdfWriter]의 출력. 쓰기에 실패하면 예외를 던진다. */
 public interface PdfOutput {
     /** [bytes]의 [offset]부터 [length]바이트를 쓴다. */
+    @Throws(IllegalArgumentException::class, IllegalStateException::class)
     public fun write(bytes: ByteArray, offset: Int, length: Int)
 
     /** 남은 바이트를 내보내고 닫는다. [PdfWriter.close]가 한 번 부른다. */
+    @Throws(IllegalStateException::class)
     public fun close()
 }
 
@@ -66,6 +68,7 @@ public class PdfWriter(output: PdfOutput, private val producer: String = "FrameK
      * @throws IllegalStateException 이미 닫았거나 앞선 쓰기가 실패했을 때.
      * @throws IllegalArgumentException 크기가 0 이하이거나, JPEG가 아니거나, [layout] 값이 유한한 양수가 아니거나 14,400pt를 넘을 때.
      */
+    @Throws(IllegalArgumentException::class, IllegalStateException::class)
     public fun addPage(
         jpeg: ByteArray,
         pixelWidth: Int,
@@ -201,7 +204,11 @@ public class PdfWriter(output: PdfOutput, private val producer: String = "FrameK
      *
      * @throws IllegalStateException 쪽이 하나도 없거나 앞선 쓰기가 실패해 PDF를 마칠 수 없을 때.
      */
-    override fun close() {
+    override fun close(): Unit = finish()
+
+    /** [close]와 같다. iOS(Swift)에서 실패를 오류로 받을 때 쓴다. */
+    @Throws(IllegalArgumentException::class, IllegalStateException::class)
+    public fun finish() {
         if (closed) return
         closed = true
         try {

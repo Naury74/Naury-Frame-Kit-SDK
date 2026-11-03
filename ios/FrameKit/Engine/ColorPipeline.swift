@@ -124,8 +124,12 @@ enum CpuColorPipeline {
                 pixels.set(index: Int32(y * width + x), value: Int32(bitPattern: argb))
             }
         }
-        ColorEffectProcessor.shared.process(pixels: pixels, width: Int32(width), height: Int32(height), spec: spec,
-                                            includeCanvasEffects: includeCanvasEffects)
+        do {
+            try ColorEffectProcessor.shared.process(pixels: pixels, width: Int32(width), height: Int32(height), spec: spec,
+                                                    includeCanvasEffects: includeCanvasEffects)
+        } catch {
+            throw .logged(.unknown, "cpu color: \(error)")
+        }
         for y in 0..<height {
             for x in 0..<width {
                 let argb = UInt32(bitPattern: pixels.get(index: Int32(y * width + x)))

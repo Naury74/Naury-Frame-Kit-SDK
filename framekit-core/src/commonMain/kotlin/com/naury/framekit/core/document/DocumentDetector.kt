@@ -36,6 +36,7 @@ public object DocumentDetector {
      * @throws IllegalArgumentException 크기가 맞지 않거나 너무 작을 때(가로·세로 8px 미만).
      */
     @JvmOverloads
+    @Throws(IllegalArgumentException::class, IllegalStateException::class)
     public fun detect(luma: IntArray, width: Int, height: Int, chroma: IntArray? = null, insideOnly: Boolean = false): DocumentQuad? =
         analyze(luma, width, height, chroma, insideOnly).quad
 
@@ -48,6 +49,7 @@ public object DocumentDetector {
 
     /** [detect]와 같지만 방식마다 탈락한 단계를 함께 돌려준다. 이유는 밝기 방식부터 차례로 적는다. */
     @JvmOverloads
+    @Throws(IllegalArgumentException::class, IllegalStateException::class)
     public fun analyze(luma: IntArray, width: Int, height: Int, chroma: IntArray? = null, insideOnly: Boolean = false): Analysis {
         require(width >= MIN_SIDE && height >= MIN_SIDE) { "Image is too small" }
         require(luma.size == width * height) { "Size does not match" }
