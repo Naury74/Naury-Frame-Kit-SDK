@@ -18,7 +18,7 @@ public class PdfFileOutput @Throws(IllegalArgumentException::class) constructor(
     private val file = fopen(path, "wb") ?: throw IllegalArgumentException("Cannot open $path")
     private var closed = false
 
-    @Throws(IllegalArgumentException::class, IllegalStateException::class)
+    // @Throws는 PdfOutput에서 물려받는다. 다시 적으면 iOS 공통 소스 컴파일이 다른 필터로 본다.
     override fun write(bytes: ByteArray, offset: Int, length: Int) {
         check(!closed) { "Output is closed" }
         require(offset >= 0 && length >= 0 && offset + length <= bytes.size) { "Range out of bounds" }
@@ -27,7 +27,6 @@ public class PdfFileOutput @Throws(IllegalArgumentException::class) constructor(
         check(written.toInt() == length) { "Write failed" }
     }
 
-    @Throws(IllegalStateException::class)
     override fun close() {
         if (closed) return
         closed = true
