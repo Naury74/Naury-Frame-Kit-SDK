@@ -1,4 +1,4 @@
-# Headless
+# Android 화면 없이 처리
 
 `ImageProcessor`(사진)와 `VideoProcessor`(영상)는 편집 화면 없이 편집하고 저장합니다. 편집 화면과 같은 디코더·렌더러·저장 경로를 쓰므로, 같은 프로젝트는 같은 결과를 냅니다.
 

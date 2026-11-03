@@ -1,4 +1,6 @@
-# Supported Formats
+# Android 지원 형식
+
+iOS 형식은 [iOS 연동 가이드](ios.md#지원-형식)를 보세요.
 
 ## 이미지 입력
 

@@ -138,6 +138,18 @@ Xcode에서 **File › Add Package Dependencies…**를 고르고 아래 주소�
 https://github.com/Naury74/Naury-Frame-Kit-SDK
 ```
 
+```swift
+// Package.swift
+.package(url: "https://github.com/Naury74/Naury-Frame-Kit-SDK", exact: "1.0.0-alpha10")
+```
+
+쓰는 기능에 맞춰 앱 Info.plist에 설명을 넣습니다. 사진·영상 고르기는 시스템 선택기라 사진 접근 권한이 필요 없습니다.
+
+| 키 | 필요한 때 |
+| --- | --- |
+| `NSCameraUsageDescription` | 사진 찍기·영상 녹화 |
+| `NSMicrophoneUsageDescription` | 영상 녹화, 음성 녹음 |
+
 ## 사용법
 
 ### Android
@@ -178,9 +190,11 @@ FrameKitRequest(
 )
 ```
 
-결과 파일은 앱 내부 저장소에 저장되고 `content://` Uri로 옵니다. 다른 앱과 공유할 때는 Intent에 `FLAG_GRANT_READ_URI_PERMISSION`을 붙이고, 필요 없어지면 `FrameKitOutputs.deleteOutput(context, uri)`로 지웁니다. 할 일 고르기 시트, 문서 스캔, 화면 없이 처리, 앱 전용 필터와 스티커는 [연동 가이드](docs/integration.md)에 있습니다.
+결과 파일은 앱 내부 저장소에 저장되고 `content://` Uri로 옵니다. 다른 앱과 공유할 때는 Intent에 `FLAG_GRANT_READ_URI_PERMISSION`을 붙이고, 필요 없어지면 `FrameKitOutputs.deleteOutput(context, uri)`로 지웁니다. 할 일 고르기 시트, 사진·영상 혼합 편집, 문서 스캔, 화면 없이 처리, 앱 전용 필터와 스티커는 [Android 연동 가이드](docs/integration.md)에 있습니다.
 
 ### iOS
+
+SwiftUI는 `.frameKitEditor` 수정자로 띄웁니다.
 
 ```swift
 import FrameKit
@@ -193,7 +207,7 @@ struct ContentView: View {
         Button("편집") { showEditor = true }
             .frameKitEditor(isPresented: $showEditor, request: FrameKitRequest(input: .pickMultiple(maxItems: 10))) { result in
                 switch result {
-                case .success(_, let outputs): show(outputs.map(\.url))
+                case .success(_, let outputs): show(outputs)
                 case .cancelled: break
                 case .failure(let error): showError(error.code)
                 }
@@ -202,18 +216,36 @@ struct ContentView: View {
 }
 ```
 
-UIKit은 `FrameKitViewController(request:completion:)`를 `present`합니다. 입력은 `.pick`, `.pickMultiple(maxItems:)`, `.file(URL)`, `.files([URL])`, `.data(Data)`, `.capture`로 고르고, 도구·저장 형식·테마는 Android와 같은 이름의 설정으로 넘깁니다.
+UIKit은 `FrameKitViewController`를 `present`합니다. 편집기가 스스로 닫힌 뒤 completion을 한 번 부릅니다.
+
+```swift
+let editor = FrameKitViewController(request: FrameKitRequest(input: .pickMultiple(maxItems: 10))) { result in
+    if case .success(_, let outputs) = result { show(outputs) }
+}
+present(editor, animated: true)
+```
+
+입력은 이렇게 고릅니다. 고를 종류는 `mediaKind`(`.image`, `.video`, `.any`, `.audio`)로 정합니다.
+
+```swift
+FrameKitRequest(input: .file(url))                                   // 파일 하나
+FrameKitRequest(input: .files(urls))                                 // 파일 여러 개
+FrameKitRequest(input: .pickMultiple(maxItems: 10), mediaKind: .image) // 사진 선택기에서 사진 최대 10장
+FrameKitRequest(input: .capture, mediaKind: .image)                  // 찍은 뒤 편집. .audio면 녹음 뒤 편집
+```
+
+도구, 저장 형식, 테마는 요청에 함께 넘깁니다. 테마는 `.dark`, `.light`, `.system`(앱·기기 밝기 설정을 따라 바로 바뀜) 중에서 고릅니다.
 
 ```swift
 FrameKitRequest(
     input: .file(url),
     image: ImageEditorConfig(enabledTools: [.crop, .rotate]),
     imageExport: ImageExportConfig(format: .png, maxWidth: 2048),
-    ui: EditorUIConfig(themeMode: .light, primaryARGB: 0xFF1E6BFF)
+    ui: EditorUIConfig(themeMode: .system, primaryARGB: 0xFF1E_6BFF)
 )
 ```
 
-결과 파일은 앱의 `Application Support/FrameKit/Exports` 안에 저장되고 파일 URL로 옵니다. 필요 없어지면 `FrameKitOutputs.delete(_:)`로 지웁니다. 자세한 내용은 [iOS 문서](docs/ios.md)에 있습니다.
+결과 파일은 앱의 `Application Support/FrameKit/Exports` 안에 저장되고 파일 URL로 옵니다. `ShareLink`나 `UIActivityViewController`로 바로 공유할 수 있고, 필요 없어지면 `FrameKitOutputs.delete(url)`로 지웁니다. 할 일 고르기 시트, 사진·영상 혼합 편집, 앱 전용 필터와 스티커, 편집기별 설정은 [iOS 연동 가이드](docs/ios.md)에 있습니다.
 
 ## 주의사항
 
@@ -231,19 +263,22 @@ FrameKitRequest(
 
 **iOS**
 
-- 사진 고르기는 시스템 선택기를 써서 사진 접근 권한이 필요 없습니다. 카메라는 `NSCameraUsageDescription`, 녹음은 `NSMicrophoneUsageDescription`이 Info.plist에 있어야 하고, 없으면 녹음 도구가 보이지 않습니다.
+- SDK는 권한 설명을 넣지 않습니다. 카메라·마이크 설명이 없으면 촬영은 `invalidConfiguration`으로 끝나고 녹음 도구는 보이지 않습니다.
 - 앱 확장(공유 확장 등)에서는 쓸 수 없습니다.
-- 배경 제거는 지원하지 않는 기기(시뮬레이터 포함)에서 도구가 보이지 않습니다.
+- 배경 제거와 PDF 글자 인식은 기기 안 Vision으로 처리해 따로 넣을 모듈이나 내려받을 모델이 없습니다. 배경 제거를 지원하지 않는 기기(시뮬레이터 포함)에서는 도구가 보이지 않습니다.
+- 앱이 백그라운드에서 시스템에 의해 종료되면 편집 내용은 남지 않습니다.
 - 미리 보기 소리는 앱의 오디오 세션 설정을 따르고, 녹음이 끝나면 앱이 쓰던 오디오 세션 설정으로 돌립니다.
 
 ## 문서
 
-- [Android 연동 가이드](docs/integration.md)
-- [iOS](docs/ios.md)
-- [설정](docs/configuration.md)
-- [화면 없이 처리](docs/headless.md)
-- [지원 형식](docs/supported-formats.md)
-- [변경 이력](docs/release-notes.md)
+| | Android | iOS |
+| --- | --- | --- |
+| 연동 가이드 | [Android 연동 가이드](docs/integration.md) | [iOS 연동 가이드](docs/ios.md) |
+| 설정 | [설정](docs/configuration.md) | [iOS 연동 가이드 › 설정](docs/ios.md#설정) |
+| 지원 형식 | [지원 형식](docs/supported-formats.md) | [iOS 연동 가이드 › 지원 형식](docs/ios.md#지원-형식) |
+| 화면 없이 처리 | [화면 없이 처리](docs/headless.md) | — |
+
+[변경 이력](docs/release-notes.md)은 두 플랫폼을 함께 적습니다.
 
 ## License
 

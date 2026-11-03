@@ -1,6 +1,6 @@
-# Configuration
+# Android 설정
 
-`ImageEditorRequest`, `VideoEditorRequest`, `FrameKitRequest`의 모든 옵션입니다. 잘못된 값은 기본값으로 바꾸지 않고 `INVALID_CONFIGURATION`으로 거부합니다. 실행 전에 `request.validate()`로 미리 확인할 수 있습니다.
+`ImageEditorRequest`, `VideoEditorRequest`, `FrameKitRequest`의 모든 옵션입니다(Android). iOS 설정은 [iOS 연동 가이드](ios.md#설정)를 보세요. 잘못된 값은 기본값으로 바꾸지 않고 `INVALID_CONFIGURATION`으로 거부합니다. 실행 전에 `request.validate()`로 미리 확인할 수 있습니다.
 
 ```kotlin
 ImageEditorRequest(
@@ -22,7 +22,7 @@ ImageEditorRequest(
 | `Pick(kind = MediaKind.IMAGE, maxItems = 1)` | 시스템 Photo Picker. 이미지 편집기는 `IMAGE`만 허용. `maxItems` 1..100 |
 | `Capture(kind)` | 카메라 앱으로 촬영 후 편집. `IMAGE`·`VIDEO`만(`ANY` 불가). 통합 계약·음성 편집기는 `AUDIO`(SDK 녹음 화면) |
 
-진입점별 예시와 카메라 권한 규칙은 [integration](integration.md#입력)을 보세요.
+진입점별 예시와 카메라 권한 규칙은 [Android 연동 가이드](integration.md#입력)을 보세요.
 
 ## config: ImageEditorConfig
 
@@ -32,7 +32,7 @@ ImageEditorRequest(
 | `allowUndo` | `true` | |
 | `allowRedo` | `true` | `allowUndo = false`이면서 `true`이면 오류 |
 | `maxImageCount` | `20` | 한 번에 편집하는 사진 수, 1..100. 2 이상이면 쪽 목록(추가·순서 변경·삭제)이 나타남 |
-| `watermark` | `null` | 호스트 워터마크(`WatermarkConfig`). 미리 채울 문구·추천 문구, 열 때 바로 얹기, 잠금. [integration](integration.md#워터마크) 참고 |
+| `watermark` | `null` | 호스트 워터마크(`WatermarkConfig`). 미리 채울 문구·추천 문구, 열 때 바로 얹기, 잠금. [Android 연동 가이드](integration.md#워터마크) 참고 |
 
 도구:
 
@@ -222,7 +222,7 @@ FrameKitRequest(
 )
 ```
 
-열리는 편집기와 상관없이 모든 설정을 검증합니다. 사진이면 `image`·`imageExport`, 영상이면 `video`·`videoExport`, 소리면 `audio`·`audioExport`(설정 표는 [integration](integration.md#음성-편집기))가 쓰이고 `ui`·`output`은 공통입니다.
+열리는 편집기와 상관없이 모든 설정을 검증합니다. 사진이면 `image`·`imageExport`, 영상이면 `video`·`videoExport`, 소리면 `audio`·`audioExport`(설정 표는 [Android 연동 가이드](integration.md#음성-편집기))가 쓰이고 `ui`·`output`은 공통입니다.
 
 ## output: OutputTarget
 

@@ -1,5 +1,15 @@
 # Release Notes
 
+## 다음 판
+
+### 바뀜
+
+- iOS: 고를 개수(`pickMultiple`)나 넘긴 파일(`files`)이 편집기 상한보다 많으면 `invalidConfiguration` 대신 Android처럼 상한까지만 엶. `maxItems`는 1~100
+
+### 고침
+
+- iOS: 영상 녹화(`.capture`)에서 앱 Info.plist에 `NSMicrophoneUsageDescription`이 없으면 시스템이 앱을 끝낼 수 있던 문제. 이제 미리 `invalidConfiguration`으로 끝냄
+
 ## 1.0.0-alpha10
 
 Android와 iOS를 같은 번호로 배포합니다. iOS 첫 판이 1.0.0-alpha09라 Android는 alpha09를 건너뜁니다. 아래 내용은 두 플랫폼에 같이 들어갑니다(Android 전용 이름은 iOS에서 `mixedSelection: .edit`·`.reject`, `EditorAction.editEach`).
