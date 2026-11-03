@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="framekit_chooser_title">Was möchtest du tun?</string>
-    <string name="framekit_chooser_mixed">Fotos und Videos können nicht zusammen bearbeitet werden. Du kannst die Originale senden.</string>
+    <string name="framekit_chooser_mixed">Du hast Fotos und Videos ausgewählt. Bearbeite sie einzeln oder sende sie unverändert.</string>
     <string name="framekit_chooser_photo">Foto bearbeiten</string>
     <string name="framekit_chooser_photo_body">Zuschneiden, anpassen, Filter und Text</string>
     <string name="framekit_chooser_photo_each">Fotos einzeln bearbeiten</string>
@@ -24,4 +24,6 @@
         <item quantity="one">%d Element ausgewählt</item>
         <item quantity="other">%d Elemente ausgewählt</item>
     </plurals>
+    <string name="framekit_chooser_each">Einzeln bearbeiten</string>
+    <string name="framekit_chooser_each_body">Zwischen Fotos und Videos wechseln, jedes bearbeiten und alle zusammen speichern</string>
 </resources>

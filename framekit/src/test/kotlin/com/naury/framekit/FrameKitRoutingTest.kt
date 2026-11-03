@@ -75,4 +75,13 @@ class FrameKitRoutingTest {
         assertThat(MediaKindResolver.resolve(EditorInput.Capture(MediaKind.VIDEO), resolver)).isEqualTo(MediaKind.VIDEO)
         assertThat(FrameKitRequest(EditorInput.Capture(MediaKind.ANY)).validate()).isInstanceOf(ValidationResult.Invalid::class.java)
     }
+
+    @Test
+    fun `mixed photos and videos are edited one by one unless rejected`() {
+        val request = FrameKitRequest(EditorInput.Pick(MediaKind.ANY, maxItems = 10))
+        assertThat(request.mixedSelection).isEqualTo(MixedSelection.EDIT)
+        assertThat(EditorAction.EDIT_EACH in request.chooserActions).isTrue()
+        val video = request.forVideo(EditorInput.FileSource("/b.mp4"))
+        assertThat(video.copy(config = video.config.copy(maxClipCount = 1)).validate()).isInstanceOf(ValidationResult.Valid::class.java)
+    }
 }

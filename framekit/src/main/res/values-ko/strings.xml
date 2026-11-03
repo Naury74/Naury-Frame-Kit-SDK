@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="framekit_chooser_title">어떻게 할까요?</string>
-    <string name="framekit_chooser_mixed">사진과 영상은 함께 편집할 수 없어요. 원본 그대로 보낼 수는 있어요.</string>
+    <string name="framekit_chooser_mixed">사진과 영상을 함께 골랐어요. 하나씩 편집하거나 원본 그대로 보낼 수 있어요.</string>
     <string name="framekit_chooser_photo">사진 편집</string>
     <string name="framekit_chooser_photo_body">자르기·보정·필터·텍스트로 꾸며요</string>
     <string name="framekit_chooser_photo_each">사진 하나씩 편집</string>
@@ -23,4 +23,6 @@
     <plurals name="framekit_chooser_count">
         <item quantity="other">%d개 선택됨</item>
     </plurals>
+    <string name="framekit_chooser_each">하나씩 편집</string>
+    <string name="framekit_chooser_each_body">사진과 영상을 오가며 각각 편집하고 한 번에 저장해요</string>
 </resources>

@@ -1,5 +1,16 @@
 # Release Notes
 
+## 다음 판
+
+### 추가
+
+- 사진·영상 혼합 편집: 통합 계약에서 사진과 영상을 섞어 고르면 아래 줄에서 항목을 오가며 각각 편집하고 한 번에 저장함. `FrameKitRequest.mixedSelection`(`EDIT` 기본, `REJECT`), 고르기 시트의 `EditorAction.EDIT_EACH`("하나씩 편집")
+
+### 바뀜
+
+- 사진과 영상을 섞어 고르면 예전에는 `UNSUPPORTED_OPERATION`으로 실패했으나 이제 혼합 편집 화면이 열림. 예전 동작이 필요하면 `mixedSelection = MixedSelection.REJECT`
+- 고르기 시트의 섞인 원본 안내 문구를 바꿈
+
 ## 1.0.0-alpha08
 
 ### 바뀜

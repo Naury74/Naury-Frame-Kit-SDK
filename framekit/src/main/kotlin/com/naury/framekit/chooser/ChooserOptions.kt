@@ -6,20 +6,25 @@ import com.naury.framekit.EditorAction
 internal enum class SourceKind { IMAGE, ANIMATED, VIDEO, AUDIO }
 
 /**
- * 원본 종류에 맞는 선택지. [mixed]면 사진과 영상이 섞여 함께 편집할 수 없다는 안내를 보여 준다.
+ * 원본 종류에 맞는 선택지. [mixed]면 서로 다른 종류가 섞였다는 안내를 보여 준다.
  */
 internal data class ChooserOptions(val actions: List<EditorAction>, val mixed: Boolean, val singleAnimated: Boolean)
 
 internal object ChooserRules {
 
-    /** [kinds]에 맞는 동작 중 [allowed]에 있는 것을 보여 줄 순서대로 고른다. */
-    fun options(kinds: List<SourceKind>, allowed: Set<EditorAction>): ChooserOptions {
+    /**
+     * [kinds]에 맞는 동작 중 [allowed]에 있는 것을 보여 줄 순서대로 고른다.
+     *
+     * @param mixedEdit 사진·영상 혼합을 하나씩 편집할 수 있으면 `true`.
+     */
+    fun options(kinds: List<SourceKind>, allowed: Set<EditorAction>, mixedEdit: Boolean = true): ChooserOptions {
         val hasVideo = SourceKind.VIDEO in kinds
         val hasAudio = SourceKind.AUDIO in kinds
         val hasImage = kinds.any { it == SourceKind.IMAGE || it == SourceKind.ANIMATED }
         val singleAnimated = kinds.size == 1 && kinds.single() == SourceKind.ANIMATED
         val mixed = listOf(hasVideo, hasAudio, hasImage).count { it } > 1
         val candidates = when {
+            mixed && mixedEdit && !hasAudio -> listOf(EditorAction.EDIT_EACH, EditorAction.SEND_ORIGINAL)
             mixed -> listOf(EditorAction.SEND_ORIGINAL)
             hasAudio -> listOf(EditorAction.EDIT_AUDIO, EditorAction.SEND_ORIGINAL)
             hasVideo -> listOf(EditorAction.EDIT_VIDEO, EditorAction.SEND_ORIGINAL)

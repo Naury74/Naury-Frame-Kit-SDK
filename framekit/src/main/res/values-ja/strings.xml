@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="framekit_chooser_title">どうしますか？</string>
-    <string name="framekit_chooser_mixed">写真と動画は一緒に編集できません。そのまま送ることはできます。</string>
+    <string name="framekit_chooser_mixed">写真と動画を一緒に選びました。1つずつ編集するか、そのまま送ることができます。</string>
     <string name="framekit_chooser_photo">写真を編集</string>
     <string name="framekit_chooser_photo_body">切り抜き・補正・フィルター・テキストで仕上げます</string>
     <string name="framekit_chooser_photo_each">写真を1枚ずつ編集</string>
@@ -23,4 +23,6 @@
     <plurals name="framekit_chooser_count">
         <item quantity="other">%d件選択</item>
     </plurals>
+    <string name="framekit_chooser_each">1つずつ編集</string>
+    <string name="framekit_chooser_each_body">写真と動画を切り替えながらそれぞれ編集し、まとめて保存します</string>
 </resources>

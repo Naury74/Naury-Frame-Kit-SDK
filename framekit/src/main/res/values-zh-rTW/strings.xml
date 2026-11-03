@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="framekit_chooser_title">要做什麼？</string>
-    <string name="framekit_chooser_mixed">相片和影片無法一起編輯，但可以直接傳送原始檔案。</string>
+    <string name="framekit_chooser_mixed">你同時選擇了照片和影片。可以逐一編輯，或依原樣傳送。</string>
     <string name="framekit_chooser_photo">編輯相片</string>
     <string name="framekit_chooser_photo_body">裁剪、調整、濾鏡和文字</string>
     <string name="framekit_chooser_photo_each">逐張編輯相片</string>
@@ -23,4 +23,6 @@
     <plurals name="framekit_chooser_count">
         <item quantity="other">已選取 %d 項</item>
     </plurals>
+    <string name="framekit_chooser_each">逐一編輯</string>
+    <string name="framekit_chooser_each_body">在照片和影片之間切換分別編輯，然後一次儲存全部</string>
 </resources>

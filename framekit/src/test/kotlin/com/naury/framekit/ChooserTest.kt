@@ -31,7 +31,10 @@ class ChooserTest {
         assertThat(ChooserRules.options(listOf(SourceKind.VIDEO), all).actions).containsExactly(EditorAction.EDIT_VIDEO, EditorAction.SEND_ORIGINAL).inOrder()
         val mixed = ChooserRules.options(listOf(SourceKind.IMAGE, SourceKind.VIDEO), all)
         assertThat(mixed.mixed).isTrue()
-        assertThat(mixed.actions).containsExactly(EditorAction.SEND_ORIGINAL)
+        assertThat(mixed.actions).containsExactly(EditorAction.EDIT_EACH, EditorAction.SEND_ORIGINAL).inOrder()
+        // 혼합 편집을 끄거나 소리가 섞이면 원본 보내기만 남는다.
+        assertThat(ChooserRules.options(listOf(SourceKind.IMAGE, SourceKind.VIDEO), all, mixedEdit = false).actions).containsExactly(EditorAction.SEND_ORIGINAL)
+        assertThat(ChooserRules.options(listOf(SourceKind.IMAGE, SourceKind.AUDIO), all).actions).containsExactly(EditorAction.SEND_ORIGINAL)
         assertThat(ChooserRules.options(listOf(SourceKind.IMAGE), setOf(EditorAction.MAKE_PDF)).actions).containsExactly(EditorAction.MAKE_PDF)
     }
 

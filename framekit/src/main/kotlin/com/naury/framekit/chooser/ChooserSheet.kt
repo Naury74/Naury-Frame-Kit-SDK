@@ -179,6 +179,7 @@ private fun labels(action: EditorAction, count: Int, singleAnimated: Boolean): P
         count > 1 -> stringResource(R.string.framekit_chooser_photo_each) to stringResource(R.string.framekit_chooser_photo_each_body)
         else -> stringResource(R.string.framekit_chooser_photo) to stringResource(R.string.framekit_chooser_photo_body)
     }
+    EditorAction.EDIT_EACH -> stringResource(R.string.framekit_chooser_each) to stringResource(R.string.framekit_chooser_each_body)
     EditorAction.MAKE_PDF -> stringResource(R.string.framekit_chooser_pdf) to stringResource(R.string.framekit_chooser_pdf_body)
     EditorAction.MOTION -> if (singleAnimated) {
         stringResource(R.string.framekit_chooser_motion_edit) to stringResource(R.string.framekit_chooser_motion_edit_body)
@@ -193,6 +194,7 @@ private fun labels(action: EditorAction, count: Int, singleAnimated: Boolean): P
 @Composable
 private fun iconOf(action: EditorAction): Painter = when (action) {
     EditorAction.EDIT_PHOTO -> painterResource(UiR.drawable.framekit_ic_adjust)
+    EditorAction.EDIT_EACH -> painterResource(UiR.drawable.framekit_ic_adjust)
     EditorAction.MAKE_PDF -> painterResource(UiR.drawable.framekit_ic_document)
     EditorAction.MOTION -> painterResource(MotionR.drawable.framekit_ic_motion)
     EditorAction.EDIT_VIDEO -> painterResource(UiR.drawable.framekit_ic_trim)
@@ -204,6 +206,7 @@ private fun iconOf(action: EditorAction): Painter = when (action) {
 @Composable
 private fun accentOf(action: EditorAction): Color = when (action) {
     EditorAction.EDIT_PHOTO -> FrameKitTheme.colors.accent
+    EditorAction.EDIT_EACH -> FrameKitTheme.colors.accent
     EditorAction.MAKE_PDF -> Color(0xFF3B9CFF)
     EditorAction.MOTION -> Color(0xFFFF6B9A)
     EditorAction.EDIT_VIDEO -> Color(0xFF2EB67D)

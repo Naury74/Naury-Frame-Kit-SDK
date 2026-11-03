@@ -9,12 +9,24 @@ public enum class EditorChooser {
     ASK,
 }
 
+/** 사진과 영상을 섞어 골랐을 때. 소리는 다른 종류와 섞을 수 없다. */
+public enum class MixedSelection {
+    /** 혼합 편집 화면을 연다. 아래 줄에서 고른 항목에 맞는 편집 화면을 보이고, 저장은 한 번에 한다(최대 20개). */
+    EDIT,
+
+    /** 열지 않는다. [EditorChooser.AUTO]에서는 `UNSUPPORTED_OPERATION`, [EditorChooser.ASK]에서는 원본 보내기만 한다. */
+    REJECT,
+}
+
 /**
  * 선택 시트에 보여 줄 수 있는 동작. 원본에 맞지 않는 동작은 자동으로 빠진다.
  */
 public enum class EditorAction {
     /** 사진 편집(여러 장이면 한 장씩 편집하고 사진마다 저장). 움직이는 이미지는 첫 장면만 편집한다. */
     EDIT_PHOTO,
+
+    /** 섞어 고른 사진·영상을 하나씩 편집한다([MixedSelection.EDIT]일 때만 보인다). */
+    EDIT_EACH,
 
     /** 사진들을 PDF 하나로 묶는다(사진 편집기에서 편집 후 PDF로 저장). */
     MAKE_PDF,

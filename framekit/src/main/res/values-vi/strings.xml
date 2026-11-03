@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="framekit_chooser_title">Bạn muốn làm gì?</string>
-    <string name="framekit_chooser_mixed">Không thể chỉnh sửa ảnh và video cùng lúc. Bạn vẫn có thể gửi bản gốc.</string>
+    <string name="framekit_chooser_mixed">Bạn đã chọn cả ảnh và video. Hãy chỉnh sửa từng mục hoặc gửi nguyên bản.</string>
     <string name="framekit_chooser_photo">Chỉnh sửa ảnh</string>
     <string name="framekit_chooser_photo_body">Cắt, điều chỉnh, thêm bộ lọc và chữ</string>
     <string name="framekit_chooser_photo_each">Chỉnh sửa từng ảnh</string>
@@ -23,4 +23,6 @@
     <plurals name="framekit_chooser_count">
         <item quantity="other">Đã chọn %d mục</item>
     </plurals>
+    <string name="framekit_chooser_each">Chỉnh sửa từng mục</string>
+    <string name="framekit_chooser_each_body">Chuyển giữa ảnh và video để chỉnh sửa từng mục, rồi lưu tất cả một lần</string>
 </resources>

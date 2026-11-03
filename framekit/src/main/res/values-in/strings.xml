@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="framekit_chooser_title">Mau melakukan apa?</string>
-    <string name="framekit_chooser_mixed">Foto dan video tidak bisa diedit bersama. Anda tetap bisa mengirim aslinya.</string>
+    <string name="framekit_chooser_mixed">Anda memilih foto dan video bersamaan. Edit satu per satu atau kirim apa adanya.</string>
     <string name="framekit_chooser_photo">Edit foto</string>
     <string name="framekit_chooser_photo_body">Pangkas, sesuaikan, tambahkan filter dan teks</string>
     <string name="framekit_chooser_photo_each">Edit foto satu per satu</string>
@@ -23,4 +23,6 @@
     <plurals name="framekit_chooser_count">
         <item quantity="other">%d item dipilih</item>
     </plurals>
+    <string name="framekit_chooser_each">Edit satu per satu</string>
+    <string name="framekit_chooser_each_body">Beralih antara foto dan video untuk mengedit masing-masing, lalu simpan semuanya</string>
 </resources>

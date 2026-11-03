@@ -27,6 +27,8 @@ import com.naury.framekit.chooser.SourceInspector
 import com.naury.framekit.chooser.SourceKind
 import com.naury.framekit.core.validation.ValidationResult
 import com.naury.framekit.motion.codec.AnimatedImageProbe
+import com.naury.framekit.mixed.MixedEditorContract
+import com.naury.framekit.mixed.MixedEditorRequest
 import com.naury.framekit.ui.design.FrameKitTheme
 import com.naury.framekit.ui.design.ProvideEditorLocale
 import com.naury.framekit.ui.image.contract.ImageEditorContract
@@ -68,6 +70,7 @@ internal class FrameKitActivity : ComponentActivity() {
     private val videoEditor = registerForActivityResult(VideoEditorContract(), ::deliver)
     private val motionEditor = registerForActivityResult(MotionEditorContract(), ::deliver)
     private val audioEditor = registerForActivityResult(AudioEditorContract(), ::deliver)
+    private val mixedEditor = registerForActivityResult(MixedEditorContract(), ::deliver)
     private val audioPicker = registerForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris: List<Uri> ->
         val picked = uris.take(pickLimit)
         when {
@@ -178,7 +181,17 @@ internal class FrameKitActivity : ComponentActivity() {
         val kind = MediaKindResolver.resolve(input, contentResolver)
         when {
             kind != null -> launchEditor(kind, input)
-            // 사진과 영상을 한 번에 편집할 수는 없다.
+            // 사진과 영상이 섞였으면 혼합 편집으로 하나씩 편집한다. 소리가 섞이면 열지 않는다.
+            input is EditorInput.Multiple && request.mixedSelection == MixedSelection.EDIT -> lifecycleScope.launch {
+                val kinds = withContext(Dispatchers.IO) { input.items.map { inspector.kind(it) } }
+                val known = kinds.filterNotNull()
+                val groups = known.map { it == SourceKind.VIDEO }.toSet()
+                if (known.size == kinds.size && SourceKind.AUDIO !in known && groups.size == 2) {
+                    perform(EditorAction.EDIT_EACH, input, known)
+                } else {
+                    deliver(FrameKitResult.Failure(EditorError(EditorErrorCode.UNSUPPORTED_OPERATION)))
+                }
+            }
             input is EditorInput.Multiple -> deliver(FrameKitResult.Failure(EditorError(EditorErrorCode.UNSUPPORTED_OPERATION)))
             else -> deliver(FrameKitResult.Failure(EditorError(EditorErrorCode.UNSUPPORTED_FORMAT)))
         }
@@ -192,7 +205,7 @@ internal class FrameKitActivity : ComponentActivity() {
             val kinds = withContext(Dispatchers.IO) { items.map { inspector.kind(it) } }
             if (kinds.any { it == null }) return@launch deliver(FrameKitResult.Failure(EditorError(EditorErrorCode.UNSUPPORTED_FORMAT)))
             val known = kinds.filterNotNull()
-            val options = ChooserRules.options(known, request.chooserActions)
+            val options = ChooserRules.options(known, request.chooserActions, mixedEdit = request.mixedSelection == MixedSelection.EDIT)
             when {
                 options.actions.isEmpty() && options.mixed -> deliver(FrameKitResult.Failure(EditorError(EditorErrorCode.UNSUPPORTED_OPERATION)))
                 options.actions.isEmpty() -> {
@@ -219,6 +232,10 @@ internal class FrameKitActivity : ComponentActivity() {
         try {
             when (action) {
                 EditorAction.EDIT_PHOTO -> imageEditor.launch(request.forImage(input))
+                EditorAction.EDIT_EACH -> {
+                    val items = (if (input is EditorInput.Multiple) input.items else listOf(input)).take(MixedEditorRequest.MAX_ITEMS)
+                    mixedEditor.launch(MixedEditorRequest(request, items, kinds.take(items.size).map { it == SourceKind.VIDEO }))
+                }
                 EditorAction.MAKE_PDF -> imageEditor.launch(request.forPdf(input))
                 EditorAction.MOTION -> motionEditor.launch(request.forMotion(input))
                 EditorAction.EDIT_VIDEO -> videoEditor.launch(request.forVideo(input))

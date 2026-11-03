@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="framekit_chooser_title">What would you like to do?</string>
-    <string name="framekit_chooser_mixed">Photos and videos can\'t be edited together. You can still send them as they are.</string>
+    <string name="framekit_chooser_mixed">You picked photos and videos together. Edit each one, or send them as they are.</string>
     <string name="framekit_chooser_photo">Edit photo</string>
     <string name="framekit_chooser_photo_body">Crop, adjust, add filters and text</string>
     <string name="framekit_chooser_photo_each">Edit photos one by one</string>
@@ -24,4 +24,6 @@
         <item quantity="one">%d item selected</item>
         <item quantity="other">%d items selected</item>
     </plurals>
+    <string name="framekit_chooser_each">Edit one by one</string>
+    <string name="framekit_chooser_each_body">Switch between photos and videos to edit each, then save them all</string>
 </resources>

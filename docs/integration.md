@@ -80,7 +80,10 @@ Button(onClick = { editor.launch(FrameKitRequest(EditorInput.Pick(MediaKind.ANY)
 
 - 여러 개를 넘기면 사진 편집기는 아래쪽 쪽 목록에서 한 장씩 골라 편집하고, 영상 편집기는 고른 순서대로 클립을 이어 붙입니다.
 - 개수 상한은 `ImageEditorConfig.maxImageCount`(기본 20, 최대 100), `VideoEditorConfig.maxClipCount`(기본 10, 최대 20)입니다. `Multiple`이 상한보다 많으면 앞에서부터 상한까지만 엽니다. `Pick`의 `maxItems`도 편집기 상한으로 줄어듭니다.
-- 통합 계약에서 사진과 영상을 섞어 넘기거나 `Pick(ANY)`로 섞어 고르면 `UNSUPPORTED_OPERATION`으로 실패합니다. 한 번에 한 종류만 편집합니다.
+- 통합 계약에서 사진과 영상을 섞어 넘기거나 `Pick(ANY)`로 섞어 고르면 `mixedSelection`을 따릅니다.
+  - `MixedSelection.EDIT`(기본): 혼합 편집 화면을 엽니다. 아래 줄에서 항목을 누르면 그 종류의 편집 화면(사진 또는 영상)으로 바뀌고, 항목마다 편집 내용을 따로 기억하며, 저장은 한 번에 해서 고른 순서대로 `outputs`를 돌려줍니다. 최대 20개, 영상은 항목마다 클립 하나입니다.
+  - `MixedSelection.REJECT`: `EditorChooser.AUTO`에서는 `UNSUPPORTED_OPERATION`으로 실패하고, `ASK`에서는 원본 보내기만 합니다.
+  - 소리는 다른 종류와 섞을 수 없습니다(`UNSUPPORTED_OPERATION`, 고르기 시트에서는 원본 보내기만).
 - 편집기는 호스트 프로세스에서 실행되므로 호스트가 읽을 수 있는 Uri는 편집기도 읽을 수 있습니다.
 - 편집기는 Uri scheme만 보고 권한을 가정하지 않습니다. 열 수 없으면 `PERMISSION_DENIED`(권한 없음) 또는 `SOURCE_UNAVAILABLE`(삭제·이동)을 화면에 표시하고, 닫으면 `Failure`로 돌려줍니다.
 - 원격 URL은 지원하지 않습니다. 다운로드를 마친 로컬 Uri를 넘기세요.
@@ -183,7 +186,7 @@ FrameKitRequest(
 | `SOURCE_UNAVAILABLE` | 삭제·이동·provider 응답 없음 | 다시 선택 |
 | `UNSUPPORTED_FORMAT` | GIF, HEIF, animated WEBP 등 | 다른 파일 선택 |
 | `DECODE_FAILED` | 손상된 파일, 0바이트 | 다른 파일 선택 |
-| `UNSUPPORTED_OPERATION` | 사진·영상을 섞어 넘김 등 | 입력 수정 |
+| `UNSUPPORTED_OPERATION` | 사진·영상을 섞어 넘기고 `MixedSelection.REJECT`, 소리를 다른 종류와 섞음 등 | 입력 수정 |
 | `CAMERA_UNAVAILABLE` | 카메라 앱이 없음 | 사진 선택으로 대체 |
 | `RESULT_UNAVAILABLE` | `RESULT_OK`인데 결과가 없음 | 편집기 재실행 |
 

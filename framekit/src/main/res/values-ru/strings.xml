@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="framekit_chooser_title">Что сделать?</string>
-    <string name="framekit_chooser_mixed">Фото и видео нельзя редактировать вместе. Можно отправить оригиналы.</string>
+    <string name="framekit_chooser_mixed">Вы выбрали фото и видео вместе. Отредактируйте их по одному или отправьте как есть.</string>
     <string name="framekit_chooser_photo">Редактировать фото</string>
     <string name="framekit_chooser_photo_body">Обрезка, коррекция, фильтры и текст</string>
     <string name="framekit_chooser_photo_each">Редактировать по одному</string>
@@ -26,4 +26,6 @@
         <item quantity="many">Выбрано %d объектов</item>
         <item quantity="other">Выбрано объектов: %d</item>
     </plurals>
+    <string name="framekit_chooser_each">Редактировать по одному</string>
+    <string name="framekit_chooser_each_body">Переключайтесь между фото и видео, редактируйте каждое и сохраняйте всё сразу</string>
 </resources>

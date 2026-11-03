@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="framekit_chooser_title">ต้องการทำอะไร</string>
-    <string name="framekit_chooser_mixed">แก้ไขรูปภาพและวิดีโอพร้อมกันไม่ได้ แต่ส่งต้นฉบับได้</string>
+    <string name="framekit_chooser_mixed">คุณเลือกรูปและวิดีโอพร้อมกัน แก้ไขทีละรายการหรือส่งตามต้นฉบับได้</string>
     <string name="framekit_chooser_photo">แก้ไขรูปภาพ</string>
     <string name="framekit_chooser_photo_body">ครอบตัด ปรับแต่ง ใส่ฟิลเตอร์และข้อความ</string>
     <string name="framekit_chooser_photo_each">แก้ไขรูปทีละรูป</string>
@@ -23,4 +23,6 @@
     <plurals name="framekit_chooser_count">
         <item quantity="other">เลือก %d รายการ</item>
     </plurals>
+    <string name="framekit_chooser_each">แก้ไขทีละรายการ</string>
+    <string name="framekit_chooser_each_body">สลับระหว่างรูปและวิดีโอเพื่อแก้ไขแต่ละรายการ แล้วบันทึกทั้งหมดในครั้งเดียว</string>
 </resources>

@@ -33,6 +33,7 @@ import com.naury.framekit.ui.motion.contract.MotionEditorRequest
  *
  * @property chooser 원본을 받은 뒤 편집기를 자동으로 고를지([EditorChooser.AUTO]), 선택 시트로 물을지([EditorChooser.ASK]).
  * @property chooserActions [EditorChooser.ASK]일 때 보여 줄 동작. 원본에 맞지 않는 동작은 빠진다. 비어 있으면 안 된다.
+ * @property mixedSelection 사진과 영상을 섞어 골랐을 때 하나씩 편집할지([MixedSelection.EDIT]) 열지 않을지.
  * @property openAnimatedInMotionEditor 고른(또는 넘긴) 사진 하나가 움직이는 이미지(GIF·움직이는 WebP)면 사진 편집기 대신
  *   움직이는 이미지 편집기로 연다. `false`면 사진 편집기가 첫 프레임을 편집한다.
  */
@@ -53,6 +54,7 @@ public data class FrameKitRequest(
     val chooserActions: Set<EditorAction> = EditorAction.entries.toSet(),
     val audio: AudioEditorConfig = AudioEditorConfig(),
     val audioExport: AudioExportConfig = AudioExportConfig(),
+    val mixedSelection: MixedSelection = MixedSelection.EDIT,
 ) : Parcelable {
 
     /** 두 편집기 설정을 모두 검증한다. 검증에 실패하면 결과는 `INVALID_CONFIGURATION`이 된다. */

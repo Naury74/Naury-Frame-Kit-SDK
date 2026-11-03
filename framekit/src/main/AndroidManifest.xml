@@ -6,6 +6,10 @@
             android:name="com.naury.framekit.FrameKitActivity"
             android:exported="false"
             android:theme="@style/framekit_Theme.Router" />
+        <activity
+            android:name="com.naury.framekit.mixed.MixedEditorActivity"
+            android:exported="false"
+            android:theme="@style/framekit_Theme.Editor" />
     </application>
 
 </manifest>
