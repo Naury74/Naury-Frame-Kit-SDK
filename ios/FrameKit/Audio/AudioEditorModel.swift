@@ -103,7 +103,7 @@ final class AudioEditorModel {
                 return
             }
         case .file(let url): add([url], at: 0, target: .insert, copy: true, initial: true)
-        case .files(let urls): add(urls, at: 0, target: .insert, copy: true, initial: true)
+        case .files(let urls): add(Array(urls.prefix(request.config.maxSourceCount)), at: 0, target: .insert, copy: true, initial: true)
         default: break
         }
     }

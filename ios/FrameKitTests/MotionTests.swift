@@ -255,7 +255,26 @@ struct MotionRequestTests {
         #expect(MotionEditorRequest(input: .pick).validate().isEmpty)
         let export = MotionExportConfig(formats: [.gif], format: .mp4)
         #expect(MotionEditorRequest(input: .pick, export: export).validate().contains { $0.path == "export.format" })
-        #expect(!MotionEditorRequest(input: .pickMultiple(maxItems: 30)).validate().isEmpty)
+        // 편집기 상한(기본 20)보다 많이 고르게 해도 상한까지만 고르게 하고 열린다. 범위는 1...100.
+        #expect(MotionEditorRequest(input: .pickMultiple(maxItems: 30)).validate().isEmpty)
+        #expect(!MotionEditorRequest(input: .pickMultiple(maxItems: 101)).validate().isEmpty)
+    }
+}
+
+@MainActor
+struct InputLimitTests {
+    @Test func opensOnlyUpToEditorLimit() async throws {
+        let urls = [stillFile(0xFFFF_0000), stillFile(0xFF00_FF00), stillFile(0xFF00_00FF), stillFile(0xFFFF_FFFF)]
+        let image = ImageEditorRequest(input: .files(urls), config: ImageEditorConfig(maxImageCount: 2))
+        #expect(image.validate().isEmpty)
+        let model = EditorModel(request: image) { _ in }
+        model.start()
+        for _ in 0..<150 where model.phase != .ready { try await Task.sleep(for: .milliseconds(20)) }
+        #expect(model.phase == .ready)
+        #expect(model.pages.count == 2)
+        #expect(VideoEditorRequest(input: .pickMultiple(maxItems: 50)).validate().isEmpty)
+        #expect(!VideoEditorRequest(input: .pickMultiple(maxItems: 0)).validate().isEmpty)
+        #expect(!AudioEditorRequest(input: .files([])).validate().isEmpty)
     }
 }
 

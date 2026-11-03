@@ -182,10 +182,16 @@ final class VideoEditorModel: ColorToolHost {
         }
         switch request.input {
         case .file(let url): open([url], append: false, copy: true)
-        case .files(let urls): open(urls, append: false, copy: true)
+        case .files(let urls): open(Array(urls.prefix(request.config.maxClipCount)), append: false, copy: true)
         case .capture:
             guard Bundle.main.object(forInfoDictionaryKey: "NSCameraUsageDescription") != nil else {
                 frameKitLog.error("NSCameraUsageDescription is missing in the host Info.plist")
+                finish(.failure(EditorError(code: .invalidConfiguration)))
+                return
+            }
+            // 영상 촬영은 소리도 녹음하므로 마이크 설명이 없으면 시스템이 앱을 끝낸다.
+            guard Bundle.main.object(forInfoDictionaryKey: "NSMicrophoneUsageDescription") != nil else {
+                frameKitLog.error("NSMicrophoneUsageDescription is missing in the host Info.plist")
                 finish(.failure(EditorError(code: .invalidConfiguration)))
                 return
             }

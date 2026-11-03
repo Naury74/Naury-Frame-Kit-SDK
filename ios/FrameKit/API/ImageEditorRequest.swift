@@ -30,10 +30,10 @@ public struct ImageEditorRequest: Sendable, Hashable {
         if !(1...ImageEditorConfig.maxImages).contains(config.maxImageCount) {
             issues.append(.init(path: "config.maxImageCount", reason: .outOfRange))
         }
-        if case .pickMultiple(let max) = input, !(1...config.maxImageCount).contains(max) {
+        if case .pickMultiple(let max) = input, !(1...FrameKitRequest.maxPickItems).contains(max) {
             issues.append(.init(path: "input", reason: .outOfRange))
         }
-        if case .files(let urls) = input, urls.isEmpty || urls.count > config.maxImageCount || urls.contains(where: { !$0.isFileURL }) {
+        if case .files(let urls) = input, urls.isEmpty || urls.contains(where: { !$0.isFileURL }) {
             issues.append(.init(path: "input", reason: .invalidValue))
         }
         if !(0...50).contains(export.pdf.marginMm) { issues.append(.init(path: "export.pdf.marginMm", reason: .outOfRange)) }

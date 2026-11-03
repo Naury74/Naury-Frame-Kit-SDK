@@ -178,7 +178,7 @@ final class EditorModel {
         }
         switch request.input {
         case .file(let url): load([{ try Self.copyToTemporary(url) }], append: false)
-        case .files(let urls): load(urls.map { url in { try Self.copyToTemporary(url) } }, append: false)
+        case .files(let urls): load(urls.prefix(request.config.maxImageCount).map { url in { try Self.copyToTemporary(url) } }, append: false)
         case .data(let data): load([{ try Self.writeTemporary(data) }], append: false)
         case .pick, .pickMultiple: phase = .awaitingSource
         case .capture: startCapture()

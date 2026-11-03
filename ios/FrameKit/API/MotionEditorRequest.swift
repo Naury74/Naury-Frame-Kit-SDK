@@ -122,8 +122,8 @@ public struct MotionEditorRequest: Sendable, Hashable {
         var issues: [ConfigurationIssue] = []
         switch input {
         case .capture: issues.append(.init(path: "input", reason: .invalidValue))
-        case .pickMultiple(let max) where !(1...config.maxImageCount).contains(max): issues.append(.init(path: "input", reason: .outOfRange))
-        case .files(let urls) where urls.isEmpty || urls.count > config.maxImageCount || urls.contains(where: { !$0.isFileURL }):
+        case .pickMultiple(let max) where !(1...FrameKitRequest.maxPickItems).contains(max): issues.append(.init(path: "input", reason: .outOfRange))
+        case .files(let urls) where urls.isEmpty || urls.contains(where: { !$0.isFileURL }):
             issues.append(.init(path: "input", reason: .invalidValue))
         case .file(let url) where !url.isFileURL: issues.append(.init(path: "input", reason: .invalidValue))
         case .data(let data) where data.isEmpty: issues.append(.init(path: "input", reason: .invalidValue))

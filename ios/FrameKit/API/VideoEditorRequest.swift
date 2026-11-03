@@ -69,6 +69,7 @@ public struct VideoExportConfig: Sendable, Hashable {
 }
 
 /// 영상 편집기 요청. `input`은 `.pick`·`.pickMultiple`(영상만 보임), `.file`·`.files`, `.capture`(영상 촬영)를 쓴다.
+/// `.capture`는 Info.plist에 `NSCameraUsageDescription`과 `NSMicrophoneUsageDescription`이 모두 있어야 하고, 없으면 `invalidConfiguration`.
 public struct VideoEditorRequest: Sendable, Hashable {
     public var input: EditorInput
     public var config: VideoEditorConfig
@@ -90,8 +91,8 @@ public struct VideoEditorRequest: Sendable, Hashable {
         var issues: [ConfigurationIssue] = []
         switch input {
         case .data: issues.append(.init(path: "input", reason: .invalidValue))
-        case .pickMultiple(let max) where !(1...config.maxClipCount).contains(max): issues.append(.init(path: "input", reason: .outOfRange))
-        case .files(let urls) where urls.isEmpty || urls.count > config.maxClipCount || urls.contains(where: { !$0.isFileURL }):
+        case .pickMultiple(let max) where !(1...FrameKitRequest.maxPickItems).contains(max): issues.append(.init(path: "input", reason: .outOfRange))
+        case .files(let urls) where urls.isEmpty || urls.contains(where: { !$0.isFileURL }):
             issues.append(.init(path: "input", reason: .invalidValue))
         case .file(let url) where !url.isFileURL: issues.append(.init(path: "input", reason: .invalidValue))
         default: break
