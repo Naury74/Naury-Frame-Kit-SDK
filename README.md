@@ -80,6 +80,16 @@
   </tr>
 </table>
 
+상태 바가 옆에 있는 듀오에서는 이렇게 보입니다.
+
+<table>
+  <tr>
+    <td align="center" width="33%"><img src="docs/images/ios-duo-photo.png" width="240" alt="듀오에서 사진 편집"><br><b>사진 편집</b><br>오른쪽 상태 바를 피해 배치</td>
+    <td align="center" width="33%"><img src="docs/images/ios-duo-video.png" width="240" alt="듀오에서 영상 편집"><br><b>영상 편집</b><br>타임라인과 도구가 화면 폭에 맞춤</td>
+    <td align="center" width="33%"><img src="docs/images/ios-duo-mixed.png" width="240" alt="듀오에서 사진·영상 혼합 편집"><br><b>혼합 편집</b><br>아래 줄에서 사진과 영상을 오감</td>
+  </tr>
+</table>
+
 ## 샘플 앱
 
 - **Android**: [framekit-showcase.apk](https://github.com/Naury74/Naury-Frame-Kit-SDK/releases/latest/download/framekit-showcase.apk)를 받으면 소스 없이 모든 편집기를 써 볼 수 있습니다. 기능별 예제와 설정을 바꿔 가며 편집기를 여는 Playground가 들어 있습니다. 처음에는 "출처를 알 수 없는 앱" 설치를 허용해야 합니다.
