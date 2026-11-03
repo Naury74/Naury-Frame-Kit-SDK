@@ -292,12 +292,12 @@ internal class MixedEditorActivity : ComponentActivity() {
             navigationBarStyle = if (darkBars) SystemBarStyle.dark(Color.TRANSPARENT) else SystemBarStyle.auto(Color.TRANSPARENT, Color.TRANSPARENT),
         )
 
-        // 항목마다 에디터 하나. 사진은 한 장, 영상은 클립 하나로 연다.
+        // 항목마다 에디터 하나. 영상 항목은 일반 영상 편집기처럼 나누고 클립을 더할 수 있고, 결과는 항목마다 하나다.
         val items = mixed.items.take(MixedEditorRequest.MAX_ITEMS)
         val editors = items.mapIndexed { index, item ->
             val key = "framekit_mixed_item_$index"
             if (mixed.videos[index]) {
-                VideoEditorEmbedding.create(this, request.forVideo(item).let { it.copy(config = it.config.copy(maxClipCount = 1)) }, key)
+                VideoEditorEmbedding.create(this, request.forVideo(item), key)
             } else {
                 ImageEditorEmbedding.create(this, request.forImage(item), key)
             }
