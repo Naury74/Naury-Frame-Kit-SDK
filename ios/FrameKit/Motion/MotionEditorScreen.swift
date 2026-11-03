@@ -637,7 +637,10 @@ struct MotionAudioLanes: View {
     let model: MotionEditorModel
     @Environment(\.editorTheme) private var theme
     @Environment(\.strings) private var strings
-    @State private var dragging = false
+    @State private var drag: Drag?
+
+    /// 고른 조각 끌기: 가운데는 옮기고, 양 끝은 줄이거나 늘린다.
+    private enum Drag { case move, start(AudioClipState), end(AudioClipState) }
 
     var body: some View {
         GeometryReader { geo in
@@ -666,13 +669,48 @@ struct MotionAudioLanes: View {
                 let selected = clip.id == model.selectedAudioId
                 RoundedRectangle(cornerRadius: 6)
                     .fill((role == .music ? theme.accent : Color.orange).opacity(selected ? 1 : 0.55))
-                    .overlay { RoundedRectangle(cornerRadius: 6).strokeBorder(theme.foreground, lineWidth: selected ? 2 : 0) }
+                    .overlay {
+                        Canvas { context, size in
+                            guard let wave = model.audioWaves[clip.source], !wave.peaks.isEmpty else { return }
+                            let path = wave.bars(for: clip, in: CGRect(origin: .zero, size: size), visible: 0...size.width) { bx in
+                                range.start + Micros(Double(bx / max(1, size.width)) * Double(range.duration))
+                            }
+                            context.fill(path, with: .color(.white.opacity(0.4)))
+                        }
+                        .allowsHitTesting(false)
+                    }
+                    .overlay {
+                        if selected {
+                            RoundedRectangle(cornerRadius: 6).strokeBorder(theme.foreground, lineWidth: 2)
+                            HStack {
+                                Capsule().fill(theme.foreground).frame(width: 5, height: 16)
+                                Spacer()
+                                Capsule().fill(theme.foreground).frame(width: 5, height: 16)
+                            }
+                            .padding(.horizontal, 2)
+                            .allowsHitTesting(false)
+                        }
+                    }
                     .frame(width: w, height: 26)
                     .offset(x: x)
                     .onTapGesture { model.selectAudio(clip.id) }
                     .gesture(selected ? DragGesture(minimumDistance: 4)
-                        .onChanged { g in model.dragSelectedAudio(by: Micros(Double(g.translation.width) / width * total)) }
-                        .onEnded { _ in model.endAudioDrag() } : nil)
+                        .onChanged { g in
+                            if drag == nil {
+                                let reach = min(14, w / 3)
+                                drag = g.startLocation.x <= reach ? .start(clip) : g.startLocation.x >= w - reach ? .end(clip) : .move
+                            }
+                            let delta = Micros(Double(g.translation.width) / width * total)
+                            switch drag {
+                            case .start(let original): model.trimSelectedAudio(from: original, start: true, by: delta)
+                            case .end(let original): model.trimSelectedAudio(from: original, start: false, by: delta)
+                            default: model.dragSelectedAudio(by: delta)
+                            }
+                        }
+                        .onEnded { _ in
+                            drag = nil
+                            model.endAudioDrag()
+                        } : nil)
                     .accessibilityLabel(strings(role == .music ? "track_music" : "track_voice"))
                     .accessibilityAddTraits(selected ? [.isButton, .isSelected] : .isButton)
             }

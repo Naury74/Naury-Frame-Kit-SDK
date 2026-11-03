@@ -64,6 +64,8 @@ final class VideoEditorModel: ColorToolHost {
     private(set) var phase: Phase
     private(set) var sources: [VideoSource] = []
     var audioSources: [AudioSource] = []
+    /// 소리 원본 위치별 파형.
+    var audioWaves: [Int: Waveform] = [:]
     var history = VideoHistory(VideoEdit(clips: []))
     var working: VideoEdit?
     private(set) var activeTool: VideoTool?
@@ -618,9 +620,9 @@ final class VideoEditorModel: ColorToolHost {
         if let config = request.config.watermark, config.locked { edit.watermark = config.spec }
         let sources = sources, audio = audioSources, config = request.export
         export = .running(.encoding, nil)
-        UIApplication.shared.isIdleTimerDisabled = true
+        IdleTimerHold.acquire()
         exportTask = Task {
-            defer { UIApplication.shared.isIdleTimerDisabled = false }
+            defer { IdleTimerHold.release() }
             do {
                 let media = try await VideoExporter.export(edit, sources: sources, audio: audio, config: config) { fraction in
                     Task { @MainActor in if case .running = self.export { self.export = .running(.encoding, fraction) } }

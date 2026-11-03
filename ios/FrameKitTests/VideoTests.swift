@@ -129,3 +129,44 @@ struct VideoLayerTests {
         #expect(band.r + 15 < above.r)
     }
 }
+
+@MainActor
+struct VideoEditorModelTests {
+    private func readyModel() async throws -> VideoEditorModel {
+        let model = VideoEditorModel(request: VideoEditorRequest(input: .file(try await makeTestVideo()))) { _ in }
+        model.start()
+        for _ in 0..<200 where model.phase != .ready { try await Task.sleep(for: .milliseconds(20)) }
+        #expect(model.phase == .ready)
+        return model
+    }
+
+    @Test func maskMovesAndResizesInsideFrame() async throws {
+        let model = try await readyModel()
+        defer { model.finish(.cancelled) }
+        model.selectTool(.privacy)
+        model.privacy.mode = .rectangle
+        model.strokeBegan(NPoint(x: 0.2, y: 0.2))
+        model.strokeMoved(NPoint(x: 0.4, y: 0.4))
+        model.strokeEnded()
+        let start = NRect(left: 0.2, top: 0.2, right: 0.4, bottom: 0.4)
+        model.reshapeSelectedMask(from: start, corner: nil, dx: 0.9, dy: 0)
+        model.commitGesture()
+        guard case .rectangle(let moved) = model.history.current.masks.first?.mask.shape else { Issue.record("no mask"); return }
+        #expect(abs(moved.right - 1) < 1e-9 && abs(moved.width - 0.2) < 1e-9)
+        model.reshapeSelectedMask(from: moved, corner: 0, dx: 0.5, dy: 0)
+        guard case .rectangle(let resized) = model.displayed.masks.first?.mask.shape else { return }
+        #expect(abs(resized.width - 0.02) < 1e-9)
+    }
+
+    @Test func audioEdgeTrimKeepsMinimumLength() async throws {
+        let model = try await readyModel()
+        defer { model.finish(.cancelled) }
+        model.addAudio(url: try makeTestAudio(seconds: 1), role: .voice)
+        for _ in 0..<100 where model.displayed.audio.isEmpty { try await Task.sleep(for: .milliseconds(20)) }
+        guard let clip = model.selectedAudio else { Issue.record("no audio"); return }
+        model.trimSelectedAudio(from: clip, start: false, by: -5_000_000)
+        model.commitGesture()
+        let range = model.history.current.audio[0].outputRange(videoDuration: model.duration)
+        #expect(range.duration == 200_000)
+    }
+}

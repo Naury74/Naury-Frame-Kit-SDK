@@ -48,9 +48,14 @@ struct TrackTimeline: View {
     @State private var pinchStart: CGFloat?
     @State private var dragStart: Micros?
     @State private var trimDrag: (start: Bool, origin: Micros)?
-    @State private var audioDrag: Micros?
+    @State private var audioDrag: AudioDrag?
     @State private var tiles: [String: CGImage] = [:]
     @State private var loading: Set<String> = []
+
+    /// 고른 소리 조각 끌기: 가운데는 옮기고, 양 끝은 줄이거나 늘린다.
+    private enum AudioDrag {
+        case move(origin: Micros), start(AudioClipState), end(AudioClipState)
+    }
 
     static let gap: CGFloat = 6
     static let musicColor = Color(argb: 0xFF2E_B67D)
@@ -190,7 +195,16 @@ struct TrackTimeline: View {
                 let rect = CGRect(x: x(range.start, width: size.width, pps: pps), y: top,
                                   width: x(range.end, width: size.width, pps: pps) - x(range.start, width: size.width, pps: pps), height: lane.height)
                 context.fill(Path(roundedRect: rect, cornerRadius: 4), with: .color(color))
-                if piece.id == model.selectedAudioId { context.stroke(Path(roundedRect: rect, cornerRadius: 4), with: .color(.white), lineWidth: 2) }
+                if let wave = model.audioWaves[piece.source], !wave.peaks.isEmpty {
+                    let bars = wave.bars(for: piece, in: rect, visible: 0...size.width) { time($0, width: size.width, pps: pps) }
+                    context.fill(bars, with: .color(.white.opacity(0.35)))
+                }
+                if piece.id == model.selectedAudioId {
+                    context.stroke(Path(roundedRect: rect, cornerRadius: 4), with: .color(.white), lineWidth: 2)
+                    for hx in [rect.minX, rect.maxX] {
+                        context.fill(Path(roundedRect: CGRect(x: hx - 3, y: rect.midY - 8, width: 6, height: 16), cornerRadius: 3), with: .color(.white))
+                    }
+                }
                 let name = model.audioSources.indices.contains(piece.source) ? model.audioSources[piece.source].name : strings("track_untitled")
                 let label = context.resolve(Text((piece.loop ? "↻ " : "") + name).font(.system(size: 11, weight: .medium)).foregroundColor(.white))
                 context.drawLayer { layer in
@@ -286,8 +300,11 @@ struct TrackTimeline: View {
                     if let audio = model.selectedAudio, let top = tops[audio.role == .music ? .music : .voice],
                        g.startLocation.y >= top, g.startLocation.y <= top + 26 {
                         let range = audio.outputRange(videoDuration: model.duration)
-                        let t = time(g.startLocation.x, width: width, pps: pps)
-                        if range.contains(t) { audioDrag = audio.timelineStart }
+                        let x0 = x(range.start, width: width, pps: pps), x1 = x(range.end, width: width, pps: pps)
+                        let reach = min(16, (x1 - x0) / 3)
+                        if abs(g.startLocation.x - x0) <= reach { audioDrag = .start(audio) }
+                        else if abs(g.startLocation.x - x1) <= reach { audioDrag = .end(audio) }
+                        else if g.startLocation.x > x0 && g.startLocation.x < x1 { audioDrag = .move(origin: audio.timelineStart) }
                     }
                     if trimDrag == nil && audioDrag == nil { model.pause() }
                 }
@@ -295,8 +312,13 @@ struct TrackTimeline: View {
                     model.dragTrim(start: trim.start, to: trim.origin + Micros(Double(g.translation.width / pps) * clip.speed * 1_000_000))
                     return
                 }
-                if let origin = audioDrag {
-                    model.moveSelectedAudio(from: origin, by: Micros(Double(g.translation.width / pps) * 1_000_000))
+                if let drag = audioDrag {
+                    let delta = Micros(Double(g.translation.width / pps) * 1_000_000)
+                    switch drag {
+                    case .move(let origin): model.moveSelectedAudio(from: origin, by: delta)
+                    case .start(let original): model.trimSelectedAudio(from: original, start: true, by: delta)
+                    case .end(let original): model.trimSelectedAudio(from: original, start: false, by: delta)
+                    }
                     return
                 }
                 guard let dragStart else { return }

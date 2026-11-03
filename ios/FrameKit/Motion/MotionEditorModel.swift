@@ -28,6 +28,8 @@ final class MotionEditorModel {
     private(set) var sources: [MotionSource] = []
     private(set) var media: MotionMedia?
     var audioSources: [AudioSource] = []
+    /// 소리 원본 위치별 파형.
+    private(set) var audioWaves: [Int: Waveform] = [:]
     var history = MotionHistory(MotionProject(kind: .slideshow, slides: []))
     var working: MotionProject?
     private(set) var activeTool: MotionTool?
@@ -592,6 +594,12 @@ final class MotionEditorModel {
 
     // MARK: - 음악·음성
 
+    func loadWave(_ index: Int) {
+        guard audioSources.indices.contains(index) else { return }
+        let source = audioSources[index]
+        Task { audioWaves[index] = await Waveform.extract(source) }
+    }
+
     var micDeclared: Bool { Bundle.main.object(forInfoDictionaryKey: "NSMicrophoneUsageDescription") != nil }
     var selectedAudio: AudioClipState? { displayed.audio.first { $0.id == selectedAudioId } }
 
@@ -603,6 +611,7 @@ final class MotionEditorModel {
                 let local = copy ? try Self.copyToTemporary(url) : url
                 let source = try await AudioSource.open(url: local, name: url.deletingPathExtension().lastPathComponent)
                 audioSources.append(source)
+                loadWave(audioSources.count - 1)
                 let id = "\(role.rawValue)-\(UUID().uuidString.prefix(8))"
                 let start = min(positionUs, max(0, durationUs - 1_000_000))
                 let index = audioSources.count - 1
@@ -676,6 +685,16 @@ final class MotionEditorModel {
         }
     }
 
+    /// 고른 소리 조각의 시작이나 끝을 [original]에서 [delta]만큼 옮긴다. 0.2초보다 짧아지지 않는다.
+    func trimSelectedAudio(from original: AudioClipState, start: Bool, by delta: Micros) {
+        let total = durationUs
+        changeSelectedAudio(commit: false) { clip in
+            let range = original.outputRange(videoDuration: total)
+            clip = start ? AudioClipEditing.trimStart(original, to: range.start + delta, total: total, min: 200_000)
+                : AudioClipEditing.trimEnd(original, to: range.end + delta, total: total, min: 200_000)
+        }
+    }
+
     func endAudioDrag() {
         audioDragStart = nil
         commitGesture()
@@ -705,9 +724,9 @@ final class MotionEditorModel {
         let exportMedia = media.kind == .slideshow
             ? MotionMedia(kind: .slideshow, aspects: media.aspects, animation: nil) { cache.image($0) } : media
         export = .running(nil, 0)
-        UIApplication.shared.isIdleTimerDisabled = true
+        IdleTimerHold.acquire()
         exportTask = Task {
-            defer { UIApplication.shared.isIdleTimerDisabled = false }
+            defer { IdleTimerHold.release() }
             do {
                 let output = try await Task.detached(priority: .userInitiated) {
                     try await MotionExporter.export(project, media: exportMedia, audio: audio, settings: settings) { fraction in

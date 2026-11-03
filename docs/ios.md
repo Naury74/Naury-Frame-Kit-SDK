@@ -6,6 +6,10 @@ iOS 앱에 사진·영상 편집 화면을 붙이는 방법입니다. 기능과 
 
 - iOS 17 이상, Xcode 16 이상
 - Swift 6과 Swift 5 프로젝트 모두에서 쓸 수 있습니다.
+- 시뮬레이터는 Apple 실리콘 Mac(arm64)에서만 돌아갑니다.
+- 앱 확장(공유 확장 등)에서는 쓸 수 없습니다. 앱 본체에서 여세요.
+- 개인정보 매니페스트(`PrivacyInfo.xcprivacy`)가 들어 있습니다. 추적·데이터 수집은 없고, 파일 날짜(C617.1)와 남은 저장 공간(E174.1)을 읽습니다.
+- SDK 안의 Kotlin 코드는 FrameKit 안에 숨겨져 있어, 앱의 다른 Kotlin Multiplatform 프레임워크와 이름이 겹치지 않습니다.
 
 ## 설치
 
@@ -108,7 +112,7 @@ Button("영상 편집") { showVideo = true }
 UIKit은 `FrameKitVideoEditorViewController(request:completion:)`를 씁니다.
 
 - 원본: `.pick`·`.pickMultiple`(영상만 보임), `.file`·`.files`, `.capture`(영상 촬영). `.data`는 쓸 수 없습니다.
-- 도구: 구간, 자르기, 회전, 화면 비율(맞추기·채우기), 보정, 필터, 속도(0.25~4배, 음높이 유지), 소리(원본 볼륨·음소거·구간 음소거, 배경 음악, 음성 파일, 녹음), 텍스트, 스티커, 가리기(사각형·원, 최대 8개), 워터마크. 텍스트·스티커·가리기는 재생 위치부터 3초 동안 보이고 '여기서 시작·끝'으로 바꿉니다.
+- 도구: 구간, 자르기, 회전, 화면 비율(맞추기·채우기), 보정, 필터, 속도(0.25~4배, 음높이 유지), 소리(원본 볼륨·음소거·구간 음소거, 배경 음악, 음성 파일, 녹음), 텍스트, 스티커, 가리기(사각형·원, 최대 8개), 워터마크. 텍스트·스티커·가리기는 재생 위치부터 3초 동안 보이고 '여기서 시작·끝'으로 바꿉니다. 고른 가리기는 끌어서 옮기고 모서리로 크기를 바꿉니다. 음악·음성 조각은 타임라인에서 끌어 옮기고 양 끝을 끌어 줄입니다.
 - 클립: 최대 `maxClipCount`개(기본 10, 최대 20)를 이어 붙이고, 재생 위치에서 나누고, 순서를 바꾸고, 지웁니다. 결과 전체 길이는 `maxTimelineDuration`(기본 10분, 최대 1시간)을 넘지 않습니다.
 - 녹음은 앱 Info.plist에 `NSMicrophoneUsageDescription`이 있을 때만 보입니다. 없으면 음성은 파일로만 넣습니다.
 - 결과: H.264 + AAC MP4(SDR). `VideoExportConfig`의 `maxShortSide`(기본 1080, 144~2160)와 `maxFrameRate`(기본 30, 1~60)로 크기와 초당 프레임을 정합니다. 원본보다 키우지 않고 긴 변은 4096을 넘지 않습니다. `EditedMedia.durationMs`에 길이가 들어갑니다.
@@ -135,9 +139,30 @@ UIKit은 `FrameKitMotionEditorViewController(request:completion:)`를 씁니다.
   - 초당 프레임은 `frameRate`(5~60, 기본 MP4 30·GIF 15)이고, 움직이는 원본은 원본보다 촘촘하게 만들지 않습니다. 그림이 바뀌지 않는 구간은 한 프레임으로 합칩니다.
 - 움직이는 WebP로는 저장할 수 없습니다(Android만 지원).
 
+## 음성 편집기
+
+```swift
+Button("녹음") { showAudio = true }
+    .frameKitAudioEditor(isPresented: $showAudio, request: AudioEditorRequest(input: .capture)) { result in
+        if case .success(let output, _) = result { print(output.url, output.durationMs ?? 0) }
+    }
+```
+
+UIKit은 `FrameKitAudioEditorViewController(request:completion:)`를 씁니다.
+
+- 원본: `.pick`·`.pickMultiple`(파일 앱의 소리 파일), `.file`·`.files`, `.capture`(녹음). `.data`는 쓸 수 없습니다. 여러 파일은 고른 순서대로 이어 붙입니다(최대 `maxSourceCount`, 기본 10·최대 20).
+- 녹음은 앱 Info.plist에 `NSMicrophoneUsageDescription`이 있어야 합니다. 없으면 녹음 도구가 보이지 않고, `.capture`는 `invalidConfiguration`으로 실패합니다.
+- 녹음 방식 `recordMode`: `.tap`(눌러 시작·일시정지·완료), `.hold`(누르는 동안 녹음, 위로 밀면 고정, 왼쪽으로 밀면 취소), `.both`. 한 번에 `maxRecordingDuration`(기본 600초, 1~3600)까지 녹음합니다. 0.5초보다 짧으면 버립니다.
+- `editAfterRecording`이 `false`면 `.capture`로 녹음한 파일을 편집 없이 바로 돌려줍니다.
+- 도구: 녹음(재생 위치에 끼워 넣기·겹쳐 넣기), 파일 추가, 나누기, 구간(잘라 내기·그것만 남기기), 볼륨(조각 볼륨 0~200%·페이드). 본 줄은 빈틈 없이 이어지고, 겹친 줄은 자유롭게 옮기고 반복할 수 있습니다. 타임라인은 두 손가락으로 확대하고, 고른 조각의 양 끝을 끌어 줄입니다.
+- 결과: AAC M4A(`audio/mp4`, `mediaType` `.audio`, 너비·높이 0). `AudioExportConfig.bitrate`(기본 128000, 32000~320000)로 비트레이트를 정합니다. 64kbps 미만은 모노로 저장합니다.
+- OGG·Opus·AMR 파일은 iOS가 읽지 못해 `unsupportedFormat`으로 열지 않습니다.
+
 ## 주의
 
 - 배경 제거는 기기 안 Vision을 씁니다. 지원하지 않는 기기(시뮬레이터 포함)에서는 도구가 보이지 않습니다.
 - 넓은 색 영역(Display P3) 사진은 sRGB로 저장하고 `colorSpaceConvertedToSRGB` 경고를 붙입니다. HDR 게인 맵은 저장하지 않습니다.
 - 메모리가 모자라면 `insufficientMemory`, 저장 공간이 모자라면 `insufficientStorage`로 실패합니다. `maxOutputPixels`를 줄이면 피할 수 있습니다.
-- 음성 편집기와 앱 안 갤러리, 실시간 문서 스캐너는 아직 iOS에 없습니다.
+- 저장하는 동안 화면이 꺼지지 않게 하고, 끝나면 앱이 정해 둔 값으로 돌립니다. 녹음이 끝나면 오디오 세션의 카테고리·모드·옵션도 앱이 쓰던 값으로 돌립니다.
+- 미리 보기 소리는 앱의 오디오 세션 설정을 따릅니다. 카테고리가 `.ambient`·`.soloAmbient`면 무음 모드에서 소리가 나지 않습니다.
+- 앱 안 갤러리와 실시간 문서 스캐너는 아직 iOS에 없습니다. 사진·영상은 시스템 사진 선택기로 고릅니다.

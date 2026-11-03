@@ -176,6 +176,7 @@ struct VideoEditorScreen: View {
                         if model.activeTool == .privacy { maskOutlines(rect) }
                         if [VideoTool.text, .sticker, .privacy].contains(model.activeTool) {
                             CanvasInteraction(model: model, rect: rect, zoom: 1)
+                            if model.activeTool == .privacy { MaskHandles(model: model, rect: rect) }
                         } else {
                             Color.clear.contentShape(Rectangle())
                                 .onTapGesture { if model.activeTool == nil { model.togglePlay() } }
@@ -694,3 +695,56 @@ struct VideoCameraPicker: UIViewControllerRepresentable {
         }
     }
 }
+
+/// 고른 가리기 상자 조작: 안을 끌면 옮기고, 모서리를 끌면 크기를 바꾼다. 밖을 끌면 새 가리기를 그린다.
+struct MaskHandles: View {
+    let model: VideoEditorModel
+    let rect: CGRect
+    @Environment(\.editorTheme) private var theme
+    @Environment(\.strings) private var strings
+    @State private var start: NRect?
+
+    var body: some View {
+        if let id = model.selectedMaskId, let timed = model.displayed.masks.first(where: { $0.mask.id == id }), let r = box(timed.mask.shape) {
+            let frame = CGRect(x: rect.minX + r.left * rect.width, y: rect.minY + r.top * rect.height, width: r.width * rect.width, height: r.height * rect.height)
+            ZStack {
+                Color.clear.contentShape(Rectangle())
+                    .frame(width: frame.width, height: frame.height).position(x: frame.midX, y: frame.midY)
+                    .gesture(drag(r, corner: nil))
+                    .accessibilityHidden(true)
+                ForEach(0..<4, id: \.self) { corner in
+                    let p = [CGPoint(x: frame.minX, y: frame.minY), CGPoint(x: frame.maxX, y: frame.minY),
+                             CGPoint(x: frame.maxX, y: frame.maxY), CGPoint(x: frame.minX, y: frame.maxY)][corner]
+                    Circle().fill(theme.accent).overlay { Circle().stroke(Color.white, lineWidth: 2) }
+                        .frame(width: 18, height: 18)
+                        .frame(width: 44, height: 44).contentShape(Rectangle())
+                        .position(p)
+                        .gesture(drag(r, corner: corner))
+                        .accessibilityHidden(true)
+                }
+            }
+        }
+    }
+
+    private func box(_ shape: PrivacyMask.Shape) -> NRect? {
+        switch shape {
+        case .rectangle(let r), .ellipse(let r): r
+        case .brush: nil
+        }
+    }
+
+    private func drag(_ current: NRect, corner: Int?) -> some Gesture {
+        DragGesture(minimumDistance: 1)
+            .onChanged { g in
+                if start == nil { start = current }
+                guard let start else { return }
+                model.reshapeSelectedMask(from: start, corner: corner, dx: g.translation.width / max(1, rect.width),
+                                          dy: g.translation.height / max(1, rect.height))
+            }
+            .onEnded { _ in
+                start = nil
+                model.commitGesture()
+            }
+    }
+}
+

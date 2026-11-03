@@ -202,6 +202,31 @@ extension VideoEditorModel: LayerToolHost {
         selectedMaskId = id
     }
 
+    /// 고른 가리기 상자를 [start]에서 옮기거나(corner `nil`) 모서리로 크기를 바꾼다. 값은 화면 비율(0...1) 단위다.
+    func reshapeSelectedMask(from start: NRect, corner: Int?, dx: Double, dy: Double) {
+        guard let id = selectedMaskId else { return }
+        let minSide = 0.02
+        var r = start
+        if let corner {
+            // 0 왼쪽 위, 1 오른쪽 위, 2 오른쪽 아래, 3 왼쪽 아래.
+            if corner == 0 || corner == 3 { r.left = min(max(0, start.left + dx), start.right - minSide) }
+            else { r.right = max(min(1, start.right + dx), start.left + minSide) }
+            if corner == 0 || corner == 1 { r.top = min(max(0, start.top + dy), start.bottom - minSide) }
+            else { r.bottom = max(min(1, start.bottom + dy), start.top + minSide) }
+        } else {
+            let mx = min(max(dx, -start.left), 1 - start.right), my = min(max(dy, -start.top), 1 - start.bottom)
+            r = NRect(left: start.left + mx, top: start.top + my, right: start.right + mx, bottom: start.bottom + my)
+        }
+        change(commit: false) { edit in
+            guard let i = edit.masks.firstIndex(where: { $0.mask.id == id }) else { return }
+            switch edit.masks[i].mask.shape {
+            case .rectangle: edit.masks[i].mask.shape = .rectangle(r)
+            case .ellipse: edit.masks[i].mask.shape = .ellipse(r)
+            case .brush: break
+            }
+        }
+    }
+
     // MARK: - 워터마크
 
     var watermarkDraft: WatermarkSpec? { displayed.watermark }
@@ -233,6 +258,7 @@ extension VideoEditorModel: LayerToolHost {
                 let local = copy ? try Self.copyToTemporary(url) : url
                 let source = try await AudioSource.open(url: local, name: url.deletingPathExtension().lastPathComponent)
                 audioSources.append(source)
+                loadWave(audioSources.count - 1)
                 let id = "\(role.rawValue)-\(UUID().uuidString.prefix(8))"
                 let start = min(position, max(0, duration - 1_000_000))
                 change { edit in
@@ -247,6 +273,12 @@ extension VideoEditorModel: LayerToolHost {
                 showNotice("add_failed")
             }
         }
+    }
+
+    func loadWave(_ index: Int) {
+        guard audioSources.indices.contains(index) else { return }
+        let source = audioSources[index]
+        Task { audioWaves[index] = await Waveform.extract(source) }
     }
 
     var selectedAudio: AudioClipState? { displayed.audio.first { $0.id == selectedAudioId } }
@@ -285,6 +317,16 @@ extension VideoEditorModel: LayerToolHost {
             edit.audio.replaceSubrange(i...i, with: [first, second])
         }
         selectedAudioId = second.id
+    }
+
+    /// 고른 소리 조각의 시작이나 끝을 [original]에서 [delta]만큼 옮긴다. 0.2초보다 짧아지지 않는다.
+    func trimSelectedAudio(from original: AudioClipState, start: Bool, by delta: Micros) {
+        let total = duration
+        changeSelectedAudio(commit: false) { clip in
+            let range = original.outputRange(videoDuration: total)
+            clip = start ? AudioClipEditing.trimStart(original, to: range.start + delta, total: total, min: 200_000)
+                : AudioClipEditing.trimEnd(original, to: range.end + delta, total: total, min: 200_000)
+        }
     }
 
     /// 소리 조각을 [delta]만큼 옮긴다(영상 안으로 제한).
