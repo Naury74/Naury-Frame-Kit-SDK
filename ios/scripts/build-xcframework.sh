@@ -39,5 +39,6 @@ if [ -n "${FRAMEKIT_SIGN_IDENTITY:-}" ]; then
 fi
 
 (cd "$OUT" && ditto -c -k --sequesterRsrc --keepParent FrameKit.xcframework FrameKit.xcframework.zip)
-swift package compute-checksum "$OUT/FrameKit.xcframework.zip" > "$OUT/checksum.txt"
+# SPM checksum은 zip의 SHA-256이다. 저장소 안에서 swift package를 부르면 루트 Package.swift 때문에 .build가 생긴다.
+shasum -a 256 "$OUT/FrameKit.xcframework.zip" | cut -d" " -f1 > "$OUT/checksum.txt"
 echo "checksum: $(cat "$OUT/checksum.txt")"
