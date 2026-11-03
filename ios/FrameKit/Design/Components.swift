@@ -1,8 +1,17 @@
 import SwiftUI
 
 extension View {
-    /// 반투명 유리 느낌의 버튼 바탕. 사진 위에 떠도 읽히도록 테두리와 그림자를 둔다.
+    /// 반투명 유리 버튼 바탕. iOS 26 이상은 시스템 Liquid Glass, 그 아래는 사진 위에서도 읽히도록 테두리와 그림자를 둔 재질.
+    @ViewBuilder
     func editorGlass<S: InsettableShape>(_ shape: S, theme: EditorTheme, tint: Color? = nil) -> some View {
+        if #available(iOS 26.0, *) {
+            glassEffect(tint.map { Glass.regular.tint($0) } ?? .regular, in: shape)
+        } else {
+            legacyGlass(shape, theme: theme, tint: tint)
+        }
+    }
+
+    private func legacyGlass<S: InsettableShape>(_ shape: S, theme: EditorTheme, tint: Color?) -> some View {
         background {
             ZStack {
                 if let tint {
