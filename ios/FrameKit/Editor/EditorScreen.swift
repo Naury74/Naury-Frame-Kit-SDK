@@ -13,9 +13,11 @@ struct EditorRoot: View {
             .environment(\.editorTheme, theme)
             .environment(\.strings, Strings(localeIdentifier: ui.localeIdentifier))
             .environment(\.haptics, Haptics(enabled: ui.enableHaptics))
+            .environment(\.editorFontId, ui.uiFontId)
             .environment(\.locale, ui.localeIdentifier.map(Locale.init(identifier:)) ?? .current)
             .preferredColorScheme(ui.themeMode == .system ? nil : (theme.isDark ? .dark : .light))
             .tint(theme.accent)
+            .dynamicTypeSize(...DynamicTypeSize.accessibility1)
             .onAppear { if model.phase == .loading || model.phase == .awaitingSource { model.start() } }
     }
 
@@ -49,7 +51,7 @@ private struct StatusView: View {
         VStack(spacing: 16) {
             if let error {
                 Image(systemName: "exclamationmark.triangle").font(.system(size: 36)).foregroundStyle(theme.error)
-                Text(strings(errorKey(error.code))).font(.system(size: 16)).foregroundStyle(theme.foreground)
+                Text(strings(errorKey(error.code))).scaledFont(16).foregroundStyle(theme.foreground)
                     .multilineTextAlignment(.center).padding(.horizontal, 32)
                 if case .pick = model.request.input, error.suggestedAction == .chooseAnotherSource {
                     EditorButton(title: strings("action_choose_another")) { model.start() }
@@ -58,7 +60,7 @@ private struct StatusView: View {
             } else {
                 ProgressView().controlSize(.large).tint(theme.accent)
                     .accessibilityLabel(strings("loading"))
-                Text(strings("loading")).font(.system(size: 15)).foregroundStyle(theme.foregroundMuted).accessibilityHidden(true)
+                Text(strings("loading")).scaledFont(15).foregroundStyle(theme.foregroundMuted).accessibilityHidden(true)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -159,7 +161,7 @@ struct EditorScreen: View {
     private var topBar: some View {
         ZStack {
             if let tool = model.activeTool {
-                Text(strings(tool.labelKey)).font(.system(size: 17, weight: .semibold)).foregroundStyle(theme.foreground)
+                Text(strings(tool.labelKey)).scaledFont(17, weight: .semibold).foregroundStyle(theme.foreground)
                     .lineLimit(1).padding(.horizontal, 100)
                     .accessibilityAddTraits(.isHeader)
             }
@@ -177,7 +179,7 @@ struct EditorScreen: View {
                 .accessibilityLabel(strings(model.activeTool == nil ? "action_close" : "action_back"))
                 Spacer()
                 Button { model.save() } label: {
-                    Text(strings("action_save")).font(.system(size: 16, weight: .semibold))
+                    Text(strings("action_save")).scaledFont(16, weight: .semibold)
                         .foregroundStyle(theme.onAccent)
                         .padding(.horizontal, 18)
                         .frame(height: 42)
@@ -206,19 +208,8 @@ struct EditorScreen: View {
                 }
             }
             .overlay(alignment: .bottom) {
-                if model.notice == nil && model.activeTool == nil {
-                    if model.documentText != nil {
-                        DocumentTextPill(model: model)
-                            .editorChrome(hidden: model.chromeHidden, reduceMotion: reduceMotion) { model.showChrome() }
-                    } else if model.showsDocumentSuggestion {
-                        DocumentPill(model: model)
-                            .editorChrome(hidden: model.chromeHidden, reduceMotion: reduceMotion) { model.showChrome() }
-                    }
-                }
-            }
-            .overlay(alignment: .bottom) {
                 if let notice = model.notice {
-                    Text(strings(notice)).font(.system(size: 14)).foregroundStyle(theme.foreground)
+                    Text(strings(notice)).scaledFont(14).foregroundStyle(theme.foreground)
                         .padding(.horizontal, 16).padding(.vertical, 10)
                         .background(theme.raised.opacity(0.94), in: RoundedRectangle(cornerRadius: theme.radius))
                         .padding(12)
@@ -300,7 +291,7 @@ struct EditorScreen: View {
                 tool.icon.resizable().scaledToFit().frame(width: 24, height: 24)
                     .padding(8)
                     .background(theme.raised, in: RoundedRectangle(cornerRadius: theme.radius / 2))
-                Text(strings(tool.labelKey)).font(.system(size: 12, weight: .medium)).lineLimit(1)
+                Text(strings(tool.labelKey)).scaledFont(12, weight: .medium).lineLimit(1)
             }
             .foregroundStyle(theme.foreground)
             .frame(minWidth: 72, minHeight: 48)
@@ -316,7 +307,7 @@ struct EditorScreen: View {
                     Button { model.selectTool(tool) } label: {
                         VStack(spacing: 6) {
                             tool.icon.resizable().scaledToFit().frame(width: 24, height: 24)
-                            Text(strings(tool.labelKey)).font(.system(size: 12, weight: .medium)).lineLimit(1)
+                            Text(strings(tool.labelKey)).scaledFont(12, weight: .medium).lineLimit(1)
                         }
                         .foregroundStyle(theme.foreground)
                         .frame(maxWidth: .infinity, minHeight: 76)
@@ -352,7 +343,7 @@ struct EditorScreen: View {
                     .onTapGesture {}
                 VStack(spacing: 16) {
                     ProgressRing(progress: exportFraction)
-                    Text(stage).font(.system(size: 15, weight: .medium)).foregroundStyle(theme.foreground)
+                    Text(stage).scaledFont(15, weight: .medium).foregroundStyle(theme.foreground)
                         .accessibilityAddTraits(.updatesFrequently)
                     if case .running = export {
                         EditorButton(title: strings("action_cancel"), kind: .tonal) { model.cancelExport() }
@@ -473,7 +464,7 @@ struct PageStrip: View {
                 .frame(width: 52, height: 52)
                 .clipShape(RoundedRectangle(cornerRadius: theme.radius / 2))
                 .overlay { RoundedRectangle(cornerRadius: theme.radius / 2).strokeBorder(theme.accent, lineWidth: selected ? 2.5 : 0) }
-                Text("\(index + 1)").font(.system(size: 11, weight: .bold).monospacedDigit())
+                Text("\(index + 1)").scaledFont(11, weight: .bold, monospacedDigit: true)
                     .foregroundStyle(theme.onAccent)
                     .padding(.horizontal, 5).padding(.vertical, 1)
                     .background(selected ? theme.accent : Color.black.opacity(0.6), in: Capsule())

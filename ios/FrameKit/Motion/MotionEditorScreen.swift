@@ -31,8 +31,10 @@ struct MotionEditorRoot: View {
         .environment(\.editorTheme, theme)
         .environment(\.strings, strings)
         .environment(\.haptics, Haptics(enabled: ui.enableHaptics))
+        .environment(\.editorFontId, ui.uiFontId)
         .preferredColorScheme(ui.themeMode == .system ? nil : (theme.isDark ? .dark : .light))
         .tint(theme.accent)
+        .dynamicTypeSize(...DynamicTypeSize.accessibility1)
         .onAppear { model.start() }
     }
 }
@@ -119,7 +121,7 @@ struct MotionEditorScreen: View {
     private var topBar: some View {
         ZStack {
             if let tool = model.activeTool {
-                Text(strings(tool.labelKey)).font(.system(size: 17, weight: .semibold)).foregroundStyle(theme.foreground)
+                Text(strings(tool.labelKey)).scaledFont(17, weight: .semibold).foregroundStyle(theme.foreground)
                     .lineLimit(1).padding(.horizontal, 100).accessibilityAddTraits(.isHeader)
             }
             HStack {
@@ -133,7 +135,7 @@ struct MotionEditorScreen: View {
                 .accessibilityLabel(strings(model.activeTool == nil ? "action_close" : "action_back"))
                 Spacer()
                 Button { model.requestSave() } label: {
-                    Text(strings("action_save")).font(.system(size: 16, weight: .semibold)).foregroundStyle(theme.onAccent)
+                    Text(strings("action_save")).scaledFont(16, weight: .semibold).foregroundStyle(theme.onAccent)
                         .padding(.horizontal, 18).frame(height: 42)
                         .editorGlass(Capsule(), theme: theme, tint: theme.accent)
                         .frame(minHeight: 48).contentShape(Rectangle())
@@ -188,7 +190,7 @@ struct MotionEditorScreen: View {
         }
         .overlay(alignment: .bottom) {
             if let notice = model.notice {
-                Text(noticeText(notice)).font(.system(size: 14)).foregroundStyle(theme.foreground)
+                Text(noticeText(notice)).scaledFont(14).foregroundStyle(theme.foreground)
                     .padding(.horizontal, 16).padding(.vertical, 10)
                     .background(theme.raised.opacity(0.94), in: RoundedRectangle(cornerRadius: theme.radius)).padding(12)
                     .accessibilityAddTraits(.updatesFrequently)
@@ -215,7 +217,7 @@ struct MotionEditorScreen: View {
                 .tint(theme.accent)
                 .accessibilityLabel(strings("motion_time", seconds(model.position), seconds(model.duration)))
             Text(strings("motion_time", seconds(model.position), seconds(model.duration)))
-                .font(.system(size: 13, weight: .medium).monospacedDigit()).foregroundStyle(theme.foregroundMuted)
+                .scaledFont(13, weight: .medium, monospacedDigit: true).foregroundStyle(theme.foregroundMuted)
                 .fixedSize()
                 .accessibilityHidden(true)
         }
@@ -290,7 +292,7 @@ struct MotionEditorScreen: View {
     }
 
     private func helpText(_ text: String) -> some View {
-        Text(text).font(.system(size: 13)).foregroundStyle(theme.foregroundMuted).padding(.horizontal, 16)
+        Text(text).scaledFont(13).foregroundStyle(theme.foregroundMuted).padding(.horizontal, 16)
             .frame(maxWidth: .infinity, alignment: .leading)
     }
 
@@ -316,7 +318,7 @@ struct MotionEditorScreen: View {
                 tool.icon.resizable().scaledToFit().frame(width: 24, height: 24)
                     .padding(card ? 0 : 8)
                     .background(card ? Color.clear : theme.raised, in: RoundedRectangle(cornerRadius: theme.radius / 2))
-                Text(strings(tool.labelKey)).font(.system(size: 12, weight: .medium)).lineLimit(1)
+                Text(strings(tool.labelKey)).scaledFont(12, weight: .medium).lineLimit(1)
             }
             .foregroundStyle(theme.foreground)
             .frame(minWidth: 72, minHeight: card ? 76 : 48)
@@ -336,9 +338,9 @@ struct MotionEditorScreen: View {
             ZStack {
                 theme.background.opacity(0.82).ignoresSafeArea().contentShape(Rectangle()).onTapGesture {}
                 VStack(spacing: 16) {
-                    ProgressRing(progress: fraction)
-                    Text(strings(export == .cancelling ? "export_cancelling" : "export_encoding"))
-                        .font(.system(size: 15, weight: .medium)).foregroundStyle(theme.foreground)
+                    ProgressRing(progress: model.request.ui.showExportProgress ? fraction : nil)
+                    Text(strings(export == .cancelling ? "export_cancelling" : (model.request.ui.showExportProgress ? "export_encoding" : "export_exporting")))
+                        .scaledFont(15, weight: .medium).foregroundStyle(theme.foreground)
                     if case .running = export {
                         EditorButton(title: strings("action_cancel"), kind: .tonal) { model.cancelExport() }
                     }
@@ -395,7 +397,7 @@ struct SlideStrip: View {
         let index = model.selectedSlide
         VStack(spacing: 4) {
             HStack(spacing: 0) {
-                Text(strings("motion_slide_position", index + 1, slides.count)).font(.system(size: 13, weight: .medium))
+                Text(strings("motion_slide_position", index + 1, slides.count)).scaledFont(13, weight: .medium)
                     .foregroundStyle(theme.foregroundMuted)
                 Spacer()
                 IconButton(icon: Image(systemName: "arrow.left"), label: strings("motion_slide_earlier"), enabled: index > 0) { model.moveSlide(by: -1) }
@@ -449,7 +451,7 @@ struct SlideStrip: View {
                 .frame(width: 56, height: 56)
                 .clipShape(RoundedRectangle(cornerRadius: theme.radius / 2))
                 .overlay { RoundedRectangle(cornerRadius: theme.radius / 2).strokeBorder(theme.accent, lineWidth: selected ? 2.5 : 0) }
-                Text("\(position + 1)").font(.system(size: 11, weight: .bold).monospacedDigit())
+                Text("\(position + 1)").scaledFont(11, weight: .bold, monospacedDigit: true)
                     .foregroundStyle(theme.onAccent)
                     .padding(.horizontal, 5).padding(.vertical, 1)
                     .background(selected ? theme.accent : Color.black.opacity(0.6), in: Capsule())
@@ -471,7 +473,7 @@ struct CameraMotionPanel: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(strings("motion_motion_help")).font(.system(size: 13)).foregroundStyle(theme.foregroundMuted).padding(.horizontal, 16)
+            Text(strings("motion_motion_help")).scaledFont(13).foregroundStyle(theme.foregroundMuted).padding(.horizontal, 16)
             chips(CameraMotion.allCases.map(\.rawValue), selected: model.displayed.cameraMotion.rawValue, title: { strings(Self.key($0)) }) { id in
                 model.change { $0.cameraMotion = CameraMotion(rawValue: id) ?? .auto }
             }
@@ -527,7 +529,7 @@ struct TimingPanel: View {
                             onChange: { model.setSlideDuration(Int64(($0 / 100).rounded() * 100), commit: false) },
                             onFinish: { model.commitGesture() })
             } else {
-                Text(strings("motion_speed")).font(.system(size: 14, weight: .medium)).foregroundStyle(theme.foregroundMuted).padding(.horizontal, 16)
+                Text(strings("motion_speed")).scaledFont(14, weight: .medium).foregroundStyle(theme.foregroundMuted).padding(.horizontal, 16)
                 let nearest = MotionEditorModel.speedPresets.min { abs($0 - project.speed) < abs($1 - project.speed) } ?? 1
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 8) {
@@ -559,7 +561,7 @@ struct LoopPanel: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(strings("motion_loop_help")).font(.system(size: 13)).foregroundStyle(theme.foregroundMuted).padding(.horizontal, 16)
+            Text(strings("motion_loop_help")).scaledFont(13).foregroundStyle(theme.foregroundMuted).padding(.horizontal, 16)
             chips(LoopMode.allCases.map(\.rawValue), selected: model.displayed.loop.rawValue, title: { strings("motion_loop_\($0)") }) { id in
                 model.change { $0.loop = LoopMode(rawValue: id) ?? .forward }
             }
@@ -582,7 +584,7 @@ struct MotionCanvasPanel: View {
                 model.change { $0.fit = MotionFit(rawValue: id) ?? .fill }
             }
             if project.fit == .fit {
-                Text(strings("motion_background")).font(.system(size: 14, weight: .medium)).foregroundStyle(theme.foregroundMuted).padding(.horizontal, 16)
+                Text(strings("motion_background")).scaledFont(14, weight: .medium).foregroundStyle(theme.foregroundMuted).padding(.horizontal, 16)
                 ColorPalette(selected: project.backgroundArgb) { argb in model.change { $0.backgroundArgb = argb } }
             }
         }
@@ -608,7 +610,7 @@ struct OverlayAnimationChips: View {
     var body: some View {
         if let current = model.selectedAnimation {
             VStack(alignment: .leading, spacing: 4) {
-                Text(strings("motion_overlay_animation")).font(.system(size: 14, weight: .medium)).foregroundStyle(theme.foregroundMuted)
+                Text(strings("motion_overlay_animation")).scaledFont(14, weight: .medium).foregroundStyle(theme.foregroundMuted)
                     .padding(.horizontal, 16)
                 chips(OverlayAnimation.allCases.map(\.rawValue), selected: current.rawValue, title: { Self.title($0, strings) }) { id in
                     model.setSelectedAnimation(OverlayAnimation(rawValue: id) ?? .none)
@@ -726,9 +728,9 @@ struct MotionAudioPanel: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text(strings("motion_audio_help")).font(.system(size: 13)).foregroundStyle(theme.foregroundMuted).padding(.horizontal, 16)
+            Text(strings("motion_audio_help")).scaledFont(13).foregroundStyle(theme.foregroundMuted).padding(.horizontal, 16)
             if let audio = model.selectedAudio {
-                Text(strings(audio.role == .music ? "track_music" : "track_voice")).font(.system(size: 15, weight: .semibold))
+                Text(strings(audio.role == .music ? "track_music" : "track_voice")).scaledFont(15, weight: .semibold)
                     .foregroundStyle(theme.foreground).padding(.horizontal, 16)
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 8) {
@@ -775,7 +777,7 @@ struct MotionAudioPanel: View {
                 }
             }
             if model.hasAudio && model.request.export.formats != [.mp4] {
-                Text(strings("track_sound_mp4_only")).font(.system(size: 13)).foregroundStyle(theme.foregroundMuted).padding(.horizontal, 16)
+                Text(strings("track_sound_mp4_only")).scaledFont(13).foregroundStyle(theme.foregroundMuted).padding(.horizontal, 16)
             }
         }
     }
@@ -791,16 +793,16 @@ struct MotionSaveSheet: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
-                Text(strings("motion_save_title")).font(.system(size: 20, weight: .bold)).foregroundStyle(theme.foreground)
+                Text(strings("motion_save_title")).scaledFont(20, weight: .bold).foregroundStyle(theme.foreground)
                     .accessibilityAddTraits(.isHeader)
                 ForEach(model.request.export.formats, id: \.self) { format in
                     card(selected: model.saveFormat == format, title: strings("motion_format_\(format.rawValue)"),
                          detail: strings("motion_format_\(format.rawValue)_help")) { model.saveFormat = format }
                 }
                 if model.hasAudio && model.saveFormat != .mp4 {
-                    Label(strings("track_sound_mp4_only"), systemImage: "speaker.slash").font(.system(size: 13)).foregroundStyle(theme.error)
+                    Label(strings("track_sound_mp4_only"), systemImage: "speaker.slash").scaledFont(13).foregroundStyle(theme.error)
                 }
-                Text(strings("motion_size")).font(.system(size: 15, weight: .semibold)).foregroundStyle(theme.foreground).padding(.top, 4)
+                Text(strings("motion_size")).scaledFont(15, weight: .semibold).foregroundStyle(theme.foreground).padding(.top, 4)
                 HStack(spacing: 8) {
                     ForEach(MotionSize.allCases, id: \.self) { size in
                         card(selected: model.saveSize == size, title: strings("motion_size_\(size.rawValue)"),
@@ -824,8 +826,8 @@ struct MotionSaveSheet: View {
     private func card(selected: Bool, title: String, detail: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             VStack(alignment: .leading, spacing: 4) {
-                Text(title).font(.system(size: 15, weight: .semibold)).foregroundStyle(theme.foreground)
-                Text(detail).font(.system(size: 13)).foregroundStyle(theme.foregroundMuted).multilineTextAlignment(.leading)
+                Text(title).scaledFont(15, weight: .semibold).foregroundStyle(theme.foreground)
+                Text(detail).scaledFont(13).foregroundStyle(theme.foregroundMuted).multilineTextAlignment(.leading)
                     .fixedSize(horizontal: false, vertical: true)
             }
             .frame(maxWidth: .infinity, alignment: .leading)

@@ -6,8 +6,6 @@ public enum ImageTool: String, Sendable, CaseIterable {
     case crop
     /// 90° 회전, 좌우·상하 반전, 수평 맞추기(±45°).
     case rotate
-    /// 문서 네 모서리를 찾아 반듯하게 펴고 스캔처럼 보정한다. 문서가 보이거나 PDF로 저장할 때만 나온다.
-    case document
     /// 피사체만 남기고 배경을 지운다(기기 안 처리). 이 기기가 지원하지 않으면 도구 목록에서 빠진다.
     case cutout
     /// 12가지 보정.
@@ -26,7 +24,7 @@ public enum ImageTool: String, Sendable, CaseIterable {
     case watermark
 
     /// 기본 도구 순서.
-    public static let defaults: [ImageTool] = [.crop, .rotate, .document, .cutout, .adjust, .filter, .text, .sticker, .draw, .privacy, .watermark]
+    public static let defaults: [ImageTool] = [.crop, .rotate, .cutout, .adjust, .filter, .text, .sticker, .draw, .privacy, .watermark]
 
     /// 적용·취소가 있는 도구. 저장 전에 적용해야 한다.
     var isDraft: Bool { self == .crop || self == .rotate || self == .text || self == .watermark }
@@ -145,6 +143,10 @@ public struct WatermarkConfig: Sendable, Hashable {
         if !(-90...90).contains(rotationDegrees) { issues.append(.init(path: "\(path).rotationDegrees", reason: .outOfRange)) }
         if !(0.5...2).contains(density) { issues.append(.init(path: "\(path).density", reason: .outOfRange)) }
         if suggestions.count > Self.maxSuggestions { issues.append(.init(path: "\(path).suggestions", reason: .outOfRange)) }
+        if suggestions.contains(where: { $0.trimmingCharacters(in: .whitespaces).isEmpty || $0.count > WatermarkSpec.maxTextLength || $0.contains("\n") }) {
+            issues.append(.init(path: "\(path).suggestions", reason: .invalidValue))
+        }
+        if applyOnOpen && text.trimmingCharacters(in: .whitespaces).isEmpty { issues.append(.init(path: "\(path).text", reason: .requiresOther)) }
         if locked && (!applyOnOpen || text.trimmingCharacters(in: .whitespaces).isEmpty) {
             issues.append(.init(path: "\(path).locked", reason: .requiresOther))
         }

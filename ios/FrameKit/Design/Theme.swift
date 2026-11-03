@@ -43,15 +43,19 @@ struct EditorTheme {
         )
     }
 
-    /// 대비가 큰 흰색 또는 검은색.
+    /// 강조색 위 글자색. 흰색 명암비가 3:1 이상이면 흰색, 아니면 흰색·검은색 중 명암비가 높은 쪽. Android와 같다.
     static func readableOn(_ argb: UInt32) -> UInt32 {
-        let l = luminance(argb)
-        let white = 1.05 / (l + 0.05)
-        let black = (l + 0.05) / 0.05
-        return white >= black ? 0xFFFF_FFFF : 0xFF00_0000
+        let white = contrast(0xFFFF_FFFF, argb)
+        return white >= 3 || white >= contrast(0xFF00_0000, argb) ? 0xFFFF_FFFF : 0xFF00_0000
     }
 
-    private static func luminance(_ argb: UInt32) -> Double {
+    /// WCAG 명암비, 1...21. 알파는 무시한다.
+    static func contrast(_ a: UInt32, _ b: UInt32) -> Double {
+        let la = luminance(a), lb = luminance(b)
+        return (max(la, lb) + 0.05) / (min(la, lb) + 0.05)
+    }
+
+    static func luminance(_ argb: UInt32) -> Double {
         func channel(_ shift: UInt32) -> Double {
             let c = Double((argb >> shift) & 0xFF) / 255
             return c <= 0.03928 ? c / 12.92 : pow((c + 0.055) / 1.055, 2.4)
@@ -82,7 +86,17 @@ private struct HapticsKey: EnvironmentKey {
     static let defaultValue = Haptics(enabled: true)
 }
 
+private struct FontIdKey: EnvironmentKey {
+    static let defaultValue: String? = nil
+}
+
 extension EnvironmentValues {
+    /// 편집기 글자에 쓸 사용자 글꼴 id.
+    var editorFontId: String? {
+        get { self[FontIdKey.self] }
+        set { self[FontIdKey.self] = newValue }
+    }
+
     var editorTheme: EditorTheme {
         get { self[ThemeKey.self] }
         set { self[ThemeKey.self] = newValue }

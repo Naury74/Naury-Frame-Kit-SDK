@@ -34,8 +34,10 @@ struct AudioEditorRoot: View {
         .environment(\.editorTheme, theme)
         .environment(\.strings, strings)
         .environment(\.haptics, Haptics(enabled: ui.enableHaptics))
+        .environment(\.editorFontId, ui.uiFontId)
         .preferredColorScheme(ui.themeMode == .system ? nil : (theme.isDark ? .dark : .light))
         .tint(theme.accent)
+        .dynamicTypeSize(...DynamicTypeSize.accessibility1)
         .onAppear { model.start() }
     }
 }
@@ -49,7 +51,7 @@ struct FirstRecordingScreen: View {
     var body: some View {
         VStack(spacing: 0) {
             ZStack {
-                Text(strings("audio_new_recording")).font(.system(size: 17, weight: .semibold)).foregroundStyle(theme.foreground)
+                Text(strings("audio_new_recording")).scaledFont(17, weight: .semibold).foregroundStyle(theme.foreground)
                     .accessibilityAddTraits(.isHeader)
                 HStack {
                     Button { model.finish(.cancelled) } label: {
@@ -66,7 +68,7 @@ struct FirstRecordingScreen: View {
             RecorderPanel(recorder: model.recorder, mode: model.request.config.recordMode) { model.recorded($0) }
                 .frame(maxWidth: 520).padding(.horizontal, 24)
             if let notice = model.notice {
-                Text(strings(notice)).font(.system(size: 14)).foregroundStyle(theme.error).padding(.top, 12)
+                Text(strings(notice)).scaledFont(14).foregroundStyle(theme.error).padding(.top, 12)
             }
             Spacer()
         }
@@ -97,7 +99,7 @@ struct AudioEditorScreen: View {
         .background(theme.background.ignoresSafeArea())
         .overlay(alignment: .bottom) {
             if let notice = model.notice {
-                Text(strings(notice)).font(.system(size: 14)).foregroundStyle(theme.foreground)
+                Text(strings(notice)).scaledFont(14).foregroundStyle(theme.foreground)
                     .padding(.horizontal, 16).padding(.vertical, 10)
                     .background(theme.raised.opacity(0.94), in: RoundedRectangle(cornerRadius: theme.radius))
                     .padding(.bottom, 96)
@@ -138,7 +140,7 @@ struct AudioEditorScreen: View {
             .accessibilityLabel(strings("action_close"))
             Spacer()
             Button { model.save() } label: {
-                Text(strings("action_save")).font(.system(size: 16, weight: .semibold)).foregroundStyle(theme.onAccent)
+                Text(strings("action_save")).scaledFont(16, weight: .semibold).foregroundStyle(theme.onAccent)
                     .padding(.horizontal, 18).frame(height: 42)
                     .editorGlass(Capsule(), theme: theme, tint: theme.accent)
                     .frame(minHeight: 48).contentShape(Rectangle())
@@ -152,9 +154,9 @@ struct AudioEditorScreen: View {
 
     private var header: some View {
         VStack(spacing: 2) {
-            Text(clock(Double(model.position) / 1_000_000)).font(.system(size: 40, weight: .light).monospacedDigit())
+            Text(clock(Double(model.position) / 1_000_000)).scaledFont(40, weight: .light, monospacedDigit: true)
                 .foregroundStyle(theme.foreground)
-            Text(strings("audio_total", clock(Double(model.duration) / 1_000_000))).font(.system(size: 14).monospacedDigit())
+            Text(strings("audio_total", clock(Double(model.duration) / 1_000_000))).scaledFont(14, monospacedDigit: true)
                 .foregroundStyle(theme.foregroundMuted)
         }
         .accessibilityElement(children: .combine)
@@ -208,7 +210,7 @@ struct AudioEditorScreen: View {
 
     private var toolRail: some View {
         VStack(spacing: 6) {
-            Text(strings("audio_tools_hint")).font(.system(size: 13)).foregroundStyle(theme.foregroundMuted)
+            Text(strings("audio_tools_hint")).scaledFont(13).foregroundStyle(theme.foregroundMuted)
                 .multilineTextAlignment(.center).padding(.horizontal, 16)
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 4) {
@@ -217,7 +219,7 @@ struct AudioEditorScreen: View {
                             VStack(spacing: 4) {
                                 tool.icon.resizable().scaledToFit().frame(width: 24, height: 24).padding(8)
                                     .background(theme.raised, in: RoundedRectangle(cornerRadius: theme.radius / 2))
-                                Text(strings(tool.labelKey)).font(.system(size: 12, weight: .medium)).lineLimit(1)
+                                Text(strings(tool.labelKey)).scaledFont(12, weight: .medium).lineLimit(1)
                             }
                             .foregroundStyle(theme.foreground)
                             .frame(minWidth: 72, minHeight: 48)
@@ -230,6 +232,7 @@ struct AudioEditorScreen: View {
                 }
                 .padding(.horizontal, 8)
             }
+            .fixedSize(horizontal: false, vertical: true)
         }
     }
 
@@ -250,9 +253,9 @@ struct AudioEditorScreen: View {
             ZStack {
                 theme.background.opacity(0.82).ignoresSafeArea().contentShape(Rectangle()).onTapGesture {}
                 VStack(spacing: 16) {
-                    ProgressRing(progress: fraction)
-                    Text(strings(export == .cancelling ? "export_cancelling" : "export_encoding"))
-                        .font(.system(size: 15, weight: .medium)).foregroundStyle(theme.foreground)
+                    ProgressRing(progress: model.request.ui.showExportProgress ? fraction : nil)
+                    Text(strings(export == .cancelling ? "export_cancelling" : (model.request.ui.showExportProgress ? "export_encoding" : "export_exporting")))
+                        .scaledFont(15, weight: .medium).foregroundStyle(theme.foreground)
                     if case .running = export {
                         EditorButton(title: strings("action_cancel"), kind: .tonal) { model.cancelExport() }
                     }
@@ -287,7 +290,7 @@ struct RangePanel: View {
 
     var body: some View {
         VStack(spacing: 10) {
-            Text(strings("audio_range_hint")).font(.system(size: 13)).foregroundStyle(theme.foregroundMuted)
+            Text(strings("audio_range_hint")).scaledFont(13).foregroundStyle(theme.foregroundMuted)
             HStack(spacing: 8) {
                 pill(strings("action_cancel"), "xmark", fill: theme.raised, tint: theme.foreground) { model.cancelRange() }
                     .layoutPriority(0)
@@ -304,7 +307,7 @@ struct RangePanel: View {
 
     private func pill(_ title: String, _ symbol: String, fill: Color, tint: Color, action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            Label(title, systemImage: symbol).font(.system(size: 15, weight: .semibold)).lineLimit(1).minimumScaleFactor(0.75)
+            Label(title, systemImage: symbol).scaledFont(15, weight: .semibold).lineLimit(1).minimumScaleFactor(0.75)
                 .foregroundStyle(tint).padding(.horizontal, 12).frame(maxWidth: .infinity, minHeight: 48)
                 .background(fill, in: Capsule()).contentShape(Capsule())
         }
@@ -323,7 +326,7 @@ struct ClipPanel: View {
             let limit = max(0.1, Double(min(length / 2, 5_000_000)) / 1_000_000)
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 0) {
-                    Text(strings(clip.role == .voice ? "audio_lane_voice" : "audio_lane_layer")).font(.system(size: 15, weight: .semibold))
+                    Text(strings(clip.role == .voice ? "audio_lane_voice" : "audio_lane_layer")).scaledFont(15, weight: .semibold)
                         .foregroundStyle(theme.foreground)
                     Spacer()
                     IconButton(icon: Icons.image("trim"), label: strings("audio_tool_split")) { model.splitAtPlayhead() }
@@ -361,9 +364,9 @@ struct RecordSheet: View {
     var body: some View {
         let target = model.recordTarget ?? .insert
         VStack(spacing: 12) {
-            Text(strings("audio_record_title")).font(.system(size: 20, weight: .bold)).foregroundStyle(theme.foreground)
+            Text(strings("audio_record_title")).scaledFont(20, weight: .bold).foregroundStyle(theme.foreground)
                 .accessibilityAddTraits(.isHeader)
-            Text(strings(target == .insert ? "audio_insert_hint" : "audio_overlay_hint")).font(.system(size: 14))
+            Text(strings(target == .insert ? "audio_insert_hint" : "audio_overlay_hint")).scaledFont(14)
                 .foregroundStyle(theme.foregroundMuted).multilineTextAlignment(.center)
             if model.recorder.state == .idle {
                 HStack(spacing: 8) {

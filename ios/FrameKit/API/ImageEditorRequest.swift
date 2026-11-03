@@ -47,10 +47,7 @@ public struct ImageEditorRequest: Sendable, Hashable {
         if !(1...ImageExportConfig.maxPixelsLimit).contains(export.maxOutputPixels) {
             issues.append(.init(path: "export.maxOutputPixels", reason: .outOfRange))
         }
-        if !(0...32).contains(ui.cornerRadius) { issues.append(.init(path: "ui.cornerRadius", reason: .outOfRange)) }
-        if let id = ui.localeIdentifier, id.trimmingCharacters(in: .whitespaces).isEmpty {
-            issues.append(.init(path: "ui.localeIdentifier", reason: .invalidValue))
-        }
+        issues += ui.issues(catalog: catalog)
         return issues
     }
 }

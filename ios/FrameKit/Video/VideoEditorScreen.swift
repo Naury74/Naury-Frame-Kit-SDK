@@ -39,8 +39,10 @@ struct VideoEditorRoot: View {
         .environment(\.editorTheme, theme)
         .environment(\.strings, Strings(localeIdentifier: ui.localeIdentifier))
         .environment(\.haptics, Haptics(enabled: ui.enableHaptics))
+        .environment(\.editorFontId, ui.uiFontId)
         .preferredColorScheme(ui.themeMode == .system ? nil : (theme.isDark ? .dark : .light))
         .tint(theme.accent)
+        .dynamicTypeSize(...DynamicTypeSize.accessibility1)
         .onAppear { model.start() }
     }
 }
@@ -127,7 +129,7 @@ struct VideoEditorScreen: View {
     private var topBar: some View {
         ZStack {
             if let tool = model.activeTool {
-                Text(strings(tool.labelKey)).font(.system(size: 17, weight: .semibold)).foregroundStyle(theme.foreground)
+                Text(strings(tool.labelKey)).scaledFont(17, weight: .semibold).foregroundStyle(theme.foreground)
                     .lineLimit(1).padding(.horizontal, 100).accessibilityAddTraits(.isHeader)
             }
             HStack {
@@ -141,7 +143,7 @@ struct VideoEditorScreen: View {
                 .accessibilityLabel(strings(model.activeTool == nil ? "action_close" : "action_back"))
                 Spacer()
                 Button { model.save() } label: {
-                    Text(strings("action_save")).font(.system(size: 16, weight: .semibold)).foregroundStyle(theme.onAccent)
+                    Text(strings("action_save")).scaledFont(16, weight: .semibold).foregroundStyle(theme.onAccent)
                         .padding(.horizontal, 18).frame(height: 42)
                         .editorGlass(Capsule(), theme: theme, tint: theme.accent)
                         .frame(minHeight: 48).contentShape(Rectangle())
@@ -187,7 +189,7 @@ struct VideoEditorScreen: View {
                 }
             }
             if model.previewFailed {
-                Text(strings("preview_unavailable")).font(.system(size: 14)).foregroundStyle(theme.foreground)
+                Text(strings("preview_unavailable")).scaledFont(14).foregroundStyle(theme.foreground)
                     .padding(12).background(theme.raised.opacity(0.94), in: RoundedRectangle(cornerRadius: theme.radius))
             }
         }
@@ -204,7 +206,7 @@ struct VideoEditorScreen: View {
         }
         .overlay(alignment: .bottom) {
             if let notice = model.notice {
-                Text(noticeText(notice)).font(.system(size: 14)).foregroundStyle(theme.foreground)
+                Text(noticeText(notice)).scaledFont(14).foregroundStyle(theme.foreground)
                     .padding(.horizontal, 16).padding(.vertical, 10)
                     .background(theme.raised.opacity(0.94), in: RoundedRectangle(cornerRadius: theme.radius)).padding(12)
             }
@@ -253,7 +255,7 @@ struct VideoEditorScreen: View {
                 .buttonStyle(PressFadeStyle())
                 .accessibilityLabel(strings(model.isPlaying ? "pause" : "play"))
                 Text(strings("time_position", formatTime(model.position), formatTime(model.duration)))
-                    .font(.system(size: 13, weight: .medium).monospacedDigit()).foregroundStyle(theme.foregroundMuted)
+                    .scaledFont(13, weight: .medium, monospacedDigit: true).foregroundStyle(theme.foregroundMuted)
                 Spacer()
                 if model.selectedHasAudio && model.tools.contains(.audio) && model.export == nil {
                     let muted = model.selectedClip?.muted == true
@@ -269,7 +271,7 @@ struct VideoEditorScreen: View {
             .padding(.horizontal, 8)
             if model.activeTool == .trim {
                 TrimStrip(model: model).padding(.vertical, 4)
-                Text(strings("trim_help")).font(.system(size: 13)).foregroundStyle(theme.foregroundMuted)
+                Text(strings("trim_help")).scaledFont(13).foregroundStyle(theme.foregroundMuted)
             } else {
                 TrackTimeline(model: model).padding(.vertical, 4)
             }
@@ -381,7 +383,7 @@ struct VideoEditorScreen: View {
                 tool.icon.resizable().scaledToFit().frame(width: 24, height: 24)
                     .padding(card ? 0 : 8)
                     .background(card ? Color.clear : theme.raised, in: RoundedRectangle(cornerRadius: theme.radius / 2))
-                Text(strings(tool.labelKey)).font(.system(size: 12, weight: .medium)).lineLimit(1)
+                Text(strings(tool.labelKey)).scaledFont(12, weight: .medium).lineLimit(1)
             }
             .foregroundStyle(theme.foreground)
             .frame(minWidth: 72, minHeight: card ? 76 : 48)
@@ -401,9 +403,9 @@ struct VideoEditorScreen: View {
             ZStack {
                 theme.background.opacity(0.82).ignoresSafeArea().contentShape(Rectangle()).onTapGesture {}
                 VStack(spacing: 16) {
-                    ProgressRing(progress: fraction)
-                    Text(strings(export == .cancelling ? "export_cancelling" : "export_encoding"))
-                        .font(.system(size: 15, weight: .medium)).foregroundStyle(theme.foreground)
+                    ProgressRing(progress: model.request.ui.showExportProgress ? fraction : nil)
+                    Text(strings(export == .cancelling ? "export_cancelling" : (model.request.ui.showExportProgress ? "export_encoding" : "export_exporting")))
+                        .scaledFont(15, weight: .medium).foregroundStyle(theme.foreground)
                     if case .running = export {
                         EditorButton(title: strings("action_cancel"), kind: .tonal) { model.cancelExport() }
                     }
@@ -560,7 +562,7 @@ struct CanvasPanel: View {
             chips(CanvasFit.allCases.map(\.rawValue), selected: canvas.fit.rawValue, title: { strings("canvas_\($0)") }) {
                 model.setCanvas(aspect: current, fit: CanvasFit(rawValue: $0) ?? .fit)
             }
-            Text(strings("canvas_help")).font(.system(size: 13)).foregroundStyle(theme.foregroundMuted).padding(.horizontal, 16)
+            Text(strings("canvas_help")).scaledFont(13).foregroundStyle(theme.foregroundMuted).padding(.horizontal, 16)
         }
     }
 }
@@ -575,7 +577,7 @@ struct SpeedPanel: View {
         let committed = model.history.current.clips.first { $0.id == model.selectedClipId }?.outputDuration ?? 0
         VStack(alignment: .leading, spacing: 8) {
             Text(strings("speed_result", formatTime(committed), formatTime(model.selectedClip?.outputDuration ?? 0)))
-                .font(.system(size: 14, weight: .medium)).foregroundStyle(theme.foreground).padding(.horizontal, 16)
+                .scaledFont(14, weight: .medium).foregroundStyle(theme.foreground).padding(.horizontal, 16)
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
                     ForEach(VideoClipState.speedPresets, id: \.self) { value in
@@ -596,7 +598,7 @@ struct AudioPanel: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(strings("original_sound")).font(.system(size: 14, weight: .semibold)).foregroundStyle(theme.foreground).padding(.horizontal, 16)
+            Text(strings("original_sound")).scaledFont(14, weight: .semibold).foregroundStyle(theme.foreground).padding(.horizontal, 16)
             if model.selectedHasAudio, let clip = model.selectedClip {
                 Toggle(strings("audio_mute"), isOn: Binding(get: { clip.muted }, set: { _ in model.toggleMute() }))
                     .tint(theme.accent).padding(.horizontal, 16).frame(minHeight: 44)
@@ -604,7 +606,7 @@ struct AudioPanel: View {
                             onChange: { v in model.setVolume(abs(v - 100) < 4 ? 1 : v / 100, commit: false) },
                             onFinish: { model.commitGesture() })
             } else {
-                Text(strings("audio_none")).font(.system(size: 13)).foregroundStyle(theme.foregroundMuted).padding(.horizontal, 16)
+                Text(strings("audio_none")).scaledFont(13).foregroundStyle(theme.foregroundMuted).padding(.horizontal, 16)
             }
         }
     }

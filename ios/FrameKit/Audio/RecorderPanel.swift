@@ -144,10 +144,10 @@ struct RecorderPanel: View {
 
     var body: some View {
         VStack(spacing: compact ? 10 : 16) {
-            Text(clock(recorder.elapsed)).font(.system(size: compact ? 28 : 44, weight: .light).monospacedDigit())
+            Text(clock(recorder.elapsed)).scaledFont(compact ? 28 : 44, weight: .light, monospacedDigit: true)
                 .foregroundStyle(theme.foreground)
                 .accessibilityAddTraits(.updatesFrequently)
-            Text(status).font(.system(size: 14)).foregroundStyle(recorder.errorKey != nil ? theme.error : theme.foregroundMuted)
+            Text(status).scaledFont(14).foregroundStyle(recorder.errorKey != nil ? theme.error : theme.foregroundMuted)
                 .multilineTextAlignment(.center)
             wave.frame(height: compact ? 64 : 120)
             if mode == .both && recorder.state == .idle {
@@ -221,7 +221,7 @@ struct RecorderPanel: View {
                     Image(systemName: "lock.fill")
                     Image(systemName: "chevron.up")
                 }
-                .font(.system(size: 14, weight: .semibold)).foregroundStyle(theme.foregroundMuted)
+                .scaledFont(14, weight: .semibold).foregroundStyle(theme.foregroundMuted)
                 .offset(y: -88)
             }
             Circle().fill(Self.red).frame(width: 80, height: 80)

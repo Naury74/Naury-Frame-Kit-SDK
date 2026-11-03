@@ -15,7 +15,7 @@ struct TimedRangeRow: View {
                 VStack(alignment: .leading, spacing: 6) {
                     HStack {
                         Text(strings("mask_range", formatTime(range.start), formatTime(range.end)))
-                            .font(.system(size: 14, weight: .medium)).foregroundStyle(theme.foreground)
+                            .scaledFont(14, weight: .medium).foregroundStyle(theme.foreground)
                         Spacer()
                         IconButton(icon: Image(systemName: "trash"), label: strings("item_delete")) { model.deleteSelected() }
                     }
@@ -25,7 +25,7 @@ struct TimedRangeRow: View {
                     }
                 }
             } else {
-                Text(help).font(.system(size: 13)).foregroundStyle(theme.foregroundMuted)
+                Text(help).scaledFont(13).foregroundStyle(theme.foregroundMuted)
             }
         }
         .padding(.horizontal, 16)
@@ -41,7 +41,7 @@ struct VideoAudioPanel: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             AudioPanel(model: model)
-            Text(strings("sound_timeline_help")).font(.system(size: 13)).foregroundStyle(theme.foregroundMuted).padding(.horizontal, 16)
+            Text(strings("sound_timeline_help")).scaledFont(13).foregroundStyle(theme.foregroundMuted).padding(.horizontal, 16)
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
                     EditorButton(title: strings("track_music_add"), systemImage: "music.note", kind: .tonal) { model.showMusicPicker = true }
@@ -68,7 +68,7 @@ struct TimelineSelectionPanel: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             if model.muteSelection != nil {
-                Text(strings("mute_range_help")).font(.system(size: 13)).foregroundStyle(theme.foregroundMuted)
+                Text(strings("mute_range_help")).scaledFont(13).foregroundStyle(theme.foregroundMuted)
                 HStack(spacing: 8) {
                     EditorButton(title: strings("mask_start_here"), kind: .tonal) { model.setMuteEdge(start: true) }
                     EditorButton(title: strings("mask_end_here"), kind: .tonal) { model.setMuteEdge(start: false) }
@@ -131,7 +131,7 @@ struct TimelineSelectionPanel: View {
     }
 
     private func header(_ title: String) -> some View {
-        Text(title).font(.system(size: 15, weight: .semibold)).foregroundStyle(theme.foreground)
+        Text(title).scaledFont(15, weight: .semibold).foregroundStyle(theme.foreground)
     }
 }
 
@@ -179,7 +179,7 @@ struct VoiceRecorderSheet: View {
                 Text(strings("voice_waiting")).foregroundStyle(theme.foreground)
             case .recording:
                 Image(systemName: "mic.fill").font(.system(size: 28)).foregroundStyle(.red)
-                Text(String(format: "%d:%02d", Int(elapsed) / 60, Int(elapsed) % 60)).font(.system(size: 28, weight: .semibold).monospacedDigit())
+                Text(String(format: "%d:%02d", Int(elapsed) / 60, Int(elapsed) % 60)).scaledFont(28, weight: .semibold, monospacedDigit: true)
                     .foregroundStyle(theme.foreground)
                 HStack(alignment: .center, spacing: 2) {
                     ForEach(levels.indices, id: \.self) { i in

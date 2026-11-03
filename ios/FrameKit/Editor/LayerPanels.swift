@@ -112,9 +112,9 @@ struct ValueSlider: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
             HStack {
-                Text(label).font(.system(size: 14, weight: .medium)).foregroundStyle(theme.foregroundMuted)
+                Text(label).scaledFont(14, weight: .medium).foregroundStyle(theme.foregroundMuted)
                 Spacer()
-                Text(format(value)).font(.system(size: 13, weight: .semibold).monospacedDigit())
+                Text(format(value)).scaledFont(13, weight: .semibold, monospacedDigit: true)
                     .foregroundStyle(theme.foreground)
                     .padding(.horizontal, 8).padding(.vertical, 3)
                     .background(theme.raised, in: Capsule())
@@ -229,7 +229,7 @@ struct TextPanel<Host: LayerToolHost>: View {
     }
 
     private func label(_ key: String) -> some View {
-        Text(strings(key)).font(.system(size: 14, weight: .medium)).foregroundStyle(.secondary).padding(.horizontal, 16)
+        Text(strings(key)).scaledFont(14, weight: .medium).foregroundStyle(.secondary).padding(.horizontal, 16)
     }
 
     private func contrast(_ argb: UInt32) -> UInt32 { EditorTheme.readableOn(argb) == 0xFFFF_FFFF ? 0xFFFF_FFFF : 0xFF00_0000 }
@@ -325,7 +325,7 @@ struct DrawPanel: View {
                 chips(fills.map(\.rawValue), selected: brush.fill.rawValue, title: { strings("shape_\($0)") }) {
                     model.brush.fill = ShapeFill(rawValue: $0) ?? .outline
                 }
-                Text(strings("draw_shapes_help")).font(.system(size: 13)).foregroundStyle(.secondary).padding(.horizontal, 16)
+                Text(strings("draw_shapes_help")).scaledFont(13).foregroundStyle(.secondary).padding(.horizontal, 16)
             }
             if brush.shapes || brush.kind != .eraser {
                 ColorPalette(selected: brush.color) { model.brush.color = $0 }
@@ -367,7 +367,7 @@ struct PrivacyPanel<Host: LayerToolHost>: View {
                 }
             }
             if !settings.mosaic {
-                Text(strings("privacy_help")).font(.system(size: 13)).foregroundStyle(theme.foregroundMuted).padding(.horizontal, 16)
+                Text(strings("privacy_help")).scaledFont(13).foregroundStyle(theme.foregroundMuted).padding(.horizontal, 16)
             }
         }
     }
@@ -436,7 +436,7 @@ struct WatermarkPanel<Host: LayerToolHost>: View {
             ? [WatermarkPosition.topStart, .topCenter, .topEnd, .bottomStart, .bottomCenter, .bottomEnd]
             : WatermarkPosition.allCases
         return VStack(alignment: .leading, spacing: 4) {
-            Text(strings("watermark_position")).font(.system(size: 14, weight: .medium)).foregroundStyle(theme.foregroundMuted)
+            Text(strings("watermark_position")).scaledFont(14, weight: .medium).foregroundStyle(theme.foregroundMuted)
             LazyVGrid(columns: Array(repeating: GridItem(.fixed(48), spacing: 4), count: 3), spacing: 4) {
                 ForEach(positions, id: \.self) { position in
                     let selected = position == spec.position

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Android 문자열·아이콘을 iOS 리소스로 옮긴다.
 
-- framekit-ui, framekit-ui-image, framekit-ui-video, framekit-ui-motion, framekit-ui-audio의 strings.xml(13개 언어) → ios/FrameKit/Resources/Localizable.xcstrings
+- framekit-ui, framekit-ui-image, framekit-ui-video, framekit-ui-motion, framekit-ui-audio, framekit의 strings.xml(13개 언어) → ios/FrameKit/Resources/Localizable.xcstrings
 - framekit-ui, framekit-ui-motion, framekit-ui-audio의 벡터 아이콘(채움 경로만) → ios/FrameKit/Resources/Icons.xcassets (템플릿 렌더링)
 
 Android 쪽 문자열이나 아이콘을 바꾼 뒤 다시 실행한다.
@@ -12,7 +12,7 @@ import re
 import xml.etree.ElementTree as ET
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-MODULES = ["framekit-ui", "framekit-ui-image", "framekit-ui-video", "framekit-ui-motion", "framekit-ui-audio"]
+MODULES = ["framekit-ui", "framekit-ui-image", "framekit-ui-video", "framekit-ui-motion", "framekit-ui-audio", "framekit"]
 ICON_MODULES = ["framekit-ui", "framekit-ui-motion", "framekit-ui-audio"]
 OUT = os.path.join(ROOT, "ios", "FrameKit", "Resources")
 ANDROID_NS = "{http://schemas.android.com/apk/res/android}"
@@ -43,6 +43,17 @@ IOS_REPLACEMENTS = {
                              ("GIF 和 WebP", "GIF")],
 }
 
+# iOS에 없는 기능(문서 펴기)을 말하는 문구를 iOS 전용 문구로 바꾼다.
+IOS_OVERRIDES = {
+    "chooser_pdf_body": {
+        "en": "Save the photos as one PDF", "ko": "사진들을 PDF 하나로 저장해요", "ja": "写真をまとめて1つのPDFに保存します",
+        "de": "Fotos als eine PDF-Datei speichern", "es": "Guarda las fotos en un solo PDF", "fr": "Enregistrer les photos dans un seul PDF",
+        "id": "Simpan foto sebagai satu PDF", "pt-BR": "Salve as fotos em um único PDF", "ru": "Сохранить фото в один PDF",
+        "th": "บันทึกรูปเป็น PDF ไฟล์เดียว", "vi": "Lưu các ảnh thành một tệp PDF", "zh-Hans": "将照片保存为一个 PDF",
+        "zh-Hant": "將照片儲存為一個 PDF",
+    },
+}
+
 
 def read_strings():
     table = {}
@@ -68,6 +79,9 @@ def read_strings():
                         forms[item.get("quantity")] = {"stringUnit": {"state": "translated", "value": android_text(item)}}
                     if "other" in forms:
                         table.setdefault(key, {})[lang] = {"variations": {"plural": forms}}
+    for key, values in IOS_OVERRIDES.items():
+        for lang, value in values.items():
+            table.setdefault(key, {})[lang] = {"stringUnit": {"state": "translated", "value": value}}
     return table
 
 

@@ -33,7 +33,7 @@ struct DialSlider: View {
     var body: some View {
         VStack(spacing: 6) {
             Text(format(value))
-                .font(.system(size: 17, weight: .semibold).monospacedDigit())
+                .scaledFont(17, weight: .semibold, monospacedDigit: true)
                 .foregroundStyle(changed ? theme.accent : theme.foreground)
             ruler
                 .frame(height: 36)

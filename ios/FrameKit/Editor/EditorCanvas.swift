@@ -24,9 +24,7 @@ struct EditorCanvas: View {
             let area = CGRect(origin: .zero, size: geo.size).insetBy(dx: padding, dy: padding)
             ZStack {
                 theme.canvas
-                if model.activeTool == .document {
-                    DocumentCanvas(model: model, area: area)
-                } else if showsBounds {
+                if showsBounds {
                     boundsView(area: area)
                         .onAppear { zoom = 1; pan = .zero }
                 } else {
@@ -68,7 +66,7 @@ struct EditorCanvas: View {
             .offset(pan)
             if original {
                 Text(strings("original_badge"))
-                    .font(.system(size: 13, weight: .semibold))
+                    .scaledFont(13, weight: .semibold)
                     .foregroundStyle(theme.foreground)
                     .padding(.horizontal, 10).padding(.vertical, 5)
                     .background(theme.raised.opacity(0.94), in: Capsule())
@@ -77,7 +75,7 @@ struct EditorCanvas: View {
             if zoom > 1.01 {
                 Button { setZoom(1, pan: .zero) } label: {
                     Text(strings("zoom_fit", Int((zoom * 100).rounded())))
-                        .font(.system(size: 13, weight: .semibold)).foregroundStyle(theme.foreground)
+                        .scaledFont(13, weight: .semibold).foregroundStyle(theme.foreground)
                         .padding(.horizontal, 12).frame(minHeight: 36)
                         .editorGlass(Capsule(), theme: theme)
                         .frame(minHeight: 48)

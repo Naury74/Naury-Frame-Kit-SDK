@@ -137,7 +137,7 @@ public struct MotionEditorRequest: Sendable, Hashable {
         if !export.formats.contains(export.format) { issues.append(.init(path: "export.format", reason: .requiresOther)) }
         if let rate = export.frameRate, !(5...60).contains(rate) { issues.append(.init(path: "export.frameRate", reason: .outOfRange)) }
         if !(0...0xFFFF).contains(export.loopCount) { issues.append(.init(path: "export.loopCount", reason: .outOfRange)) }
-        if !(0...32).contains(ui.cornerRadius) { issues.append(.init(path: "ui.cornerRadius", reason: .outOfRange)) }
+        issues += ui.issues(catalog: catalog)
         issues += catalog.issues()
         return issues
     }

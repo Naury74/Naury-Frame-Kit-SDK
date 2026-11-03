@@ -96,7 +96,7 @@ public struct AudioEditorRequest: Sendable, Hashable {
         if !(1...3600).contains(config.maxRecordingDuration) { issues.append(.init(path: "config.maxRecordingDuration", reason: .outOfRange)) }
         if !(1...AudioEditorConfig.maxSources).contains(config.maxSourceCount) { issues.append(.init(path: "config.maxSourceCount", reason: .outOfRange)) }
         if !(32_000...320_000).contains(export.bitrate) { issues.append(.init(path: "export.bitrate", reason: .outOfRange)) }
-        if !(0...32).contains(ui.cornerRadius) { issues.append(.init(path: "ui.cornerRadius", reason: .outOfRange)) }
+        issues += ui.issues(catalog: nil)
         return issues
     }
 }

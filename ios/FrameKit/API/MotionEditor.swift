@@ -33,6 +33,14 @@ public final class FrameKitMotionEditorViewController: UIViewController {
         host.didMove(toParent: self)
     }
 
+    override public var preferredStatusBarStyle: UIStatusBarStyle {
+        switch model.request.ui.themeMode {
+        case .dark: .lightContent
+        case .light: .darkContent
+        case .system: .default
+        }
+    }
+
     override public func viewDidDisappear(_ animated: Bool) {
         super.viewDidDisappear(animated)
         if isBeingDismissed || isMovingFromParent || presentingViewController == nil {

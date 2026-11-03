@@ -73,19 +73,11 @@ final class EditorModel {
     var showDraftDialog = false
     private(set) var notice: String?
     private(set) var draggingCrop = false
-    /// 문서 도구의 모서리(원본 업라이트 기준).
-    var documentQuad: DocQuad?
-    var scanStyle = ScanStyle.color
-    var documentBusy = false
-    var documentSuggestionDismissed = false
     /// 배경 제거 상태.
     var cutoutBusy = false
     /// 이 기기에서 배경 제거를 할 수 있으면 `true`. 확인이 끝나기 전에는 도구를 보이지 않는다.
     var cutoutAvailable = false
     var cutoutError: EditorError?
-    /// 문서를 편 뒤 인식한 글자.
-    var documentText: String?
-    var showDocumentText = false
 
     /// 미리 보기 결과(현재 편집, 출력 화면 크기).
     var rendered: CGImage?
@@ -280,10 +272,7 @@ final class EditorModel {
 
     private func opened(_ items: [(SourceImage, UprightImage)], append: Bool) {
         if !append {
-            pages.forEach { page in
-            page.source.close()
-            page.original?.source.close()
-        }
+            pages.forEach { $0.source.close() }
             pages = []
         }
         var initial = PhotoEdit()
@@ -304,7 +293,6 @@ final class EditorModel {
             selectPage(pages.count - 1)
         }
         requestRender()
-        detectDocument()
     }
 
     // MARK: - 여러 장
@@ -316,7 +304,6 @@ final class EditorModel {
         filterThumbnails = [:]
         rendered = nil
         requestRender()
-        detectDocument()
     }
 
     func removePage(_ index: Int) {
@@ -490,17 +477,12 @@ final class EditorModel {
             } ?? WatermarkSpec(text: "")
         }
         if tool == .draw || tool == .privacy { selectedOverlayId = nil }
-        if tool == .document {
-            let page = pages[pageIndex]
-            documentQuad = page.appliedQuad ?? page.detection?.quad ?? .inset(0.08)
-        }
         requestRender()
     }
 
     /// 적용 단추.
     func applyTool() {
         guard let tool = activeTool else { return }
-        if tool == .document { applyDocument(); return }
         if tool.isDraft, var working {
             // 빈 글자와 빈 워터마크는 넣지 않는다.
             working.overlays.removeAll { overlay in
@@ -714,7 +696,13 @@ final class EditorModel {
         if let tool = activeTool {
             if tool.isDraft { applyTool() } else if working != nil { showNotice("apply_first"); return } else { closeTool() }
         }
-        let items = pages.map { ($0.source, $0.history.current) }
+        // 고정 워터마크는 편집 내용과 관계없이 다시 넣는다.
+        let lockedMark = request.config.watermark.flatMap { $0.locked ? $0.spec : nil }
+        let items = pages.map { page in
+            var edit = page.history.current
+            if let lockedMark { edit.watermark = lockedMark }
+            return (page.source, edit)
+        }
         let config = request.export
         export = .running(nil, nil)
         exportTask = Task.detached(priority: .userInitiated) {

@@ -105,7 +105,7 @@ public struct VideoEditorRequest: Sendable, Hashable {
         if let watermark = config.watermark { issues += watermark.issues(path: "config.watermark") }
         if !(144...2160).contains(export.maxShortSide) { issues.append(.init(path: "export.maxShortSide", reason: .outOfRange)) }
         if !(1...60).contains(export.maxFrameRate) { issues.append(.init(path: "export.maxFrameRate", reason: .outOfRange)) }
-        if !(0...32).contains(ui.cornerRadius) { issues.append(.init(path: "ui.cornerRadius", reason: .outOfRange)) }
+        issues += ui.issues(catalog: catalog)
         issues += catalog.issues()
         return issues
     }

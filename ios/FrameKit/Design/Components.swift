@@ -75,7 +75,7 @@ struct EditorButton: View {
         Button(action: action) {
             HStack(spacing: 6) {
                 if let systemImage { Image(systemName: systemImage).font(.system(size: 15, weight: .semibold)) }
-                Text(title).font(.system(size: 16, weight: .semibold)).lineLimit(1)
+                Text(title).scaledFont(16, weight: .semibold).lineLimit(1)
             }
             .padding(.horizontal, 18)
             .frame(minHeight: 48)
@@ -96,7 +96,7 @@ struct ChoiceChip: View {
 
     var body: some View {
         Button(action: action) {
-            Text(title).font(.system(size: 14, weight: .medium)).lineLimit(1)
+            Text(title).scaledFont(14, weight: .medium).lineLimit(1)
                 .padding(.horizontal, 14)
                 .frame(minHeight: 36)
                 .foregroundStyle(selected ? theme.onAccent : theme.foreground)
@@ -123,7 +123,7 @@ struct ProgressRing: View {
                 Circle().trim(from: 0, to: max(0.02, min(1, progress)))
                     .stroke(theme.accent, style: StrokeStyle(lineWidth: 6, lineCap: .round))
                     .rotationEffect(.degrees(-90))
-                Text("\(Int((progress * 100).rounded()))%").font(.system(size: 17, weight: .semibold)).foregroundStyle(theme.foreground)
+                Text("\(Int((progress * 100).rounded()))%").scaledFont(17, weight: .semibold).foregroundStyle(theme.foreground)
             } else {
                 Circle().trim(from: 0, to: 0.28)
                     .stroke(theme.accent, style: StrokeStyle(lineWidth: 6, lineCap: .round))
@@ -135,5 +135,28 @@ struct ProgressRing: View {
             }
         }
         .frame(width: 84, height: 84)
+    }
+}
+
+/// 시스템 글자 크기 설정을 따르는 글꼴. [size]는 기본 크기(pt)다.
+struct ScaledFont: ViewModifier {
+    let size: CGFloat
+    var weight: Font.Weight = .regular
+    var monospacedDigit = false
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.editorFontId) private var fontId
+
+    func body(content: Content) -> some View {
+        let traits = UITraitCollection(preferredContentSizeCategory: UIContentSizeCategory(dynamicTypeSize))
+        let scaled = UIFontMetrics(forTextStyle: .body).scaledValue(for: size, compatibleWith: traits)
+        let custom = fontId.flatMap { FontAssets.font(for: $0, size: scaled) }
+        let font = custom.map { Font($0).weight(weight) } ?? Font.system(size: scaled, weight: weight)
+        return content.font(monospacedDigit ? font.monospacedDigit() : font)
+    }
+}
+
+extension View {
+    func scaledFont(_ size: CGFloat, weight: Font.Weight = .regular, monospacedDigit: Bool = false) -> some View {
+        modifier(ScaledFont(size: size, weight: weight, monospacedDigit: monospacedDigit))
     }
 }

@@ -6,7 +6,6 @@ extension ImageTool {
         switch self {
         case .crop: "tool_crop"
         case .rotate: "tool_rotate"
-        case .document: "tool_document"
         case .cutout: "tool_cutout"
         case .adjust: "tool_adjust"
         case .filter: "tool_filter"
@@ -22,7 +21,6 @@ extension ImageTool {
         switch self {
         case .crop: Icons.image("crop")
         case .rotate: Icons.image("rotate_right")
-        case .document: Icons.image("document")
         case .cutout: Icons.image("cutout")
         case .adjust: Icons.image("adjust")
         case .filter: Icons.image("filter")
@@ -101,7 +99,6 @@ struct ToolPanel: View {
                     switch tool {
                     case .crop: CropPanel(model: model)
                     case .rotate: RotatePanel(model: model)
-                    case .document: DocumentPanel(model: model)
                     case .cutout: CutoutPanel(model: model)
                     case .adjust: AdjustPanel(model: model)
                     case .filter: FilterPanel(model: model)
@@ -277,14 +274,14 @@ struct AdjustPanel<Host: ColorToolHost>: View {
                             .scaleEffect(x: display < 0 ? -1 : 1, y: 1)
                     }
                     if selected && Int(display.rounded()) != 0 {
-                        Text("\(Int(display.rounded()))").font(.system(size: 15, weight: .semibold).monospacedDigit())
+                        Text("\(Int(display.rounded()))").scaledFont(15, weight: .semibold, monospacedDigit: true)
                             .foregroundStyle(theme.foreground)
                     } else {
                         Image(systemName: item.symbol).font(.system(size: 18)).foregroundStyle(theme.foreground)
                     }
                 }
                 .frame(width: 52, height: 52)
-                Text(strings(item.labelKey)).font(.system(size: 11, weight: .medium)).lineLimit(1)
+                Text(strings(item.labelKey)).scaledFont(11, weight: .medium).lineLimit(1)
                     .foregroundStyle(selected ? theme.foreground : theme.foregroundMuted)
             }
             .frame(width: 64)
@@ -310,7 +307,7 @@ struct FilterPanel<Host: ColorToolHost>: View {
         VStack(spacing: 10) {
             Group {
                 if filterId == "original" {
-                    Text(strings("filter_hint")).font(.system(size: 14)).foregroundStyle(theme.foregroundMuted)
+                    Text(strings("filter_hint")).scaledFont(14).foregroundStyle(theme.foregroundMuted)
                         .multilineTextAlignment(.center)
                 } else {
                     DialSlider(
@@ -374,7 +371,7 @@ struct FilterPanel<Host: ColorToolHost>: View {
                             .offset(x: 4, y: 4)
                     }
                 }
-                Text(label).font(.system(size: 11, weight: .medium)).lineLimit(1)
+                Text(label).scaledFont(11, weight: .medium).lineLimit(1)
                     .foregroundStyle(selected ? theme.foreground : theme.foregroundMuted)
                     .frame(width: 72)
             }
