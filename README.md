@@ -70,6 +70,8 @@
 
 ### iOS
 
+고르기·사진 편집은 다크 테마, 영상·움직이는 이미지·음성은 라이트 테마입니다.
+
 <table>
   <tr>
     <td align="center" width="20%"><img src="docs/images/ios-chooser.png" width="160" alt="iOS 고르기"><br><b>고르기</b></td>
@@ -80,7 +82,7 @@
   </tr>
 </table>
 
-상태 바가 옆에 있는 듀오에서는 이렇게 보입니다.
+상태 바가 옆에 있는 듀오의 덮개 화면에서는 이렇게 보입니다(사진 편집은 다크, 나머지는 라이트).
 
 <table>
   <tr>
