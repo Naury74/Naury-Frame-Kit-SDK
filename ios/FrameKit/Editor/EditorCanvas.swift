@@ -9,6 +9,12 @@ struct EditorCanvas: View {
     @Environment(\.displayScale) private var displayScale
     @GestureState private var pressing = false
     @State private var dragHandle: CropHandle?
+    @State private var zoom: CGFloat = 1
+    @State private var pan: CGSize = .zero
+    @State private var zoomStart: (zoom: CGFloat, pan: CGSize)?
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    static let maxZoom: CGFloat = 8
 
     private var showsBounds: Bool { model.activeTool == .crop || model.activeTool == .rotate }
 
@@ -20,6 +26,7 @@ struct EditorCanvas: View {
                 theme.canvas
                 if showsBounds {
                     boundsView(area: area)
+                        .onAppear { zoom = 1; pan = .zero }
                 } else {
                     photoView(area: area)
                 }
@@ -38,37 +45,85 @@ struct EditorCanvas: View {
     private func photoView(area: CGRect) -> some View {
         let original = model.showingOriginal || pressing
         let image = original ? model.preview?.cgImage : model.rendered
+        let size = image.map { CGSize(width: $0.width, height: $0.height) } ?? model.renderedCanvas
+        let rect = fit(size, in: area)
         ZStack(alignment: .topLeading) {
-            if let image {
-                let rect = fit(CGSize(width: image.width, height: image.height), in: area)
-                Image(decorative: image, scale: 1)
-                    .resizable()
-                    .interpolation(.high)
-                    .frame(width: rect.width, height: rect.height)
-                    .position(x: rect.midX, y: rect.midY)
-                    .accessibilityHidden(true)
-                if original {
-                    Text(strings("original_badge"))
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(theme.foreground)
-                        .padding(.horizontal, 10).padding(.vertical, 5)
-                        .background(theme.raised.opacity(0.94), in: Capsule())
-                        .position(x: area.minX + 44, y: area.minY + 18)
+            ZStack {
+                if let image {
+                    Image(decorative: image, scale: 1)
+                        .resizable()
+                        .interpolation(zoom > 1.5 ? .none : .high)
+                        .frame(width: rect.width, height: rect.height)
+                        .position(x: rect.midX, y: rect.midY)
+                        .accessibilityHidden(true)
                 }
+                if !original {
+                    CanvasInteraction(model: model, rect: rect, zoom: zoom)
+                }
+            }
+            .coordinateSpace(.named("canvasContent"))
+            .scaleEffect(zoom, anchor: .center)
+            .offset(pan)
+            if original {
+                Text(strings("original_badge"))
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(theme.foreground)
+                    .padding(.horizontal, 10).padding(.vertical, 5)
+                    .background(theme.raised.opacity(0.94), in: Capsule())
+                    .position(x: area.minX + 44, y: area.minY + 18)
+            }
+            if zoom > 1.01 {
+                Button { setZoom(1, pan: .zero) } label: {
+                    Text(strings("zoom_fit", Int((zoom * 100).rounded())))
+                        .font(.system(size: 13, weight: .semibold)).foregroundStyle(theme.foreground)
+                        .padding(.horizontal, 12).frame(minHeight: 36)
+                        .editorGlass(Capsule(), theme: theme)
+                        .frame(minHeight: 48)
+                }
+                .buttonStyle(PressFadeStyle())
+                .position(x: area.minX + 64, y: area.maxY - 24)
             }
         }
         .contentShape(Rectangle())
-        .gesture(
+        .simultaneousGesture(canvasZoom(area: area))
+        .simultaneousGesture(
             LongPressGesture(minimumDuration: 0.35)
                 .sequenced(before: DragGesture(minimumDistance: 0))
                 .updating($pressing) { value, state, _ in
+                    guard model.activeTool == nil, model.selectedOverlayId == nil else { return }
                     if case .second(true, _) = value { state = true }
                 }
-                .exclusively(before: TapGesture().onEnded { model.toggleChrome() })
         )
-        .accessibilityElement()
+        .onTapGesture(count: 2) {
+            guard model.activeTool != .draw, model.activeTool != .privacy else { return }
+            setZoom(zoom > 1.01 ? 1 : 2.5, pan: .zero)
+        }
+        .accessibilityElement(children: .contain)
         .accessibilityLabel(strings("show_original"))
-        .accessibilityAddTraits(.isImage)
+    }
+
+    private func setZoom(_ value: CGFloat, pan: CGSize) {
+        withAnimation(reduceMotion ? nil : .easeOut(duration: 0.25)) {
+            zoom = value
+            self.pan = pan
+        }
+    }
+
+    /// 요소를 고르지 않았을 때 두 손가락으로 사진을 확대·이동한다.
+    private func canvasZoom(area: CGRect) -> some Gesture {
+        MagnifyGesture()
+            .onChanged { value in
+                guard model.selectedOverlayId == nil || !model.canManipulateOverlays else { return }
+                if zoomStart == nil { zoomStart = (zoom, pan) }
+                guard let zoomStart else { return }
+                zoom = min(Self.maxZoom, max(1, zoomStart.zoom * value.magnification))
+                let limitX = area.width * (zoom - 1) / 2, limitY = area.height * (zoom - 1) / 2
+                pan = CGSize(width: min(limitX, max(-limitX, zoomStart.pan.width)), height: min(limitY, max(-limitY, zoomStart.pan.height)))
+            }
+            .onEnded { _ in
+                zoomStart = nil
+                if zoom < 1.05 { setZoom(1, pan: .zero) }
+            }
     }
 
     // MARK: - 자르기 틀

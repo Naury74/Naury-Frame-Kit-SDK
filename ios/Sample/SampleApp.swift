@@ -13,6 +13,7 @@ struct ContentView: View {
     @State private var format: ImageFormat = .jpeg
     @State private var theme: ThemeMode = .dark
     @State private var locale = ""
+    @State private var hostWatermark = ProcessInfo.processInfo.arguments.contains("-watermark")
     @State private var lastResult = ""
     @State private var resultImage: UIImage?
     @State private var showEditor = false
@@ -33,6 +34,7 @@ struct ContentView: View {
                         Text("밝게").tag(ThemeMode.light)
                         Text("시스템").tag(ThemeMode.system)
                     }
+                    Toggle("호스트 워터마크(고정)", isOn: $hostWatermark)
                     Picker("언어", selection: $locale) {
                         Text("기기 설정").tag("")
                         Text("한국어").tag("ko")
@@ -61,8 +63,12 @@ struct ContentView: View {
     }
 
     private func open(_ input: EditorInput) {
+        let watermark = hostWatermark
+            ? WatermarkConfig(text: "© FrameKit", style: .tile, opacity: 0.5, applyOnOpen: true, locked: true)
+            : nil
         request = ImageEditorRequest(
             input: input,
+            config: ImageEditorConfig(watermark: watermark),
             export: ImageExportConfig(format: format),
             ui: EditorUIConfig(themeMode: theme, localeIdentifier: locale.isEmpty ? nil : locale)
         )

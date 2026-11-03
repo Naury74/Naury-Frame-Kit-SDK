@@ -10,12 +10,22 @@ public enum ImageTool: String, Sendable, CaseIterable {
     case adjust
     /// 필터와 강도.
     case filter
+    /// 글자 넣기.
+    case text
+    /// 이모지와 호스트 스티커.
+    case sticker
+    /// 펜·마커·형광펜·지우개·도형.
+    case draw
+    /// 모자이크·흐림으로 가리기.
+    case privacy
+    /// 워터마크. 호스트 워터마크가 `locked`면 보이지 않는다.
+    case watermark
 
     /// 기본 도구 순서.
-    public static let defaults: [ImageTool] = [.crop, .rotate, .adjust, .filter]
+    public static let defaults: [ImageTool] = [.crop, .rotate, .adjust, .filter, .text, .sticker, .draw, .privacy, .watermark]
 
     /// 적용·취소가 있는 도구. 저장 전에 적용해야 한다.
-    var isDraft: Bool { self == .crop || self == .rotate }
+    var isDraft: Bool { self == .crop || self == .rotate || self == .text || self == .watermark }
 }
 
 /// 사진 편집기 동작 설정.
@@ -26,11 +36,110 @@ public struct ImageEditorConfig: Sendable, Hashable {
     public var allowUndo: Bool
     /// 다시 실행 단추를 보인다. `allowUndo`가 `true`여야 한다.
     public var allowRedo: Bool
+    /// 호스트가 정하는 워터마크. `nil`이면 사용자가 워터마크 도구로 직접 넣는다.
+    public var watermark: WatermarkConfig?
 
-    public init(enabledTools: [ImageTool] = ImageTool.defaults, allowUndo: Bool = true, allowRedo: Bool = true) {
+    public init(enabledTools: [ImageTool] = ImageTool.defaults, allowUndo: Bool = true, allowRedo: Bool = true,
+                watermark: WatermarkConfig? = nil) {
         self.enabledTools = enabledTools
         self.allowUndo = allowUndo
         self.allowRedo = allowRedo
+        self.watermark = watermark
+    }
+}
+
+/// 워터마크 무늬.
+public enum WatermarkStyle: String, Sendable, CaseIterable {
+    /// 한 곳에 하나.
+    case single
+    /// 기울여 반복.
+    case tile
+    /// 대각선으로 크게.
+    case diagonal
+    /// 위나 아래 띠.
+    case band
+}
+
+/// 워터마크 위치. `band`는 위·아래만 쓴다.
+public enum WatermarkAnchor: String, Sendable, CaseIterable {
+    case topStart, topCenter, topEnd, centerStart, center, centerEnd, bottomStart, bottomCenter, bottomEnd
+}
+
+/// 호스트가 정하는 워터마크.
+public struct WatermarkConfig: Sendable, Hashable {
+    /// 한 줄, 1...60자. 비우면 사용자가 입력한다.
+    public var text: String
+    public var style: WatermarkStyle
+    public var anchor: WatermarkAnchor
+    /// 짧은 변 대비 글자 크기, 0.015...0.2.
+    public var sizeRatio: Double
+    /// 0.05...1.
+    public var opacity: Double
+    /// 글자색(0xAARRGGBB).
+    public var colorARGB: UInt32
+    /// 반복 무늬의 기울기(도), -90...90.
+    public var rotationDegrees: Double
+    /// 반복 무늬의 촘촘함, 0.5...2.
+    public var density: Double
+    /// 글자 뒤 상자.
+    public var background: Bool
+    /// 편집기를 열 때 바로 넣는다.
+    public var applyOnOpen: Bool
+    /// 사용자가 바꾸거나 지울 수 없다. `applyOnOpen`이 `true`이고 `text`가 있어야 한다.
+    public var locked: Bool
+    /// 워터마크 도구에서 고를 수 있는 문구, 최대 8개.
+    public var suggestions: [String]
+
+    public init(
+        text: String = "",
+        style: WatermarkStyle = .single,
+        anchor: WatermarkAnchor = .bottomEnd,
+        sizeRatio: Double = 0.04,
+        opacity: Double = 0.7,
+        colorARGB: UInt32 = 0xFFFF_FFFF,
+        rotationDegrees: Double = -30,
+        density: Double = 1,
+        background: Bool = false,
+        applyOnOpen: Bool = false,
+        locked: Bool = false,
+        suggestions: [String] = []
+    ) {
+        self.text = text
+        self.style = style
+        self.anchor = anchor
+        self.sizeRatio = sizeRatio
+        self.opacity = opacity
+        self.colorARGB = colorARGB
+        self.rotationDegrees = rotationDegrees
+        self.density = density
+        self.background = background
+        self.applyOnOpen = applyOnOpen
+        self.locked = locked
+        self.suggestions = suggestions
+    }
+
+    static let maxSuggestions = 8
+
+    var spec: WatermarkSpec {
+        WatermarkSpec(text: text.replacingOccurrences(of: "\n", with: " ").trimmingCharacters(in: .whitespaces),
+                      pattern: WatermarkPattern(rawValue: style.rawValue) ?? .single,
+                      position: WatermarkPosition(rawValue: anchor.rawValue) ?? .bottomEnd,
+                      sizeRatio: sizeRatio, opacity: opacity, color: colorARGB, rotationDegrees: rotationDegrees,
+                      density: density, shadow: true, background: background)
+    }
+
+    func issues(path: String) -> [ConfigurationIssue] {
+        var issues: [ConfigurationIssue] = []
+        if text.count > WatermarkSpec.maxTextLength || text.contains("\n") { issues.append(.init(path: "\(path).text", reason: .invalidValue)) }
+        if !(0.015...0.2).contains(sizeRatio) { issues.append(.init(path: "\(path).sizeRatio", reason: .outOfRange)) }
+        if !(0.05...1).contains(opacity) { issues.append(.init(path: "\(path).opacity", reason: .outOfRange)) }
+        if !(-90...90).contains(rotationDegrees) { issues.append(.init(path: "\(path).rotationDegrees", reason: .outOfRange)) }
+        if !(0.5...2).contains(density) { issues.append(.init(path: "\(path).density", reason: .outOfRange)) }
+        if suggestions.count > Self.maxSuggestions { issues.append(.init(path: "\(path).suggestions", reason: .outOfRange)) }
+        if locked && (!applyOnOpen || text.trimmingCharacters(in: .whitespaces).isEmpty) {
+            issues.append(.init(path: "\(path).locked", reason: .requiresOther))
+        }
+        return issues
     }
 }
 

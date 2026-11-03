@@ -237,3 +237,76 @@ struct GradientParityTests {
         #expect(Double(total) / Double(count) <= 1.0)
     }
 }
+
+struct CanvasLayerTests {
+    /// 왼쪽 절반 빨강, 오른쪽 절반 파랑인 200×100 이미지.
+    private func halves() -> CGImage {
+        let context = BitmapContext.make(width: 200, height: 100)!
+        context.setFillColor(CGColor(srgbRed: 0, green: 0, blue: 1, alpha: 1))
+        context.fill(CGRect(x: 0, y: 0, width: 200, height: 100))
+        context.setFillColor(CGColor(srgbRed: 1, green: 0, blue: 0, alpha: 1))
+        context.fill(CGRect(x: 0, y: 0, width: 100, height: 100))
+        return context.makeImage()!
+    }
+
+    @Test func mosaicAveragesBlocksInsideMaskOnly() throws {
+        var edit = PhotoEdit(grainSeed: 1)
+        // 블록 20px(짧은 변 100 × 0.2), 가운데 걸친 사각형.
+        edit.privacyMasks = [PrivacyMask(id: "m", shape: .rectangle(NRect(left: 0.4, top: 0.2, right: 0.6, bottom: 0.8)),
+                                         effect: .mosaic(blockRatio: 0.2))]
+        let result = try CanvasLayersRenderer.apply(halves(), edit: edit)
+        // 90..110 블록은 경계를 지나지 않으므로 80..100 블록(빨강)과 100..120 블록(파랑)으로 나뉜다.
+        let inside = pixel(result, x: 95, y: 50)
+        #expect(inside.r > 240 && inside.b < 15)
+        let outside = pixel(result, x: 10, y: 5)
+        #expect(outside.r > 240)
+        let otherSide = pixel(result, x: 190, y: 95)
+        #expect(otherSide.b > 240)
+    }
+
+    @Test func blurMixesAcrossEdge() throws {
+        var edit = PhotoEdit(grainSeed: 1)
+        edit.privacyMasks = [PrivacyMask(id: "b", shape: .rectangle(NRect(left: 0.3, top: 0, right: 0.7, bottom: 1)),
+                                         effect: .blur(radiusRatio: 0.1))]
+        let result = try CanvasLayersRenderer.apply(halves(), edit: edit)
+        let edge = pixel(result, x: 100, y: 50)
+        #expect(edge.r > 60 && edge.b > 60)
+        #expect(pixel(result, x: 20, y: 50).b < 10)
+    }
+
+    @Test func drawsOverlaysDrawingAndWatermark() throws {
+        var edit = PhotoEdit(grainSeed: 1)
+        edit.drawing = [DrawingStroke(id: "s", points: [NPoint(x: 0.05, y: 0.1), NPoint(x: 0.3, y: 0.1)], widthRatio: 0.1,
+                                      color: 0xFF00_FF00, opacity: 1, brush: .pen)]
+        edit.overlays = [
+            Overlay(id: "shape", content: .shape(.rectangle, widthRatio: 0.2, heightRatio: 0.4, ShapeStyle(color: 0xFFFF_FF00, filled: true)),
+                    transform: OverlayTransform(center: NPoint(x: 0.75, y: 0.5))),
+            Overlay(id: "text", content: .text("Hi", TextStyle(fontSizeRatio: 0.3)), transform: OverlayTransform(center: NPoint(x: 0.25, y: 0.6))),
+            Overlay(id: "emoji", content: .sticker(assetId: "emoji:😀", widthRatio: 0.1), transform: OverlayTransform(center: NPoint(x: 0.9, y: 0.15))),
+        ]
+        edit.watermark = WatermarkSpec(text: "FrameKit", pattern: .band, position: .bottomCenter)
+        let result = try CanvasLayersRenderer.apply(halves(), edit: edit)
+        let stroke = pixel(result, x: 30, y: 10)
+        #expect(stroke.g > 200 && stroke.r < 60)
+        let shape = pixel(result, x: 150, y: 50)
+        #expect(shape.r > 200 && shape.g > 200)
+        let canvas = CGSize(width: 200, height: 100)
+        #expect(OverlayRenderer.hitTest(edit.overlays, point: CGPoint(x: 150, y: 50), canvas: canvas) == "shape")
+        #expect(OverlayRenderer.hitTest(edit.overlays, point: CGPoint(x: 5, y: 95), canvas: canvas) == nil)
+        let text = OverlayRenderer.layout(edit.overlays[1], canvas: canvas)
+        #expect(text.width > 10 && text.height >= 25)
+    }
+
+    @Test func eraserOnlyClearsDrawingLayer() throws {
+        var edit = PhotoEdit(grainSeed: 1)
+        edit.drawing = [
+            DrawingStroke(id: "pen", points: [NPoint(x: 0.1, y: 0.5), NPoint(x: 0.9, y: 0.5)], widthRatio: 0.2, color: 0xFF00_FF00, opacity: 1, brush: .pen),
+            DrawingStroke(id: "erase", points: [NPoint(x: 0.25, y: 0.2), NPoint(x: 0.25, y: 0.8)], widthRatio: 0.2, color: 0, opacity: 1, brush: .eraser),
+        ]
+        let result = try CanvasLayersRenderer.apply(halves(), edit: edit)
+        // 지운 자리에는 사진(빨강)이 보인다.
+        let erased = pixel(result, x: 50, y: 50)
+        #expect(erased.r > 240 && erased.g < 20)
+        #expect(pixel(result, x: 150, y: 50).g > 200)
+    }
+}

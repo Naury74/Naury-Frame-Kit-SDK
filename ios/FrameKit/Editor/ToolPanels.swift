@@ -8,6 +8,11 @@ extension ImageTool {
         case .rotate: "tool_rotate"
         case .adjust: "tool_adjust"
         case .filter: "tool_filter"
+        case .text: "tool_text"
+        case .sticker: "tool_sticker"
+        case .draw: "tool_draw"
+        case .privacy: "tool_privacy"
+        case .watermark: "tool_watermark"
         }
     }
 
@@ -17,10 +22,15 @@ extension ImageTool {
         case .rotate: Icons.image("rotate_right")
         case .adjust: Icons.image("adjust")
         case .filter: Icons.image("filter")
+        case .text: Icons.image("text")
+        case .sticker: Icons.image("sticker")
+        case .draw: Icons.image("draw")
+        case .privacy: Icons.image("privacy")
+        case .watermark: Icons.image("watermark")
         }
     }
 
-    var resettable: Bool { true }
+    var resettable: Bool { [.crop, .rotate, .adjust, .filter].contains(self) }
 }
 
 extension AdjustKind {
@@ -59,6 +69,11 @@ struct ToolPanel: View {
                     case .rotate: RotatePanel(model: model)
                     case .adjust: AdjustPanel(model: model)
                     case .filter: FilterPanel(model: model)
+                    case .text: TextPanel(model: model)
+                    case .sticker: StickerPanel(model: model)
+                    case .draw: DrawPanel(model: model)
+                    case .privacy: PrivacyPanel(model: model)
+                    case .watermark: WatermarkPanel(model: model)
                     }
                 }
                 .padding(.vertical, 8)

@@ -25,6 +25,7 @@ public struct ImageEditorRequest: Sendable, Hashable {
         if case .file(let url) = input, !url.isFileURL { issues.append(.init(path: "input", reason: .invalidValue)) }
         if case .data(let data) = input, data.isEmpty { issues.append(.init(path: "input", reason: .invalidValue)) }
         if config.allowRedo && !config.allowUndo { issues.append(.init(path: "config.allowRedo", reason: .requiresOther)) }
+        if let watermark = config.watermark { issues += watermark.issues(path: "config.watermark") }
         if !(0...100).contains(export.quality) { issues.append(.init(path: "export.quality", reason: .outOfRange)) }
         if let w = export.maxWidth, w <= 0 { issues.append(.init(path: "export.maxWidth", reason: .outOfRange)) }
         if let h = export.maxHeight, h <= 0 { issues.append(.init(path: "export.maxHeight", reason: .outOfRange)) }

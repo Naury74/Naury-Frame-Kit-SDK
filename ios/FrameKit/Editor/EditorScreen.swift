@@ -253,11 +253,15 @@ struct EditorScreen: View {
                 }
                 .padding(.horizontal, 8)
             } else {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 4) {
-                        ForEach(model.tools, id: \.self) { railItem($0) }
+                // 도구를 닫고 돌아오면 마지막으로 연 도구가 보이게 한다.
+                ScrollViewReader { proxy in
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 4) {
+                            ForEach(model.tools, id: \.self) { railItem($0).id($0) }
+                        }
+                        .padding(.horizontal, 8)
                     }
-                    .padding(.horizontal, 8)
+                    .onAppear { if let last = model.lastTool { proxy.scrollTo(last, anchor: .center) } }
                 }
             }
         }

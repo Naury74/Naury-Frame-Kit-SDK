@@ -43,13 +43,19 @@ enum PhotoRenderer {
         guard let geometry = context.makeImage() else { throw .logged(.insufficientMemory, "makeImage") }
 
         guard applyColor else { return geometry }
-        let spec = edit.colorSpec
-        if spec.isIdentity { return geometry }
+        let colored = try color(geometry, spec: edit.colorSpec, includeCanvasEffects: includeCanvasEffects)
+        // 자르기 전 미리 보기에는 캔버스 기준 요소를 그리지 않는다.
+        guard includeCanvasEffects else { return colored }
+        return try CanvasLayersRenderer.apply(colored, edit: edit)
+    }
+
+    private static func color(_ image: CGImage, spec: ColorEffectSpec, includeCanvasEffects: Bool) throws(EditorError) -> CGImage {
+        if spec.isIdentity { return image }
         guard let pipeline = ColorPipeline.shared else {
-            return try CpuColorPipeline.apply(geometry, spec: spec, includeCanvasEffects: includeCanvasEffects)
+            return try CpuColorPipeline.apply(image, spec: spec, includeCanvasEffects: includeCanvasEffects)
         }
         do {
-            return try pipeline.apply(geometry, spec: spec, includeCanvasEffects: includeCanvasEffects)
+            return try pipeline.apply(image, spec: spec, includeCanvasEffects: includeCanvasEffects)
         } catch let error as EditorError {
             throw error
         } catch {

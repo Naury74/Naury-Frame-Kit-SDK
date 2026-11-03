@@ -95,6 +95,11 @@ struct PhotoEdit: Hashable, Sendable {
     /// 0...1.
     var filterIntensity = 0.0
     var grainSeed: Int64
+    var privacyMasks: [PrivacyMask] = []
+    var drawing: [DrawingStroke] = []
+    /// 목록 뒤쪽이 위.
+    var overlays: [Overlay] = []
+    var watermark: WatermarkSpec?
 
     init(grainSeed: Int64 = Int64.random(in: Int64.min...Int64.max)) {
         self.grainSeed = grainSeed
@@ -113,7 +118,12 @@ struct PhotoEdit: Hashable, Sendable {
     }
 
     /// 화면상 같은 결과인지. 0인 보정 항목 유무는 무시한다.
-    func sameContent(as other: PhotoEdit) -> Bool { geometry == other.geometry && sameColor(as: other) }
+    func sameContent(as other: PhotoEdit) -> Bool {
+        geometry == other.geometry && sameColor(as: other) && privacyMasks == other.privacyMasks && drawing == other.drawing
+            && overlays == other.overlays && watermark == other.watermark
+    }
+
+    var hasCanvasLayers: Bool { !privacyMasks.isEmpty || !drawing.isEmpty || !overlays.isEmpty || watermark?.isValid == true }
 
     var colorSpec: ColorEffectSpec {
         let adjustments = Adjustments(
@@ -131,6 +141,14 @@ struct PhotoEdit: Hashable, Sendable {
         guard (0...3).contains(geometry.quarterTurns), (-45...45).contains(geometry.straightenDegrees) else { return false }
         guard (0...1).contains(filterIntensity), FilterCatalog.shared.find(id: filterId) != nil else { return false }
         for (kind, value) in adjustments where !value.isFinite || value < kind.minimum || value > kind.maximum { return false }
+        for overlay in overlays {
+            let t = overlay.transform
+            guard t.center.x.isFinite, t.center.y.isFinite, OverlayTransform.scaleRange.contains(t.scale),
+                  (0...1).contains(t.opacity), t.rotationDegrees.isFinite else { return false }
+        }
+        guard Set(overlays.map(\.id) + drawing.map(\.id) + privacyMasks.map(\.id)).count == overlays.count + drawing.count + privacyMasks.count,
+              drawing.allSatisfy({ !$0.points.isEmpty && $0.points.count <= DrawingStroke.maxPoints }) else { return false }
+        if let watermark, !watermark.isValid { return false }
         let frame = GeometryFrame(sourceSize: uprightSize.kotlin, geometry: geometry.kotlin)
         return CropBoundsCalculator.shared.isValidCrop(frame: frame, crop: geometry.crop.kotlin)
     }

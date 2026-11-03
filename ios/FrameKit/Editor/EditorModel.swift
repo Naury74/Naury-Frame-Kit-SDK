@@ -45,10 +45,12 @@ final class EditorModel {
     private var delivered = false
 
     private(set) var phase: Phase
-    private(set) var history = EditHistory(PhotoEdit())
+    var history = EditHistory(PhotoEdit())
     /// 적용 전 도구 편집이나 끌기 중인 값. 있으면 화면은 이것을 그린다.
-    private(set) var working: PhotoEdit?
+    var working: PhotoEdit?
     private(set) var activeTool: ImageTool?
+    /// 마지막으로 연 도구(도구 줄 위치 기억용).
+    private(set) var lastTool: ImageTool?
     private var toolEntry: PhotoEdit?
     private(set) var cropAspect: CropAspect = .free
     var adjustKind: AdjustKind = .brightness
@@ -66,6 +68,18 @@ final class EditorModel {
     private(set) var boundsImage: CGImage?
     private(set) var filterThumbnails: [String: CGImage] = [:]
 
+    /// 고른 요소(글자·스티커·도형).
+    var selectedOverlayId: String?
+    /// 그리는 중인 획(캔버스 기준 0...1). 손을 떼면 편집에 들어간다.
+    var liveStroke: [NPoint]?
+    var brush = BrushSettings()
+    var privacy = PrivacySettings()
+    var stickerCategory = 0
+    /// 미리 보기 결과의 캔버스 크기(px). 요소 배치 계산에 쓴다.
+    private(set) var renderedCanvas = CGSize(width: 1, height: 1)
+    private let previewCache = PreviewCache()
+    private var nextId = 0
+
     private(set) var source: SourceImage?
     private(set) var preview: UprightImage?
     private var viewport = CGSize(width: 1000, height: 1000)
@@ -80,7 +94,8 @@ final class EditorModel {
         self.request = request
         self.onFinish = onFinish
         var seen = Set<ImageTool>()
-        tools = request.config.enabledTools.filter { seen.insert($0).inserted }
+        let locked = request.config.watermark?.locked == true
+        tools = request.config.enabledTools.filter { seen.insert($0).inserted && !($0 == .watermark && locked) }
         if case .pick = request.input { phase = .awaitingSource } else { phase = .loading }
     }
 
@@ -93,7 +108,15 @@ final class EditorModel {
     var uprightSize: PixelSizeValue { source?.uprightSize ?? PixelSizeValue(width: 1, height: 1) }
     var toolHasChanges: Bool {
         guard let tool = activeTool else { return false }
-        if tool.isDraft { return working.map { !$0.sameContent(as: history.current) } ?? false }
+        if tool.isDraft {
+            guard var working else { return false }
+            if let watermark = working.watermark, !watermark.isValid { working.watermark = history.current.watermark }
+            working.overlays.removeAll { overlay in
+                if case .text(let text, _) = overlay.content { return text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+                return false
+            }
+            return !working.sameContent(as: history.current)
+        }
         return toolEntry.map { !$0.sameContent(as: displayed) } ?? false
     }
 
@@ -152,7 +175,9 @@ final class EditorModel {
         self.source?.close()
         self.source = source
         self.preview = preview
-        history = EditHistory(PhotoEdit())
+        var initial = PhotoEdit()
+        if let config = request.config.watermark, config.applyOnOpen, config.spec.isValid { initial.watermark = config.spec }
+        history = EditHistory(initial)
         working = nil
         activeTool = nil
         phase = .ready
@@ -211,21 +236,43 @@ final class EditorModel {
         let maxW = max(1, Int(viewport.width * limit))
         let maxH = max(1, Int(viewport.height * limit))
         renderTask?.cancel()
+        let cache = previewCache
         renderTask = Task.detached(priority: .userInitiated) {
             let image: CGImage?
             do {
                 let math = GeometryMath(source: upright, geometry: edit.geometry)
                 let crop = bounds ? NRect.full : edit.geometry.crop
                 let output = math.outputSize(crop: crop, maxPixels: Int(Int32.max), maxWidth: maxW, maxHeight: maxH)
-                image = try PhotoRenderer.render(image: preview, uprightSize: upright, edit: edit, crop: crop, output: output,
-                                                 background: nil, includeCanvasEffects: !bounds)
+                if bounds {
+                    image = try PhotoRenderer.render(image: preview, uprightSize: upright, edit: edit, crop: crop, output: output,
+                                                     background: nil, includeCanvasEffects: false)
+                } else {
+                    // 기하·색이 같으면 앞서 만든 바탕을 다시 쓰고 겹쳐 그리기만 새로 한다.
+                    let key = PreviewCache.Key(edit: edit, output: output)
+                    let base: CGImage
+                    if let cached = cache.image(for: key) {
+                        base = cached
+                    } else {
+                        var colorOnly = edit
+                        colorOnly.overlays = []; colorOnly.drawing = []; colorOnly.privacyMasks = []; colorOnly.watermark = nil
+                        base = try PhotoRenderer.render(image: preview, uprightSize: upright, edit: colorOnly, crop: crop, output: output,
+                                                        background: nil, includeCanvasEffects: true)
+                        cache.store(base, for: key)
+                    }
+                    image = try CanvasLayersRenderer.apply(base, edit: edit)
+                }
             } catch {
                 image = nil
             }
             guard !Task.isCancelled else { return }
             await MainActor.run {
                 guard generation == self.renderGeneration, let image else { return }
-                if bounds { self.boundsImage = image } else { self.rendered = image }
+                if bounds {
+                    self.boundsImage = image
+                } else {
+                    self.rendered = image
+                    self.renderedCanvas = CGSize(width: image.width, height: image.height)
+                }
             }
         }
     }
@@ -267,6 +314,7 @@ final class EditorModel {
         guard phase == .ready, export == nil else { return }
         showChrome()
         activeTool = tool
+        lastTool = tool
         if tool.isDraft {
             working = history.current
         } else {
@@ -274,13 +322,30 @@ final class EditorModel {
         }
         if tool == .crop { cropAspect = .free }
         if tool == .filter { makeFilterThumbnails() }
+        if tool == .text { beginText() }
+        if tool == .watermark, working?.watermark == nil {
+            working?.watermark = request.config.watermark.map { config in
+                var spec = config.spec
+                spec.text = ""
+                return spec
+            } ?? WatermarkSpec(text: "")
+        }
+        if tool == .draw || tool == .privacy { selectedOverlayId = nil }
         requestRender()
     }
 
     /// 적용 단추.
     func applyTool() {
         guard let tool = activeTool else { return }
-        if tool.isDraft, let working { history.commit(working) }
+        if tool.isDraft, var working {
+            // 빈 글자와 빈 워터마크는 넣지 않는다.
+            working.overlays.removeAll { overlay in
+                if case .text(let text, _) = overlay.content { return text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+                return false
+            }
+            if let watermark = working.watermark, !watermark.isValid { working.watermark = nil }
+            history.commit(working)
+        }
         closeTool()
     }
 
@@ -323,6 +388,7 @@ final class EditorModel {
 
     func undo() {
         guard canUndo else { return }
+        selectedOverlayId = nil
         history.undo()
         filterThumbnails = [:]
         requestRender()
@@ -344,7 +410,7 @@ final class EditorModel {
 
     // MARK: - 자르기·회전
 
-    private func updateWorking(_ change: (inout PhotoEdit) -> Void) {
+    func updateWorking(_ change: (inout PhotoEdit) -> Void) {
         var edit = working ?? history.current
         change(&edit)
         working = edit
@@ -421,7 +487,7 @@ final class EditorModel {
     }
 
     func commitGesture() {
-        guard let tool = activeTool, !tool.isDraft, let working else { return }
+        guard activeTool?.isDraft != true, let working else { return }
         history.commit(working)
         self.working = nil
         requestRender()
@@ -462,7 +528,7 @@ final class EditorModel {
             edit.filterIntensity = 0
             history.commit(edit)
             requestRender()
-        case nil:
+        default:
             break
         }
     }

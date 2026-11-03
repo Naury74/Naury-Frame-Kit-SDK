@@ -87,14 +87,16 @@ def write_icons():
         for path in root.iter("path"):
             data = path.get(ANDROID_NS + "pathData")
             rule = "evenodd" if path.get(ANDROID_NS + "fillType") == "evenOdd" else "nonzero"
+            fill_alpha = path.get(ANDROID_NS + "fillAlpha", "1")
+            stroke_alpha = path.get(ANDROID_NS + "strokeAlpha", "1")
             if path.get(ANDROID_NS + "strokeColor") is not None:
                 width = path.get(ANDROID_NS + "strokeWidth", "1")
                 cap = path.get(ANDROID_NS + "strokeLineCap", "butt")
                 join = path.get(ANDROID_NS + "strokeLineJoin", "miter")
                 paths.append(f'<path d="{data}" fill="none" stroke="#000" stroke-width="{width}" '
-                             f'stroke-linecap="{cap}" stroke-linejoin="{join}"/>')
+                             f'stroke-linecap="{cap}" stroke-linejoin="{join}" stroke-opacity="{stroke_alpha}"/>')
             else:
-                paths.append(f'<path d="{data}" fill="#000" fill-rule="{rule}"/>')
+                paths.append(f'<path d="{data}" fill="#000" fill-rule="{rule}" fill-opacity="{fill_alpha}"/>')
         icon = name.removeprefix("framekit_ic_").removesuffix(".xml")
         folder = os.path.join(assets, f"fk_{icon}.imageset")
         os.makedirs(folder, exist_ok=True)
