@@ -362,3 +362,54 @@ struct PdfExportTests {
         #expect(images.count == 2 && Set(images.map(\.url)).count == 2)
     }
 }
+
+struct DocumentTests {
+    /// 어두운 책상 위 기울어진 흰 종이(글자 줄 포함).
+    static func paperPhoto() throws -> URL {
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        let image = UIGraphicsImageRenderer(size: CGSize(width: 1600, height: 1200), format: format).image { context in
+            UIColor(red: 0.35, green: 0.22, blue: 0.12, alpha: 1).setFill()
+            UIRectFill(CGRect(x: 0, y: 0, width: 1600, height: 1200))
+            let paper = UIBezierPath()
+            paper.move(to: CGPoint(x: 420, y: 160)); paper.addLine(to: CGPoint(x: 1240, y: 220))
+            paper.addLine(to: CGPoint(x: 1180, y: 1080)); paper.addLine(to: CGPoint(x: 360, y: 1010)); paper.close()
+            UIColor(white: 0.93, alpha: 1).setFill()
+            paper.fill()
+            context.cgContext.saveGState()
+            paper.addClip()
+            UIColor(white: 0.15, alpha: 1).setFill()
+            for i in 0..<10 { UIRectFill(CGRect(x: 480, y: 300 + i * 70, width: 600, height: 18)) }
+            context.cgContext.restoreGState()
+        }
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".jpg")
+        try image.jpegData(compressionQuality: 0.95)!.write(to: url)
+        return url
+    }
+
+    @Test func detectsAndRectifiesPaper() throws {
+        let source = try SourceImage(url: try Self.paperPhoto(), removeOnClose: true)
+        defer { source.close() }
+        let preview = try source.decode(maxLongEdge: 1600)
+        let detection = try #require(DocumentEngine.detect(preview.cgImage))
+        let tl = detection.quad.corners[0]
+        #expect(abs(tl.x - 420.0 / 1600) < 0.04 && abs(tl.y - 160.0 / 1200) < 0.04)
+        let url = try DocumentEngine.rectify(source: source, quad: detection.quad, detection: detection, style: .blackWhite)
+        let result = try SourceImage(url: url, removeOnClose: true)
+        defer { result.close() }
+        // 종이 비율(약 820×860)에 가깝고 세로가 조금 더 길다.
+        let ratio = Double(result.uprightSize.width) / Double(result.uprightSize.height)
+        #expect(ratio > 0.85 && ratio < 1.05)
+        let image = try result.decode(maxLongEdge: 2000).cgImage
+        // 흑백 스캔: 종이는 흰색, 글자 줄은 검정.
+        let paper = pixel(image, x: image.width / 2, y: image.height - 20)
+        #expect(paper.r > 240 && paper.g > 240)
+    }
+
+    @Test func rejectsBrokenQuad() throws {
+        let source = try SourceImage(url: try Self.paperPhoto(), removeOnClose: true)
+        defer { source.close() }
+        let bow = DocQuad(corners: [NPoint(x: 0.1, y: 0.1), NPoint(x: 0.9, y: 0.9), NPoint(x: 0.9, y: 0.1), NPoint(x: 0.1, y: 0.9)])
+        #expect(throws: EditorError.self) { try DocumentEngine.rectify(source: source, quad: bow, detection: nil, style: .color) }
+    }
+}

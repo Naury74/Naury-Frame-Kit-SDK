@@ -6,6 +6,7 @@ extension ImageTool {
         switch self {
         case .crop: "tool_crop"
         case .rotate: "tool_rotate"
+        case .document: "tool_document"
         case .adjust: "tool_adjust"
         case .filter: "tool_filter"
         case .text: "tool_text"
@@ -20,6 +21,7 @@ extension ImageTool {
         switch self {
         case .crop: Icons.image("crop")
         case .rotate: Icons.image("rotate_right")
+        case .document: Icons.image("document")
         case .adjust: Icons.image("adjust")
         case .filter: Icons.image("filter")
         case .text: Icons.image("text")
@@ -67,6 +69,7 @@ struct ToolPanel: View {
                     switch tool {
                     case .crop: CropPanel(model: model)
                     case .rotate: RotatePanel(model: model)
+                    case .document: DocumentPanel(model: model)
                     case .adjust: AdjustPanel(model: model)
                     case .filter: FilterPanel(model: model)
                     case .text: TextPanel(model: model)

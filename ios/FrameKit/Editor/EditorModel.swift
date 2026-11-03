@@ -46,7 +46,7 @@ final class EditorModel {
 
     private(set) var phase: Phase
     /// 편집 중인 사진들. 순서가 저장 순서다.
-    private(set) var pages: [EditorPage] = []
+    var pages: [EditorPage] = []
     private(set) var pageIndex = 0
     /// 사진 추가 선택기를 띄운다.
     var showAddPicker = false
@@ -71,6 +71,11 @@ final class EditorModel {
     var showDraftDialog = false
     private(set) var notice: String?
     private(set) var draggingCrop = false
+    /// 문서 도구의 모서리(원본 업라이트 기준).
+    var documentQuad: DocQuad?
+    var scanStyle = ScanStyle.color
+    var documentBusy = false
+    var documentSuggestionDismissed = false
 
     /// 미리 보기 결과(현재 편집, 출력 화면 크기).
     var rendered: CGImage?
@@ -222,7 +227,10 @@ final class EditorModel {
 
     private func opened(_ items: [(SourceImage, UprightImage)], append: Bool) {
         if !append {
-            pages.forEach { $0.source.close() }
+            pages.forEach { page in
+            page.source.close()
+            page.original?.source.close()
+        }
             pages = []
         }
         var initial = PhotoEdit()
@@ -243,6 +251,7 @@ final class EditorModel {
             selectPage(pages.count - 1)
         }
         requestRender()
+        detectDocument()
     }
 
     // MARK: - 여러 장
@@ -254,6 +263,7 @@ final class EditorModel {
         filterThumbnails = [:]
         rendered = nil
         requestRender()
+        detectDocument()
     }
 
     func removePage(_ index: Int) {
@@ -427,12 +437,17 @@ final class EditorModel {
             } ?? WatermarkSpec(text: "")
         }
         if tool == .draw || tool == .privacy { selectedOverlayId = nil }
+        if tool == .document {
+            let page = pages[pageIndex]
+            documentQuad = page.appliedQuad ?? page.detection?.quad ?? .inset(0.08)
+        }
         requestRender()
     }
 
     /// 적용 단추.
     func applyTool() {
         guard let tool = activeTool else { return }
+        if tool == .document { applyDocument(); return }
         if tool.isDraft, var working {
             // 빈 글자와 빈 워터마크는 넣지 않는다.
             working.overlays.removeAll { overlay in
@@ -452,6 +467,8 @@ final class EditorModel {
         }
         closeTool()
     }
+
+    func closeToolAfterDocument() { closeTool() }
 
     private func closeTool() {
         working = nil

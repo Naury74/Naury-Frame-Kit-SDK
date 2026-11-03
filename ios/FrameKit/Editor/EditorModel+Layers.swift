@@ -283,10 +283,17 @@ enum EmojiCatalog_core {
 
 /// 편집 중인 사진 한 장.
 struct EditorPage {
-    let source: SourceImage
-    let preview: UprightImage
+    var source: SourceImage
+    var preview: UprightImage
     var history: EditHistory
     var thumbnail: CGImage?
+    /// 문서로 펴기 전 원본. 있으면 '원래대로'로 되돌릴 수 있다.
+    var original: (source: SourceImage, preview: UprightImage)?
+    /// 원본에서 찾은 문서. 찾지 않았으면 `detected == false`.
+    var detection: DocDetection?
+    var detected = false
+    /// 마지막으로 편 모서리.
+    var appliedQuad: DocQuad?
 }
 
 extension UprightImage {

@@ -24,7 +24,9 @@ struct EditorCanvas: View {
             let area = CGRect(origin: .zero, size: geo.size).insetBy(dx: padding, dy: padding)
             ZStack {
                 theme.canvas
-                if showsBounds {
+                if model.activeTool == .document {
+                    DocumentCanvas(model: model, area: area)
+                } else if showsBounds {
                     boundsView(area: area)
                         .onAppear { zoom = 1; pan = .zero }
                 } else {

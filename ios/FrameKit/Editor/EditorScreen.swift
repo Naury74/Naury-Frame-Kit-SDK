@@ -201,6 +201,12 @@ struct EditorScreen: View {
                 }
             }
             .overlay(alignment: .bottom) {
+                if model.showsDocumentSuggestion && model.notice == nil {
+                    DocumentPill(model: model)
+                        .editorChrome(hidden: model.chromeHidden, reduceMotion: reduceMotion) { model.showChrome() }
+                }
+            }
+            .overlay(alignment: .bottom) {
                 if let notice = model.notice {
                     Text(strings(notice)).font(.system(size: 14)).foregroundStyle(theme.foreground)
                         .padding(.horizontal, 16).padding(.vertical, 10)
@@ -255,9 +261,9 @@ struct EditorScreen: View {
 
     private var toolRail: some View {
         Group {
-            if model.tools.count <= 5 {
+            if model.visibleTools.count <= 5 {
                 HStack(spacing: 0) {
-                    ForEach(model.tools, id: \.self) { tool in
+                    ForEach(model.visibleTools, id: \.self) { tool in
                         railItem(tool).frame(maxWidth: .infinity)
                     }
                 }
@@ -267,7 +273,7 @@ struct EditorScreen: View {
                 ScrollViewReader { proxy in
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 4) {
-                            ForEach(model.tools, id: \.self) { railItem($0).id($0) }
+                            ForEach(model.visibleTools, id: \.self) { railItem($0).id($0) }
                         }
                         .padding(.horizontal, 8)
                     }
@@ -296,7 +302,7 @@ struct EditorScreen: View {
     private var toolGrid: some View {
         ScrollView {
             LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 3), spacing: 8) {
-                ForEach(model.tools, id: \.self) { tool in
+                ForEach(model.visibleTools, id: \.self) { tool in
                     Button { model.selectTool(tool) } label: {
                         VStack(spacing: 6) {
                             tool.icon.resizable().scaledToFit().frame(width: 24, height: 24)

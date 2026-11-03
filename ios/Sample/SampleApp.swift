@@ -26,6 +26,7 @@ struct ContentView: View {
                     Button("샘플 이미지") { open(.data(SampleImage.make())) }
                     Button("여러 장 고르기") { open(.pickMultiple(maxItems: 10)) }
                     Button("여러 장 샘플(3장)") { open(.files(SampleImage.files(count: 3))) }
+                    Button("문서 샘플") { open(.data(SampleImage.document())) }
                 }
                 Section("설정") {
                     Picker("저장 형식", selection: $format) {
@@ -61,6 +62,7 @@ struct ContentView: View {
             if arguments.contains("-pdf") { format = .pdf }
             if arguments.contains("-openSample") { open(.data(SampleImage.make())) }
             if arguments.contains("-openSamples") { open(.files(SampleImage.files(count: 3))) }
+            if arguments.contains("-openDocument") { open(.data(SampleImage.document())) }
         }
         .frameKitImageEditor(isPresented: $showEditor, request: request ?? ImageEditorRequest(input: .pick)) { result in
             handle(result)
@@ -106,6 +108,28 @@ enum SampleImage {
             try? make(label: "Page \(index)").write(to: url)
             return url
         }
+    }
+
+    /// 책상 위에 기울어진 종이 사진.
+    static func document() -> Data {
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        let image = UIGraphicsImageRenderer(size: CGSize(width: 2400, height: 1800), format: format).image { context in
+            UIColor(red: 0.35, green: 0.22, blue: 0.12, alpha: 1).setFill()
+            UIRectFill(CGRect(x: 0, y: 0, width: 2400, height: 1800))
+            let paper = UIBezierPath()
+            paper.move(to: CGPoint(x: 640, y: 220)); paper.addLine(to: CGPoint(x: 1860, y: 320))
+            paper.addLine(to: CGPoint(x: 1760, y: 1620)); paper.addLine(to: CGPoint(x: 540, y: 1520)); paper.close()
+            UIColor(white: 0.92, alpha: 1).setFill()
+            paper.fill()
+            context.cgContext.saveGState()
+            paper.addClip()
+            let text = "FrameKit 문서 스캔\n\n반듯하게 펴고\n그림자를 지웁니다." as NSString
+            text.draw(in: CGRect(x: 760, y: 500, width: 1000, height: 900),
+                      withAttributes: [.font: UIFont.boldSystemFont(ofSize: 90), .foregroundColor: UIColor(white: 0.12, alpha: 1)])
+            context.cgContext.restoreGState()
+        }
+        return image.jpegData(compressionQuality: 0.92)!
     }
 
     static func make(label: String = "FrameKit") -> Data {
