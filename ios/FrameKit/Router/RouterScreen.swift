@@ -29,6 +29,7 @@ struct RouterRoot: View {
                 case .video(let editorModel): VideoEditorRoot(model: editorModel)
                 case .motion(let editorModel): MotionEditorRoot(model: editorModel)
                 case .audio(let editorModel): AudioEditorRoot(model: editorModel)
+                case .mixed(let editorModel): MixedEditorScreen(model: editorModel)
                 }
             }
         }
@@ -152,6 +153,7 @@ struct ChooserScreen: View {
             return (key, key + "_body", Icons.image("motion"), Color(argb: 0xFFFF_6B9A))
         case .editVideo: return ("chooser_video", "chooser_video_body", Icons.image("trim"), Color(argb: 0xFF2E_B67D))
         case .editAudio: return ("chooser_audio", "chooser_audio_body", Icons.image("mic"), Color(argb: 0xFFF5_9F00))
+        case .editEach: return ("chooser_each", "chooser_each_body", Icons.image("adjust"), theme.accent)
         case .sendOriginal: return ("chooser_send", "chooser_send_body", Image(systemName: "paperplane"), theme.foreground)
         }
     }

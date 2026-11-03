@@ -8197,85 +8197,251 @@
         }
       }
     },
+    "chooser_each": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Einzeln bearbeiten"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Edit one by one"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Editar uno por uno"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Modifier un par un"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Edit satu per satu"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1つずつ編集"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "하나씩 편집"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Editar um por um"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Редактировать по одному"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "แก้ไขทีละรายการ"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chỉnh sửa từng mục"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "逐个编辑"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "逐一編輯"
+          }
+        }
+      }
+    },
+    "chooser_each_body": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zwischen Fotos und Videos wechseln, jedes bearbeiten und alle zusammen speichern"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Switch between photos and videos to edit each, then save them all"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cambia entre fotos y vídeos para editar cada uno y guárdalos todos a la vez"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Passez des photos aux vidéos pour modifier chacune, puis enregistrez tout d'un coup"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Beralih antara foto dan video untuk mengedit masing-masing, lalu simpan semuanya"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "写真と動画を切り替えながらそれぞれ編集し、まとめて保存します"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "사진과 영상을 오가며 각각 편집하고 한 번에 저장해요"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alterne entre fotos e vídeos para editar cada um e salve tudo de uma vez"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Переключайтесь между фото и видео, редактируйте каждое и сохраняйте всё сразу"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "สลับระหว่างรูปและวิดีโอเพื่อแก้ไขแต่ละรายการ แล้วบันทึกทั้งหมดในครั้งเดียว"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chuyển giữa ảnh và video để chỉnh sửa từng mục, rồi lưu tất cả một lần"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在照片和视频之间切换分别编辑，然后一次保存全部"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在照片和影片之間切換分別編輯，然後一次儲存全部"
+          }
+        }
+      }
+    },
     "chooser_mixed": {
       "extractionState": "manual",
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Fotos und Videos können nicht zusammen bearbeitet werden. Du kannst die Originale senden."
+            "value": "Du hast Fotos und Videos ausgewählt. Bearbeite sie einzeln oder sende sie unverändert."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Photos and videos can't be edited together. You can still send them as they are."
+            "value": "You picked photos and videos together. Edit each one, or send them as they are."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "No se pueden editar fotos y vídeos a la vez. Puedes enviar los originales."
+            "value": "Elegiste fotos y vídeos juntos. Puedes editarlos uno por uno o enviarlos tal cual."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Impossible de modifier photos et vidéos ensemble. Vous pouvez envoyer les originaux."
+            "value": "Vous avez choisi des photos et des vidéos. Modifiez-les une par une ou envoyez-les telles quelles."
           }
         },
         "id": {
           "stringUnit": {
             "state": "translated",
-            "value": "Foto dan video tidak bisa diedit bersama. Anda tetap bisa mengirim aslinya."
+            "value": "Anda memilih foto dan video bersamaan. Edit satu per satu atau kirim apa adanya."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "写真と動画は一緒に編集できません。そのまま送ることはできます。"
+            "value": "写真と動画を一緒に選びました。1つずつ編集するか、そのまま送ることができます。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "사진과 영상은 함께 편집할 수 없어요. 원본 그대로 보낼 수는 있어요."
+            "value": "사진과 영상을 함께 골랐어요. 하나씩 편집하거나 원본 그대로 보낼 수 있어요."
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Não é possível editar fotos e vídeos juntos. Você ainda pode enviar os originais."
+            "value": "Você escolheu fotos e vídeos juntos. Edite um por um ou envie como estão."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Фото и видео нельзя редактировать вместе. Можно отправить оригиналы."
+            "value": "Вы выбрали фото и видео вместе. Отредактируйте их по одному или отправьте как есть."
           }
         },
         "th": {
           "stringUnit": {
             "state": "translated",
-            "value": "แก้ไขรูปภาพและวิดีโอพร้อมกันไม่ได้ แต่ส่งต้นฉบับได้"
+            "value": "คุณเลือกรูปและวิดีโอพร้อมกัน แก้ไขทีละรายการหรือส่งตามต้นฉบับได้"
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Không thể chỉnh sửa ảnh và video cùng lúc. Bạn vẫn có thể gửi bản gốc."
+            "value": "Bạn đã chọn cả ảnh và video. Hãy chỉnh sửa từng mục hoặc gửi nguyên bản."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "照片和视频不能一起编辑，但可以直接发送原件。"
+            "value": "你同时选择了照片和视频。可以逐个编辑，或按原样发送。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "相片和影片無法一起編輯，但可以直接傳送原始檔案。"
+            "value": "你同時選擇了照片和影片。可以逐一編輯，或依原樣傳送。"
           }
         }
       }

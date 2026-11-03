@@ -110,11 +110,12 @@ enum SourceInspector {
     }
 
     /// 고를 수 있는 할 일. 순서가 보이는 순서다. Android ChooserRules와 같다.
-    static func actions(_ kinds: [SourceKind], allowed: Set<EditorAction>) -> (actions: [EditorAction], mixed: Bool) {
+    /// - Parameter mixedEdit: 사진·영상 혼합을 편집할 수 있으면 `true`.
+    static func actions(_ kinds: [SourceKind], allowed: Set<EditorAction>, mixedEdit: Bool = true) -> (actions: [EditorAction], mixed: Bool) {
         let groups = Set(kinds.map(\.mediaKind))
         let mixed = groups.count > 1
         let candidates: [EditorAction] = if mixed {
-            [.sendOriginal]
+            mixedEdit && !groups.contains(.audio) ? [.editEach, .sendOriginal] : [.sendOriginal]
         } else if groups.contains(.audio) {
             [.editAudio, .sendOriginal]
         } else if groups.contains(.video) {

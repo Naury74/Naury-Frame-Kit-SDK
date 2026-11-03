@@ -23,6 +23,7 @@ final class MotionEditorModel {
     let tools: [MotionTool]
     private let onFinish: (FrameKitResult) -> Void
     private var delivered = false
+    private var started = false
 
     private(set) var phase: Phase
     private(set) var sources: [MotionSource] = []
@@ -125,6 +126,9 @@ final class MotionEditorModel {
     // MARK: - 열기
 
     func start() {
+        // 화면이 다시 나타나도 원본을 다시 열지 않는다.
+        guard !started else { return }
+        started = true
         OutputStore.removeStalePartials()
         let issues = request.validate()
         guard issues.isEmpty else {

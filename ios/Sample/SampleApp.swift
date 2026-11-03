@@ -98,6 +98,12 @@ struct RootView: View {
         if arguments.contains("-openGif") { launch = .motion(settings.motion(.data(SampleImage.gif()))) }
         if arguments.contains("-openAudio") { launch = .audio(settings.audio(.files(SampleAudio.files()))) }
         if arguments.contains("-openChooser") { launch = .router(settings.router(.files(SampleImage.files(count: 2)), chooser: .ask)) }
+        if arguments.contains("-openMixed") {
+            Task {
+                let photos = SampleImage.files(count: 2), videos = await SampleVideo.files()
+                launch = .router(settings.router(.files([photos[0], videos[0], photos[1], videos[1]])))
+            }
+        }
         if arguments.contains("-openVideo") { Task { launch = .video(settings.video(.files(await SampleVideo.files()))) } }
     }
 }
@@ -120,6 +126,12 @@ struct HomeView: View {
                     }
                     row("샘플 사진으로 시트 보기", "rectangle.stack", "샘플 2장으로 고르기 시트를 엽니다.") {
                         launch = .router(settings.router(.files(SampleImage.files(count: 2)), chooser: .ask))
+                    }
+                    row("샘플 사진·영상 섞어 편집", "square.on.square", "사진 2장과 영상 2개를 오가며 편집하고 한 번에 저장합니다.") {
+                        Task {
+                            let photos = SampleImage.files(count: 2), videos = await SampleVideo.files()
+                            launch = .router(settings.router(.files([photos[0], videos[0], photos[1], videos[1]])))
+                        }
                     }
                     row("카메라로 찍기", "camera", "찍은 사진을 바로 편집합니다.") {
                         launch = .router(settings.router(.capture, kind: .image))

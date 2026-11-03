@@ -86,11 +86,21 @@ private struct HapticsKey: EnvironmentKey {
     static let defaultValue = Haptics(enabled: true)
 }
 
+private struct EmbeddedKey: EnvironmentKey {
+    static let defaultValue = false
+}
+
 private struct FontIdKey: EnvironmentKey {
     static let defaultValue: String? = nil
 }
 
 extension EnvironmentValues {
+    /// 혼합 편집 화면 안에 들어 있다. 편집기 자체의 닫기·저장을 숨긴다.
+    var editorEmbedded: Bool {
+        get { self[EmbeddedKey.self] }
+        set { self[EmbeddedKey.self] = newValue }
+    }
+
     /// 편집기 글자에 쓸 사용자 글꼴 id.
     var editorFontId: String? {
         get { self[FontIdKey.self] }

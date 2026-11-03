@@ -35,11 +35,12 @@ UIKit은 `FrameKitViewController(request:completion:)`를 씁니다.
 
 - `mediaKind`: `.pick`·`.pickMultiple`·`.capture`로 고를 종류. `.image`, `.video`, `.any`(사진과 영상), `.audio`. `.capture`에는 `.any`를 쓸 수 없습니다.
 - `chooser`: `.auto`는 바로 편집기를 열고, `.ask`는 할 일을 묻는 시트를 보입니다. 할 일이 하나뿐이면 묻지 않습니다.
-- `chooserActions`: 시트에 보일 할 일(`editPhoto`, `makePDF`, `motion`, `editVideo`, `editAudio`, `sendOriginal`).
+- `chooserActions`: 시트에 보일 할 일(`editPhoto`, `editEach`, `makePDF`, `motion`, `editVideo`, `editAudio`, `sendOriginal`).
   - 사진: 사진 편집, PDF로 묶기, 움직이는 이미지 만들기, 원본 보내기
   - 움직이는 이미지 한 장: 움직이는 이미지 편집, 첫 장면만 사진으로 편집, 원본 보내기
   - 영상: 영상 편집, 원본 보내기 / 소리: 음성 편집, 원본 보내기
-  - 종류가 섞이면(예: 사진과 영상) 원본 보내기만 보입니다. `.auto`에서는 `unsupportedOperation`으로 실패합니다.
+  - 사진과 영상이 섞이면: 하나씩 편집, 원본 보내기 / 소리가 섞이면 원본 보내기만 보입니다.
+- `mixedSelection`: 사진과 영상을 섞어 고른 경우. `.edit`(기본)은 혼합 편집 화면을 엽니다. 아래 줄에서 항목을 누르면 그 종류의 편집 화면으로 바뀌고, 항목마다 편집 내용을 따로 기억하며, 저장은 한 번에 해서 고른 순서대로 결과를 돌려줍니다(최대 20개, 영상은 항목마다 클립 하나). `.reject`는 `.auto`에서 `unsupportedOperation`으로 실패하고 `.ask`에서는 원본 보내기만 합니다.
 - 원본 보내기는 파일을 결과 폴더로 복사해 `isOriginal == true`로 돌려줍니다.
 - `image`·`imageExport`·`video`·`videoExport`·`motion`·`motionExport`·`audio`·`audioExport`·`ui`·`catalog`는 각 편집기 설정 그대로 쓰입니다. `openAnimatedInMotionEditor`(기본 `true`)가 `false`면 GIF도 사진 편집기로 엽니다.
 

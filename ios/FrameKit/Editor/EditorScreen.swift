@@ -54,7 +54,7 @@ private struct StatusView: View {
                 Text(strings(errorKey(error.code))).scaledFont(16).foregroundStyle(theme.foreground)
                     .multilineTextAlignment(.center).padding(.horizontal, 32)
                 if case .pick = model.request.input, error.suggestedAction == .chooseAnotherSource {
-                    EditorButton(title: strings("action_choose_another")) { model.start() }
+                    EditorButton(title: strings("action_choose_another")) { model.chooseAnother() }
                 }
                 EditorButton(title: strings("action_close"), kind: .tonal) { model.finish(.failure(error)) }
             } else {
@@ -79,6 +79,7 @@ struct EditorScreen: View {
     @Environment(\.editorTheme) private var theme
     @Environment(\.strings) private var strings
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.editorEmbedded) private var embedded
 
     var body: some View {
         GeometryReader { geo in
@@ -158,7 +159,16 @@ struct EditorScreen: View {
 
     // MARK: - 상단 바
 
+    @ViewBuilder
     private var topBar: some View {
+        if embedded && model.activeTool == nil {
+            EmptyView()
+        } else {
+            fullTopBar
+        }
+    }
+
+    private var fullTopBar: some View {
         ZStack {
             if let tool = model.activeTool {
                 Text(strings(tool.labelKey)).scaledFont(17, weight: .semibold).foregroundStyle(theme.foreground)
@@ -178,6 +188,7 @@ struct EditorScreen: View {
                 .buttonStyle(PressFadeStyle())
                 .accessibilityLabel(strings(model.activeTool == nil ? "action_close" : "action_back"))
                 Spacer()
+                if !embedded {
                 Button { model.save() } label: {
                     Text(strings("action_save")).scaledFont(16, weight: .semibold)
                         .foregroundStyle(theme.onAccent)
@@ -189,6 +200,7 @@ struct EditorScreen: View {
                 }
                 .buttonStyle(PressFadeStyle())
                 .disabled(model.export != nil)
+                }
             }
         }
         .padding(.horizontal, 12)

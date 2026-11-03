@@ -7,7 +7,7 @@ import UniformTypeIdentifiers
 @Observable
 final class RouterModel {
     enum Editor {
-        case image(EditorModel), video(VideoEditorModel), motion(MotionEditorModel), audio(AudioEditorModel)
+        case image(EditorModel), video(VideoEditorModel), motion(MotionEditorModel), audio(AudioEditorModel), mixed(MixedEditorModel)
     }
 
     struct Choice {
@@ -116,7 +116,11 @@ final class RouterModel {
     private func openAutomatically(_ urls: [URL], _ kinds: [SourceKind]) {
         let groups = Set(kinds.map(\.mediaKind))
         guard groups.count == 1, let group = groups.first else {
-            finish(.failure(.logged(.unsupportedOperation, "mixed media kinds")))
+            if groups == [.image, .video] && request.mixedSelection == .edit {
+                perform(.editEach, urls, kinds)
+            } else {
+                finish(.failure(.logged(.unsupportedOperation, "mixed media kinds")))
+            }
             return
         }
         switch group {
@@ -130,7 +134,7 @@ final class RouterModel {
     }
 
     private func showChooser(_ urls: [URL], _ kinds: [SourceKind]) {
-        let (actions, mixed) = SourceInspector.actions(kinds, allowed: request.chooserActions)
+        let (actions, mixed) = SourceInspector.actions(kinds, allowed: request.chooserActions, mixedEdit: request.mixedSelection == .edit)
         if actions.isEmpty {
             if mixed { finish(.failure(.logged(.unsupportedOperation, "no action for mixed media"))) } else { openAutomatically(urls, kinds) }
             return
@@ -159,6 +163,7 @@ final class RouterModel {
         case .motion: open(.motion(MotionEditorModel(request: request.motionRequest(files(request.motion.maxImageCount)), onFinish: finishEditor)))
         case .editVideo: open(.video(VideoEditorModel(request: request.videoRequest(files(request.video.maxClipCount)), onFinish: finishEditor)))
         case .editAudio: open(.audio(AudioEditorModel(request: request.audioRequest(files(request.audio.maxSourceCount)), onFinish: finishEditor)))
+        case .editEach: open(.mixed(MixedEditorModel(request: request, urls: urls, kinds: kinds, onFinish: finishEditor)))
         case .sendOriginal:
             phase = .working
             Task {
@@ -195,6 +200,7 @@ final class RouterModel {
             case .video(let model): model.dismissedWithoutResult()
             case .motion(let model): model.dismissedWithoutResult()
             case .audio(let model): model.dismissedWithoutResult()
+            case .mixed(let model): model.finish(.cancelled)
             }
         }
         finish(.cancelled)

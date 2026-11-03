@@ -45,6 +45,11 @@ final class EditorModel {
     let tools: [ImageTool]
     private let onFinish: (FrameKitResult) -> Void
     private var delivered = false
+    private var started = false
+    /// 결과를 넘겼다.
+    var isFinished: Bool { delivered }
+    /// 혼합 편집 화면이 결과를 받는다.
+    var onExternalFinish: ((FrameKitResult) -> Void)?
 
     private(set) var phase: Phase
     /// 편집 중인 사진들. 순서가 저장 순서다.
@@ -142,7 +147,16 @@ final class EditorModel {
 
     // MARK: - 원본 열기
 
+    /// 열기에 실패한 뒤 사진을 다시 고른다.
+    func chooseAnother() {
+        guard case .failed = phase else { return }
+        phase = .awaitingSource
+    }
+
     func start() {
+        // 화면이 다시 나타나도 원본을 다시 열지 않는다.
+        guard !started else { return }
+        started = true
         OutputStore.removeStalePartials()
         if tools.contains(.cutout) {
             Task.detached(priority: .utility) {
@@ -756,6 +770,7 @@ final class EditorModel {
     func finish(_ result: FrameKitResult) {
         guard !delivered else { return }
         delivered = true
+        onExternalFinish?(result)
         renderTask?.cancel()
         exportTask?.cancel()
         pages.forEach { $0.source.close() }

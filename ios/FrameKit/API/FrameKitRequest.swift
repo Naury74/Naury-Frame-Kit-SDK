@@ -17,9 +17,19 @@ public enum EditorChooser: String, Sendable, CaseIterable {
     case ask
 }
 
+/// 사진과 영상을 섞어 골랐을 때.
+public enum MixedSelection: String, Sendable, CaseIterable {
+    /// 혼합 편집 화면을 연다. 아래 줄에서 고른 항목에 맞는 편집 화면을 보이고, 저장은 한 번에 한다(최대 20개).
+    case edit
+    /// 열지 않는다. `.auto`에서는 `unsupportedOperation`, `.ask`에서는 원본 보내기만 보인다.
+    case reject
+}
+
 /// 고르기 시트의 할 일.
 public enum EditorAction: String, Sendable, CaseIterable {
     case editPhoto
+    /// 섞어 고른 사진·영상을 하나씩 편집한다.
+    case editEach
     /// 사진들을 PDF 하나로 묶는다.
     case makePDF
     /// 움직이는 이미지를 만들거나 편집한다.
@@ -33,7 +43,7 @@ public enum EditorAction: String, Sendable, CaseIterable {
 /// 하나의 진입점으로 사진·영상·움직이는 이미지·소리를 여는 요청. 원본 종류에 맞는 편집기로 보낸다.
 ///
 /// - `.pick`·`.pickMultiple`·`.capture`는 [mediaKind]를 따른다. `.capture`에는 `.any`를 쓸 수 없다.
-/// - 섞인 종류(예: 사진과 영상)는 `.auto`에서 `unsupportedOperation`, `.ask`에서는 원본 보내기만 보인다.
+/// - 사진과 영상을 섞으면 [mixedSelection]을 따른다. 소리는 다른 종류와 섞을 수 없다.
 /// - 결과는 각 편집기 결과와 같다.
 public struct FrameKitRequest: Sendable, Hashable {
     public var input: EditorInput
@@ -53,6 +63,7 @@ public struct FrameKitRequest: Sendable, Hashable {
     public var chooser: EditorChooser
     /// 고르기 시트에 보일 할 일. 비어 있으면 안 된다.
     public var chooserActions: Set<EditorAction>
+    public var mixedSelection: MixedSelection
 
     /// 고르기 한 번에 고를 수 있는 최대 수.
     public static let maxPickItems = 100
@@ -63,7 +74,7 @@ public struct FrameKitRequest: Sendable, Hashable {
                 motionExport: MotionExportConfig = MotionExportConfig(), audio: AudioEditorConfig = AudioEditorConfig(),
                 audioExport: AudioExportConfig = AudioExportConfig(), ui: EditorUIConfig = EditorUIConfig(),
                 catalog: EditorCatalog = EditorCatalog(), openAnimatedInMotionEditor: Bool = true, chooser: EditorChooser = .auto,
-                chooserActions: Set<EditorAction> = Set(EditorAction.allCases)) {
+                chooserActions: Set<EditorAction> = Set(EditorAction.allCases), mixedSelection: MixedSelection = .edit) {
         self.input = input
         self.mediaKind = mediaKind
         self.image = image
@@ -79,6 +90,7 @@ public struct FrameKitRequest: Sendable, Hashable {
         self.openAnimatedInMotionEditor = openAnimatedInMotionEditor
         self.chooser = chooser
         self.chooserActions = chooserActions
+        self.mixedSelection = mixedSelection
     }
 
     /// 설정 오류 목록. 각 편집기 설정도 함께 검사한다.

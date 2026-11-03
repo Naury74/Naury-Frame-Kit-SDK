@@ -15,6 +15,7 @@ final class SampleSettings {
     var hostWatermark = false
     var chooser = EditorChooser.auto
     var openAnimatedInMotionEditor = true
+    var mixedSelection = MixedSelection.edit
     var motionFormats: Set<MotionFormat> = Set(MotionFormat.allCases)
     var audioBitrate = 128_000.0
 
@@ -52,7 +53,8 @@ final class SampleSettings {
         return FrameKitRequest(input: input, mediaKind: kind, image: ImageEditorConfig(watermark: watermark),
                                imageExport: ImageExportConfig(format: imageFormat), video: VideoEditorConfig(watermark: watermark),
                                motionExport: motion.export, audioExport: AudioExportConfig(bitrate: Int(audioBitrate)), ui: ui,
-                               openAnimatedInMotionEditor: openAnimatedInMotionEditor, chooser: chooser ?? self.chooser)
+                               openAnimatedInMotionEditor: openAnimatedInMotionEditor, chooser: chooser ?? self.chooser,
+                               mixedSelection: mixedSelection)
     }
 
     private static func argb(_ color: Color) -> UInt32 {
@@ -102,6 +104,10 @@ struct SettingsView: View {
                         Text("할 일 묻기").tag(EditorChooser.ask)
                     }
                     Toggle("GIF는 움직이는 이미지로", isOn: $settings.openAnimatedInMotionEditor)
+                    Picker("사진·영상 섞어 고르면", selection: $settings.mixedSelection) {
+                        Text("하나씩 편집").tag(MixedSelection.edit)
+                        Text("열지 않음").tag(MixedSelection.reject)
+                    }
                 }
                 Section("저장") {
                     Picker("사진 형식", selection: $settings.imageFormat) {

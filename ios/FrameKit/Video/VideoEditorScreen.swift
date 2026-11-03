@@ -52,6 +52,7 @@ struct VideoEditorScreen: View {
     @Environment(\.editorTheme) private var theme
     @Environment(\.strings) private var strings
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.editorEmbedded) private var embedded
 
     var body: some View {
         GeometryReader { geo in
@@ -126,7 +127,16 @@ struct VideoEditorScreen: View {
 
     // MARK: - 상단 바
 
+    @ViewBuilder
     private var topBar: some View {
+        if embedded && model.activeTool == nil {
+            EmptyView()
+        } else {
+            fullTopBar
+        }
+    }
+
+    private var fullTopBar: some View {
         ZStack {
             if let tool = model.activeTool {
                 Text(strings(tool.labelKey)).scaledFont(17, weight: .semibold).foregroundStyle(theme.foreground)
@@ -142,6 +152,7 @@ struct VideoEditorScreen: View {
                 .buttonStyle(PressFadeStyle())
                 .accessibilityLabel(strings(model.activeTool == nil ? "action_close" : "action_back"))
                 Spacer()
+                if !embedded {
                 Button { model.save() } label: {
                     Text(strings("action_save")).scaledFont(16, weight: .semibold).foregroundStyle(theme.onAccent)
                         .padding(.horizontal, 18).frame(height: 42)
@@ -150,6 +161,7 @@ struct VideoEditorScreen: View {
                 }
                 .buttonStyle(PressFadeStyle())
                 .disabled(model.export != nil)
+                }
             }
         }
         .padding(.horizontal, 12)

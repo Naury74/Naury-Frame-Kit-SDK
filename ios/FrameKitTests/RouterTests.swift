@@ -33,7 +33,9 @@ struct RouterRuleTests {
         #expect(SourceInspector.actions([.animated], allowed: all).actions == [.motion, .editPhoto, .sendOriginal])
         #expect(SourceInspector.actions([.video], allowed: all).actions == [.editVideo, .sendOriginal])
         let mixed = SourceInspector.actions([.image, .video], allowed: all)
-        #expect(mixed.mixed && mixed.actions == [.sendOriginal])
+        #expect(mixed.mixed && mixed.actions == [.editEach, .sendOriginal])
+        #expect(SourceInspector.actions([.image, .video], allowed: all, mixedEdit: false).actions == [.sendOriginal])
+        #expect(SourceInspector.actions([.image, .audio], allowed: all).actions == [.sendOriginal])
         #expect(SourceInspector.actions([.image], allowed: [.makePDF]).actions == [.makePDF])
     }
 
@@ -87,18 +89,43 @@ struct RouterModelTests {
         gif.dismissedWithoutResult()
     }
 
-    @Test func mixedAutoFailsAndAskOffersSend() async throws {
+    @Test func mixedRejectFailsAndSendsOriginals() async throws {
         let video = try await makeTestVideo(seconds: 1)
-        let (_, auto) = try await run(FrameKitRequest(input: .files([imageFile(), video])))
+        let (_, auto) = try await run(FrameKitRequest(input: .files([imageFile(), video]), mixedSelection: .reject))
         if case .failure(let error) = auto() { #expect(error.code == .unsupportedOperation) } else { Issue.record("expected failure") }
-        let (ask, result) = try await run(FrameKitRequest(input: .files([imageFile(), video]), chooser: .ask))
         // 할 일이 원본 보내기 하나라 바로 보낸다.
+        let (_, result) = try await run(FrameKitRequest(input: .files([imageFile(), video]), chooser: .ask, mixedSelection: .reject))
         for _ in 0..<100 where result() == nil { try await Task.sleep(for: .milliseconds(20)) }
         guard case .success(_, let outputs) = result() else { Issue.record("expected originals"); return }
         #expect(outputs.count == 2 && outputs.allSatisfy(\.isOriginal))
         #expect(outputs[0].mediaType == .image && outputs[1].mediaType == .video && outputs[1].width == 320)
         outputs.forEach { FrameKitOutputs.delete($0.url) }
-        _ = ask
+    }
+
+    @Test func mixedEditsEachAndSavesInOrder() async throws {
+        let video = try await makeTestVideo(seconds: 1)
+        let (router, result) = try await run(FrameKitRequest(input: .files([imageFile(), video, imageFile()])))
+        guard case .editor(.mixed(let mixed)) = router.phase else { Issue.record("no mixed editor"); return }
+        #expect(mixed.items.map(\.kind.mediaKind) == [.image, .video, .image])
+        for _ in 0..<200 {
+            let ready = mixed.items.allSatisfy { item in
+                switch item.editor {
+                case .image(let model): model.phase == .ready
+                case .video(let model): model.phase == .ready
+                default: false
+                }
+            }
+            if ready { break }
+            try await Task.sleep(for: .milliseconds(20))
+        }
+        mixed.select(1)
+        #expect(mixed.selected == 1)
+        mixed.saveAll()
+        for _ in 0..<500 where result() == nil { try await Task.sleep(for: .milliseconds(20)) }
+        guard case .success(let first, let outputs) = result() else { Issue.record("expected outputs \(String(describing: result()))"); return }
+        #expect(outputs.map(\.mediaType) == [.image, .video, .image])
+        #expect(first.url == outputs[0].url && !outputs.contains(where: \.isOriginal))
+        outputs.forEach { FrameKitOutputs.delete($0.url) }
     }
 
     @Test func askShowsChooserForPhotos() async throws {
