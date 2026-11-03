@@ -20,9 +20,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
 import androidx.core.content.IntentCompat
-import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
-import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.naury.framekit.android.capture.CaptureFiles
@@ -70,13 +68,8 @@ internal class DocumentScannerActivity : ComponentActivity() {
         val file = systemPhoto ?: savedPhotoPath?.let(::File)
         systemPhoto = null
         if (ok && file != null && CaptureFiles.isFilled(file)) {
-            // 한 장을 펴는 동안 진행 화면을 보이고, 끝나면 바로 돌려준다.
-            setContent { Themed { Box(Modifier.fillMaxSize().background(FrameKitTheme.colors.background)) { EditorLoadingView() } } }
-            viewModel.onPhoto(file)
-            lifecycleScope.launch {
-                val state = viewModel.state.first { !it.busy }
-                if (state.pages.isEmpty()) deliver(FrameKitResult.Failure(EditorError(EditorErrorCode.DECODE_FAILED))) else viewModel.finish()
-            }
+            straightening = true
+            straighten(file)
         } else {
             file?.delete()
             deliver(FrameKitResult.Cancelled)
@@ -84,6 +77,15 @@ internal class DocumentScannerActivity : ComponentActivity() {
     }
 
     private var savedPhotoPath: String? = null
+
+    // 기기 카메라 앱 사진을 펴는 중이면 true. 다시 만들어진 화면이 이어서 기다리거나 다시 편다.
+    private var straightening = false
+
+    // 한 장을 펴는 동안 진행 화면을 보인다. 결과는 ViewModel이 내고 onCreate의 수집이 돌려준다.
+    private fun straighten(file: File?) {
+        setContent { Themed { Box(Modifier.fillMaxSize().background(FrameKitTheme.colors.background)) { EditorLoadingView() } } }
+        file?.let(viewModel::processSingle)
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -95,8 +97,19 @@ internal class DocumentScannerActivity : ComponentActivity() {
         request = parsed
         savedPhotoPath = savedInstanceState?.getString(KEY_SYSTEM_PHOTO)
         enableEdgeToEdge(statusBarStyle = SystemBarStyle.dark(Color.TRANSPARENT), navigationBarStyle = SystemBarStyle.dark(Color.TRANSPARENT))
-        lifecycleScope.launch {
-            repeatOnLifecycle(Lifecycle.State.STARTED) { deliver(viewModel.result.filterNotNull().first()) }
+        // 결과가 나오면 화면이 백그라운드여도 바로 돌려준다. setResult·finish로 넘긴 결과는 시스템이 보관하므로 이 프로세스가 끝나도 남는다.
+        lifecycleScope.launch { deliver(viewModel.result.filterNotNull().first()) }
+        straightening = savedInstanceState?.getBoolean(KEY_STRAIGHTENING) == true
+        if (straightening) {
+            val file = savedPhotoPath?.let(::File)
+            when {
+                // 화면만 다시 만들어졌으면 ViewModel이 하던 일을 그대로 기다린다.
+                viewModel.singleStarted -> straighten(null)
+                // 프로세스가 다시 시작됐으면 남은 사진으로 다시 편다.
+                file != null && CaptureFiles.isFilled(file) -> straighten(file)
+                else -> deliver(FrameKitResult.Failure(EditorError(EditorErrorCode.DECODE_FAILED)))
+            }
+            return
         }
         if (savedInstanceState != null && savedPhotoPath != null) return
         when {
@@ -109,6 +122,7 @@ internal class DocumentScannerActivity : ComponentActivity() {
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
         (systemPhoto?.absolutePath ?: savedPhotoPath)?.let { outState.putString(KEY_SYSTEM_PHOTO, it) }
+        outState.putBoolean(KEY_STRAIGHTENING, straightening)
     }
 
     private fun showCamera() {
@@ -151,6 +165,7 @@ internal class DocumentScannerActivity : ComponentActivity() {
 
     private companion object {
         const val KEY_SYSTEM_PHOTO = "framekit_scan_system_photo"
+        const val KEY_STRAIGHTENING = "framekit_scan_straightening"
 
         fun hasCamera(context: Context): Boolean =
             ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED

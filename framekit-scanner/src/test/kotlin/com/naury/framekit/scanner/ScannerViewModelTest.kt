@@ -85,4 +85,21 @@ class ScannerViewModelTest {
         assertThat(discarded).hasSize(2)
         assertThat(vm.result.value).isEqualTo(FrameKitResult.Cancelled)
     }
+
+    @Test
+    fun `a system camera photo becomes the result once even when processed again`() {
+        val vm = viewModel()
+        vm.processSingle(File.createTempFile("scan", ".jpg"))
+        vm.processSingle(File.createTempFile("scan", ".jpg"))
+        assertThat(made).hasSize(1)
+        assertThat(vm.singleStarted).isTrue()
+        assertThat(vm.result.value).isEqualTo(FrameKitResult.Success(page(1), listOf(page(1))))
+    }
+
+    @Test
+    fun `a system camera photo that cannot be straightened fails with DECODE_FAILED`() {
+        val vm = ScannerViewModel(DocumentScanRequest(), { _, _ -> error("bad") }, {}, Dispatchers.Unconfined)
+        vm.processSingle(File.createTempFile("scan", ".jpg"))
+        assertThat((vm.result.value as FrameKitResult.Failure).error.code).isEqualTo(com.naury.framekit.android.result.EditorErrorCode.DECODE_FAILED)
+    }
 }

@@ -3,6 +3,8 @@ package com.naury.framekit.scanner
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.naury.framekit.android.result.EditedMedia
+import com.naury.framekit.android.result.EditorError
+import com.naury.framekit.android.result.EditorErrorCode
 import com.naury.framekit.android.result.FrameKitResult
 import com.naury.framekit.core.document.DocumentQuad
 import kotlinx.coroutines.CancellationException
@@ -94,7 +96,26 @@ internal class ScannerViewModel(
     }
 
     /** 카메라가 사진을 [photo]에 저장했다. 쪽으로 만들어 목록 끝에 더한다. */
-    fun onPhoto(photo: File) {
+    fun onPhoto(photo: File) = makePage(photo, onDone = null)
+
+    /** 기기 카메라 앱으로 찍은 한 장을 처리하기 시작했으면 `true`. */
+    var singleStarted: Boolean = false
+        private set
+
+    /**
+     * 기기 카메라 앱으로 찍은 [photo] 한 장을 펴서 바로 결과로 낸다. 펴지 못하면 `DECODE_FAILED` 실패다.
+     * 화면이 다시 만들어져 다시 불러도 한 번만 처리한다.
+     */
+    fun processSingle(photo: File) {
+        if (singleStarted) return
+        singleStarted = true
+        makePage(photo) { page ->
+            _result.value = page?.let { FrameKitResult.Success(it, listOf(it)) }
+                ?: FrameKitResult.Failure(EditorError(EditorErrorCode.DECODE_FAILED))
+        }
+    }
+
+    private fun makePage(photo: File, onDone: ((EditedMedia?) -> Unit)?) {
         capturing = false
         val quad = _state.value.quad
         _state.update { it.copy(busy = true) }
@@ -111,6 +132,10 @@ internal class ScannerViewModel(
                 } finally {
                     photo.delete()
                 }
+            }
+            if (onDone != null) {
+                _state.update { it.copy(busy = false) }
+                return@launch onDone(page)
             }
             _state.update { current ->
                 if (page == null) current.copy(busy = false, message = ScannerMessage.FAILED) else current.copy(busy = false, pages = current.pages + page)
