@@ -413,3 +413,32 @@ struct DocumentTests {
         #expect(throws: EditorError.self) { try DocumentEngine.rectify(source: source, quad: bow, detection: nil, style: .color) }
     }
 }
+
+struct CatalogTests {
+    @Test func validatesIdsAndRanges() {
+        var catalog = EditorCatalog(filters: [CustomFilter(id: "bright", label: "x"), CustomFilter(id: "my.warm", label: " ", temperature: 2)],
+                                    stickers: [CustomSticker(id: "A", label: "a", file: URL(fileURLWithPath: "/x.png"))])
+        let paths = Set(catalog.issues().map(\.path))
+        #expect(paths.contains("catalog.filters[0].id"))      // 기본 id 재사용
+        #expect(paths.contains("catalog.filters[1].label"))   // 빈 이름
+        #expect(paths.contains("catalog.filters[1]"))         // 범위 밖 값
+        #expect(paths.contains("catalog.stickers[0].id"))     // 대문자
+        catalog = EditorCatalog(filters: [CustomFilter(id: "my.warm", label: "Warm+", temperature: 0.6)])
+        #expect(catalog.issues().isEmpty)
+    }
+
+    @Test func customFilterChangesColor() throws {
+        try CatalogInstaller.install(EditorCatalog(filters: [CustomFilter(id: "test.red", label: "Red", temperature: 1, saturation: 0.5)]))
+        defer { try? CatalogInstaller.install(EditorCatalog()) }
+        let context = BitmapContext.make(width: 32, height: 32)!
+        context.setFillColor(CGColor(srgbRed: 0.5, green: 0.5, blue: 0.5, alpha: 1))
+        context.fill(CGRect(x: 0, y: 0, width: 32, height: 32))
+        var edit = PhotoEdit(grainSeed: 1)
+        edit.filterId = "test.red"
+        edit.filterIntensity = 1
+        let result = try CpuColorPipeline.apply(context.makeImage()!, spec: edit.colorSpec, includeCanvasEffects: true)
+        let p = pixel(result, x: 16, y: 16)
+        #expect(p.r > p.b + 10)
+        #expect(FilterLabels.label(for: "test.red") == "Red")
+    }
+}

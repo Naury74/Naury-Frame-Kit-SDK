@@ -111,8 +111,8 @@ struct TextPanel: View {
                     .background(RoundedRectangle(cornerRadius: 10).fill(Color.gray.opacity(0.18)))
                     .padding(.horizontal, 16)
                     .onAppear { focused = editing.text.isEmpty }
-                chips(fonts + FontAssets.ids, selected: style.fontId, title: { id in
-                    fonts.contains(id) ? strings("font_\(id.replacingOccurrences(of: "-", with: "_"))") : id
+                chips((model.request.catalog.showDefaultFonts ? fonts : ["sans"]) + FontAssets.ids, selected: style.fontId, title: { id in
+                    FontAssets.label(for: id) ?? strings("font_\(id.replacingOccurrences(of: "-", with: "_"))")
                 }) { id in model.setTextStyle { $0.fontId = id } }
                 label("text_color")
                 ColorPalette(selected: style.color) { color in model.setTextStyle { $0.color = color } }
@@ -205,6 +205,7 @@ struct StickerPanel: View {
         var result: [(String, [String])] = []
         let custom = model.customStickerIds
         if !custom.isEmpty { result.append(("sticker_custom", custom)) }
+        guard model.request.catalog.showDefaultStickers else { return result }
         result += EditorModel.emojiGroups.map { ($0.key, $0.emoji.map { EmojiCatalog.prefix + $0 }) }
         return result
     }
@@ -232,7 +233,7 @@ struct StickerPanel: View {
                                 .contentShape(Rectangle())
                             }
                             .buttonStyle(PressFadeStyle())
-                            .accessibilityLabel(EmojiCatalog.emoji(of: assetId) ?? assetId)
+                            .accessibilityLabel(EmojiCatalog.emoji(of: assetId) ?? StickerAssets.label(for: assetId) ?? assetId)
                         }
                     }
                     .padding(.horizontal, 12)

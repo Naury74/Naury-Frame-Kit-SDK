@@ -23,6 +23,7 @@ struct ContentView: View {
             Form {
                 Section("열기") {
                     Button("사진 고르기") { open(.pick) }
+                    Button("카메라로 찍기") { open(.capture) }
                     Button("샘플 이미지") { open(.data(SampleImage.make())) }
                     Button("여러 장 고르기") { open(.pickMultiple(maxItems: 10)) }
                     Button("여러 장 샘플(3장)") { open(.files(SampleImage.files(count: 3))) }

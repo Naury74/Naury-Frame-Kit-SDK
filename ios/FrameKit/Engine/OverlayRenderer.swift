@@ -342,11 +342,17 @@ enum EmojiCatalog {
 /// 호스트가 등록한 스티커 이미지. id는 `sticker:<호스트 id>`.
 enum StickerAssets {
     nonisolated(unsafe) private static var images: [String: UIImage] = [:]
+    nonisolated(unsafe) private static var labels: [String: String] = [:]
     private static let lock = NSLock()
 
-    static func install(_ entries: [String: UIImage]) {
-        lock.withLock { images = entries }
+    static func install(_ entries: [String: UIImage], labels: [String: String] = [:]) {
+        lock.withLock {
+            images = entries
+            self.labels = labels
+        }
     }
+
+    static func label(for assetId: String) -> String? { lock.withLock { labels[assetId] } }
 
     static func image(for assetId: String) -> UIImage? {
         lock.withLock { images[assetId] }
@@ -358,11 +364,17 @@ enum StickerAssets {
 /// 호스트가 등록한 글꼴(PostScript 이름).
 enum FontAssets {
     nonisolated(unsafe) private static var names: [String: String] = [:]
+    nonisolated(unsafe) private static var labels: [String: String] = [:]
     private static let lock = NSLock()
 
-    static func install(_ entries: [String: String]) {
-        lock.withLock { names = entries }
+    static func install(_ entries: [String: String], labels: [String: String] = [:]) {
+        lock.withLock {
+            names = entries
+            self.labels = labels
+        }
     }
+
+    static func label(for id: String) -> String? { lock.withLock { labels[id] } }
 
     static var ids: [String] { lock.withLock { Array(names.keys).sorted() } }
 

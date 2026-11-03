@@ -300,7 +300,7 @@ struct FilterPanel: View {
             ScrollViewReader { proxy in
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(alignment: .top, spacing: 10) {
-                        ForEach(FilterCatalog.shared.all.map(\.id), id: \.self) { id in
+                        ForEach(filterIds, id: \.self) { id in
                             thumbnail(id, selected: id == edit.filterId).id(id)
                         }
                     }
@@ -311,8 +311,15 @@ struct FilterPanel: View {
         }
     }
 
+    /// 원본 → 기본 필터(숨기지 않았으면) → 호스트 필터 순서.
+    private var filterIds: [String] {
+        let builtIn = FilterCatalog.shared.presets.map(\.id)
+        let custom = FilterCatalog.shared.custom.map(\.id)
+        return (model.request.catalog.showDefaultFilters ? builtIn : ["original"]) + custom
+    }
+
     private func thumbnail(_ id: String, selected: Bool) -> some View {
-        let label = strings("filter_\(id.replacingOccurrences(of: "-", with: "_"))")
+        let label = FilterLabels.label(for: id) ?? strings("filter_\(id.replacingOccurrences(of: "-", with: "_"))")
         return Button {
             haptics.selection()
             model.selectFilter(id)

@@ -10,6 +10,9 @@ public enum EditorInput: Sendable, Hashable {
     case pickMultiple(maxItems: Int)
     /// 여러 파일. 순서가 편집·저장 순서다. 1...`maxImageCount`장.
     case files([URL])
+    /// 카메라로 찍는다. 호스트 앱 Info.plist에 `NSCameraUsageDescription`이 있어야 한다.
+    /// 카메라가 없으면 `cameraUnavailable`, 권한이 거부됐으면 `permissionDenied`, 닫으면 `cancelled`.
+    case capture
     /// 이미지 데이터(JPEG·PNG·HEIC 등). SDK가 임시 파일로 복사하고 편집 뒤 지운다.
     case data(Data)
 }

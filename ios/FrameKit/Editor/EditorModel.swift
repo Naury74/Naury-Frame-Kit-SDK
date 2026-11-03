@@ -1,6 +1,8 @@
 import CoreGraphics
 import Foundation
 import Observation
+import AVFoundation
+import UIKit
 import UniformTypeIdentifiers
 internal import FrameKitCore
 
@@ -154,12 +156,49 @@ final class EditorModel {
             finish(.failure(EditorError(code: .invalidConfiguration)))
             return
         }
+        do {
+            try CatalogInstaller.install(request.catalog)
+        } catch {
+            finish(.failure(error))
+            return
+        }
         switch request.input {
         case .file(let url): load([{ try Self.copyToTemporary(url) }], append: false)
         case .files(let urls): load(urls.map { url in { try Self.copyToTemporary(url) } }, append: false)
         case .data(let data): load([{ try Self.writeTemporary(data) }], append: false)
         case .pick, .pickMultiple: phase = .awaitingSource
+        case .capture: startCapture()
         }
+    }
+
+    /// 카메라를 쓸 수 있는지 확인하고 촬영 화면으로 간다.
+    private func startCapture() {
+        guard Bundle.main.object(forInfoDictionaryKey: "NSCameraUsageDescription") != nil else {
+            // 설명이 없으면 iOS가 앱을 종료시키므로 카메라를 열지 않는다.
+            frameKitLog.error("NSCameraUsageDescription is missing in the host Info.plist")
+            finish(.failure(EditorError(code: .invalidConfiguration)))
+            return
+        }
+        guard UIImagePickerController.isSourceTypeAvailable(.camera) else {
+            finish(.failure(EditorError(code: .cameraUnavailable)))
+            return
+        }
+        switch AVCaptureDevice.authorizationStatus(for: .video) {
+        case .denied, .restricted:
+            finish(.failure(EditorError(code: .permissionDenied)))
+        default:
+            phase = .awaitingSource
+        }
+    }
+
+    /// 카메라 결과. `nil`이면 닫은 것이다.
+    func captured(_ image: UIImage?) {
+        guard let image else { finish(.cancelled); return }
+        guard let data = image.jpegData(compressionQuality: 0.95) else {
+            phase = .failed(.logged(.encodeFailed, "capture jpeg"))
+            return
+        }
+        load([{ try Self.writeTemporary(data) }], append: false)
     }
 
     /// 처음 선택기에서 고를 수 있는 장 수.

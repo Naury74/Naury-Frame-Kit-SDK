@@ -23,7 +23,11 @@ struct EditorRoot: View {
     private var content: some View {
         switch model.phase {
         case .awaitingSource:
-            PhotoPicker(limit: model.initialPickLimit) { model.picked($0) }.ignoresSafeArea()
+            if case .capture = model.request.input {
+                CameraPicker { model.captured($0) }.ignoresSafeArea()
+            } else {
+                PhotoPicker(limit: model.initialPickLimit) { model.picked($0) }.ignoresSafeArea()
+            }
         case .loading:
             StatusView(model: model, error: nil)
         case .failed(let error):
@@ -485,5 +489,40 @@ struct PageStrip: View {
         .accessibilityLabel(strings("page_label", index + 1))
         .accessibilityValue(strings("page_position", index + 1, model.pages.count))
         .accessibilityAddTraits(selected ? [.isSelected] : [])
+    }
+}
+
+/// 시스템 카메라. 닫으면 `nil`을 넘긴다.
+struct CameraPicker: UIViewControllerRepresentable {
+    let onCapture: (UIImage?) -> Void
+
+    func makeUIViewController(context: Context) -> UIImagePickerController {
+        let picker = UIImagePickerController()
+        picker.sourceType = .camera
+        picker.delegate = context.coordinator
+        return picker
+    }
+
+    func updateUIViewController(_: UIImagePickerController, context _: Context) {}
+
+    func makeCoordinator() -> Coordinator { Coordinator(onCapture: onCapture) }
+
+    final class Coordinator: NSObject, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
+        let onCapture: (UIImage?) -> Void
+        private var done = false
+
+        init(onCapture: @escaping (UIImage?) -> Void) { self.onCapture = onCapture }
+
+        func imagePickerController(_: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
+            guard !done else { return }
+            done = true
+            onCapture(info[.originalImage] as? UIImage)
+        }
+
+        func imagePickerControllerDidCancel(_: UIImagePickerController) {
+            guard !done else { return }
+            done = true
+            onCapture(nil)
+        }
     }
 }
