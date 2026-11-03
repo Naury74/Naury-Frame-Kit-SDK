@@ -51,7 +51,7 @@ public class MediaPickerContract : ActivityResultContract<MediaPickerRequest, Me
         /** 앱 안 갤러리가 돌려주는 `ArrayList<PickedMedia>`. `framekit-picker` 모듈에서 쓴다. */
         public const val EXTRA_RESULT: String = "com.naury.framekit.picker.RESULT"
 
-        /** 제한에 맞지 않아 뺀 개수(Int). `framekit-picker` 모듈에서 쓴다. */
+        /** 제한에 맞지 않아 뺀 개수(Int). 모두 빠졌으면 결과 목록은 비어 있다. `framekit-picker` 모듈에서 쓴다. */
         public const val EXTRA_SKIPPED: String = "com.naury.framekit.picker.SKIPPED"
 
         /** 이 앱에 `framekit-picker` 모듈이 들어 있으면 `true`. */

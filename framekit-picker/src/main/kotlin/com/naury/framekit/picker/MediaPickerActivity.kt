@@ -73,7 +73,12 @@ internal class MediaPickerActivity : ComponentActivity() {
             // 시스템 선택기는 제한을 모르므로 고른 뒤 걸러 낸다.
             val accepted = described.filter { request.accepts(it.mimeType) && request.blockOf(it.sizeBytes, it.durationMs, it.isVideo) == null }
                 .take(request.maxItems)
-            if (accepted.isEmpty()) cancel() else deliver(accepted, skipped = described.size - accepted.size)
+            // 모두 빠졌으면 빈 목록과 뺀 개수를 돌려준다. MediaPickerContract는 이를 취소로 읽고, 통합 계약은 형식 실패로 돌려준다.
+            when {
+                accepted.isNotEmpty() -> deliver(accepted, skipped = described.size - accepted.size)
+                described.isNotEmpty() -> deliver(emptyList(), skipped = described.size)
+                else -> cancel()
+            }
         }
     }
 

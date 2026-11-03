@@ -84,4 +84,25 @@ class FrameKitRoutingTest {
         val video = request.forVideo(EditorInput.FileSource("/b.mp4"))
         assertThat(video.copy(config = video.config.copy(maxClipCount = 1)).validate()).isInstanceOf(ValidationResult.Valid::class.java)
     }
+
+    @Test
+    fun `automatic picks offer only formats the target editor opens`() {
+        val auto = FrameKitRequest(EditorInput.Pick(MediaKind.IMAGE))
+        assertThat(routerPickMimeTypes(auto, MediaKind.IMAGE, 1)).containsExactly("image/jpeg", "image/png", "image/webp", "image/gif")
+        assertThat(routerPickMimeTypes(auto, MediaKind.IMAGE, 5)).doesNotContain("image/gif")
+        assertThat(routerPickMimeTypes(auto, MediaKind.ANY, 5)).contains("video/*")
+        assertThat(routerPickMimeTypes(auto, MediaKind.VIDEO, 1)).isEmpty()
+        assertThat(routerPickMimeTypes(auto.copy(chooser = EditorChooser.ASK), MediaKind.IMAGE, 1)).isEmpty()
+        assertThat(routerPickMimeTypes(auto.copy(openAnimatedInMotionEditor = false), MediaKind.IMAGE, 1)).doesNotContain("image/gif")
+    }
+
+    @Test
+    fun `a pick where everything was skipped is told apart from closing`() {
+        val contract = RouterPickerContract()
+        val skipped = android.content.Intent()
+            .putParcelableArrayListExtra(com.naury.framekit.ui.picker.MediaPickerContract.EXTRA_RESULT, ArrayList<com.naury.framekit.ui.picker.PickedMedia>())
+            .putExtra(com.naury.framekit.ui.picker.MediaPickerContract.EXTRA_SKIPPED, 2)
+        assertThat(contract.parseResult(android.app.Activity.RESULT_OK, skipped)).isNull()
+        assertThat(contract.parseResult(android.app.Activity.RESULT_CANCELED, null)).isEqualTo(com.naury.framekit.ui.picker.MediaPickerResult.Cancelled)
+    }
 }
