@@ -149,6 +149,7 @@ internal fun VideoEditorScreen(viewModel: VideoEditorViewModel, posture: FoldPos
             viewModel.onCaptured(ok)
         },
         onFailed = viewModel::onCaptureFailed,
+        captureTarget = { viewModel.prepareCapture() },
     )
     val embedded = LocalEditorEmbedded.current
     // 혼합 편집 화면 안에서는 도구 밖의 뒤로 가기를 감싼 화면이 처리한다.

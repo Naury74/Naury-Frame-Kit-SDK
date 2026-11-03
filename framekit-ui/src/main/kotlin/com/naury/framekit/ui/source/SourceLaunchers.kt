@@ -7,8 +7,10 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.platform.LocalContext
 import com.naury.framekit.android.capture.CaptureFiles
 import com.naury.framekit.android.input.MediaKind
@@ -49,6 +51,8 @@ public class SourceLaunchers internal constructor(
  * @param onPicked 고른 원본. 닫으면 빈 목록이다.
  * @param onCaptured 카메라 앱이 결과를 저장했으면 `true`.
  * @param ui 고르는 화면의 종류([EditorUiConfig.picker])와 앱 안 갤러리의 색·언어.
+ * @param captureTarget 권한 창이 떠 있는 동안 화면이 다시 만들어져 [SourceLaunchers.capture]에 넘긴 함수를 잃었을 때 대신 쓸
+ *   촬영 Uri를 만든다. `null`이면 이때 [onCaptured]에 `false`를 넘긴다.
  */
 @Composable
 public fun rememberSourceLaunchers(
@@ -57,18 +61,23 @@ public fun rememberSourceLaunchers(
     onCaptured: (Boolean) -> Unit,
     onFailed: (EditorErrorCode) -> Unit,
     ui: EditorUiConfig = FrameKitTheme.config,
+    captureTarget: ((MediaKind) -> Uri?)? = null,
 ): SourceLaunchers {
     val context = LocalContext.current
     val picked by rememberUpdatedState(onPicked)
     val captured by rememberUpdatedState(onCaptured)
     val failed by rememberUpdatedState(onFailed)
     val currentUi by rememberUpdatedState(ui)
+    val fallbackTarget by rememberUpdatedState(captureTarget)
     val media = rememberLauncherForActivityResult(MediaPickerContract()) { result ->
         picked((result as? MediaPickerResult.Picked)?.items?.map { it.uri }.orEmpty())
     }
     val photo = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { ok -> captured(ok) }
     val video = rememberLauncherForActivityResult(ActivityResultContracts.CaptureVideo()) { ok -> captured(ok) }
-    val pending = remember { arrayOfNulls<Pair<MediaKind, () -> Uri?>>(1) }
+    // 권한을 묻는 중인 촬영 종류. 권한 창이 떠 있는 동안 화면이 다시 만들어져도 결과를 이어 받도록 저장한다.
+    val pendingKind = rememberSaveable { mutableStateOf<MediaKind?>(null) }
+    // Uri를 만드는 함수는 저장할 수 없어 메모리에만 둔다. 다시 만들어진 뒤에는 captureTarget을 쓴다.
+    val pendingTarget = remember { arrayOfNulls<() -> Uri?>(1) }
 
     fun launchCamera(kind: MediaKind, target: () -> Uri?) {
         val uri = target() ?: return
@@ -82,12 +91,15 @@ public fun rememberSourceLaunchers(
     }
 
     val permission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-        val request = pending[0]
-        pending[0] = null
+        val kind = pendingKind.value
+        val target = pendingTarget[0] ?: fallbackTarget?.let { make -> { make(kind ?: MediaKind.IMAGE) } }
+        pendingKind.value = null
+        pendingTarget[0] = null
         when {
-            request == null -> Unit
-            granted -> launchCamera(request.first, request.second)
-            else -> failed(EditorErrorCode.PERMISSION_DENIED)
+            kind == null -> Unit
+            !granted -> failed(EditorErrorCode.PERMISSION_DENIED)
+            target == null -> captured(false)
+            else -> launchCamera(kind, target)
         }
     }
 
@@ -104,7 +116,8 @@ public fun rememberSourceLaunchers(
             },
             capture = { kind, target ->
                 if (CaptureFiles.needsCameraPermission(context)) {
-                    pending[0] = kind to target
+                    pendingKind.value = kind
+                    pendingTarget[0] = target
                     permission.launch(Manifest.permission.CAMERA)
                 } else {
                     launchCamera(kind, target)
