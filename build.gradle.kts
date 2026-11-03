@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.android.application) apply false
     alias(libs.plugins.android.library) apply false
     alias(libs.plugins.kotlin.jvm) apply false
+    alias(libs.plugins.kotlin.multiplatform) apply false
     alias(libs.plugins.kotlin.compose) apply false
     alias(libs.plugins.kotlin.parcelize) apply false
     alias(libs.plugins.kotlin.serialization) apply false
@@ -22,7 +23,7 @@ if (kineticaDevVersion != null) {
 
 // SDK 모듈은 같은 좌표·POM으로 배포한다. 저장소의 app(Showcase)은 배포하지 않는다.
 val sdkModules = mapOf(
-    "framekit-core" to "편집 모델, 좌표·시간 계산, 실행 취소, 검증 (Kotlin JVM)",
+    "framekit-core" to "편집 모델, 좌표·시간 계산, 실행 취소, 검증 (Kotlin Multiplatform: JVM·iOS)",
     "framekit-android" to "원본 등록, 결과·오류 DTO, 출력 파일, 세션, 카탈로그",
     "framekit-image" to "사진 디코딩·렌더링·저장과 headless ImageProcessor",
     "framekit-video" to "Media3 기반 영상 미리보기·저장과 headless VideoProcessor",
@@ -52,6 +53,7 @@ subprojects {
     apply(plugin = "signing")
     pluginManager.withPlugin("com.android.library") { configureConsumerKotlin() }
     pluginManager.withPlugin("org.jetbrains.kotlin.jvm") { configureConsumerKotlin() }
+    pluginManager.withPlugin("org.jetbrains.kotlin.multiplatform") { configureConsumerKotlin() }
     group = providers.gradleProperty("FRAMEKIT_GROUP").get()
     version = providers.gradleProperty("FRAMEKIT_VERSION").get()
 
@@ -69,59 +71,82 @@ subprojects {
     }
 
     // Maven Central은 javadoc jar를 요구한다. API 문서는 소스 jar와 README·docs로 제공하므로 안내 파일만 담은 jar를 붙인다.
-    val javadocJar = tasks.register<Jar>("centralJavadocJar") {
+    // 서명 파일이 겹치지 않게 publication마다 만든다.
+    fun javadocJarFor(publication: String) = tasks.register<Jar>("centralJavadocJar${publication.replaceFirstChar { it.uppercase() }}") {
         archiveClassifier.set("javadoc")
+        archiveAppendix.set(publication)
         from(rootProject.file("README.md"))
+    }
+
+    // KMP 모듈은 대상마다 publication이 자동으로 생긴다.
+    plugins.withId("org.jetbrains.kotlin.multiplatform") {
+        extensions.configure<PublishingExtension> {
+            publications.withType<MavenPublication>().configureEach {
+                artifact(javadocJarFor(name))
+                configureCentralPom(summary)
+            }
+            repositories { centralStagingRepository() }
+        }
+        configureSigning()
+        // 서명 뒤에 publish한다.
+        tasks.withType<AbstractPublishToMaven>().configureEach { dependsOn(tasks.withType<Sign>()) }
     }
 
     // AGP는 평가가 끝난 뒤에 컴포넌트를 만들므로, 컴포넌트가 생길 때 publication을 만든다.
     components.configureEach {
         val component = this
         val wanted = if (plugins.hasPlugin("com.android.library")) "release" else "java"
-        if (component.name != wanted) return@configureEach
+        if (component.name != wanted || plugins.hasPlugin("org.jetbrains.kotlin.multiplatform")) return@configureEach
         extensions.configure<PublishingExtension> {
             publications {
                 create<MavenPublication>("release") {
                     from(component)
-                    artifact(javadocJar)
+                    artifact(javadocJarFor("release"))
                     artifactId = project.name
-                    pom {
-                        name.set(project.name)
-                        description.set(summary)
-                        url.set("https://github.com/Naury74/Naury-Frame-Kit-SDK")
-                        licenses {
-                            license {
-                                name.set("The Apache License, Version 2.0")
-                                url.set("https://www.apache.org/licenses/LICENSE-2.0.txt")
-                                distribution.set("repo")
-                            }
-                        }
-                        developers {
-                            developer {
-                                id.set("Naury74")
-                                name.set("Naury74")
-                            }
-                        }
-                        scm {
-                            url.set("https://github.com/Naury74/Naury-Frame-Kit-SDK")
-                            connection.set("scm:git:https://github.com/Naury74/Naury-Frame-Kit-SDK.git")
-                            developerConnection.set("scm:git:ssh://git@github.com/Naury74/Naury-Frame-Kit-SDK.git")
-                        }
-                        issueManagement {
-                            system.set("GitHub")
-                            url.set("https://github.com/Naury74/Naury-Frame-Kit-SDK/issues")
-                        }
-                    }
+                    configureCentralPom(summary)
                 }
             }
-            repositories {
-                maven {
-                    name = "CentralStaging"
-                    url = uri(centralStaging)
-                }
-            }
+            repositories { centralStagingRepository() }
         }
         configureSigning()
+    }
+}
+
+/** Central이 요구하는 POM 항목(이름·설명·라이선스·개발자·SCM)을 채운다. */
+fun MavenPublication.configureCentralPom(summary: String) {
+    pom {
+        name.set(artifactId)
+        description.set(summary)
+        url.set("https://github.com/Naury74/Naury-Frame-Kit-SDK")
+        licenses {
+            license {
+                name.set("The Apache License, Version 2.0")
+                url.set("https://www.apache.org/licenses/LICENSE-2.0.txt")
+                distribution.set("repo")
+            }
+        }
+        developers {
+            developer {
+                id.set("Naury74")
+                name.set("Naury74")
+            }
+        }
+        scm {
+            url.set("https://github.com/Naury74/Naury-Frame-Kit-SDK")
+            connection.set("scm:git:https://github.com/Naury74/Naury-Frame-Kit-SDK.git")
+            developerConnection.set("scm:git:ssh://git@github.com/Naury74/Naury-Frame-Kit-SDK.git")
+        }
+        issueManagement {
+            system.set("GitHub")
+            url.set("https://github.com/Naury74/Naury-Frame-Kit-SDK/issues")
+        }
+    }
+}
+
+fun RepositoryHandler.centralStagingRepository() {
+    maven {
+        name = "CentralStaging"
+        url = uri(centralStaging)
     }
 }
 
@@ -155,10 +180,18 @@ val sdkProjects = subprojects.filter { it.name in sdkModules }
 val centralBundle = tasks.register<Zip>("centralBundle") {
     group = "publishing"
     description = "Maven Central 업로드 묶음(build/central-bundle.zip)을 만든다."
-    dependsOn(sdkProjects.map { "${it.path}:publishReleasePublicationToCentralStagingRepository" })
+    // 모듈 플러그인을 보므로 설정이 끝난 뒤 계산한다.
+    dependsOn(
+        java.util.concurrent.Callable {
+            sdkProjects.map {
+                if (it.plugins.hasPlugin("org.jetbrains.kotlin.multiplatform")) "${it.path}:publishAllPublicationsToCentralStagingRepository"
+                else "${it.path}:publishReleasePublicationToCentralStagingRepository"
+            }
+        },
+    )
     doFirst {
         val root = centralStaging.get().asFile
-        val unsigned = root.walkTopDown().filter { it.isFile && it.extension in setOf("aar", "jar", "pom", "module") }
+        val unsigned = root.walkTopDown().filter { it.isFile && it.extension in setOf("aar", "jar", "klib", "pom", "module") }
             .filter { !java.io.File(it.path + ".asc").exists() }.toList()
         check(unsigned.isEmpty()) { "서명되지 않은 파일이 있습니다. 서명 키 설정(~/.gradle/gradle.properties)을 확인하세요: ${unsigned.take(3)}" }
     }
