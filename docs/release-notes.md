@@ -4,6 +4,7 @@
 
 ### 바뀜
 
+- 사진·영상 혼합 편집의 영상 항목에서도 클립 줄(나누기·순서 바꾸기·지우기·추가)이 보임. 항목마다 결과는 하나
 - iOS: 고를 개수(`pickMultiple`)나 넘긴 파일(`files`)이 편집기 상한보다 많으면 `invalidConfiguration` 대신 Android처럼 상한까지만 엶. `maxItems`는 1~100
 
 ### 고침

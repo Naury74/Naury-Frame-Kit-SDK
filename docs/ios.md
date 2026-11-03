@@ -33,7 +33,7 @@ SDK는 컴파일된 바이너리(`FrameKit.xcframework`)로만 배포합니다. 
 
 ### Info.plist
 
-SDK는 권한 설명을 넣지 않습니다. 쓰는 기능에 맞춰 앱 Info.plist에 넣습니다.
+SDK에는 권한 사용 설명이 들어 있지 않습니다. 카메라나 마이크를 쓰는 기능이 있으면 앱 Info.plist에 아래 키를 추가하세요.
 
 | 키 | 필요한 때 | 없으면 |
 | --- | --- | --- |
@@ -138,7 +138,7 @@ present(editor, animated: true)
 - 여러 개를 넘기면 사진 편집기는 아래쪽 목록에서 한 장씩 골라 편집하고, 영상 편집기는 고른 순서대로 클립을 이어 붙입니다.
 - 편집기 상한은 `ImageEditorConfig.maxImageCount`(기본 20, 최대 100), `VideoEditorConfig.maxClipCount`(기본 10, 최대 20), `MotionEditorConfig.maxImageCount`(기본 20, 최대 50), `AudioEditorConfig.maxSourceCount`(기본 10, 최대 20)입니다. `.files`가 상한보다 많으면 앞에서부터 상한까지만 열고, `.pickMultiple`의 `maxItems`도 상한으로 줄어듭니다.
 - 사진과 영상을 섞어 넘기거나 고르면 `mixedSelection`을 따릅니다.
-  - `.edit`(기본): 혼합 편집 화면을 엽니다. 아래 줄에서 항목을 누르면 그 종류의 편집 화면으로 바뀌고, 항목마다 편집 내용을 따로 기억하며, 저장은 한 번에 해서 고른 순서대로 `outputs`를 돌려줍니다. 최대 20개, 영상은 항목마다 클립 하나입니다.
+  - `.edit`(기본): 혼합 편집 화면을 엽니다. 아래 줄에서 항목을 누르면 그 종류의 편집 화면으로 바뀌고, 항목마다 편집 내용을 따로 기억하며, 저장은 한 번에 해서 고른 순서대로 `outputs`를 돌려줍니다. 최대 20개입니다. 영상 항목에서는 일반 영상 편집기처럼 나누고, 순서를 바꾸고, 클립을 더할 수 있으며, 항목마다 결과 하나로 저장합니다.
   - `.reject`: `chooser`가 `.auto`면 `unsupportedOperation`으로 끝나고, `.ask`면 원본 보내기만 보입니다.
   - 소리는 다른 종류와 섞을 수 없습니다(`unsupportedOperation`, 고르기 시트에서는 원본 보내기만).
 - 원격 URL은 받지 않습니다. 내려받기를 마친 파일 URL을 넘기세요.

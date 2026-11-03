@@ -81,7 +81,7 @@ Button(onClick = { editor.launch(FrameKitRequest(EditorInput.Pick(MediaKind.ANY)
 - 여러 개를 넘기면 사진 편집기는 아래쪽 쪽 목록에서 한 장씩 골라 편집하고, 영상 편집기는 고른 순서대로 클립을 이어 붙입니다.
 - 개수 상한은 `ImageEditorConfig.maxImageCount`(기본 20, 최대 100), `VideoEditorConfig.maxClipCount`(기본 10, 최대 20)입니다. `Multiple`이 상한보다 많으면 앞에서부터 상한까지만 엽니다. `Pick`의 `maxItems`도 편집기 상한으로 줄어듭니다.
 - 통합 계약에서 사진과 영상을 섞어 넘기거나 `Pick(ANY)`로 섞어 고르면 `mixedSelection`을 따릅니다.
-  - `MixedSelection.EDIT`(기본): 혼합 편집 화면을 엽니다. 아래 줄에서 항목을 누르면 그 종류의 편집 화면(사진 또는 영상)으로 바뀌고, 항목마다 편집 내용을 따로 기억하며, 저장은 한 번에 해서 고른 순서대로 `outputs`를 돌려줍니다. 최대 20개, 영상은 항목마다 클립 하나입니다.
+  - `MixedSelection.EDIT`(기본): 혼합 편집 화면을 엽니다. 아래 줄에서 항목을 누르면 그 종류의 편집 화면(사진 또는 영상)으로 바뀌고, 항목마다 편집 내용을 따로 기억하며, 저장은 한 번에 해서 고른 순서대로 `outputs`를 돌려줍니다. 최대 20개입니다. 영상 항목에서는 일반 영상 편집기처럼 나누고, 순서를 바꾸고, 클립을 더할 수 있으며, 항목마다 결과 하나로 저장합니다.
   - `MixedSelection.REJECT`: `EditorChooser.AUTO`에서는 `UNSUPPORTED_OPERATION`으로 실패하고, `ASK`에서는 원본 보내기만 합니다.
   - 소리는 다른 종류와 섞을 수 없습니다(`UNSUPPORTED_OPERATION`, 고르기 시트에서는 원본 보내기만).
 - 편집기는 호스트 프로세스에서 실행되므로 호스트가 읽을 수 있는 Uri는 편집기도 읽을 수 있습니다.
