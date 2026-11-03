@@ -1690,8 +1690,9 @@ internal class ImageEditorViewModel(
         GeometryFrame(ready.source.metadata.uprightSize, geometry)
 
     private fun logFailure(stage: String, error: FrameKitException) {
-        // URI·파일명이 남지 않도록 예외 메시지 대신 코드와 예외 종류만 기록한다.
-        Log.w(TAG, "$stage failed: code=${error.code} cause=${error.cause?.javaClass?.simpleName}")
+        // URI·파일명이 남지 않도록 예외 메시지 대신 코드와 예외 종류만 기록한다. 검증 실패 메시지는 값의 경로와 사유뿐이라 함께 남긴다.
+        val detail = if (error.code == EditorErrorCode.INVALID_PROJECT || error.code == EditorErrorCode.INVALID_CONFIGURATION) " detail=${error.message}" else ""
+        Log.w(TAG, "$stage failed: code=${error.code} cause=${error.cause?.javaClass?.simpleName}$detail")
     }
 
     override fun onCleared() {
