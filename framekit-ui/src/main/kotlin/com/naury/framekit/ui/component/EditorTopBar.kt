@@ -139,7 +139,7 @@ public fun FrameKitNavigationBar(
  *
  * @param onClose 왼쪽 버튼. 도구 화면이면 도구를 닫는 뒤로 가기(시스템 뒤로 가기와 같은 동작)를 넘긴다.
  * @param toolTitle 열린 도구의 이름. `null`이면 도구 목록 화면으로 보고 닫기 버튼과 빈 제목을 쓴다.
- * @param showSave `false`면 저장 버튼을 숨긴다.
+ * @param showSave `false`면 저장 버튼을 숨긴다. 도구 화면에서는 적용 버튼과 헷갈리지 않게 항상 숨긴다.
  */
 @Composable
 public fun EditorTopBar(
@@ -155,7 +155,7 @@ public fun EditorTopBar(
         navigationIcon = if (toolTitle != null) NavigationIcon.BACK else NavigationIcon.CLOSE,
         onNavigate = onClose,
         modifier = modifier,
-        actionLabel = if (showSave) stringResource(R.string.framekit_action_save) else null,
+        actionLabel = if (showSave && toolTitle == null) stringResource(R.string.framekit_action_save) else null,
         actionEnabled = saveEnabled,
         onAction = onSave,
     )
