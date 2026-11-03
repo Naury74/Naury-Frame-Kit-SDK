@@ -201,9 +201,14 @@ struct EditorScreen: View {
                 }
             }
             .overlay(alignment: .bottom) {
-                if model.showsDocumentSuggestion && model.notice == nil {
-                    DocumentPill(model: model)
-                        .editorChrome(hidden: model.chromeHidden, reduceMotion: reduceMotion) { model.showChrome() }
+                if model.notice == nil && model.activeTool == nil {
+                    if model.documentText != nil {
+                        DocumentTextPill(model: model)
+                            .editorChrome(hidden: model.chromeHidden, reduceMotion: reduceMotion) { model.showChrome() }
+                    } else if model.showsDocumentSuggestion {
+                        DocumentPill(model: model)
+                            .editorChrome(hidden: model.chromeHidden, reduceMotion: reduceMotion) { model.showChrome() }
+                    }
                 }
             }
             .overlay(alignment: .bottom) {

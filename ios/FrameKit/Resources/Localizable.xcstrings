@@ -4490,79 +4490,79 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Behält das Motiv und macht den Hintergrund transparent. Bei JPEG wird er mit einer Vollfarbe gefüllt; wähle PNG oder WEBP, um die Transparenz zu erhalten."
+            "value": "Behält das Motiv und macht den Hintergrund transparent. Bei JPEG wird er mit einer Vollfarbe gefüllt; wähle PNG oder HEIC, um die Transparenz zu erhalten."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Keeps the subject and makes the background transparent. JPEG output fills it with a solid color; choose PNG or WEBP to keep transparency."
+            "value": "Keeps the subject and makes the background transparent. JPEG output fills it with a solid color; choose PNG or HEIC to keep transparency."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Conserva el sujeto y hace transparente el fondo. Al guardar en JPEG, el fondo se rellena con un color sólido; elige PNG o WEBP para mantener la transparencia."
+            "value": "Conserva el sujeto y hace transparente el fondo. Al guardar en JPEG, el fondo se rellena con un color sólido; elige PNG o HEIC para mantener la transparencia."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Conserve le sujet et rend l'arrière-plan transparent. En JPEG, il est rempli d'une couleur unie ; choisissez PNG ou WEBP pour garder la transparence."
+            "value": "Conserve le sujet et rend l'arrière-plan transparent. En JPEG, il est rempli d'une couleur unie ; choisissez PNG ou HEIC pour garder la transparence."
           }
         },
         "id": {
           "stringUnit": {
             "state": "translated",
-            "value": "Mempertahankan subjek dan membuat latar belakang transparan. Output JPEG mengisinya dengan warna solid; pilih PNG atau WEBP agar tetap transparan."
+            "value": "Mempertahankan subjek dan membuat latar belakang transparan. Output JPEG mengisinya dengan warna solid; pilih PNG atau HEIC agar tetap transparan."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "被写体だけを残して背景を透明にします。JPEG で保存すると背景は単色で塗りつぶされます。透明のまま残すには PNG または WEBP を選んでください。"
+            "value": "被写体だけを残して背景を透明にします。JPEG で保存すると背景は単色で塗りつぶされます。透明のまま残すには PNG または HEIC を選んでください。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "피사체만 남기고 배경을 투명하게 만듭니다. JPEG로 저장하면 배경은 단색으로 채워지니 투명하게 남기려면 PNG나 WEBP를 쓰세요."
+            "value": "피사체만 남기고 배경을 투명하게 만듭니다. JPEG로 저장하면 배경은 단색으로 채워지니 투명하게 남기려면 PNG나 HEIC를 쓰세요."
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Mantém o objeto principal e deixa o fundo transparente. Em JPEG, o fundo é preenchido com uma cor sólida; escolha PNG ou WEBP para manter a transparência."
+            "value": "Mantém o objeto principal e deixa o fundo transparente. Em JPEG, o fundo é preenchido com uma cor sólida; escolha PNG ou HEIC para manter a transparência."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Оставляет объект и делает фон прозрачным. В JPEG фон заливается сплошным цветом — чтобы сохранить прозрачность, выберите PNG или WEBP."
+            "value": "Оставляет объект и делает фон прозрачным. В JPEG фон заливается сплошным цветом — чтобы сохранить прозрачность, выберите PNG или HEIC."
           }
         },
         "th": {
           "stringUnit": {
             "state": "translated",
-            "value": "เก็บวัตถุหลักไว้และทำให้พื้นหลังโปร่งใส หากบันทึกเป็น JPEG พื้นหลังจะถูกเติมด้วยสีทึบ เลือก PNG หรือ WEBP เพื่อคงความโปร่งใส"
+            "value": "เก็บวัตถุหลักไว้และทำให้พื้นหลังโปร่งใส หากบันทึกเป็น JPEG พื้นหลังจะถูกเติมด้วยสีทึบ เลือก PNG หรือ HEIC เพื่อคงความโปร่งใส"
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Giữ lại chủ thể và làm nền trong suốt. Khi lưu JPEG, nền sẽ được tô một màu; hãy chọn PNG hoặc WEBP để giữ độ trong suốt."
+            "value": "Giữ lại chủ thể và làm nền trong suốt. Khi lưu JPEG, nền sẽ được tô một màu; hãy chọn PNG hoặc HEIC để giữ độ trong suốt."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "保留主体并将背景变为透明。保存为 JPEG 时背景会以纯色填充；如需保留透明，请选择 PNG 或 WEBP。"
+            "value": "保留主体并将背景变为透明。保存为 JPEG 时背景会以纯色填充；如需保留透明，请选择 PNG 或 HEIC。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "保留主體並將背景變為透明。儲存為 JPEG 時背景會以純色填滿；如需保留透明，請選擇 PNG 或 WEBP。"
+            "value": "保留主體並將背景變為透明。儲存為 JPEG 時背景會以純色填滿；如需保留透明，請選擇 PNG 或 HEIC。"
           }
         }
       }

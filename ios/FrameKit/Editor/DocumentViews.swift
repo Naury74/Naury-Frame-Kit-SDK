@@ -123,3 +123,80 @@ struct DocumentPill: View {
         .padding(.bottom, 12)
     }
 }
+
+/// 배경 제거 조작부.
+struct CutoutPanel: View {
+    let model: EditorModel
+    @Environment(\.strings) private var strings
+    @Environment(\.editorTheme) private var theme
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(strings("cutout_description")).font(.system(size: 13)).foregroundStyle(theme.foregroundMuted)
+            if model.cutoutBusy {
+                HStack(spacing: 8) {
+                    ProgressView().tint(theme.accent)
+                    Text(strings("cutout_processing")).font(.system(size: 14)).foregroundStyle(theme.foreground)
+                }
+                .accessibilityElement(children: .combine)
+                .accessibilityAddTraits(.updatesFrequently)
+            } else if model.hasCutout {
+                HStack(spacing: 8) {
+                    EditorButton(title: strings("cutout_remove_again"), systemImage: "wand.and.stars") { model.removeBackground() }
+                    EditorButton(title: strings("cutout_restore"), systemImage: "arrow.uturn.backward", kind: .tonal) { model.restoreBackground() }
+                }
+            } else {
+                EditorButton(title: strings("cutout_remove"), systemImage: "wand.and.stars") { model.removeBackground() }
+            }
+            if let error = model.cutoutError {
+                Text(strings(error.code == .unsupportedOperation ? "cutout_device_unsupported" : "cutout_failed"))
+                    .font(.system(size: 13)).foregroundStyle(theme.error)
+            }
+        }
+        .padding(.horizontal, 16)
+    }
+}
+
+/// '글자를 찾았어요 · 보기' 안내와 글자 보기 시트.
+struct DocumentTextPill: View {
+    @Bindable var model: EditorModel
+    @Environment(\.editorTheme) private var theme
+    @Environment(\.strings) private var strings
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "text.viewfinder").foregroundStyle(theme.foreground)
+            Text(strings("document_text_found")).font(.system(size: 14, weight: .medium)).foregroundStyle(theme.foreground)
+            Button(strings("document_text_view")) { model.showDocumentText = true }
+                .font(.system(size: 14, weight: .semibold)).foregroundStyle(theme.accent).frame(minHeight: 44)
+            Button { model.documentText = nil } label: {
+                Image(systemName: "xmark").font(.system(size: 12, weight: .bold)).foregroundStyle(theme.foregroundMuted).frame(width: 32, height: 44)
+            }
+            .accessibilityLabel(strings("action_close"))
+        }
+        .padding(.leading, 14).padding(.trailing, 4)
+        .background(theme.raised.opacity(0.94), in: Capsule())
+        .shadow(color: .black.opacity(0.25), radius: 6, y: 2)
+        .padding(.bottom, 12)
+        .sheet(isPresented: $model.showDocumentText) {
+            NavigationStack {
+                ScrollView {
+                    Text(model.documentText ?? "").textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading).padding()
+                }
+                .navigationTitle(strings("document_text_title"))
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) { Button(strings("action_close")) { model.showDocumentText = false } }
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button(strings("document_text_copy")) {
+                            UIPasteboard.general.string = model.documentText
+                            model.showDocumentText = false
+                            model.showNotice("document_text_copied")
+                        }
+                    }
+                }
+            }
+            .presentationDetents([.medium, .large])
+        }
+    }
+}

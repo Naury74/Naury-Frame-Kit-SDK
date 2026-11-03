@@ -32,6 +32,10 @@ def android_text(element):
     return text
 
 
+# iOS에서 뜻이 달라지는 문구. iOS는 WebP로 저장할 수 없고 HEIC를 쓴다.
+IOS_REPLACEMENTS = {"cutout_description": [("WEBP", "HEIC"), ("WebP", "HEIC")]}
+
+
 def read_strings():
     table = {}
     for module in MODULES:
@@ -46,7 +50,10 @@ def read_strings():
                     continue
                 key = name.removeprefix("framekit_")
                 if element.tag == "string":
-                    table.setdefault(key, {})[lang] = {"stringUnit": {"state": "translated", "value": android_text(element)}}
+                    value = android_text(element)
+                    for old, new in IOS_REPLACEMENTS.get(key, []):
+                        value = value.replace(old, new)
+                    table.setdefault(key, {})[lang] = {"stringUnit": {"state": "translated", "value": value}}
                 elif element.tag == "plurals":
                     forms = {}
                     for item in element:

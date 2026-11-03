@@ -47,6 +47,7 @@ final class PreviewCache: @unchecked Sendable {
         let filterId: String
         let filterIntensity: Double
         let grainSeed: Int64
+        let cutout: CutoutMask?
         let width: Int
         let height: Int
         let source: ObjectIdentifier
@@ -58,6 +59,7 @@ final class PreviewCache: @unchecked Sendable {
             filterId = edit.filterId
             filterIntensity = edit.filterIntensity
             grainSeed = edit.grainSeed
+            cutout = edit.cutout
             width = output.width
             height = output.height
         }

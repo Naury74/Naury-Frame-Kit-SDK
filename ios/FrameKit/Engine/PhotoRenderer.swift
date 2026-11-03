@@ -39,7 +39,15 @@ enum PhotoRenderer {
         context.scaleBy(x: CGFloat(uprightSize.width) / CGFloat(cg.width), y: CGFloat(uprightSize.height) / CGFloat(cg.height))
         context.translateBy(x: 0, y: CGFloat(cg.height))
         context.scaleBy(x: 1, y: -1)
-        context.draw(cg, in: CGRect(x: 0, y: 0, width: cg.width, height: cg.height))
+        if let cutout = edit.cutout {
+            // 마스크는 업라이트 원본 전체에 맞춘다. 사진만 잘라 내고 바탕색은 그대로 둔다.
+            context.beginTransparencyLayer(auxiliaryInfo: nil)
+            context.clip(to: CGRect(x: 0, y: 0, width: cg.width, height: cg.height), mask: cutout.image)
+            context.draw(cg, in: CGRect(x: 0, y: 0, width: cg.width, height: cg.height))
+            context.endTransparencyLayer()
+        } else {
+            context.draw(cg, in: CGRect(x: 0, y: 0, width: cg.width, height: cg.height))
+        }
         guard let geometry = context.makeImage() else { throw .logged(.insufficientMemory, "makeImage") }
 
         guard applyColor else { return geometry }

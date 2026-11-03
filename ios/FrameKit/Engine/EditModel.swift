@@ -100,6 +100,8 @@ struct PhotoEdit: Hashable, Sendable {
     /// 목록 뒤쪽이 위.
     var overlays: [Overlay] = []
     var watermark: WatermarkSpec?
+    /// 배경 제거 마스크. 다른 편집보다 먼저 적용한다.
+    var cutout: CutoutMask?
 
     init(grainSeed: Int64 = Int64.random(in: Int64.min...Int64.max)) {
         self.grainSeed = grainSeed
@@ -119,7 +121,7 @@ struct PhotoEdit: Hashable, Sendable {
 
     /// 화면상 같은 결과인지. 0인 보정 항목 유무는 무시한다.
     func sameContent(as other: PhotoEdit) -> Bool {
-        geometry == other.geometry && sameColor(as: other) && privacyMasks == other.privacyMasks && drawing == other.drawing
+        geometry == other.geometry && cutout == other.cutout && sameColor(as: other) && privacyMasks == other.privacyMasks && drawing == other.drawing
             && overlays == other.overlays && watermark == other.watermark
     }
 

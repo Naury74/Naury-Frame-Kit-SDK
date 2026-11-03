@@ -7,7 +7,7 @@ extension EditorModel {
         guard pages.indices.contains(pageIndex) else { return tools }
         let page = pages[pageIndex]
         let showDocument = page.detection != nil || page.original != nil || request.export.format == .pdf
-        var result = tools.filter { $0 != .document || showDocument }
+        var result = tools.filter { ($0 != .document || showDocument) && ($0 != .cutout || Self.cutoutSupported) }
         // PDF로 저장하면 문서 보정을 맨 앞에 둔다.
         if request.export.format == .pdf, let index = result.firstIndex(of: .document) {
             result.insert(result.remove(at: index), at: 0)
@@ -89,6 +89,7 @@ extension EditorModel {
                     self.replacePage(index, source: source, preview: preview, original: original, quad: quad)
                     self.closeToolAfterDocument()
                     self.showNotice("document_applied")
+                    self.recognizeDocumentText(preview)
                 }
             } catch {
                 await MainActor.run {
@@ -130,6 +131,16 @@ extension EditorModel {
         }
     }
 
+    /// 편 문서에서 글자를 찾아 '글자 보기' 안내를 띄운다.
+    func recognizeDocumentText(_ preview: UprightImage) {
+        documentText = nil
+        Task.detached(priority: .utility) {
+            let lines = TextRecognizer.recognize(preview.cgImage) ?? []
+            let text = lines.map(\.text).joined(separator: "\n")
+            await MainActor.run { self.documentText = text.isEmpty ? nil : text }
+        }
+    }
+
     /// 펴기 전 원본으로 되돌린다.
     func restoreDocument() {
         guard pages.indices.contains(pageIndex), let original = pages[pageIndex].original else { return }
@@ -164,5 +175,42 @@ extension EditorModel {
             rendered = nil
             requestRender()
         }
+    }
+}
+
+extension EditorModel {
+    /// 배경 제거(Vision 피사체 분리, iOS 17 이상). 기기가 지원하지 않으면 실행할 때 오류를 보인다.
+    static let cutoutSupported = true
+
+    var hasCutout: Bool { displayed.cutout != nil }
+
+    func removeBackground() {
+        guard let preview, !cutoutBusy else { return }
+        cutoutBusy = true
+        cutoutError = nil
+        Task.detached(priority: .userInitiated) {
+            do {
+                let mask = try SubjectCutout.mask(for: preview.cgImage)
+                await MainActor.run {
+                    self.cutoutBusy = false
+                    var edit = self.history.current
+                    edit.cutout = mask
+                    self.history.commit(edit)
+                    self.requestRender()
+                }
+            } catch {
+                await MainActor.run {
+                    self.cutoutBusy = false
+                    self.cutoutError = (error as? EditorError) ?? EditorError(code: .unknown)
+                }
+            }
+        }
+    }
+
+    func restoreBackground() {
+        var edit = history.current
+        edit.cutout = nil
+        history.commit(edit)
+        requestRender()
     }
 }

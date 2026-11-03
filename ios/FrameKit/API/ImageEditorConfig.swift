@@ -8,6 +8,8 @@ public enum ImageTool: String, Sendable, CaseIterable {
     case rotate
     /// 문서 네 모서리를 찾아 반듯하게 펴고 스캔처럼 보정한다. 문서가 보이거나 PDF로 저장할 때만 나온다.
     case document
+    /// 피사체만 남기고 배경을 지운다(기기 안 처리). 지원하지 않는 기기에서는 나오지 않는다.
+    case cutout
     /// 12가지 보정.
     case adjust
     /// 필터와 강도.
@@ -24,7 +26,7 @@ public enum ImageTool: String, Sendable, CaseIterable {
     case watermark
 
     /// 기본 도구 순서.
-    public static let defaults: [ImageTool] = [.crop, .rotate, .document, .adjust, .filter, .text, .sticker, .draw, .privacy, .watermark]
+    public static let defaults: [ImageTool] = [.crop, .rotate, .document, .cutout, .adjust, .filter, .text, .sticker, .draw, .privacy, .watermark]
 
     /// 적용·취소가 있는 도구. 저장 전에 적용해야 한다.
     var isDraft: Bool { self == .crop || self == .rotate || self == .text || self == .watermark }

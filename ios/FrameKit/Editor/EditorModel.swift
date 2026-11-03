@@ -76,6 +76,12 @@ final class EditorModel {
     var scanStyle = ScanStyle.color
     var documentBusy = false
     var documentSuggestionDismissed = false
+    /// 배경 제거 상태.
+    var cutoutBusy = false
+    var cutoutError: EditorError?
+    /// 문서를 편 뒤 인식한 글자.
+    var documentText: String?
+    var showDocumentText = false
 
     /// 미리 보기 결과(현재 편집, 출력 화면 크기).
     var rendered: CGImage?
