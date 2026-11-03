@@ -11,11 +11,9 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.core.content.IntentCompat
-import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.Companion.APPLICATION_KEY
 import androidx.lifecycle.createSavedStateHandle
 import androidx.lifecycle.lifecycleScope
-import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.naury.framekit.android.input.EditorInput
@@ -57,9 +55,8 @@ internal class AudioEditorActivity : ComponentActivity() {
             navigationBarStyle = if (darkBars) SystemBarStyle.dark(Color.TRANSPARENT) else SystemBarStyle.auto(Color.TRANSPARENT, Color.TRANSPARENT),
         )
         val viewModel: AudioEditorViewModel by viewModels { factory(request) }
-        lifecycleScope.launch {
-            repeatOnLifecycle(Lifecycle.State.STARTED) { deliver(viewModel.result.filterNotNull().first()) }
-        }
+        // 결과가 나오면 화면이 백그라운드여도 바로 돌려준다. setResult·finish로 넘긴 결과는 시스템이 보관하므로 이 프로세스가 끝나도 남는다.
+        lifecycleScope.launch { deliver(viewModel.result.filterNotNull().first()) }
         setContent {
             ProvideEditorLocale(request.ui.localeTag) {
                 FrameKitTheme(request.ui) { AudioEditorScreen(viewModel) }
