@@ -68,6 +68,15 @@ final class VideoSource: @unchecked Sendable {
         self.removeOnClose = removeOnClose
     }
 
+    /// 원본 시각 [time]의 똑바로 선 프레임. 긴 변이 [maxSide] 이하.
+    func frame(at time: Micros, maxSide: CGFloat) async -> UprightImage? {
+        let generator = AVAssetImageGenerator(asset: asset)
+        generator.appliesPreferredTrackTransform = true
+        generator.maximumSize = CGSize(width: maxSide, height: maxSide)
+        guard let image = try? await generator.image(at: time.cmTime).image else { return nil }
+        return UprightImage(cgImage: image)
+    }
+
     func close() {
         if removeOnClose { try? FileManager.default.removeItem(at: url) }
     }

@@ -17,6 +17,8 @@ struct ContentView: View {
     @State private var lastResult = ""
     @State private var resultImage: UIImage?
     @State private var showEditor = false
+    @State private var videoRequest: VideoEditorRequest?
+    @State private var showVideo = false
 
     var body: some View {
         NavigationStack {
@@ -28,6 +30,10 @@ struct ContentView: View {
                     Button("여러 장 고르기") { open(.pickMultiple(maxItems: 10)) }
                     Button("여러 장 샘플(3장)") { open(.files(SampleImage.files(count: 3))) }
                     Button("문서 샘플") { open(.data(SampleImage.document())) }
+                }
+                Section("영상") {
+                    Button("영상 고르기") { openVideo(.pickMultiple(maxItems: 5)) }
+                    Button("샘플 영상(2개)") { Task { openVideo(.files(await SampleVideo.files())) } }
                 }
                 Section("설정") {
                     Picker("저장 형식", selection: $format) {
@@ -64,6 +70,10 @@ struct ContentView: View {
             if arguments.contains("-openSample") { open(.data(SampleImage.make())) }
             if arguments.contains("-openSamples") { open(.files(SampleImage.files(count: 3))) }
             if arguments.contains("-openDocument") { open(.data(SampleImage.document())) }
+            if arguments.contains("-openVideo") { Task { openVideo(.files(await SampleVideo.files())) } }
+        }
+        .frameKitVideoEditor(isPresented: $showVideo, request: videoRequest ?? VideoEditorRequest(input: .pick)) { result in
+            handle(result)
         }
         .frameKitImageEditor(isPresented: $showEditor, request: request ?? ImageEditorRequest(input: .pick)) { result in
             handle(result)
@@ -83,6 +93,11 @@ struct ContentView: View {
         showEditor = true
     }
 
+    private func openVideo(_ input: EditorInput) {
+        videoRequest = VideoEditorRequest(input: input, ui: EditorUIConfig(themeMode: theme, localeIdentifier: locale.isEmpty ? nil : locale))
+        showVideo = true
+    }
+
     private func handle(_ result: FrameKitResult) {
         switch result {
         case .success(let output, let outputs):
@@ -90,6 +105,7 @@ struct ContentView: View {
                 .joined(separator: "\n")
             if let text = output.recognizedText, !text.isEmpty { lastResult += "\n인식한 글자: \(text.prefix(80))" }
             resultImage = UIImage(contentsOfFile: output.url.path)
+            if let duration = output.durationMs { lastResult += "\n길이 \(duration)ms" }
         case .cancelled:
             lastResult = "취소됨"
             resultImage = nil
@@ -149,5 +165,56 @@ enum SampleImage {
             text.draw(at: CGPoint(x: 220, y: 760), withAttributes: [.font: UIFont.systemFont(ofSize: 360, weight: .heavy), .foregroundColor: UIColor.white])
         }
         return image.jpegData(compressionQuality: 0.92)!
+    }
+}
+
+import AVFoundation
+
+/// 사진 없이 시험할 수 있는 3초 영상(움직이는 막대와 소리).
+enum SampleVideo {
+    static func files() async -> [URL] {
+        var urls: [URL] = []
+        for (index, hue) in [0.55, 0.05].enumerated() {
+            let url = FileManager.default.temporaryDirectory.appendingPathComponent("sample-video-\(index).mp4")
+            if !FileManager.default.fileExists(atPath: url.path) { try? await make(url: url, hue: hue, label: "Clip \(index + 1)") }
+            urls.append(url)
+        }
+        return urls
+    }
+
+    private static func make(url: URL, hue: CGFloat, label: String) async throws {
+        let width = 1280, height = 720, fps: Int32 = 30, frames = 90
+        let writer = try AVAssetWriter(outputURL: url, fileType: .mp4)
+        let input = AVAssetWriterInput(mediaType: .video, outputSettings: [AVVideoCodecKey: AVVideoCodecType.h264, AVVideoWidthKey: width, AVVideoHeightKey: height])
+        let adaptor = AVAssetWriterInputPixelBufferAdaptor(assetWriterInput: input, sourcePixelBufferAttributes: [
+            kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA, kCVPixelBufferWidthKey as String: width, kCVPixelBufferHeightKey as String: height])
+        writer.add(input)
+        writer.startWriting()
+        writer.startSession(atSourceTime: .zero)
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        let renderer = UIGraphicsImageRenderer(size: CGSize(width: width, height: height), format: format)
+        for i in 0..<frames {
+            while !input.isReadyForMoreMediaData { try await Task.sleep(for: .milliseconds(5)) }
+            let image = renderer.image { _ in
+                UIColor(hue: hue, saturation: 0.7, brightness: 0.8, alpha: 1).setFill()
+                UIRectFill(CGRect(x: 0, y: 0, width: width, height: height))
+                UIColor.white.setFill()
+                UIRectFill(CGRect(x: CGFloat(i) / CGFloat(frames) * CGFloat(width - 120), y: 520, width: 120, height: 120))
+                (label as NSString).draw(at: CGPoint(x: 80, y: 200), withAttributes: [.font: UIFont.boldSystemFont(ofSize: 140), .foregroundColor: UIColor.white])
+            }
+            var buffer: CVPixelBuffer?
+            CVPixelBufferPoolCreatePixelBuffer(nil, adaptor.pixelBufferPool!, &buffer)
+            guard let pb = buffer, let cg = image.cgImage else { continue }
+            CVPixelBufferLockBaseAddress(pb, [])
+            let context = CGContext(data: CVPixelBufferGetBaseAddress(pb), width: width, height: height, bitsPerComponent: 8,
+                                    bytesPerRow: CVPixelBufferGetBytesPerRow(pb), space: CGColorSpace(name: CGColorSpace.sRGB)!,
+                                    bitmapInfo: CGImageAlphaInfo.premultipliedFirst.rawValue | CGBitmapInfo.byteOrder32Little.rawValue)
+            context?.draw(cg, in: CGRect(x: 0, y: 0, width: width, height: height))
+            CVPixelBufferUnlockBaseAddress(pb, [])
+            adaptor.append(pb, withPresentationTime: CMTime(value: CMTimeValue(i), timescale: fps))
+        }
+        input.markAsFinished()
+        await writer.finishWriting()
     }
 }

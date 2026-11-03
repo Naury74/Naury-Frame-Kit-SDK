@@ -58,6 +58,36 @@ extension AdjustKind {
     }
 }
 
+/// 자르기·회전·보정·필터 패널이 쓰는 편집 동작. 사진·영상 편집기가 함께 쓴다.
+@MainActor
+protocol ColorToolHost: AnyObject, Observable {
+    var cropAspect: CropAspect { get }
+    func setAspect(_ aspect: CropAspect)
+    func rotate(clockwise: Bool)
+    func flip(horizontal: Bool)
+    var currentGeometry: GeometryState { get }
+    func setStraighten(_ degrees: Double)
+    func finishStraighten()
+    var adjustKind: AdjustKind { get set }
+    func adjustmentValue(_ kind: AdjustKind) -> Double
+    func setAdjustment(_ kind: AdjustKind, display: Double)
+    func commitGesture()
+    var currentFilterId: String { get }
+    var currentFilterIntensity: Double { get }
+    func selectFilter(_ id: String)
+    func setFilterIntensity(display: Double)
+    var filterThumbnails: [String: CGImage] { get }
+    var catalog: EditorCatalog { get }
+}
+
+extension EditorModel: ColorToolHost {
+    var currentGeometry: GeometryState { displayed.geometry }
+    func adjustmentValue(_ kind: AdjustKind) -> Double { displayed.value(kind) }
+    var currentFilterId: String { displayed.filterId }
+    var currentFilterIntensity: Double { displayed.filterIntensity }
+    var catalog: EditorCatalog { request.catalog }
+}
+
 /// 열린 도구의 조작부와 아래 적용 막대.
 struct ToolPanel: View {
     let model: EditorModel
@@ -100,8 +130,8 @@ struct ToolPanel: View {
 
 // MARK: - 자르기
 
-struct CropPanel: View {
-    let model: EditorModel
+struct CropPanel<Host: ColorToolHost>: View {
+    let model: Host
     @Environment(\.strings) private var strings
     @State private var showCustom = false
     @State private var customWidth = ""
@@ -160,8 +190,8 @@ struct CropPanel: View {
 
 // MARK: - 회전
 
-struct RotatePanel: View {
-    let model: EditorModel
+struct RotatePanel<Host: ColorToolHost>: View {
+    let model: Host
     @Environment(\.strings) private var strings
 
     var body: some View {
@@ -179,7 +209,7 @@ struct RotatePanel: View {
             }
             DialSlider(
                 label: strings("straighten"),
-                value: model.displayed.geometry.straightenDegrees,
+                value: model.currentGeometry.straightenDegrees,
                 range: GeometryEdit.companion.MIN_STRAIGHTEN_DEGREES...GeometryEdit.companion.MAX_STRAIGHTEN_DEGREES,
                 spacing: 10, tickEvery: 1, majorEvery: 5, snapThreshold: 0.4,
                 format: { strings("degrees", String(format: "%.1f", locale: Locale(identifier: "en_US_POSIX"), $0)) },
@@ -193,8 +223,8 @@ struct RotatePanel: View {
 
 // MARK: - 보정
 
-struct AdjustPanel: View {
-    @Bindable var model: EditorModel
+struct AdjustPanel<Host: ColorToolHost>: View {
+    @Bindable var model: Host
     @Environment(\.strings) private var strings
     @Environment(\.editorTheme) private var theme
     @Environment(\.haptics) private var haptics
@@ -204,7 +234,7 @@ struct AdjustPanel: View {
         VStack(spacing: 10) {
             DialSlider(
                 label: strings(kind.labelKey),
-                value: kind.toDisplay(model.displayed.value(kind)),
+                value: kind.toDisplay(model.adjustmentValue(kind)),
                 range: (kind.signed ? -100 : 0)...100,
                 snapThreshold: kind.signed ? 1.5 : 0,
                 format: { v in
@@ -231,7 +261,7 @@ struct AdjustPanel: View {
     }
 
     private func ring(_ item: AdjustKind, selected: Bool) -> some View {
-        let display = item.toDisplay(model.displayed.value(item))
+        let display = item.toDisplay(model.adjustmentValue(item))
         let fraction = min(1, abs(display) / 100)
         return Button {
             haptics.selection()
@@ -269,23 +299,23 @@ struct AdjustPanel: View {
 
 // MARK: - 필터
 
-struct FilterPanel: View {
-    let model: EditorModel
+struct FilterPanel<Host: ColorToolHost>: View {
+    let model: Host
     @Environment(\.strings) private var strings
     @Environment(\.editorTheme) private var theme
     @Environment(\.haptics) private var haptics
 
     var body: some View {
-        let edit = model.displayed
+        let filterId = model.currentFilterId
         VStack(spacing: 10) {
             Group {
-                if edit.filterId == "original" {
+                if filterId == "original" {
                     Text(strings("filter_hint")).font(.system(size: 14)).foregroundStyle(theme.foregroundMuted)
                         .multilineTextAlignment(.center)
                 } else {
                     DialSlider(
                         label: strings("filter_intensity"),
-                        value: edit.filterIntensity * 100,
+                        value: model.currentFilterIntensity * 100,
                         range: 0...100,
                         resetValue: 100,
                         snapThreshold: 0,
@@ -301,12 +331,12 @@ struct FilterPanel: View {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(alignment: .top, spacing: 10) {
                         ForEach(filterIds, id: \.self) { id in
-                            thumbnail(id, selected: id == edit.filterId).id(id)
+                            thumbnail(id, selected: id == filterId).id(id)
                         }
                     }
                     .padding(.horizontal, 16)
                 }
-                .onAppear { proxy.scrollTo(edit.filterId, anchor: .center) }
+                .onAppear { proxy.scrollTo(filterId, anchor: .center) }
             }
         }
     }
@@ -315,7 +345,7 @@ struct FilterPanel: View {
     private var filterIds: [String] {
         let builtIn = FilterCatalog.shared.presets.map(\.id)
         let custom = FilterCatalog.shared.custom.map(\.id)
-        return (model.request.catalog.showDefaultFilters ? builtIn : ["original"]) + custom
+        return (model.catalog.showDefaultFilters ? builtIn : ["original"]) + custom
     }
 
     private func thumbnail(_ id: String, selected: Bool) -> some View {
