@@ -87,6 +87,7 @@ import com.naury.framekit.ui.component.DiscardChangesDialog
 import com.naury.framekit.ui.component.EditorErrorView
 import com.naury.framekit.ui.component.EditorLoadingView
 import com.naury.framekit.ui.component.EditorTopBar
+import com.naury.framekit.ui.component.LocalEditorEmbedded
 import com.naury.framekit.ui.component.editorChrome
 import com.naury.framekit.ui.component.ExportErrorDialog
 import com.naury.framekit.ui.component.ExportOverlay
@@ -133,7 +134,9 @@ internal fun ImageEditorScreen(viewModel: ImageEditorViewModel, posture: FoldPos
         },
         onFailed = viewModel::onCaptureFailed,
     )
-    BackHandler { viewModel.onBack() }
+    val embedded = LocalEditorEmbedded.current
+    // 혼합 편집 화면 안에서는 도구 밖의 뒤로 가기를 감싼 화면이 처리한다.
+    BackHandler(enabled = !embedded || (state as? ImageEditorUiState.Ready)?.activeTool != null) { viewModel.onBack() }
 
     Box(Modifier.fillMaxSize().background(FrameKitTheme.colors.background)) {
         when (val current = state) {
@@ -202,12 +205,14 @@ private fun ReadyContent(state: ImageEditorUiState.Ready, viewModel: ImageEditor
                 // 도구 화면에서는 X 대신 뒤로 가기 화살표와 도구 이름을 보여 준다. 뒤로 가기는 시스템 뒤로 가기와 같아서
                 // 바뀐 내용이 있으면 적용할지 먼저 묻는다.
                 val tool = state.activeTool
-                EditorTopBar(
+                val embedded = LocalEditorEmbedded.current
+                if (!embedded || tool != null) EditorTopBar(
                     modifier = Modifier.editorChrome(state.chromeHidden, viewModel::showChrome),
                     onClose = if (tool != null) viewModel::onBack else viewModel::requestClose,
                     onSave = viewModel::save,
                     saveEnabled = state.export == null,
                     toolTitle = tool?.railItem()?.label,
+                    showSave = !embedded,
                 )
             }
             when (val layout = EditorLayoutPolicy.decide(maxWidth.value, maxHeight.value, posture)) {

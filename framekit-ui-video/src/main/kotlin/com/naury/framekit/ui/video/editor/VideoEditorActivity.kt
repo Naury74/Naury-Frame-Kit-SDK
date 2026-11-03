@@ -78,7 +78,7 @@ internal class VideoEditorActivity : ComponentActivity() {
             navigationBarStyle = if (darkBars) SystemBarStyle.dark(Color.TRANSPARENT) else SystemBarStyle.auto(Color.TRANSPARENT, Color.TRANSPARENT),
         )
 
-        val viewModel = viewModels<VideoEditorViewModel> { factory(request) }.value
+        val viewModel = viewModels<VideoEditorViewModel> { videoEditorFactory(request) }.value
         editor = viewModel
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
@@ -103,50 +103,6 @@ internal class VideoEditorActivity : ComponentActivity() {
         editor?.onStop()
     }
 
-    private fun factory(request: VideoEditorRequest) = viewModelFactory {
-        initializer {
-            val application = checkNotNull(this[APPLICATION_KEY])
-            val registry = SessionSourceRegistry(application)
-            val coordinator = VideoExportCoordinator(application, AppFileOutputStore(application))
-            val loader = VideoThumbnailLoader(application)
-            val reader = VideoMetadataReader(application, registry)
-            VideoEditorViewModel(
-                request = request,
-                savedState = createSavedStateHandle(),
-                registry = registry,
-                readSource = reader::read,
-                readAudio = reader::readAudio,
-                describe = { uri -> displayName(application.contentResolver, uri) },
-                waveformLoader = { location ->
-                    val uri = when (location) {
-                        is SourceLocation.Content -> location.uri
-                        is SourceLocation.LocalFile -> Uri.fromFile(location.file)
-                    }
-                    WaveformExtractor.extract(application, uri)
-                },
-                exporter = { project, sources, locations, audioSources, onProgress ->
-                    coordinator.export(
-                        project = project,
-                        sources = sources,
-                        locations = locations,
-                        config = request.export,
-                        target = request.output,
-                        minClipOutputDurationUs = request.config.minClipDurationUs,
-                        audioSources = audioSources,
-                        onProgress = onProgress,
-                    )
-                },
-                previewEngineFactory = { scope -> Media3VideoPreviewEngine(application, scope) },
-                frames = VideoFrameSource(loader::load),
-                ioDispatcher = Dispatchers.IO,
-                closeables = listOf(loader),
-                sessionStore = EditorSessionStore(application),
-                captureFile = { CaptureFiles.create(application, MediaKind.VIDEO) },
-                cleanup = coordinator::deleteStalePartials,
-            )
-        }
-    }
-
     private fun deliver(result: FrameKitResult) {
         if (delivered) return
         delivered = true
@@ -162,3 +118,48 @@ private fun displayName(resolver: ContentResolver, uri: Uri): String? = runCatch
         if (cursor.moveToFirst()) cursor.getString(0) else null
     }
 }.getOrNull()
+
+/** 에디터 ViewModel을 만든다. Activity와 혼합 편집 화면이 함께 쓴다. */
+internal fun videoEditorFactory(request: VideoEditorRequest) = viewModelFactory {
+    initializer {
+        val application = checkNotNull(this[APPLICATION_KEY])
+        val registry = SessionSourceRegistry(application)
+        val coordinator = VideoExportCoordinator(application, AppFileOutputStore(application))
+        val loader = VideoThumbnailLoader(application)
+        val reader = VideoMetadataReader(application, registry)
+        VideoEditorViewModel(
+            request = request,
+            savedState = createSavedStateHandle(),
+            registry = registry,
+            readSource = reader::read,
+            readAudio = reader::readAudio,
+            describe = { uri -> displayName(application.contentResolver, uri) },
+            waveformLoader = { location ->
+                val uri = when (location) {
+                    is SourceLocation.Content -> location.uri
+                    is SourceLocation.LocalFile -> Uri.fromFile(location.file)
+                }
+                WaveformExtractor.extract(application, uri)
+            },
+            exporter = { project, sources, locations, audioSources, onProgress ->
+                coordinator.export(
+                    project = project,
+                    sources = sources,
+                    locations = locations,
+                    config = request.export,
+                    target = request.output,
+                    minClipOutputDurationUs = request.config.minClipDurationUs,
+                    audioSources = audioSources,
+                    onProgress = onProgress,
+                )
+            },
+            previewEngineFactory = { scope -> Media3VideoPreviewEngine(application, scope) },
+            frames = VideoFrameSource(loader::load),
+            ioDispatcher = Dispatchers.IO,
+            closeables = listOf(loader),
+            sessionStore = EditorSessionStore(application),
+            captureFile = { CaptureFiles.create(application, MediaKind.VIDEO) },
+            cleanup = coordinator::deleteStalePartials,
+        )
+    }
+}

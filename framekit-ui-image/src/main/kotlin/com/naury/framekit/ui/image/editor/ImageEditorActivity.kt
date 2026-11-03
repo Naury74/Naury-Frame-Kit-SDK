@@ -77,7 +77,7 @@ internal class ImageEditorActivity : ComponentActivity() {
             navigationBarStyle = if (darkBars) SystemBarStyle.dark(Color.TRANSPARENT) else SystemBarStyle.auto(Color.TRANSPARENT, Color.TRANSPARENT),
         )
 
-        val viewModel: ImageEditorViewModel by viewModels { factory(request) }
+        val viewModel: ImageEditorViewModel by viewModels { imageEditorFactory(request) }
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
                 deliver(viewModel.result.filterNotNull().first())
@@ -96,45 +96,46 @@ internal class ImageEditorActivity : ComponentActivity() {
         }
     }
 
-    private fun factory(request: ImageEditorRequest) = viewModelFactory {
-        initializer {
-            val application = checkNotNull(this[APPLICATION_KEY])
-            val registry = SessionSourceRegistry(application)
-            val colorRenderer = DefaultColorEffectRenderer()
-            val coordinator = ImageExportCoordinator(
-                resolver = registry,
-                outputStore = AppFileOutputStore(application),
-                memoryBudgetBytes = ImageMemoryBudget.bytes(application),
-                contentResolver = application.contentResolver,
-                colorRenderer = colorRenderer,
-                textRecognizer = TextRecognizers.find(application),
-            )
-            ImageEditorViewModel(
-                request = request,
-                savedState = createSavedStateHandle(),
-                registry = registry,
-                exportCoordinator = coordinator,
-                previewLongEdge = PreviewResolution.longEdge(application),
-                ioDispatcher = Dispatchers.IO,
-                sessionStore = EditorSessionStore(application),
-                contentResolver = application.contentResolver,
-                colorRenderer = colorRenderer,
-                backgroundRemover = BackgroundRemovers.find(application),
-                assetFallback = ProjectAssetStore(File(application.cacheDir, "framekit/assets/${UUID.randomUUID()}")),
-                captureFile = { CaptureFiles.create(application, MediaKind.IMAGE) },
-                // 프로세스가 끝나도 이어서 편집할 수 있게 캐시가 아닌 앱 파일 폴더에 둔다.
-                documentDirectory = File(application.filesDir, "framekit/documents"),
-                memoryBudgetBytes = ImageMemoryBudget.bytes(application),
-                textRecognizer = TextRecognizers.find(application),
-            )
-        }
-    }
-
     private fun deliver(result: FrameKitResult) {
         if (delivered) return
         delivered = true
         val (code, data) = FrameKitResultCodec.encode(result)
         setResult(code, data)
         finish()
+    }
+}
+
+/** 에디터 ViewModel을 만든다. Activity와 혼합 편집 화면이 함께 쓴다. */
+internal fun imageEditorFactory(request: ImageEditorRequest) = viewModelFactory {
+    initializer {
+        val application = checkNotNull(this[APPLICATION_KEY])
+        val registry = SessionSourceRegistry(application)
+        val colorRenderer = DefaultColorEffectRenderer()
+        val coordinator = ImageExportCoordinator(
+            resolver = registry,
+            outputStore = AppFileOutputStore(application),
+            memoryBudgetBytes = ImageMemoryBudget.bytes(application),
+            contentResolver = application.contentResolver,
+            colorRenderer = colorRenderer,
+            textRecognizer = TextRecognizers.find(application),
+        )
+        ImageEditorViewModel(
+            request = request,
+            savedState = createSavedStateHandle(),
+            registry = registry,
+            exportCoordinator = coordinator,
+            previewLongEdge = PreviewResolution.longEdge(application),
+            ioDispatcher = Dispatchers.IO,
+            sessionStore = EditorSessionStore(application),
+            contentResolver = application.contentResolver,
+            colorRenderer = colorRenderer,
+            backgroundRemover = BackgroundRemovers.find(application),
+            assetFallback = ProjectAssetStore(File(application.cacheDir, "framekit/assets/${UUID.randomUUID()}")),
+            captureFile = { CaptureFiles.create(application, MediaKind.IMAGE) },
+            // 프로세스가 끝나도 이어서 편집할 수 있게 캐시가 아닌 앱 파일 폴더에 둔다.
+            documentDirectory = File(application.filesDir, "framekit/documents"),
+            memoryBudgetBytes = ImageMemoryBudget.bytes(application),
+            textRecognizer = TextRecognizers.find(application),
+        )
     }
 }
