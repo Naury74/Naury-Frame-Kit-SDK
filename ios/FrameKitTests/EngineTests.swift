@@ -26,7 +26,7 @@ private func makeSource(width: Int, height: Int, gps: Bool = false) throws -> UR
     return url
 }
 
-private func pixel(_ image: CGImage, x: Int, y: Int) -> (r: Int, g: Int, b: Int) {
+func pixel(_ image: CGImage, x: Int, y: Int) -> (r: Int, g: Int, b: Int) {
     let context = BitmapContext.make(width: image.width, height: image.height)!
     context.draw(image, in: CGRect(x: 0, y: 0, width: image.width, height: image.height))
     let bytes = context.data!.bindMemory(to: UInt8.self, capacity: context.bytesPerRow * image.height)

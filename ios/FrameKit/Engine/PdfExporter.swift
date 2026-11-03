@@ -103,7 +103,7 @@ enum PdfExporter {
         let text = texts.joined(separator: "\n\n")
         return EditedMedia(url: final, mediaType: .document, width: Int((firstPage?.width ?? 0).rounded()),
                            height: Int((firstPage?.height ?? 0).rounded()), mimeType: "application/pdf", fileSize: size,
-                           warnings: Array(warnings).sorted { $0.rawValue < $1.rawValue }, pageCount: pages.count,
+                           warnings: Array(warnings).sorted { $0.rawValue < $1.rawValue }, durationMs: nil, pageCount: pages.count,
                            recognizedText: config.pdf.recognizeText ? String(text.prefix(maxRecognizedText)) : nil, isOriginal: false)
     }
 

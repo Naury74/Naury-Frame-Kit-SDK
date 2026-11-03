@@ -62,7 +62,7 @@ enum ImageExporter {
         if !source.isSRGB { warnings.append(.colorSpaceConvertedToSRGB) }
         if source.hasGainMap { warnings.append(.hdrGainMapDropped) }
         return EditedMedia(url: final, mediaType: .image, width: output.width, height: output.height, mimeType: config.format.mimeType,
-                           fileSize: size, warnings: warnings, pageCount: nil, recognizedText: nil, isOriginal: false)
+                           fileSize: size, warnings: warnings, durationMs: nil, pageCount: nil, recognizedText: nil, isOriginal: false)
     }
 
     /// 결과 크기에 필요한 만큼만 디코딩해 그린다.

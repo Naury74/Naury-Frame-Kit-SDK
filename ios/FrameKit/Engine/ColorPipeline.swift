@@ -88,6 +88,34 @@ final class ColorPipeline: @unchecked Sendable {
         return result
     }
 
+    /// 영상 프레임용 한 번 계산(선명도 없음). Android 영상 색 보정과 같다.
+    func videoApply(_ image: CIImage, spec: ColorEffectSpec, width: CGFloat, height: CGFloat) -> CIImage {
+        guard !spec.isIdentity else { return image }
+        let extent = CGRect(x: 0, y: 0, width: width, height: height)
+        let wb = spec.whiteBalance
+        let grade = spec.grade
+        guard let colored = colorKernel.apply(extent: extent, arguments: [
+            image,
+            CIVector(x: CGFloat(wb.red), y: CGFloat(wb.green), z: CGFloat(wb.blue)),
+            CIVector(x: CGFloat(spec.exposureGain), y: CGFloat(spec.shadows), z: CGFloat(spec.highlights), w: CGFloat(spec.brightnessOffset)),
+            CIVector(x: CGFloat(spec.contrastFactor), y: CGFloat(spec.saturationFactor), z: CGFloat(spec.filterIntensity), w: grade == nil ? 0 : 1),
+            CIVector(x: CGFloat(grade?.gains.red ?? 1), y: CGFloat(grade?.gains.green ?? 1), z: CGFloat(grade?.gains.blue ?? 1)),
+            CIVector(x: CGFloat(grade?.brightnessOffset ?? 0), y: CGFloat(grade?.contrastFactor ?? 1),
+                     z: CGFloat(grade?.saturationFactor ?? 1), w: CGFloat(grade?.fadeLift ?? 0)),
+            CIVector(x: CGFloat(grade?.shadowTint.red ?? 0), y: CGFloat(grade?.shadowTint.green ?? 0), z: CGFloat(grade?.shadowTint.blue ?? 0)),
+            CIVector(x: CGFloat(grade?.highlightTint.red ?? 0), y: CGFloat(grade?.highlightTint.green ?? 0), z: CGFloat(grade?.highlightTint.blue ?? 0)),
+        ]) else { return image }
+        guard spec.fadeLift != 0 || spec.vignetteStrength != 0 || spec.grainAmount != 0 else { return colored }
+        let seed = UInt32(bitPattern: spec.grainSeed)
+        let cells = CGFloat(ColorEffectSpec.companion.GRAIN_CELLS_SHORT_EDGE) / min(width, height)
+        return finishKernel.apply(extent: extent, roiCallback: { _, rect in rect }, arguments: [
+            colored, colored,
+            CIVector(x: 0, y: CGFloat(spec.fadeLift), z: CGFloat(spec.vignetteStrength), w: CGFloat(spec.grainAmount)),
+            CIVector(x: width, y: height, z: cells, w: 0),
+            CIVector(x: CGFloat(seed & 0xFFFF), y: CGFloat(seed >> 16)),
+        ]) ?? colored
+    }
+
     private func blur(_ image: CIImage, extent: CGRect, direction: CIVector, sigma: CGFloat, radius: CGFloat) throws -> CIImage {
         let padX = radius * abs(direction.x) + 1
         let padY = radius * abs(direction.y) + 1

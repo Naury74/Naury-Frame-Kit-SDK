@@ -14,6 +14,8 @@ public enum FrameKitResult: Sendable {
 /// 결과 파일 종류.
 public enum MediaType: String, Sendable {
     case image
+    /// MP4 영상.
+    case video
     /// PDF.
     case document
 }
@@ -26,6 +28,10 @@ public enum ExportWarning: String, Sendable {
     case colorSpaceConvertedToSRGB
     /// HDR 게인 맵을 버리고 SDR로 저장했다.
     case hdrGainMapDropped
+    /// HDR 영상을 SDR로 바꿨다.
+    case hdrConvertedToSDR
+    /// 초당 프레임 상한을 넘어 프레임을 줄였다.
+    case frameRateReduced
 }
 
 /// 저장된 결과 파일.
@@ -42,6 +48,8 @@ public struct EditedMedia: Sendable, Hashable {
     /// 바이트 단위 파일 크기.
     public let fileSize: Int64
     public let warnings: [ExportWarning]
+    /// 영상 길이(밀리초). 영상이 아니면 `nil`.
+    public let durationMs: Int64?
     /// PDF 쪽 수. 사진이면 `nil`.
     public let pageCount: Int?
     /// PDF에서 인식한 글자(최대 10만 자). 인식하지 않았으면 `nil`.
