@@ -1,3 +1,4 @@
+import AVFoundation
 import FrameKit
 import ImageIO
 import SwiftUI
@@ -23,6 +24,8 @@ struct ContentView: View {
     @State private var showVideo = false
     @State private var motionRequest: MotionEditorRequest?
     @State private var showMotion = false
+    @State private var audioRequest: AudioEditorRequest?
+    @State private var showAudio = false
 
     var body: some View {
         NavigationStack {
@@ -43,6 +46,11 @@ struct ContentView: View {
                     Button("사진 고르기(슬라이드쇼·GIF)") { openMotion(.pickMultiple(maxItems: 20)) }
                     Button("샘플 사진(3장)") { openMotion(.files(SampleImage.files(count: 3))) }
                     Button("샘플 GIF") { openMotion(.data(SampleImage.gif())) }
+                }
+                Section("음성") {
+                    Button("소리 파일 고르기") { openAudio(.pickMultiple(maxItems: 5)) }
+                    Button("녹음하기") { openAudio(.capture) }
+                    Button("샘플 소리(2개)") { openAudio(.files(SampleAudio.files())) }
                 }
                 Section("설정") {
                     Picker("저장 형식", selection: $format) {
@@ -82,6 +90,10 @@ struct ContentView: View {
             if arguments.contains("-openVideo") { Task { openVideo(.files(await SampleVideo.files())) } }
             if arguments.contains("-openMotion") { openMotion(.files(SampleImage.files(count: 3))) }
             if arguments.contains("-openGif") { openMotion(.data(SampleImage.gif())) }
+            if arguments.contains("-openAudio") { openAudio(.files(SampleAudio.files())) }
+        }
+        .frameKitAudioEditor(isPresented: $showAudio, request: audioRequest ?? AudioEditorRequest(input: .pick)) { result in
+            handle(result)
         }
         .frameKitMotionEditor(isPresented: $showMotion, request: motionRequest ?? MotionEditorRequest(input: .pick)) { result in
             handle(result)
@@ -115,6 +127,11 @@ struct ContentView: View {
     private func openMotion(_ input: EditorInput) {
         motionRequest = MotionEditorRequest(input: input, ui: EditorUIConfig(themeMode: theme, localeIdentifier: locale.isEmpty ? nil : locale))
         showMotion = true
+    }
+
+    private func openAudio(_ input: EditorInput) {
+        audioRequest = AudioEditorRequest(input: input, ui: EditorUIConfig(themeMode: theme, localeIdentifier: locale.isEmpty ? nil : locale))
+        showAudio = true
     }
 
     private func handle(_ result: FrameKitResult) {
@@ -256,5 +273,28 @@ enum SampleVideo {
         }
         input.markAsFinished()
         await writer.finishWriting()
+    }
+}
+
+/// 높이가 오르내리는 시험용 소리.
+enum SampleAudio {
+    static func files() -> [URL] {
+        [(330.0, 3.0), (523.0, 2.0)].enumerated().compactMap { index, item in
+            let url = FileManager.default.temporaryDirectory.appendingPathComponent("sample-tone-\(index + 1).m4a")
+            try? FileManager.default.removeItem(at: url)
+            guard let format = AVAudioFormat(standardFormatWithSampleRate: 44_100, channels: 1),
+                  let file = try? AVAudioFile(forWriting: url, settings: [AVFormatIDKey: kAudioFormatMPEG4AAC, AVSampleRateKey: 44_100,
+                                                                          AVNumberOfChannelsKey: 1]) else { return nil }
+            let frames = AVAudioFrameCount(item.1 * 44_100)
+            guard let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: frames) else { return nil }
+            buffer.frameLength = frames
+            for i in 0..<Int(frames) {
+                let t = Double(i) / 44_100
+                let envelope = 0.25 + 0.2 * sin(t * 2 * .pi * 1.5)
+                buffer.floatChannelData![0][i] = Float(sin(t * 2 * .pi * item.0) * envelope)
+            }
+            try? file.write(from: buffer)
+            return url
+        }
     }
 }

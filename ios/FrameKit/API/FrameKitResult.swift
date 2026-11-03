@@ -20,6 +20,8 @@ public enum MediaType: String, Sendable {
     case document
     /// 움직이는 GIF.
     case animatedImage
+    /// AAC M4A 소리. 너비·높이는 0.
+    case audio
 }
 
 /// 저장하며 원본과 달라진 점.
@@ -50,7 +52,7 @@ public struct EditedMedia: Sendable, Hashable {
     /// 바이트 단위 파일 크기.
     public let fileSize: Int64
     public let warnings: [ExportWarning]
-    /// 영상·움직이는 이미지 한 번 재생 길이(밀리초). 그 밖에는 `nil`.
+    /// 영상·움직이는 이미지·소리 한 번 재생 길이(밀리초). 그 밖에는 `nil`.
     public let durationMs: Int64?
     /// PDF 쪽 수. 사진이면 `nil`.
     public let pageCount: Int?

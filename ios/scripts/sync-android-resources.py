@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Android 문자열·아이콘을 iOS 리소스로 옮긴다.
 
-- framekit-ui, framekit-ui-image, framekit-ui-video, framekit-ui-motion의 strings.xml(13개 언어) → ios/FrameKit/Resources/Localizable.xcstrings
-- framekit-ui, framekit-ui-motion의 벡터 아이콘(채움 경로만) → ios/FrameKit/Resources/Icons.xcassets (템플릿 렌더링)
+- framekit-ui, framekit-ui-image, framekit-ui-video, framekit-ui-motion, framekit-ui-audio의 strings.xml(13개 언어) → ios/FrameKit/Resources/Localizable.xcstrings
+- framekit-ui, framekit-ui-motion, framekit-ui-audio의 벡터 아이콘(채움 경로만) → ios/FrameKit/Resources/Icons.xcassets (템플릿 렌더링)
 
 Android 쪽 문자열이나 아이콘을 바꾼 뒤 다시 실행한다.
 """
@@ -12,8 +12,8 @@ import re
 import xml.etree.ElementTree as ET
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-MODULES = ["framekit-ui", "framekit-ui-image", "framekit-ui-video", "framekit-ui-motion"]
-ICON_MODULES = ["framekit-ui", "framekit-ui-motion"]
+MODULES = ["framekit-ui", "framekit-ui-image", "framekit-ui-video", "framekit-ui-motion", "framekit-ui-audio"]
+ICON_MODULES = ["framekit-ui", "framekit-ui-motion", "framekit-ui-audio"]
 OUT = os.path.join(ROOT, "ios", "FrameKit", "Resources")
 ANDROID_NS = "{http://schemas.android.com/apk/res/android}"
 
