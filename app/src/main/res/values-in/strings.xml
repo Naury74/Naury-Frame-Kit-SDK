@@ -80,7 +80,7 @@
     <string name="example_camera_video_title">Rekam video</string>
     <string name="example_camera_video_description">Rekam dengan aplikasi kamera dan edit klipnya</string>
     <string name="example_mixed_title">Foto atau video (banyak)</string>
-    <string name="example_mixed_description">Pilih beberapa; jika semuanya foto, editor foto dibuka; jika semuanya video, editor video dibuka</string>
+    <string name="example_mixed_description">Pilih beberapa; foto dan video bisa dicampur dan masing-masing dibuka di editornya</string>
     <string name="example_motion_make_title">Buat gambar bergerak</string>
     <string name="example_motion_make_description">Gabungkan foto dengan zoom, transisi, dan teks bergerak, lalu simpan sebagai MP4, GIF, atau WebP</string>
     <string name="example_motion_edit_title">Edit GIF·WebP</string>

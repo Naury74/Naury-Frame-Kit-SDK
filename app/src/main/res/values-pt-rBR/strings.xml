@@ -82,7 +82,7 @@
     <string name="example_camera_video_title">Gravar vídeo</string>
     <string name="example_camera_video_description">Grave com o app de câmera e edite o clipe</string>
     <string name="example_mixed_title">Fotos ou vídeos (vários)</string>
-    <string name="example_mixed_description">Escolha vários; se forem todos fotos, abre o editor de fotos, e se forem todos vídeos, o de vídeo</string>
+    <string name="example_mixed_description">Escolha vários; fotos e vídeos podem ser misturados e cada um abre no seu editor</string>
     <string name="example_motion_make_title">Criar uma imagem animada</string>
     <string name="example_motion_make_description">Junte fotos com zoom, transições e texto animado e salve como MP4, GIF ou WebP</string>
     <string name="example_motion_edit_title">Editar GIF·WebP</string>

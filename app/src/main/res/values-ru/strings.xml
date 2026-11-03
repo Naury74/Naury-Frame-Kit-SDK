@@ -82,7 +82,7 @@
     <string name="example_camera_video_title">Записать видео</string>
     <string name="example_camera_video_description">Записать видео приложением камеры и отредактировать клип</string>
     <string name="example_mixed_title">Фото или видео (несколько)</string>
-    <string name="example_mixed_description">Выберите несколько: если все фото — откроется фоторедактор, если все видео — видеоредактор</string>
+    <string name="example_mixed_description">Выберите несколько: фото и видео можно смешивать, каждое откроется в своём редакторе</string>
     <string name="example_motion_make_title">Создать анимацию</string>
     <string name="example_motion_make_description">Соберите фото с зумом, переходами и анимированным текстом и сохраните как MP4, GIF или WebP</string>
     <string name="example_motion_edit_title">Редактировать GIF·WebP</string>

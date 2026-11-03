@@ -82,7 +82,7 @@
     <string name="example_camera_video_title">Filmer une vidéo</string>
     <string name="example_camera_video_description">Filmer avec l\'appareil photo et monter le clip</string>
     <string name="example_mixed_title">Photos ou vidéos (plusieurs)</string>
-    <string name="example_mixed_description">Choisissez-en plusieurs : que des photos ouvre l\'éditeur photo, que des vidéos l\'éditeur vidéo</string>
+    <string name="example_mixed_description">Choisissez-en plusieurs : photos et vidéos mélangées, chacune dans son éditeur</string>
     <string name="example_motion_make_title">Créer une image animée</string>
     <string name="example_motion_make_description">Assemblez des photos avec zoom, transitions et texte animé, puis enregistrez en MP4, GIF ou WebP</string>
     <string name="example_motion_edit_title">Modifier un GIF·WebP</string>

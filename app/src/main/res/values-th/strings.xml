@@ -80,7 +80,7 @@
     <string name="example_camera_video_title">บันทึกวิดีโอ</string>
     <string name="example_camera_video_description">บันทึกด้วยแอปกล้องและแก้ไขคลิป</string>
     <string name="example_mixed_title">รูปภาพหรือวิดีโอ (หลายรายการ)</string>
-    <string name="example_mixed_description">เลือกหลายรายการ หากเป็นรูปทั้งหมดจะเปิดตัวแก้ไขรูปภาพ หากเป็นวิดีโอทั้งหมดจะเปิดตัวแก้ไขวิดีโอ</string>
+    <string name="example_mixed_description">เลือกหลายรายการ ผสมรูปภาพและวิดีโอได้ แต่ละรายการจะเปิดในตัวแก้ไขที่ตรงกัน</string>
     <string name="example_motion_make_title">สร้างภาพเคลื่อนไหว</string>
     <string name="example_motion_make_description">ต่อรูปภาพพร้อมการซูม การเปลี่ยนภาพ และข้อความเคลื่อนไหว แล้วบันทึกเป็น MP4, GIF หรือ WebP</string>
     <string name="example_motion_edit_title">แก้ไข GIF·WebP</string>

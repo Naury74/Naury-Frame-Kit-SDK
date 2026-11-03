@@ -80,7 +80,7 @@
     <string name="example_camera_video_title">動画を撮影</string>
     <string name="example_camera_video_description">カメラアプリで撮影したクリップを編集</string>
     <string name="example_mixed_title">写真・動画（複数）</string>
-    <string name="example_mixed_description">複数選択可。すべて写真なら写真エディタ、すべて動画なら動画エディタで開きます</string>
+    <string name="example_mixed_description">複数選択可。写真と動画を混ぜても、項目ごとに合ったエディタで編集できます</string>
     <string name="example_motion_make_title">動く画像を作る</string>
     <string name="example_motion_make_description">写真をズーム・切り替え・動く文字でつなぎ、MP4・GIF・WebPで保存</string>
     <string name="example_motion_edit_title">GIF・WebPを編集</string>
