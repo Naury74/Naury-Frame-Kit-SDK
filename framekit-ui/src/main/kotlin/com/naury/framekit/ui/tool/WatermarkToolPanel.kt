@@ -137,7 +137,7 @@ public fun WatermarkToolPanel(
                     label = stringResource(R.string.framekit_watermark_density),
                     value = watermark.density.toFloat(),
                     valueRange = Watermark.MIN_DENSITY.toFloat()..Watermark.MAX_DENSITY.toFloat(),
-                    onValueChange = { value -> onChange { it.copy(density = value.toDouble()) } },
+                    onValueChange = { value -> onChange { it.copy(density = value.toDouble().coerceIn(Watermark.MIN_DENSITY, Watermark.MAX_DENSITY)) } },
                     onValueChangeFinished = {},
                     formatValue = { "${(it * 100).roundToInt()}%" },
                     resetValue = 1f,
@@ -152,7 +152,8 @@ public fun WatermarkToolPanel(
                 label = stringResource(R.string.framekit_watermark_size),
                 value = watermark.sizeRatio.toFloat(),
                 valueRange = Watermark.MIN_SIZE.toFloat()..MAX_SIZE_SLIDER,
-                onValueChange = { value -> onChange { it.copy(sizeRatio = value.toDouble()) } },
+                // Float 최솟값을 Double로 바꾸면 Watermark.MIN_SIZE보다 아주 조금 작아져 저장 검증에 걸리므로 모델 범위로 맞춘다.
+                onValueChange = { value -> onChange { it.copy(sizeRatio = value.toDouble().coerceIn(Watermark.MIN_SIZE, Watermark.MAX_SIZE)) } },
                 onValueChangeFinished = {},
                 // 기본 크기를 100으로 두고 상대값으로 보여 준다.
                 formatValue = { "${(it / Watermark.DEFAULT_SIZE * 100).roundToInt()}%" },
@@ -165,7 +166,7 @@ public fun WatermarkToolPanel(
             label = stringResource(R.string.framekit_watermark_opacity),
             value = watermark.opacity.toFloat(),
             valueRange = Watermark.MIN_OPACITY.toFloat()..1f,
-            onValueChange = { value -> onChange { it.copy(opacity = value.toDouble()) } },
+            onValueChange = { value -> onChange { it.copy(opacity = value.toDouble().coerceIn(Watermark.MIN_OPACITY, 1.0)) } },
             onValueChangeFinished = {},
             formatValue = { "${(it * 100).roundToInt()}%" },
             resetValue = DEFAULT_OPACITY,
