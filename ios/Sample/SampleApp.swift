@@ -90,6 +90,8 @@ struct RootView: View {
     /// 자동 확인용 실행 인자.
     private func autoOpen() {
         let arguments = ProcessInfo.processInfo.arguments
+        if arguments.contains("-themeLight") { settings.themeMode = .light }
+        if arguments.contains("-themeSystem") { settings.themeMode = .system }
         if arguments.contains("-watermark") { settings.hostWatermark = true }
         if arguments.contains("-pdf") { settings.imageFormat = .pdf }
         if arguments.contains("-openSample") { launch = .image(settings.image(.data(SampleImage.make()))) }
