@@ -167,6 +167,7 @@ struct VoiceRecorderSheet: View {
     @State private var levels: [CGFloat] = Array(repeating: 0, count: 40)
     @State private var elapsed: TimeInterval = 0
     @State private var url: URL?
+    @State private var audioSession = RecordingAudioSession()
 
     enum RecordState: Equatable { case waiting, recording, error(String) }
 
@@ -200,19 +201,20 @@ struct VoiceRecorderSheet: View {
         }
         .padding(24)
         .frame(maxWidth: .infinity)
-        .background(theme.surface.ignoresSafeArea())
+        .presentationBackground(theme.surface)
         .presentationDetents([.height(320)])
         .interactiveDismissDisabled()
         .task { await start() }
-        .onDisappear { if recorder?.isRecording == true { recorder?.stop(); recorder?.deleteRecording() } }
+        .onDisappear {
+            if recorder?.isRecording == true { recorder?.stop(); recorder?.deleteRecording() }
+            audioSession.end()
+        }
     }
 
     private func start() async {
         guard await AVAudioApplication.requestRecordPermission() else { state = .error("voice_permission_denied"); return }
         do {
-            let session = AVAudioSession.sharedInstance()
-            try session.setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker])
-            try session.setActive(true)
+            try audioSession.begin()
             let file = try OutputStore.temporaryDirectory.appendingPathComponent("voice-\(UUID().uuidString).m4a")
             let recorder = try AVAudioRecorder(url: file, settings: [AVFormatIDKey: kAudioFormatMPEG4AAC, AVSampleRateKey: 44_100,
                                                                      AVNumberOfChannelsKey: 1, AVEncoderBitRateKey: 128_000])
@@ -230,6 +232,7 @@ struct VoiceRecorderSheet: View {
             }
             if state == .recording, !recorder.isRecording { finish(save: true) }
         } catch {
+            audioSession.end()
             state = .error("voice_failed")
         }
     }
@@ -237,7 +240,7 @@ struct VoiceRecorderSheet: View {
     private func finish(save: Bool) {
         let duration = recorder?.currentTime ?? elapsed
         recorder?.stop()
-        try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+        audioSession.end()
         if save, let url {
             if duration < 0.5 { state = .error("voice_too_short"); return }
             onDone(url)

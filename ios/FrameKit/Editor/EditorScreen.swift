@@ -132,9 +132,10 @@ struct EditorScreen: View {
             PhotoPicker(limit: max(1, model.pageLimit - model.pages.count)) { model.picked($0, append: true) }
                 .ignoresSafeArea()
         }
-        .onChange(of: model.export) { _, new in
-            UIApplication.shared.isIdleTimerDisabled = new != nil
+        .onChange(of: model.export) { old, new in
+            if old == nil && new != nil { IdleTimerHold.acquire() } else if old != nil && new == nil { IdleTimerHold.release() }
         }
+        .onDisappear { if model.export != nil { IdleTimerHold.release() } }
     }
 
     private var exportFraction: Double? {
