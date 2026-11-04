@@ -115,11 +115,11 @@ struct AudioEditorScreen: View {
             if exportError?.recoverable == true { Button(strings("action_retry")) { model.retryExport() } }
             Button(strings("action_keep_editing"), role: .cancel) { model.dismissExportError() }
         } message: { Text(exportError.map { strings(errorKey($0.code)) } ?? "") }
-        .sheet(isPresented: $model.showFilePicker) {
+        .sheet(isPresented: $model.showFilePicker, onDismiss: model.sheetDismissed) {
             AudioFilesPicker(limit: max(1, model.request.config.maxSourceCount - model.sources.count)) { model.importFiles($0) }
                 .ignoresSafeArea()
         }
-        .sheet(isPresented: Binding(get: { model.recordTarget != nil }, set: { if !$0 { model.closeRecordSheet() } })) {
+        .sheet(isPresented: Binding(get: { model.recordTarget != nil }, set: { if !$0 { model.closeRecordSheet() } }), onDismiss: model.sheetDismissed) {
             RecordSheet(model: model)
         }
     }

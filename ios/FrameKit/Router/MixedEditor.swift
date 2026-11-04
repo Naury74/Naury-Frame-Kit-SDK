@@ -425,3 +425,39 @@ struct MixedEditorScreen: View {
         }
     }
 }
+
+// MARK: - 호스트 닫기
+
+extension MixedEditorModel: HostCloseTarget {
+    /// 지금 항목 편집기에 확인 대화상자·시트·저장이 떠 있다.
+    private var childBusy: Bool {
+        switch current?.editor {
+        case .image(let model): model.hostCloseBlocked || model.hostSheetOpen
+        case .video(let model): model.hostCloseBlocked || model.hostSheetOpen
+        default: false
+        }
+    }
+
+    var hostCanDismiss: Bool { !delivered && save == nil && !showDiscardDialog && !childBusy }
+
+    /// 혼합 화면의 닫기 단추와 같다. 항목 편집기의 도구에서 적용 전인 내용도 바꾼 것으로 본다.
+    /// 저장 중, 대화상자, 항목 편집기의 시트가 떠 있으면 아무것도 하지 않는다.
+    func hostRequestClose() {
+        guard hostCanDismiss else { return }
+        if items.contains(where: { isDirty($0) || $0.outputs != nil }) { showDiscardDialog = true } else { finish(.cancelled) }
+    }
+
+    var hostCloseChanges: AnyPublisher<Void, Never> {
+        let own = objectWillChange.map { _ in () }.eraseToAnyPublisher()
+        let children = $items.map { items -> AnyPublisher<Void, Never> in
+            Publishers.MergeMany(items.map { item -> AnyPublisher<Void, Never> in
+                switch item.editor {
+                case .image(let model): model.hostCloseChanges
+                case .video(let model): model.hostCloseChanges
+                default: Empty().eraseToAnyPublisher()
+                }
+            }).eraseToAnyPublisher()
+        }.switchToLatest()
+        return own.merge(with: children).eraseToAnyPublisher()
+    }
+}

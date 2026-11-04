@@ -90,11 +90,11 @@ struct MotionEditorScreen: View {
             if exportError?.recoverable == true { Button(strings("action_retry")) { model.retryExport() } }
             Button(strings("action_keep_editing"), role: .cancel) { model.dismissExportError() }
         } message: { Text(exportError.map { strings(errorKey($0.code)) } ?? "") }
-        .sheet(isPresented: $model.showSaveSheet) { MotionSaveSheet(model: model) }
-        .sheet(isPresented: $model.showAddPicker) {
+        .sheet(isPresented: $model.showSaveSheet, onDismiss: model.sheetDismissed) { MotionSaveSheet(model: model) }
+        .sheet(isPresented: $model.showAddPicker, onDismiss: model.sheetDismissed) {
             PhotoPicker(limit: max(1, model.maxImageCount - model.displayed.slides.count)) { model.picked($0, append: true) }.ignoresSafeArea()
         }
-        .sheet(isPresented: $model.showMusicPicker) {
+        .sheet(isPresented: $model.showMusicPicker, onDismiss: model.sheetDismissed) {
             AudioFilePicker { url in
                 model.showMusicPicker = false
                 if let url { model.addAudio(url: url, role: model.musicPickerRole) }
@@ -102,7 +102,7 @@ struct MotionEditorScreen: View {
             }
             .ignoresSafeArea()
         }
-        .sheet(isPresented: $model.showRecorder) {
+        .sheet(isPresented: $model.showRecorder, onDismiss: model.sheetDismissed) {
             VoiceRecorderSheet { url in
                 model.showRecorder = false
                 if let url { model.addAudio(url: url, role: .voice, copy: false) }

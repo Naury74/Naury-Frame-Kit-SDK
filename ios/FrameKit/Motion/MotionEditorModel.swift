@@ -52,6 +52,8 @@ final class MotionEditorModel: ObservableObject {
     @Published var showDiscardDialog = false
     @Published var showDraftDialog = false
     @Published var showSaveSheet = false
+    /// 호스트가 닫기를 요청해 시트를 닫았다. 시트가 내려간 뒤 버리기 확인을 띄운다.
+    private var discardAfterSheet = false
     @Published var saveFormat: MotionFormat
     @Published var saveSize: MotionSize
     @Published private(set) var notice: String?
@@ -1071,5 +1073,42 @@ extension MotionEditorModel: LayerToolHost {
         copy.overlay.transform.center.y = min(1, copy.overlay.transform.center.y + 0.04)
         change { $0.overlays.append(copy) }
         selectedOverlayId = copy.overlay.id
+    }
+}
+
+// MARK: - 호스트 닫기
+
+extension MotionEditorModel: HostCloseTarget {
+    private var sheetOpen: Bool { showSaveSheet || showAddPicker || showMusicPicker || showRecorder }
+
+    var hostCanDismiss: Bool { !hostCloseBlocked && !sheetOpen && !discardAfterSheet && phase != .loading }
+
+    /// 저장 중이거나 확인 대화상자가 떠 있다. 이때는 호스트 닫기를 받지 않는다.
+    var hostCloseBlocked: Bool { delivered || export != nil || showDiscardDialog || showDraftDialog }
+
+    /// 닫기 단추와 같다. 도구에서 적용 전인 내용도 바꾼 것으로 본다. 녹음 시트는 닫히면서 녹음을 버린다.
+    func hostRequestClose() {
+        guard !hostCloseBlocked, !discardAfterSheet else { return }
+        switch phase {
+        case .loading: return
+        case .awaitingSource: finish(.cancelled)
+        case .failed(let error): finish(.failure(error))
+        case .ready:
+            let hadSheet = sheetOpen
+            showSaveSheet = false
+            showAddPicker = false
+            showMusicPicker = false
+            showRecorder = false
+            guard isDirty else { finish(.cancelled); return }
+            // 시트가 내려가기 전에 대화상자를 띄우면 보이지 않으므로 기다린다.
+            if hadSheet { discardAfterSheet = true } else { showDiscardDialog = true }
+        }
+    }
+
+    /// 화면의 시트가 내려갔다.
+    func sheetDismissed() {
+        guard discardAfterSheet else { return }
+        discardAfterSheet = false
+        if !delivered && export == nil { showDiscardDialog = true }
     }
 }

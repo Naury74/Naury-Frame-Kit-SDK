@@ -78,6 +78,8 @@ final class EditorModel: ObservableObject {
     @Published private(set) var export: ExportUI?
     @Published var showDiscardDialog = false
     @Published var showDraftDialog = false
+    /// 호스트가 닫기를 요청해 시트를 닫았다. 시트가 내려간 뒤 버리기 확인을 띄운다.
+    private var discardAfterSheet = false
     @Published private(set) var notice: String?
     /// 화면이 준비되면 보일 알림.
     private var pendingNotice: String?
@@ -871,5 +873,44 @@ final class EditorModel: ObservableObject {
     /// 화면이 결과 없이 사라질 때(호스트가 직접 닫는 등) 부른다.
     func dismissedWithoutResult() {
         finish(.cancelled)
+    }
+}
+
+// MARK: - 호스트 닫기
+
+extension EditorModel: HostCloseTarget {
+    /// 저장·대화상자·여는 중이 아니면 닫기를 시작할 수 있다. 시트가 떠 있으면 `false`.
+    var hostCanDismiss: Bool {
+        guard !hostCloseBlocked, !showAddPicker, !discardAfterSheet else { return false }
+        return phase != .loading
+    }
+
+    /// SDK 시트가 떠 있다.
+    var hostSheetOpen: Bool { showAddPicker }
+
+    /// 저장 중이거나 확인 대화상자가 떠 있다. 이때는 호스트 닫기를 받지 않는다.
+    var hostCloseBlocked: Bool { delivered || export != nil || showDiscardDialog || showDraftDialog }
+
+    /// 닫기 단추와 같다. 도구가 열려 있으면 적용 전 내용도 바꾼 것으로 보고 버리기 확인을 띄운다(버리면 적용하지 않고 끝난다).
+    func hostRequestClose() {
+        guard !hostCloseBlocked, !discardAfterSheet else { return }
+        switch phase {
+        case .loading: return
+        case .awaitingSource: finish(.cancelled)
+        case .failed(let error): finish(.failure(error))
+        case .ready:
+            let sheetOpen = showAddPicker
+            showAddPicker = false
+            guard isDirty else { finish(.cancelled); return }
+            // 시트가 내려가기 전에 대화상자를 띄우면 보이지 않으므로 기다린다.
+            if sheetOpen { discardAfterSheet = true } else { showDiscardDialog = true }
+        }
+    }
+
+    /// 화면의 시트가 내려갔다.
+    func sheetDismissed() {
+        guard discardAfterSheet else { return }
+        discardAfterSheet = false
+        if !delivered && export == nil { showDiscardDialog = true }
     }
 }

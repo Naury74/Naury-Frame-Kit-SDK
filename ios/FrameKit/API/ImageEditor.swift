@@ -13,9 +13,12 @@ public final class FrameKitImageEditorViewController: UIViewController {
     private var result: FrameKitResult?
     private let completion: (FrameKitResult) -> Void
     private var completed = false
+    /// 호스트 닫기 연결점. 화면 가장자리 밀어 닫기 같은 호스트 몸짓을 여기에 잇는다.
+    public let control: FrameKitEditorControl
 
-    public init(request: ImageEditorRequest, completion: @escaping @MainActor (FrameKitResult) -> Void) {
+    public init(request: ImageEditorRequest, control: FrameKitEditorControl? = nil, completion: @escaping @MainActor (FrameKitResult) -> Void) {
         self.completion = completion
+        self.control = control ?? FrameKitEditorControl()
         var finish: ((FrameKitResult) -> Void)?
         model = EditorModel(request: request, session: EditSession(slot: "image", input: request.input)) { finish?($0) }
         super.init(nibName: nil, bundle: nil)
@@ -39,6 +42,11 @@ public final class FrameKitImageEditorViewController: UIViewController {
         host.didMove(toParent: self)
     }
 
+    override public func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        if result == nil { control.attach(model) }
+    }
+
     override public var preferredStatusBarStyle: UIStatusBarStyle {
         switch model.request.ui.themeMode {
         case .dark: .lightContent
@@ -58,6 +66,7 @@ public final class FrameKitImageEditorViewController: UIViewController {
 
     private func finished(_ result: FrameKitResult) {
         self.result = result
+        control.detach(model)
         frameKitClose(self) { [weak self] in self?.deliver() }
     }
 
@@ -71,15 +80,18 @@ public final class FrameKitImageEditorViewController: UIViewController {
 /// 사진 편집기(SwiftUI). 보통은 `frameKitImageEditor(isPresented:request:onResult:)`를 쓴다.
 public struct FrameKitImageEditor: UIViewControllerRepresentable {
     private let request: ImageEditorRequest
+    private let control: FrameKitEditorControl?
     private let onResult: @MainActor (FrameKitResult) -> Void
 
-    public init(request: ImageEditorRequest, onResult: @escaping @MainActor (FrameKitResult) -> Void) {
+    /// [control]을 넘기면 호스트가 닫기를 요청할 수 있다. 없으면 닫기는 편집기 단추로만 한다.
+    public init(request: ImageEditorRequest, control: FrameKitEditorControl? = nil, onResult: @escaping @MainActor (FrameKitResult) -> Void) {
         self.request = request
+        self.control = control
         self.onResult = onResult
     }
 
     public func makeUIViewController(context _: Context) -> UIViewController {
-        EmbeddedEditorController(request: request, onResult: onResult)
+        EmbeddedEditorController(request: request, control: control, onResult: onResult)
     }
 
     public func updateUIViewController(_: UIViewController, context _: Context) {}
@@ -93,15 +105,29 @@ public struct FrameKitImageEditor: UIViewControllerRepresentable {
 @MainActor
 private final class EmbeddedEditorController: UIHostingController<AnyView> {
     private let model: EditorModel
+    private let control: FrameKitEditorControl?
+    private var done = false
 
-    init(request: ImageEditorRequest, onResult: @escaping @MainActor (FrameKitResult) -> Void) {
-        model = EditorModel(request: request, session: EditSession(slot: "image", input: request.input)) { onResult($0) }
+    init(request: ImageEditorRequest, control: FrameKitEditorControl?, onResult: @escaping @MainActor (FrameKitResult) -> Void) {
+        var finished: ((FrameKitResult) -> Void)?
+        model = EditorModel(request: request, session: EditSession(slot: "image", input: request.input)) { finished?($0) }
+        self.control = control
         super.init(rootView: AnyView(EmptyView()))
+        finished = { [weak self] result in
+            self?.done = true
+            if let self { self.control?.detach(self.model) }
+            onResult(result)
+        }
         rootView = AnyView(EditorRoot(model: model))
     }
 
     @available(*, unavailable)
     required init?(coder _: NSCoder) { nil }
+
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        if !done { control?.attach(model) }
+    }
 
     override func viewDidDisappear(_ animated: Bool) {
         super.viewDidDisappear(animated)
@@ -116,13 +142,15 @@ private final class EmbeddedEditorController: UIHostingController<AnyView> {
 
 extension View {
     /// [isPresented]가 `true`가 되면 사진 편집기를 전체 화면으로 띄운다. 끝나면 닫고 [onResult]를 한 번 부른다.
+    /// [control]을 넘기면 호스트가 닫기를 요청할 수 있다. 닫히면 SDK가 [isPresented]를 `false`로 바꾼다.
     public func frameKitImageEditor(
         isPresented: Binding<Bool>,
         request: ImageEditorRequest,
+        control: FrameKitEditorControl? = nil,
         onResult: @escaping @MainActor (FrameKitResult) -> Void
     ) -> some View {
         fullScreenCover(isPresented: isPresented) {
-            FrameKitImageEditor(request: request) { result in
+            FrameKitImageEditor(request: request, control: control) { result in
                 isPresented.wrappedValue = false
                 onResult(result)
             }

@@ -1,3 +1,4 @@
+import Combine
 import SwiftUI
 import UniformTypeIdentifiers
 
@@ -301,5 +302,51 @@ final class RouterModel: ObservableObject {
             }
         }
         finish(.cancelled)
+    }
+}
+
+// MARK: - 호스트 닫기
+
+extension RouterModel.Editor {
+    var hostTarget: any HostCloseTarget {
+        switch self {
+        case .image(let model): model
+        case .video(let model): model
+        case .motion(let model): model
+        case .audio(let model): model
+        case .mixed(let model): model
+        }
+    }
+}
+
+extension RouterModel: HostCloseTarget {
+    /// 고르기·할 일 고르기·실패 화면이면 `true`, 판별·원본 보내기 중이면 `false`. 편집기를 열었으면 그 편집기를 따른다.
+    var hostCanDismiss: Bool {
+        guard !delivered else { return false }
+        switch phase {
+        case .starting, .working: return false
+        case .picking, .chooser, .failed: return true
+        case .editor(let editor): return editor.hostTarget.hostCanDismiss
+        }
+    }
+
+    /// 고르기·할 일 고르기 화면은 취소로 끝내고, 실패 화면은 그 오류로 끝낸다. 편집기를 열었으면 그 편집기에 넘긴다.
+    func hostRequestClose() {
+        guard !delivered else { return }
+        switch phase {
+        case .starting, .working: return
+        case .picking, .chooser: finish(.cancelled)
+        case .failed(let error): finish(.failure(error))
+        case .editor(let editor): editor.hostTarget.hostRequestClose()
+        }
+    }
+
+    var hostCloseChanges: AnyPublisher<Void, Never> {
+        let own = objectWillChange.map { _ in () }.eraseToAnyPublisher()
+        let editor = $phase.map { phase -> AnyPublisher<Void, Never> in
+            if case .editor(let editor) = phase { return editor.hostTarget.hostCloseChanges }
+            return Empty().eraseToAnyPublisher()
+        }.switchToLatest()
+        return own.merge(with: editor).eraseToAnyPublisher()
     }
 }

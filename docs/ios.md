@@ -105,6 +105,68 @@ present(editor, animated: true)
 
 요청·설정·결과 타입은 같습니다.
 
+### 호스트 몸짓으로 닫기
+
+화면 가장자리를 밀어 닫기처럼 앱이 만든 몸짓을 편집기 닫기에 이으려면 `FrameKitEditorControl`을 만들어 넘깁니다. 모든 편집기와 진입점에서 쓸 수 있습니다.
+
+| API | 내용 |
+| --- | --- |
+| `requestClose()` | 편집기의 닫기 단추와 같은 흐름으로 닫습니다. 닫히면 SDK가 화면을 내리고 결과를 한 번 넘깁니다. 앱은 `dismiss`하지 않습니다 |
+| `canDismissInteractively` | 지금 몸짓으로 닫기를 시작해도 되면 `true`. `@Published`라 SwiftUI에서 바로 쓸 수 있습니다 |
+| `canDismissInteractivelyPublisher` | 위 값의 바뀜. 구독하면 지금 값을 먼저 보냅니다 |
+
+`requestClose()`가 하는 일:
+
+- 바꾼 내용이 없으면 `cancelled`로 닫습니다. 있으면 버리기 확인을 띄우고, 버리면 `cancelled`입니다.
+- 도구를 연 채로 적용하지 않은 내용도 바꾼 것으로 봅니다. 버리기 확인에서 버리면 적용하지 않고 닫고, 계속 편집하면 도구가 그대로 열려 있습니다.
+- 녹음 중이면(녹음 화면·녹음 시트) 녹음을 멈추고 그 파일을 지운 뒤 이어서 닫습니다. 녹음한 조각은 더하지 않습니다.
+- 사진 추가·음악 고르기·녹음·저장 형식 시트가 떠 있으면 시트를 닫고 이어서 닫습니다. 혼합 편집에서는 항목 편집기의 시트가 떠 있으면 아무것도 하지 않습니다.
+- 원본 고르기 화면과 진입점의 고르기 시트에서는 `cancelled`로 닫습니다. 원본을 열지 못한 화면에서는 그 오류로 `failure`입니다(닫기 단추와 같음).
+- 저장 중, 저장 실패 안내, 확인 대화상자가 떠 있을 때, 원본을 여는 중, 연결 전(화면이 처음 나타나기 전), 끝난 뒤에는 아무것도 하지 않습니다.
+
+`canDismissInteractively`는 위에서 아무것도 하지 않는 경우와 SDK 시트가 떠 있을 때 `false`입니다. 녹음 중이거나 바꾼 내용이 있어도 `true`입니다. 결과는 닫기·저장이 겹쳐도 한 번만 옵니다.
+
+UIKit:
+
+```swift
+let control = FrameKitEditorControl()
+let editor = FrameKitImageEditorViewController(request: request, control: control) { result in
+    // 편집기가 스스로 닫힌 뒤 한 번 불립니다.
+}
+// editor.control로도 읽을 수 있습니다.
+let edge = UIScreenEdgePanGestureRecognizer(target: self, action: #selector(edgePan(_:)))
+edge.edges = .left
+editor.view.addGestureRecognizer(edge)
+present(editor, animated: true)
+
+@objc private func edgePan(_ gesture: UIScreenEdgePanGestureRecognizer) {
+    guard gesture.state == .ended, gesture.translation(in: gesture.view).x > 80 else { return }
+    if control.canDismissInteractively { control.requestClose() }
+}
+```
+
+SwiftUI:
+
+```swift
+@StateObject private var control = FrameKitEditorControl()
+
+Button("편집") { showEditor = true }
+    .frameKitEditor(isPresented: $showEditor, request: request, control: control) { result in ... }
+
+// fullScreenCover 안에 직접 넣을 때
+FrameKitImageEditor(request: request, control: control) { result in ... }
+    .overlay(alignment: .leading) {
+        Color.clear.frame(width: 12).contentShape(Rectangle())
+            .gesture(DragGesture(minimumDistance: 20).onEnded { value in
+                if value.translation.width > 80 { control.requestClose() }
+            })
+            .allowsHitTesting(control.canDismissInteractively)
+    }
+```
+
+- 컨트롤 하나는 한 번에 편집기 하나에만 연결됩니다. 끝난 뒤 새 편집기에 다시 넘기면 그 편집기에 연결됩니다.
+- 몸짓 영역이 편집기 왼쪽 위 닫기 단추를 가리지 않게 좁게 둡니다.
+
 ## 입력
 
 | `EditorInput` | 사용 | 권한 |

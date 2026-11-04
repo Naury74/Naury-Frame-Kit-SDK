@@ -126,8 +126,19 @@ final class VoiceRecorder: ObservableObject {
         recorder?.stop()
         recorder?.deleteRecording()
         reset()
+        // 녹음기가 지우지 못한 경우에도 임시 파일을 남기지 않는다.
+        if let url { try? FileManager.default.removeItem(at: url) }
         url = nil
     }
+
+    #if DEBUG
+    /// 시험용. 마이크 없이 [file]에 녹음 중인 상태를 만든다.
+    func simulateRecording(into file: URL) throws {
+        recorder = try AVAudioRecorder(url: file, settings: [AVFormatIDKey: kAudioFormatMPEG4AAC, AVSampleRateKey: 44_100, AVNumberOfChannelsKey: 1])
+        url = file
+        state = .recording
+    }
+    #endif
 
     private func reset() {
         meterTask?.cancel()

@@ -131,7 +131,7 @@ struct EditorScreen: View {
         } message: {
             Text(exportError.map { strings(errorKey($0.code)) } ?? "")
         }
-        .sheet(isPresented: $model.showAddPicker) {
+        .sheet(isPresented: $model.showAddPicker, onDismiss: model.sheetDismissed) {
             PhotoPicker(limit: max(1, model.pageLimit - model.pages.count)) { model.picked($0, append: true) }
                 .ignoresSafeArea()
         }

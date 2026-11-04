@@ -49,6 +49,8 @@ final class AudioEditorModel: ObservableObject {
     @Published private(set) var export: ExportUI?
     @Published var showDiscardDialog = false
     @Published var showFilePicker = false
+    /// 호스트가 닫기를 요청해 시트를 닫았다. 시트가 내려간 뒤 버리기 확인을 띄운다.
+    private var discardAfterSheet = false
     @Published private(set) var notice: String?
     /// 화면이 준비되면 보일 알림.
     private var pendingNotice: String?
@@ -638,4 +640,49 @@ final class AudioEditorModel: ObservableObject {
     }
 
     func dismissedWithoutResult() { finish(.cancelled) }
+}
+
+// MARK: - 호스트 닫기
+
+extension AudioEditorModel: HostCloseTarget {
+    private var sheetOpen: Bool { showFilePicker || recordTarget != nil }
+
+    /// 녹음 중에도 `true`다. 닫으면 녹음을 버린다.
+    var hostCanDismiss: Bool { !hostCloseBlocked && !sheetOpen && !discardAfterSheet && phase != .loading }
+
+    /// 저장 중이거나 확인 대화상자가 떠 있다. 녹음만 하는 화면에서 녹음 파일을 넘기는 중(`.loading`)도 저장으로 본다.
+    var hostCloseBlocked: Bool { delivered || export != nil || showDiscardDialog }
+
+    /// 닫기 단추와 같다. 녹음 중이면 녹음을 멈추고 파일을 지운 뒤 이어서 닫는다.
+    func hostRequestClose() {
+        guard !hostCloseBlocked, !discardAfterSheet else { return }
+        switch phase {
+        case .loading: return
+        case .awaitingSource: finish(.cancelled)
+        case .recording:
+            discardRecording()
+            finish(.cancelled)
+        case .failed(let error): finish(.failure(error))
+        case .ready:
+            let hadSheet = sheetOpen
+            showFilePicker = false
+            if recordTarget != nil { closeRecordSheet() }
+            discardRecording()
+            guard isDirty else { finish(.cancelled); return }
+            // 시트가 내려가기 전에 대화상자를 띄우면 보이지 않으므로 기다린다.
+            if hadSheet { discardAfterSheet = true } else { showDiscardDialog = true }
+        }
+    }
+
+    private func discardRecording() {
+        recorder.cancelPendingStart()
+        if recorder.state != .idle { recorder.discard() }
+    }
+
+    /// 화면의 시트가 내려갔다.
+    func sheetDismissed() {
+        guard discardAfterSheet else { return }
+        discardAfterSheet = false
+        if !delivered && export == nil { showDiscardDialog = true }
+    }
 }
