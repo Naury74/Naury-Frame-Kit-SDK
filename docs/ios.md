@@ -250,6 +250,7 @@ PDF는 `PdfOptions`로 정합니다.
 - `.dark`·`.light`는 기기 설정과 상관없이 그 테마로 엽니다.
 - `.system`은 편집기를 띄운 화면의 밝기 설정을 따릅니다. 앱이 `overrideUserInterfaceStyle`로 밝기를 고정했으면 그 값을, 아니면 기기 설정을 따르고, 편집 중 설정을 바꾸면 바로 바뀝니다.
 - 상태 바 글자색도 테마에 맞춥니다.
+- iOS 26 이상에서는 버튼·상단 바 바탕에 시스템 Liquid Glass를 쓰고, 그 아래 버전에서는 같은 자리에 흐림 재질을 씁니다. 강조색 버튼은 `primaryARGB`를 유리 색조로 씁니다.
 - `EditorPalette().contrastWarnings(themeMode:primaryARGB:)`로 명암비가 낮은 색 조합을 미리 확인할 수 있습니다.
 - 글자 크기는 시스템 글자 크기 설정을 따르고, 조작부가 가려지지 않도록 접근성 1단계 크기까지만 커집니다.
 
