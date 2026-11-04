@@ -96,6 +96,8 @@
     <string name="example_audio_record_description">อัดเสียง (แตะหรือกดค้าง) แล้วตัด แยก และอัดเพิ่ม</string>
     <string name="example_audio_hold_title">เครื่องอัดเสียงแบบกดค้างพูด</string>
     <string name="example_audio_hold_description">กดปุ่มค้างเพื่ออัด แล้วรับไฟล์ทันทีโดยไม่แก้ไข</string>
+    <string name="example_audio_sheet_title">อัดเสียงอย่างเดียว แผ่นด้านล่าง</string>
+    <string name="example_audio_sheet_description">อัดเสียงในแผ่นที่ซ้อนบนหน้าจอนี้ แล้วรับไฟล์ทันที</string>
     <string name="example_audio_file_title">แก้ไขไฟล์เสียง</string>
     <string name="example_audio_file_description">เลือกไฟล์เสียงได้สูงสุด 5 ไฟล์ ต่อกัน ตัด หรือเพิ่มเสียงที่อัด</string>
     <string name="result_audio">เสียง</string>

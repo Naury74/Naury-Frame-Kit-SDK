@@ -96,6 +96,8 @@
     <string name="example_audio_record_description">声を録音（タップまたは長押し）してカット・分割・追加録音</string>
     <string name="example_audio_hold_title">長押しで話す録音機</string>
     <string name="example_audio_hold_description">ボタンを押している間だけ録音し、編集せずにすぐ受け取る</string>
+    <string name="example_audio_sheet_title">録音のみ・下からのシート</string>
+    <string name="example_audio_sheet_description">この画面の上のシートで録音し、すぐにファイルを受け取る</string>
     <string name="example_audio_file_title">音声ファイルを編集</string>
     <string name="example_audio_file_description">音声ファイルを最大5件選んでつなぎ、カットや録音を追加</string>
     <string name="result_audio">音声</string>

@@ -98,6 +98,8 @@
     <string name="example_audio_record_description">Запишите голос (нажатием или удержанием), затем обрежьте, разделите и допишите</string>
     <string name="example_audio_hold_title">Диктофон «удерживай и говори»</string>
     <string name="example_audio_hold_description">Удерживайте кнопку для записи и сразу получите файл без редактирования</string>
+    <string name="example_audio_sheet_title">Только запись, нижняя панель</string>
+    <string name="example_audio_sheet_description">Запишите в панели поверх этого экрана и сразу получите файл</string>
     <string name="example_audio_file_title">Редактировать аудиофайлы</string>
     <string name="example_audio_file_description">Выберите до 5 аудиофайлов, склейте, обрежьте или добавьте записи</string>
     <string name="result_audio">Аудио</string>
