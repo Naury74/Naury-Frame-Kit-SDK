@@ -23,11 +23,13 @@ SDK manifest는 편집 Activity(`exported=false`), 통합 모듈의 투명 라�
 
 | 계약 | request | 여는 편집기 |
 | --- | --- | --- |
-| `FrameKitContract` | `FrameKitRequest` | 원본의 MIME 형식(없으면 확장자)으로 사진·영상 편집기를 고름 |
-| `ImageEditorContract` | `ImageEditorRequest` | 사진 편집기 |
+| `FrameKitContract` | `FrameKitRequest` | 원본의 MIME 형식(없으면 확장자)으로 사진·영상·움직이는 이미지·음성 편집기를 고르거나 고르기 시트를 보여 줌 |
+| `ImageEditorContract` | `ImageEditorRequest` | 사진 편집기(PDF 포함) |
 | `VideoEditorContract` | `VideoEditorRequest` | 영상 편집기 |
+| `MotionEditorContract` | `MotionEditorRequest` | 움직이는 이미지 편집기(`framekit-ui-motion`) |
+| `AudioEditorContract` | `AudioEditorRequest` | 음성 편집기(`framekit-ui-audio`) |
 
-세 계약 모두 결과는 `FrameKitResult`이고 `Success`의 `EditedMedia.mediaType`이 `IMAGE` 또는 `VIDEO`입니다. 사진도 영상도 아닌 원본은 `UNSUPPORTED_FORMAT`으로 실패합니다.
+모든 계약의 결과는 `FrameKitResult`입니다. `Success`의 `EditedMedia.mediaType`은 `IMAGE`, `VIDEO`(MP4로 저장한 움직이는 이미지 포함), `ANIMATED_IMAGE`(GIF·움직이는 WebP), `AUDIO`, `DOCUMENT`(PDF) 중 하나입니다. 열 편집기가 없는 원본은 `UNSUPPORTED_FORMAT`으로 실패합니다.
 
 ### Activity / Fragment
 
@@ -57,7 +59,7 @@ Button(onClick = { editor.launch(FrameKitRequest(EditorInput.Pick(MediaKind.ANY)
 | `EditorInput.UriSource(uri)` | 호스트가 이미 가진 Uri 한 개 | 호스트가 읽기 권한을 가지고 있어야 함 |
 | `EditorInput.FileSource(path)` | 호스트 앱 내부 저장소의 파일 절대 경로 | 같은 프로세스이므로 별도 권한 없음 |
 | `EditorInput.Multiple(items)` | 이미 가진 사진 여러 장 또는 영상 여러 개. 각 항목은 `UriSource`/`FileSource` | 각 Uri의 읽기 권한 |
-| `EditorInput.Pick(kind, maxItems = 1)` | 시스템 Photo Picker를 먼저 띄움. `IMAGE`·`VIDEO`·`ANY`(통합 계약만). `AUDIO`는 시스템 파일 선택기로 소리 파일을 고름. `maxItems`가 2 이상이면 여러 개 선택. 닫으면 `Cancelled` | Picker가 선택한 항목만 읽기 권한 부여 |
+| `EditorInput.Pick(kind, maxItems = 1)` | 고르는 화면을 먼저 띄움(`framekit-picker`가 있으면 [앱 안 갤러리](#앱-안-갤러리-사진영상-고르기), 없으면 시스템 사진 선택기). `IMAGE`·`VIDEO`·`ANY`(통합 계약만). `AUDIO`는 시스템 파일 선택기로 소리 파일을 고름. `maxItems`가 2 이상이면 여러 개 선택. 닫으면 `Cancelled` | 고른 항목만 읽기 권한 부여 |
 | `EditorInput.Capture(kind)` | 기기 카메라 앱으로 사진을 찍거나 영상을 녹화한 뒤 바로 편집. `IMAGE`·`VIDEO`. `AUDIO`는 SDK 녹음 화면으로 바로 녹음 | 아래 [카메라](#카메라)·[음성 편집기](#음성-편집기) 참고 |
 
 ### 진입점 조합
@@ -85,7 +87,9 @@ Button(onClick = { editor.launch(FrameKitRequest(EditorInput.Pick(MediaKind.ANY)
   - `MixedSelection.REJECT`: `EditorChooser.AUTO`에서는 `UNSUPPORTED_OPERATION`으로 실패하고, `ASK`에서는 원본 보내기만 합니다.
   - 소리는 다른 종류와 섞을 수 없습니다(`UNSUPPORTED_OPERATION`, 고르기 시트에서는 원본 보내기만).
 - 편집기는 호스트 프로세스에서 실행되므로 호스트가 읽을 수 있는 Uri는 편집기도 읽을 수 있습니다.
-- 편집기는 Uri scheme만 보고 권한을 가정하지 않습니다. 열 수 없으면 `PERMISSION_DENIED`(권한 없음) 또는 `SOURCE_UNAVAILABLE`(삭제·이동)을 화면에 표시하고, 닫으면 `Failure`로 돌려줍니다.
+- 편집기는 Uri scheme만 보고 권한을 가정하지 않습니다. 열 수 없으면 `PERMISSION_DENIED`(권한 없음), `SOURCE_UNAVAILABLE`(삭제·이동), `UNSUPPORTED_FORMAT`·`DECODE_FAILED`(형식·손상) 등 이유를 화면에 표시하고, 닫으면 그 코드로 `Failure`를 돌려줍니다. 사진·영상·움직이는 이미지·음성 편집기 모두 같습니다.
+- 통합 계약이 `EditorChooser.AUTO`로 사진(또는 사진·영상)을 고르게 하면, 열 편집기가 지원하는 사진 형식(JPEG·PNG·WebP, 한 장이고 `openAnimatedInMotionEditor`면 GIF도)만 고를 수 있습니다. 시스템 선택기로 대신 고른 것이 모두 맞지 않으면 `UNSUPPORTED_FORMAT`으로 실패합니다.
+- 혼합 편집에서 원본을 열지 못한 항목이 있으면 저장할 때 그 항목을 빼고 저장할지 묻습니다. 모두 열지 못했으면 첫 항목의 실패 이유로 `Failure`를 돌려줍니다. 저장을 마친 항목은 더 고칠 수 없게 잠기고(다른 항목이 실패해 다시 저장할 때 다시 만들지 않음), 프로세스가 다시 시작돼도 저장한 결과를 기억합니다.
 - 원격 URL은 지원하지 않습니다. 다운로드를 마친 로컬 Uri를 넘기세요.
 - Bitmap, Drawable, callback은 Intent로 넘길 수 없으므로 받지 않습니다.
 
@@ -165,14 +169,15 @@ FrameKitRequest(
 | 필드 | 설명 |
 | --- | --- |
 | `uri` | `content://<applicationId>.framekit.files/...` |
-| `mediaType` | `IMAGE`, `VIDEO`, `DOCUMENT`(PDF) |
-| `width`, `height` | 실제 인코딩된 픽셀 크기 |
-| `durationMs` | 영상 길이. 사진·PDF는 `null` |
-| `mimeType` | `image/jpeg`, `image/png`, `image/webp`, `application/pdf`, `video/mp4` |
+| `mediaType` | `IMAGE`, `VIDEO`, `ANIMATED_IMAGE`(GIF·움직이는 WebP), `AUDIO`, `DOCUMENT`(PDF) |
+| `width`, `height` | 실제 인코딩된 픽셀 크기. PDF는 첫 쪽 크기(pt), 소리는 0 |
+| `durationMs` | 영상·움직이는 이미지·소리의 길이. 사진·PDF는 `null` |
+| `mimeType` | `image/jpeg`, `image/png`, `image/webp`, `image/gif`, `application/pdf`, `video/mp4`, `audio/mp4`. 원본 보내기는 원본 형식 |
 | `pageCount` | PDF의 쪽 수. 그 밖에는 `null` |
 | `recognizedText` | PDF 글자 레이어의 글자(`framekit-ocr`이 있을 때). 줄은 줄바꿈, 쪽은 빈 줄로 구분하며 10만 자에서 자름 |
 | `fileSize` | 바이트 |
-| `warnings` | `COLOR_SPACE_CONVERTED_TO_SRGB`, `HDR_GAIN_MAP_DROPPED` |
+| `warnings` | `COLOR_SPACE_CONVERTED_TO_SRGB`, `HDR_GAIN_MAP_DROPPED`, `TEXT_RECOGNITION_SKIPPED` 등 |
+| `isOriginal` | 편집 없이 보낸 원본이면 `true`. 이때 `uri`는 원본 그대로이며 FrameKit 결과 파일이 아님 |
 
 ### 오류 처리
 
@@ -182,15 +187,18 @@ FrameKitRequest(
 | --- | --- | --- |
 | `INVALID_CONFIGURATION` | request 값이 범위를 벗어남 | 개발자 수정 |
 | `INVALID_SOURCE` | 이미지가 아니거나 형식 불일치 | 다른 파일 선택 |
-| `PERMISSION_DENIED` | 읽기 권한 없음 | 다시 선택 |
+| `INVALID_PROJECT` | headless로 넘긴 프로젝트 값이 범위를 벗어남 | 개발자 수정 |
+| `PERMISSION_DENIED` | 읽기 권한 없음, 카메라 권한 거부, `RECORD_AUDIO`를 선언하지 않고 `Capture(MediaKind.AUDIO)` | 다시 선택 또는 manifest 수정 |
 | `SOURCE_UNAVAILABLE` | 삭제·이동·provider 응답 없음 | 다시 선택 |
-| `UNSUPPORTED_FORMAT` | GIF, HEIF, animated WEBP 등 | 다른 파일 선택 |
-| `DECODE_FAILED` | 손상된 파일, 0바이트 | 다른 파일 선택 |
-| `UNSUPPORTED_OPERATION` | 사진·영상을 섞어 넘기고 `MixedSelection.REJECT`, 소리를 다른 종류와 섞음 등 | 입력 수정 |
+| `SOURCE_TOO_LARGE` | 사진 화소 수가 편집기 한도를 넘음, 움직이는 이미지 파일이 100MB를 넘음 | 다른 파일 선택 |
+| `UNSUPPORTED_FORMAT` | 사진 편집기에 HEIF·움직이는 WebP, 소리가 없는 파일, 통합 계약에서 고른 것이 모두 열 수 없는 형식 | 다른 파일 선택 |
+| `DECODE_FAILED` | 손상된 파일, 0바이트, 기기 카메라로 찍은 문서를 펴지 못함 | 다른 파일 선택 |
+| `UNSUPPORTED_OPERATION` | 사진·영상을 섞어 넘기고 `MixedSelection.REJECT`, 소리를 다른 종류와 섞음, 마이크가 없는 기기에서 녹음 등 | 입력 수정 |
 | `CAMERA_UNAVAILABLE` | 카메라 앱이 없음 | 사진 선택으로 대체 |
 | `RESULT_UNAVAILABLE` | `RESULT_OK`인데 결과가 없음 | 편집기 재실행 |
+| `UNKNOWN` | 다른 코드에 해당하지 않는 실패 | 다시 시도 |
 
-저장 단계 오류(`INSUFFICIENT_MEMORY`, `INSUFFICIENT_STORAGE`, `ENCODE_FAILED`, `OUTPUT_WRITE_FAILED`)는 편집 화면의 다시 시도 dialog로 처리됩니다. 편집 도중 원본이 삭제되거나 권한이 끊기면 `SOURCE_UNAVAILABLE`, 저장 공간이 모자라 쓰기에 실패하면 `INSUFFICIENT_STORAGE`로 구분합니다. 여러 장을 저장하다 한 장이라도 실패하면 그 호출에서 만든 파일을 모두 지우고 실패로 돌려주므로 일부만 남지 않습니다.
+저장 단계 오류(`INSUFFICIENT_MEMORY`, `INSUFFICIENT_STORAGE`, `ENCODE_FAILED`, `OUTPUT_WRITE_FAILED`)는 편집 화면의 다시 시도 dialog로 처리됩니다. 녹음기로만 쓰는 음성 편집기(`editAfterRecording = false`)도 녹음 파일을 남겨 둔 채 다시 시도를 묻고, 녹음 화면을 닫을 때 지웁니다. 편집 도중 원본이 삭제되거나 권한이 끊기면 `SOURCE_UNAVAILABLE`, 저장 공간이 모자라 쓰기에 실패하면 `INSUFFICIENT_STORAGE`로 구분합니다. 여러 장을 저장하다 한 장이라도 실패하면 그 호출에서 만든 파일을 모두 지우고 실패로 돌려주므로 일부만 남지 않습니다.
 
 ## 결과 파일 관리
 
@@ -232,6 +240,9 @@ android {
 
 - 화면 회전·폴더블 접기/펴기: 편집 상태와 undo 기록이 그대로 유지됩니다.
 - Picker가 열려 있는 동안 회전해도 Picker가 두 번 열리지 않습니다.
+- 편집기를 열기 전 원본을 살펴보는 중(움직이는 이미지인지, 사진·영상이 섞였는지, 원본 보내기)에 회전하거나 프로세스가 다시 시작돼도 그 단계를 다시 해 이어서 엽니다.
+- 결과는 저장이 끝나는 즉시 돌려줍니다. 앱이 백그라운드에 있는 동안 저장이 끝나도 결과가 사라지지 않습니다.
+- 카메라 권한을 묻는 창이 떠 있는 동안 회전해도 권한 결과를 받아 카메라를 엽니다. 기기 카메라 앱으로 찍은 문서를 펴는 중에 회전해도 결과를 돌려줍니다.
 - 프로세스 종료 후 복귀: 마지막으로 **적용한** 편집을 복원하고 "이전 편집을 복원했습니다" 안내를 띄웁니다.
   - undo/redo 기록과 열려 있던 도구의 미적용 변경은 복원하지 않습니다. 원래 사진과 비교한 변경 여부는 유지되므로 닫을 때 확인을 묻습니다.
   - 원본을 다시 열어 형식·크기·EXIF 방향이 같은지 확인합니다. 다른 이미지로 바뀌었으면 복원하지 않고 처음부터 엽니다.
@@ -385,8 +396,9 @@ audio.launch(AudioEditorRequest(EditorInput.UriSource(audioUri), export = AudioE
 <uses-permission android:name="android.permission.RECORD_AUDIO" />
 ```
 
+- 음성 편집기도 선언하지 않으면 녹음 도구를 숨깁니다. 이때 `Capture(MediaKind.AUDIO)`로 열면 바로 `PERMISSION_DENIED`로, 마이크가 없는 기기면 `UNSUPPORTED_OPERATION`으로 실패합니다.
 - 권한은 녹음 버튼을 처음 누를 때 묻습니다. 거부하면 설정에서 허용하라는 안내가 나옵니다.
-- 녹음 파일(AAC, m4a)은 `files/framekit/recordings`에 둡니다. 편집을 이어 가는 데 필요해 편집기가 지우지 않으며, 필요 없으면 호스트가 지웁니다.
+- 녹음 파일(AAC, m4a)은 `files/framekit/recordings`에 둡니다. 편집을 이어 가는 데 필요해 편집이 끝나도 바로 지우지 않고, 마지막으로 바뀐 지 7일이 지났고 남은 편집 세션이 쓰지 않는 파일을 다음 편집기(영상·움직이는 이미지·음성) 실행 때 정리합니다.
 - 한 번에 최대 10분까지 녹음합니다.
 
 ## 앱 안 갤러리 (사진·영상 고르기)

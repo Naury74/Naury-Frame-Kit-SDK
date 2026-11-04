@@ -1,6 +1,6 @@
 # Android 설정
 
-`ImageEditorRequest`, `VideoEditorRequest`, `FrameKitRequest`의 모든 옵션입니다(Android). iOS 설정은 [iOS 연동 가이드](ios.md#설정)를 보세요. 잘못된 값은 기본값으로 바꾸지 않고 `INVALID_CONFIGURATION`으로 거부합니다. 실행 전에 `request.validate()`로 미리 확인할 수 있습니다.
+`ImageEditorRequest`, `VideoEditorRequest`, `MotionEditorRequest`, `AudioEditorRequest`, `FrameKitRequest`의 모든 옵션입니다(Android). iOS 설정은 [iOS 연동 가이드](ios.md#설정)를 보세요. 잘못된 값은 기본값으로 바꾸지 않고 `INVALID_CONFIGURATION`으로 거부합니다. 실행 전에 `request.validate()`로 미리 확인할 수 있습니다.
 
 ```kotlin
 ImageEditorRequest(
@@ -19,7 +19,7 @@ ImageEditorRequest(
 | `UriSource(uri)` | 읽기 권한이 있는 Uri |
 | `FileSource(absolutePath)` | 호스트 앱 내부 파일 |
 | `Multiple(items)` | 여러 원본. 항목은 `UriSource`/`FileSource`만, 1개 이상 |
-| `Pick(kind = MediaKind.IMAGE, maxItems = 1)` | 시스템 Photo Picker. 이미지 편집기는 `IMAGE`만 허용. `maxItems` 1..100 |
+| `Pick(kind = MediaKind.IMAGE, maxItems = 1)` | 고르는 화면(`framekit-picker`가 있으면 앱 안 갤러리, 없으면 시스템 사진 선택기). 이미지 편집기는 `IMAGE`만 허용. `maxItems` 1..100 |
 | `Capture(kind)` | 카메라 앱으로 촬영 후 편집. `IMAGE`·`VIDEO`만(`ANY` 불가). 통합 계약·음성 편집기는 `AUDIO`(SDK 녹음 화면) |
 
 진입점별 예시와 카메라 권한 규칙은 [Android 연동 가이드](integration.md#입력)을 보세요.
@@ -206,6 +206,57 @@ VideoEditorRequest(
 
 출력은 MP4(H.264 영상, AAC 음성)입니다. HDR 원본은 SDR로 변환하고 `HDR_CONVERTED_TO_SDR` 경고를 붙입니다.
 
+## MotionEditorRequest
+
+```kotlin
+MotionEditorRequest(
+    input = EditorInput.Pick(MediaKind.IMAGE, maxItems = 20),
+    config = MotionEditorConfig(),
+    export = MotionExportConfig(),
+    ui = EditorUiConfig(),
+    output = OutputTarget.AppFile,
+)
+```
+
+`input`은 `Pick(MediaKind.IMAGE, n)`(n은 1..`maxImageCount`), `Multiple`(1..`maxImageCount`개), `UriSource`, `FileSource`입니다. `Capture`는 받지 않습니다.
+
+### config: MotionEditorConfig
+
+| 옵션 | 기본값 | 단위·범위·규칙 |
+| --- | --- | --- |
+| `enabledTools` | 전체(`MOTION`, `TRANSITION`, `TIMING`, `LOOP`, `CANVAS`, `ADJUST`, `FILTER`, `TEXT`, `STICKER`, `AUDIO`) | 빠진 도구는 숨김. 원본 종류에 맞지 않는 도구는 저절로 숨김 |
+| `maxImageCount` | `20` | 슬라이드쇼에 넣을 최대 사진 수, 1..50 |
+| `slideDurationMs` | `2000` | 사진 한 장의 처음 시간(ms), 300..10000 |
+| `maxAnimationFrames` | `300` | 움직이는 원본에서 읽을 최대 프레임 수, 10..1000. 넘는 프레임은 버림 |
+| `allowUndo` / `allowRedo` | `true` | `allowRedo = true`이면 `allowUndo`도 `true`여야 함 |
+
+### export: MotionExportConfig
+
+| 옵션 | 기본값 | 단위·범위·규칙 |
+| --- | --- | --- |
+| `formats` | `MP4`, `GIF`, `WEBP` | 저장할 때 보여 줄 형식. 비어 있으면 안 됨 |
+| `format` | `MP4` | 처음 선택된 형식. `formats`에 있어야 함 |
+| `size` | `MEDIUM` | 처음 선택된 크기(`SMALL`·`MEDIUM`·`LARGE`). 형식별 긴 변은 [연동 가이드](integration.md#움직이는-이미지) 참고 |
+| `frameRate` | `null` | 초당 프레임 수, 5..60. `null`이면 MP4 30, WebP 20, GIF 15 |
+| `webpQuality` | `80` | 움직이는 WebP 품질, 1..100 |
+| `loopCount` | `0` | GIF·WebP 반복 횟수, 0..65535. `0`은 무한 반복 |
+
+남은 저장 공간이 5MB보다 적으면 저장을 시작하지 않고 `INSUFFICIENT_STORAGE`를 알립니다.
+
+## AudioEditorRequest
+
+```kotlin
+AudioEditorRequest(
+    input = EditorInput.Capture(MediaKind.AUDIO),
+    config = AudioEditorConfig(),
+    export = AudioExportConfig(),
+    ui = EditorUiConfig(),
+    output = OutputTarget.AppFile,
+)
+```
+
+`AudioEditorConfig`와 `AudioExportConfig`의 옵션은 [연동 가이드](integration.md#음성-편집기)의 표를 보세요. `allowRedo = true`이면 `allowUndo`도 `true`여야 합니다. 저장 크기는 비트레이트와 길이로 어림해 공간이 모자라면 저장을 시작하지 않고 `INSUFFICIENT_STORAGE`를 알립니다.
+
 ## FrameKitRequest
 
 ```kotlin
@@ -215,14 +266,21 @@ FrameKitRequest(
     imageExport = ImageExportConfig(),
     video = VideoEditorConfig(),
     videoExport = VideoExportConfig(),
+    motion = MotionEditorConfig(),
+    motionExport = MotionExportConfig(),
     audio = AudioEditorConfig(),
     audioExport = AudioExportConfig(),
     ui = EditorUiConfig(),
     output = OutputTarget.AppFile,
+    catalog = EditorCatalog(),
+    openAnimatedInMotionEditor = true,
+    chooser = EditorChooser.AUTO,
+    chooserActions = EditorAction.entries.toSet(),
+    mixedSelection = MixedSelection.EDIT,
 )
 ```
 
-열리는 편집기와 상관없이 모든 설정을 검증합니다. 사진이면 `image`·`imageExport`, 영상이면 `video`·`videoExport`, 소리면 `audio`·`audioExport`(설정 표는 [Android 연동 가이드](integration.md#음성-편집기))가 쓰이고 `ui`·`output`은 공통입니다.
+열리는 편집기와 상관없이 모든 설정을 검증합니다. 사진이면 `image`·`imageExport`, 영상이면 `video`·`videoExport`, 움직이는 이미지면 `motion`·`motionExport`, 소리면 `audio`·`audioExport`가 쓰이고 `ui`·`output`·`catalog`는 공통입니다. `openAnimatedInMotionEditor`·`chooser`·`chooserActions`·`mixedSelection`은 [연동 가이드](integration.md#자동으로-열기와-고르기-시트)를 보세요.
 
 ## output: OutputTarget
 

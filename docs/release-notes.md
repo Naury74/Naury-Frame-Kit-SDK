@@ -6,10 +6,23 @@
 
 - 사진·영상 혼합 편집의 영상 항목에서도 클립 줄(나누기·순서 바꾸기·지우기·추가)이 보임. 항목마다 결과는 하나
 - iOS: 고를 개수(`pickMultiple`)나 넘긴 파일(`files`)이 편집기 상한보다 많으면 `invalidConfiguration` 대신 Android처럼 상한까지만 엶. `maxItems`는 1~100
+- Android: 통합 계약이 `EditorChooser.AUTO`로 사진(또는 사진·영상)을 고르게 하면 열 편집기가 지원하는 사진 형식(JPEG·PNG·WebP, 한 장이면 GIF도)만 고를 수 있음. 고른 것이 모두 열 수 없는 형식이면 `Cancelled` 대신 `UNSUPPORTED_FORMAT`
+- Android: 혼합 편집에서 저장을 마친 항목은 더 고칠 수 없게 잠김(고쳐도 결과에 담기지 않던 문제). 원본을 열지 못한 항목은 저장할 때 빼고 저장할지 묻고, 모두 열지 못했으면 실제 이유(`PERMISSION_DENIED` 등)로 실패
+- Android: 움직이는 이미지·음성 편집기도 원본을 열지 못한 화면에서 닫으면 `Cancelled` 대신 그 이유로 `Failure`를 돌려줌. 음성 편집기는 열기 실패를 모두 `UNSUPPORTED_FORMAT`으로 알리던 것을 `PERMISSION_DENIED`·`SOURCE_UNAVAILABLE`·`DECODE_FAILED` 등으로 나눔
+- Android: 음성 편집기에서 호스트가 `RECORD_AUDIO`를 선언하지 않았으면 녹음 도구를 숨기고, `Capture(MediaKind.AUDIO)`는 바로 `PERMISSION_DENIED`(마이크가 없으면 `UNSUPPORTED_OPERATION`)로 실패
+- Android: `MotionEditorConfig`·`AudioEditorConfig`도 `allowUndo = false`이면서 `allowRedo = true`이면 `INVALID_CONFIGURATION`
+- Android: `files/framekit/recordings`의 녹음 파일 중 7일이 지났고 남은 편집 세션이 쓰지 않는 것을 편집기 실행 때 정리함
 
 ### 고침
 
 - iOS: 영상 녹화(`.capture`)에서 앱 Info.plist에 `NSMicrophoneUsageDescription`이 없으면 시스템이 앱을 끝낼 수 있던 문제. 이제 미리 `invalidConfiguration`으로 끝냄
+- Android: 통합 계약이 원본을 살펴보는 중(움직이는 이미지 확인·혼합 확인·원본 보내기) 회전하거나 프로세스가 다시 시작되면 투명한 화면에 멈추던 문제
+- Android: 앱이 백그라운드일 때 저장이 끝나면 화면으로 돌아올 때까지 결과를 미뤄, 그사이 프로세스가 끝나면 결과 파일이 남고 편집이 사라지던 문제. 이제 바로 돌려줌
+- Android: 혼합 편집에서 저장한 결과를 메모리에만 두어 프로세스가 다시 시작되면 저장한 파일이 버려지고 다시 저장하던 문제
+- Android: 카메라 권한 창이 떠 있는 동안 회전하면 빈 화면에 멈추던 문제
+- Android: 문서 스캐너가 기기 카메라 앱으로 찍은 사진을 펴는 중 회전하면 빈 화면에 멈추던 문제
+- Android: 움직이는 이미지·음성 저장에서 저장 공간이 모자라도 `ENCODE_FAILED`로 알리던 문제. 이제 `INSUFFICIENT_STORAGE`
+- Android: 녹음기로만 쓰는 음성 편집기(`editAfterRecording = false`)에서 녹음 파일을 결과로 옮기지 못하면 바로 실패하고 녹음이 사라지던 문제. 이제 녹음을 남겨 두고 다시 시도를 물음
 
 ## 1.0.0-alpha10
 
