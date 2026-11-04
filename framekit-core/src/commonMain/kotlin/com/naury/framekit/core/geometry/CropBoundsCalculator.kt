@@ -66,29 +66,42 @@ public object CropBoundsCalculator {
      * 하나의 구간이다.
      */
     public fun constrainBetween(frame: GeometryFrame, valid: RectN, candidate: RectN): RectN {
-        if (frame.containsRect(candidate)) return candidate
+        // 경계에 닿은 결과는 이진 탐색·부동소수 오차로 0..1을 아주 조금 넘을 수 있어 단위 사각형 안으로 자른다.
+        if (frame.containsRect(candidate)) return candidate.clampedToUnit()
         var low = 0.0
         var high = 1.0
         repeat(BINARY_SEARCH_STEPS) {
             val mid = (low + high) / 2.0
             if (frame.containsRect(lerp(valid, candidate, mid))) low = mid else high = mid
         }
-        return lerp(valid, candidate, low)
+        return lerp(valid, candidate, low).clampedToUnit()
     }
 
     /** [crop]이 이미지 영역 안에 있고 각 변이 [MIN_CROP_SIDE_PX] 이상이면 `true`. */
     public fun isValidCrop(frame: GeometryFrame, crop: RectN): Boolean =
         crop.isValidUnitRect && frame.containsRect(crop) && meetsMinimumSize(frame, crop)
 
+    /**
+     * 각 변이 [minimumSide] 이상이면 `true`. 고정 비율로 그 비율의 가장 큰 자르기보다 작게 만들 수 없는 경우(가늘고 긴
+     * 원본을 크게 기울임)는 그 가장 큰 자르기면 통과한다.
+     */
     public fun meetsMinimumSize(frame: GeometryFrame, crop: RectN): Boolean {
         val size = frame.cropPixelSize(crop)
-        return size.width + SIZE_EPSILON_PX >= minimumSide(frame) &&
-            size.height + SIZE_EPSILON_PX >= minimumSide(frame)
+        if (!(size.width > 0.0 && size.height > 0.0)) return false
+        val minimum = minimumSide(frame)
+        if (size.width + SIZE_EPSILON_PX >= minimum && size.height + SIZE_EPSILON_PX >= minimum) return true
+        val largest = frame.cropPixelSize(maxCropForPixelAspect(frame, size.width / size.height))
+        return size.width >= largest.width * (1.0 - LARGEST_RELATIVE_EPSILON) &&
+            size.height >= largest.height * (1.0 - LARGEST_RELATIVE_EPSILON)
     }
 
-    /** 최소 자르기 변. 원본이 [MIN_CROP_SIDE_PX]보다 작으면 줄여서 쓴다. */
-    public fun minimumSide(frame: GeometryFrame): Double =
-        min(MIN_CROP_SIDE_PX.toDouble(), min(frame.rotatedSize.width, frame.rotatedSize.height))
+    /**
+     * 최소 자르기 변. [MIN_CROP_SIDE_PX]이고, 원본이나 기울인 뒤 가장 큰 자유 자르기가 이보다 작으면 그 짧은 변이다.
+     */
+    public fun minimumSide(frame: GeometryFrame): Double {
+        val free = frame.cropPixelSize(maxCropForPixelAspect(frame, frame.rotatedSize.aspectRatio))
+        return minOf(MIN_CROP_SIDE_PX.toDouble(), frame.rotatedSize.width, frame.rotatedSize.height, free.width, free.height)
+    }
 
     internal fun lerp(from: RectN, to: RectN, t: Double): RectN = RectN(
         from.left + (to.left - from.left) * t,
@@ -106,4 +119,5 @@ public object CropBoundsCalculator {
 
     private const val BINARY_SEARCH_STEPS = 40
     private const val SIZE_EPSILON_PX = 1e-6
+    private const val LARGEST_RELATIVE_EPSILON = 1e-6
 }

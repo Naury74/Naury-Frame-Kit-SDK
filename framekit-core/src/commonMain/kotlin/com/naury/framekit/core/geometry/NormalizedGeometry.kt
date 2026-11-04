@@ -12,7 +12,7 @@ public data class PointN(val x: Double, val y: Double) {
 /**
  * 정규화 좌표 공간의 축 정렬 사각형.
  *
- * 유효한 사각형은 `0 <= left < right <= 1`이고 `0 <= top < bottom <= 1`이다. 호스트 입력을 검증
+ * 유효한 사각형은 `0 <= left < right <= 1`이고 `0 <= top < bottom <= 1`이다(경계는 [UNIT_TOLERANCE]만큼 넘어도 된다). 호스트 입력을 검증
  * 단계에서 명확한 오류로 거부할 수 있도록 생성 시에는 이를 강제하지 않는다.
  */
 public data class RectN(val left: Double, val top: Double, val right: Double, val bottom: Double) {
@@ -24,10 +24,14 @@ public data class RectN(val left: Double, val top: Double, val right: Double, va
     public val isFinite: Boolean
         get() = left.isFinite() && top.isFinite() && right.isFinite() && bottom.isFinite()
 
-    /** 사각형이 유한하고 비어 있지 않으며 단위 정사각형 안에 있으면 `true`. */
+    /** 사각형이 유한하고 비어 있지 않으며 단위 정사각형 안에 있으면 `true`. 계산 오차로 [UNIT_TOLERANCE]만큼 넘은 것은 안으로 본다. */
     public val isValidUnitRect: Boolean
-        get() = isFinite && left >= 0.0 && top >= 0.0 && right <= 1.0 && bottom <= 1.0 &&
-            left < right && top < bottom
+        get() = isFinite && left >= -UNIT_TOLERANCE && top >= -UNIT_TOLERANCE &&
+            right <= 1.0 + UNIT_TOLERANCE && bottom <= 1.0 + UNIT_TOLERANCE && left < right && top < bottom
+
+    /** 각 변을 `0.0..1.0` 안으로 자른다. 비어 있거나 유한하지 않은 사각형은 그대로 둔다. */
+    public fun clampedToUnit(): RectN =
+        if (!isFinite) this else RectN(left.coerceIn(0.0, 1.0), top.coerceIn(0.0, 1.0), right.coerceIn(0.0, 1.0), bottom.coerceIn(0.0, 1.0))
 
     public fun corners(): List<PointN> = listOf(
         PointN(left, top),
@@ -39,6 +43,9 @@ public data class RectN(val left: Double, val top: Double, val right: Double, va
     public companion object {
         /** 공간 전체. */
         public val Full: RectN = RectN(0.0, 0.0, 1.0, 1.0)
+
+        /** [isValidUnitRect]가 경계 밖으로 허용하는 계산 오차. */
+        public const val UNIT_TOLERANCE: Double = 1e-9
 
         public fun fromCenter(centerX: Double, centerY: Double, width: Double, height: Double): RectN =
             RectN(centerX - width / 2.0, centerY - height / 2.0, centerX + width / 2.0, centerY + height / 2.0)
