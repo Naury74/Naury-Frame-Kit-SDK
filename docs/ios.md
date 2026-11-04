@@ -136,7 +136,9 @@ present(editor, animated: true)
 | 소리 파일을 고르게 해서 편집 | `FrameKitRequest(input: .pickMultiple(maxItems: 5), mediaKind: .audio)` |
 
 - 여러 개를 넘기면 사진 편집기는 아래쪽 목록에서 한 장씩 골라 편집하고, 영상 편집기는 고른 순서대로 클립을 이어 붙입니다.
-- 편집기 상한은 `ImageEditorConfig.maxImageCount`(기본 20, 최대 100), `VideoEditorConfig.maxClipCount`(기본 10, 최대 20), `MotionEditorConfig.maxImageCount`(기본 20, 최대 50), `AudioEditorConfig.maxSourceCount`(기본 10, 최대 20)입니다. `.files`가 상한보다 많으면 앞에서부터 상한까지만 열고, `.pickMultiple`의 `maxItems`도 상한으로 줄어듭니다.
+- 편집기 상한은 `ImageEditorConfig.maxImageCount`(기본 20, 최대 100), `VideoEditorConfig.maxClipCount`(기본 10, 최대 20), `MotionEditorConfig.maxImageCount`(기본 20, 최대 50), `AudioEditorConfig.maxSourceCount`(기본 10, 최대 20)입니다. `.files`가 상한보다 많으면 앞에서부터 상한까지만 열고 화면에 알림을 보이며, `.pickMultiple`의 `maxItems`도 상한으로 줄어듭니다. 혼합 편집도 20개를 넘으면 같게 알립니다.
+- 고른 파일 가운데 일부를 열 수 없으면 나머지만 열고 알림을 보입니다. 모두 열 수 없으면 오류 화면을 보이고, 닫으면 그 오류(`failure`)로 끝납니다.
+- 혼합 편집에서 열지 못한 항목은 그 항목의 닫기로 목록에서 뺄 수 있습니다. 그대로 저장하면 그 항목을 고르고 다시 시도할 수 없는 오류(`recoverable == false`)를 보입니다.
 - 사진과 영상을 섞어 넘기거나 고르면 `mixedSelection`을 따릅니다.
   - `.edit`(기본): 혼합 편집 화면을 엽니다. 아래 줄에서 항목을 누르면 그 종류의 편집 화면으로 바뀌고, 항목마다 편집 내용을 따로 기억하며, 저장은 한 번에 해서 고른 순서대로 `outputs`를 돌려줍니다. 최대 20개입니다. 영상 항목에서는 일반 영상 편집기처럼 나누고, 순서를 바꾸고, 클립을 더할 수 있으며, 항목마다 결과 하나로 저장합니다.
   - `.reject`: `chooser`가 `.auto`면 `unsupportedOperation`으로 끝나고, `.ask`면 원본 보내기만 보입니다.
@@ -148,7 +150,9 @@ present(editor, animated: true)
 `.capture`는 시스템 카메라 화면을 띄웁니다. SDK가 카메라를 직접 다루지 않으므로 별도 카메라 라이브러리가 필요 없습니다.
 
 - 찍은 파일은 SDK 임시 폴더에 두고 편집이 끝나면 지웁니다.
-- 카메라가 없는 기기(시뮬레이터 등)는 `cameraUnavailable`, 사용자가 권한을 거부했으면 `permissionDenied`, 촬영을 취소하면 `cancelled`입니다.
+- 카메라 권한을 아직 묻지 않았으면 촬영 화면 전에 묻습니다.
+- 카메라가 없는 기기(시뮬레이터 등)는 `cameraUnavailable`, 사용자가 카메라 권한을 거부했으면 `permissionDenied`(`suggestedAction == .openSettings`), 촬영을 취소하면 `cancelled`입니다.
+- 소리 녹음(`mediaKind: .audio`)에서 마이크 권한을 거부했으면 `permissionDenied`(`.openSettings`)로 끝납니다.
 
 ## 자동으로 열기와 고르기 시트
 
@@ -202,6 +206,7 @@ FrameKitRequest(
 ```
 
 - `enabledTools`의 순서가 도구 줄의 순서입니다. 사진 도구: `crop`, `rotate`, `cutout`(배경 제거), `adjust`, `filter`, `text`, `sticker`, `draw`, `privacy`(가리기), `watermark`.
+- `enabledTools`를 비우면 도구 없이 보고 저장만 하는 화면이 됩니다.
 - `allowUndo`·`allowRedo`로 실행 취소·다시 실행 버튼을 숨길 수 있습니다(`allowRedo`만 켤 수는 없음).
 - 범위를 벗어난 설정은 `request.validate()`로 미리 확인할 수 있습니다. 그대로 열면 편집기가 `invalidConfiguration`으로 끝납니다.
 
@@ -299,15 +304,15 @@ FrameKitRequest(
 | --- | --- | --- |
 | `invalidConfiguration` | request 값이 범위를 벗어남, Info.plist 설명 없음 | 개발자 수정 |
 | `invalidSource` | 형식·종류가 편집기와 맞지 않음 | 다른 파일 선택 |
-| `permissionDenied` | 카메라·마이크·파일 권한 없음 | 설정에서 허용 |
+| `permissionDenied` | 카메라·마이크 권한 없음(`suggestedAction == .openSettings`), 파일을 읽을 권한 없음(`.chooseAnotherSource`) | 설정에서 허용 또는 다시 선택 |
 | `sourceUnavailable` | 지워짐·옮겨짐 | 다시 선택 |
 | `sourceTooLarge` | 2억 5천만 픽셀 초과, 100MB 넘는 움직이는 이미지 | 다른 파일 선택 |
 | `unsupportedFormat` | iOS가 읽지 못하는 형식(OGG·Opus 등) | 다른 파일 선택 |
-| `decodeFailed` | 손상된 파일 | 다른 파일 선택 |
+| `decodeFailed` | 손상되었거나 빈 파일. 같은 파일로 다시 해도 안 되므로 `recoverable == false` | 다른 파일 선택 |
 | `unsupportedOperation` | 사진·영상을 섞고 `.reject`, 소리를 다른 종류와 섞음 | 입력 수정 |
 | `cameraUnavailable` | 카메라가 없음 | 사진 선택으로 대체 |
 
-저장 단계 오류(`insufficientMemory`, `insufficientStorage`, `encodeFailed`, `outputWriteFailed`)는 편집 화면의 다시 시도 창으로 처리됩니다. 여러 장을 저장하다 한 장이라도 실패하면 그 호출에서 만든 파일을 모두 지우므로 일부만 남지 않습니다.
+저장 단계 오류(`insufficientMemory`, `insufficientStorage`, `encodeFailed`, `outputWriteFailed`)는 편집 화면의 다시 시도 창으로 처리됩니다. 저장 공간이 모자라면 `insufficientStorage`, 앱이 오래 뒤로 가 있거나 미디어 서비스가 끊겨 멈추면 `outputWriteFailed`(다시 시도)입니다. `resultUnavailable`은 Android와 코드를 맞추려고 둔 값이며 iOS에서는 나오지 않습니다. 여러 장을 저장하다 한 장이라도 실패하면 그 호출에서 만든 파일을 모두 지우므로 일부만 남지 않습니다.
 
 ## 결과 파일 관리
 
@@ -342,6 +347,10 @@ present(UIActivityViewController(activityItems: [media.url], applicationActiviti
   - 저장 중에 종료됐다면 결과 파일은 만들어지지 않으므로 다시 저장합니다.
 - 편집 값과 원본 사본은 Application Support/FrameKit/Sessions에 둡니다. 편집기가 결과(성공·취소·실패)를 보내면 바로 지우고, 중단된 세션은 7일이 지나면 다음 편집기 실행 때 지웁니다.
 - 저장하는 동안 화면이 꺼지지 않게 하고, 끝나면 앱이 정해 둔 값으로 돌립니다.
+- 저장 중에 앱이 잠시 뒤로 가도 시스템이 허락하는 동안 저장을 이어 갑니다.
+- 녹음 중 전화 등으로 끊기면 일시 정지 상태가 되고, 이어 녹음은 사용자가 고릅니다. 녹음이 끝나면 앱의 오디오 세션 카테고리·모드·옵션을 돌려 두고, 앱이 세션을 쓰고 있지 않았을 때만 세션을 끕니다.
+- 편집기를 띄운 뒤 그 위에 다른 화면을 띄우거나 탭을 바꿔도 편집은 끝나지 않습니다. 앱이 편집기를 내리거나 내비게이션에서 빼면 `cancelled`로 끝나고, 그때까지 만든 임시 파일과 혼합 편집에서 저장해 둔 파일은 지웁니다.
+- 앱이 저장 중에 종료되어 남은 임시 파일은 다음에 편집기를 열 때 지웁니다(24시간 지난 것).
 
 ## 움직이는 이미지
 

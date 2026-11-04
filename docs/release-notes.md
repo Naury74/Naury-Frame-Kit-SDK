@@ -7,9 +7,21 @@
 - 사진·영상 혼합 편집의 영상 항목에서도 클립 줄(나누기·순서 바꾸기·지우기·추가)이 보임. 항목마다 결과는 하나
 - iOS: 고를 개수(`pickMultiple`)나 넘긴 파일(`files`)이 편집기 상한보다 많으면 `invalidConfiguration` 대신 Android처럼 상한까지만 엶. `maxItems`는 1~100
 
+- iOS: 카메라·마이크 권한 거부는 `permissionDenied`에 `suggestedAction == .openSettings`(새 값)로 알림. 촬영 전에 카메라 권한을 먼저 물음
+- iOS: 저장 중 앱이 잠시 뒤로 가도 이어서 저장함. 저장 공간 부족은 `insufficientStorage`, 중단은 다시 시도할 수 있는 `outputWriteFailed`로 알림(예전에는 해상도를 낮추라는 `encodeFailed`)
+- iOS: 상한을 넘어 고르거나 넘긴 항목, 일부를 열 수 없는 항목이 있으면 화면에 알림
+
 ### 고침
 
 - iOS: 영상 녹화(`.capture`)에서 앱 Info.plist에 `NSMicrophoneUsageDescription`이 없으면 시스템이 앱을 끝낼 수 있던 문제. 이제 미리 `invalidConfiguration`으로 끝냄
+- iOS: 통합 진입점이 파일 앱 등의 보안 범위 URL을 열지 못해 `unsupportedFormat`·`outputWriteFailed`로 끝나던 문제. 없는 파일은 `sourceUnavailable`, 권한 없음은 `permissionDenied`, 빈 파일은 `decodeFailed`
+- iOS: 선택기에서 고른 파일을 복사하지 못하면 취소로 끝나던 문제. 모두 실패하면 오류 화면, 일부만 실패하면 알림
+- iOS: 혼합 편집에서 열지 못한 항목 때문에 닫지도 저장하지도 못하던 문제. 그 항목만 뺄 수 있고, 여는 중인 항목은 기다렸다 저장함
+- iOS: UIKit 편집기 위에 다른 화면을 띄우거나 탭을 바꾸면 편집이 취소되던 문제. 내비게이션에 넣은 SwiftUI 편집기는 뒤로 가면 `cancelled`를 보냄
+- iOS: 마이크 권한을 묻는 사이 편집기나 녹음 시트를 닫아도 녹음이 시작되던 문제, 전화 등으로 녹음이 끊기면 상태가 어긋나던 문제
+- iOS: 녹음이 끝나면 앱이 쓰던 오디오 세션까지 꺼서 앱의 재생이 멈추던 문제
+- iOS: 호스트가 닫은 혼합 편집의 저장 파일, 닫힌 뒤 끝난 원본 보내기 복사본, 열기에 실패한 원본의 임시 복사본, 종료로 남은 영상 저장 임시 파일이 남던 문제
+- iOS: 영상·소리 원본 복사를 주 스레드에서 해 큰 파일에서 화면이 멈추던 문제
 
 ## 1.0.0-alpha10
 

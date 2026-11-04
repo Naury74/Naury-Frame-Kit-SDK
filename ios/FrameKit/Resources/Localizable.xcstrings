@@ -20520,6 +20520,89 @@
         }
       }
     },
+    "items_truncated": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Einige Elemente wurden nicht geöffnet, weil das Limit erreicht ist."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Some items weren't opened because the limit was reached."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Algunos elementos no se abrieron porque se alcanzó el límite."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Certains éléments n'ont pas été ouverts, car la limite est atteinte."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Beberapa item tidak dibuka karena batas sudah tercapai."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "上限を超えたため、一部の項目は開きませんでした。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "최대 개수를 넘어 일부 항목은 열지 않았어요."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alguns itens não foram abertos porque o limite foi atingido."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Некоторые элементы не открыты: достигнут предел."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "บางรายการไม่ได้เปิดเพราะถึงจำนวนสูงสุดแล้ว"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Một số mục không được mở vì đã đạt giới hạn."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已达到上限，部分项目未打开。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已達上限，部分項目未開啟。"
+          }
+        }
+      }
+    },
     "lane_mask": {
       "extractionState": "manual",
       "localizations": {

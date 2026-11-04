@@ -9,15 +9,15 @@ final class MixedEditorModel {
     static let maxItems = 20
 
     final class Item: Identifiable {
-        let id = UUID()
+        let id: UUID
         let url: URL
         let kind: SourceKind
         let editor: RouterModel.Editor
-        var thumbnail: CGImage?
         /// 저장을 마친 결과. 있으면 다시 편집할 수 없다.
         var outputs: [EditedMedia]?
 
-        init(url: URL, kind: SourceKind, editor: RouterModel.Editor) {
+        init(id: UUID, url: URL, kind: SourceKind, editor: RouterModel.Editor) {
+            self.id = id
             self.url = url
             self.kind = kind
             self.editor = editor
@@ -34,10 +34,10 @@ final class MixedEditorModel {
     private let onFinish: (FrameKitResult) -> Void
     private var delivered = false
     private(set) var items: [Item] = []
+    private(set) var thumbnails: [UUID: CGImage] = [:]
     var selected = 0
     private(set) var save: SaveState?
     var showDiscardDialog = false
-    private(set) var notice: String?
     private var saveTask: Task<Void, Never>?
 
     init(request: FrameKitRequest, urls: [URL], kinds: [SourceKind], onFinish: @escaping (FrameKitResult) -> Void) {
@@ -45,13 +45,16 @@ final class MixedEditorModel {
         self.onFinish = onFinish
         for (url, kind) in zip(urls, kinds).prefix(Self.maxItems) {
             // 항목마다 편집기 하나. 사진은 한 장으로 열고, 영상은 일반 영상 편집기처럼 나누고 클립을 더할 수 있다. 결과는 항목마다 하나다.
+            let id = UUID()
+            // 항목 편집기가 스스로 끝나면(열기 실패 화면의 닫기) 그 항목을 뺀다.
+            let itemFinished: (FrameKitResult) -> Void = { [weak self] result in self?.itemFinished(id, result) }
             let item: Item
             if kind.mediaKind == .video {
-                item = Item(url: url, kind: kind, editor: .video(VideoEditorModel(request: request.videoRequest(.file(url)), onFinish: { _ in })))
+                item = Item(id: id, url: url, kind: kind, editor: .video(VideoEditorModel(request: request.videoRequest(.file(url)), onFinish: itemFinished)))
             } else {
                 var image = request.imageRequest(.file(url))
                 image.config.maxImageCount = 1
-                item = Item(url: url, kind: kind, editor: .image(EditorModel(request: image, onFinish: { _ in })))
+                item = Item(id: id, url: url, kind: kind, editor: .image(EditorModel(request: image, onFinish: itemFinished)))
             }
             items.append(item)
         }
@@ -62,8 +65,30 @@ final class MixedEditorModel {
             case .video(let model): model.start()
             default: break
             }
-            Task { item.thumbnail = await SourceInspector.thumbnail(item.url, kind: item.kind, maxSide: 160) }
+            let (id, url, kind) = (item.id, item.url, item.kind)
+            Task { [weak self] in
+                let image = await SourceInspector.thumbnail(url, kind: kind, maxSide: 160)
+                self?.thumbnails[id] = image
+            }
         }
+    }
+
+    /// 항목 편집기가 결과를 냈다. 저장 성공은 `saveOne`이 받고, 실패·취소는 그 항목을 뺀다.
+    private func itemFinished(_ id: UUID, _ result: FrameKitResult) {
+        guard !delivered, save == nil, let index = items.firstIndex(where: { $0.id == id }) else { return }
+        switch result {
+        case .success: return
+        case .failure, .cancelled: remove(at: index, result: result)
+        }
+    }
+
+    /// 항목을 뺀다. 남은 항목이 없으면 그 결과로 끝낸다.
+    private func remove(at index: Int, result: FrameKitResult) {
+        let item = items.remove(at: index)
+        thumbnails[item.id] = nil
+        item.outputs?.forEach { FrameKitOutputs.delete($0.url) }
+        guard !items.isEmpty else { finish(result); return }
+        selected = min(selected > index ? selected - 1 : selected, items.count - 1)
     }
 
     var current: Item? { items.indices.contains(selected) ? items[selected] : nil }
@@ -126,6 +151,20 @@ final class MixedEditorModel {
 
     /// 편집기의 저장을 부르고 끝날 때까지 상태를 지켜본다.
     private func saveOne(_ item: Item) async -> Outcome {
+        // 아직 여는 중이면 기다린다. 열지 못한 항목은 다시 해도 안 되므로 그 항목을 빼도록 고른다.
+        while !Task.isCancelled {
+            switch Self.openState(item.editor) {
+            case .loading:
+                try? await Task.sleep(nanoseconds: 100_000_000)
+                continue
+            case .failed(let error):
+                return .failed(EditorError(code: error.code, recoverable: false, suggestedAction: error.suggestedAction))
+            case .ready:
+                break
+            }
+            break
+        }
+        if Task.isCancelled { return .cancelled }
         var result: FrameKitResult?
         let started: Bool
         switch item.editor {
@@ -153,9 +192,29 @@ final class MixedEditorModel {
                 if model.export == nil && result == nil { return .cancelled }
             default: break
             }
-            try? await Task.sleep(for: .milliseconds(100))
+            try? await Task.sleep(nanoseconds: 100_000_000)
         }
         return .cancelled
+    }
+
+    private enum OpenState { case loading, failed(EditorError), ready }
+
+    private static func openState(_ editor: RouterModel.Editor) -> OpenState {
+        switch editor {
+        case .image(let model):
+            switch model.phase {
+            case .failed(let error): .failed(error)
+            case .ready: .ready
+            default: .loading
+            }
+        case .video(let model):
+            switch model.phase {
+            case .failed(let error): .failed(error)
+            case .ready: .ready
+            default: .loading
+            }
+        default: .ready
+        }
     }
 
     func cancelSave() {
@@ -186,8 +245,6 @@ final class MixedEditorModel {
 
     func discardAndClose() {
         showDiscardDialog = false
-        // 이미 저장한 파일은 결과로 넘기지 않으므로 지운다.
-        items.flatMap { $0.outputs ?? [] }.forEach { FrameKitOutputs.delete($0.url) }
         finish(.cancelled)
     }
 
@@ -195,6 +252,8 @@ final class MixedEditorModel {
         guard !delivered else { return }
         delivered = true
         saveTask?.cancel()
+        // 결과로 넘기지 않는 저장 파일은 지운다(호스트가 닫은 경우 포함).
+        if case .success = result {} else { items.flatMap { $0.outputs ?? [] }.forEach { FrameKitOutputs.delete($0.url) } }
         for item in items {
             switch item.editor {
             case .image(let model): model.dismissedWithoutResult()
@@ -299,7 +358,7 @@ struct MixedEditorScreen: View {
         return Button { model.select(index) } label: {
             ZStack(alignment: .bottomLeading) {
                 Group {
-                    if let image = item.thumbnail { Image(decorative: image, scale: 1).resizable().scaledToFill() } else { theme.raised }
+                    if let image = model.thumbnails[item.id] { Image(decorative: image, scale: 1).resizable().scaledToFill() } else { theme.raised }
                 }
                 .frame(width: 60, height: 60)
                 .clipShape(RoundedRectangle(cornerRadius: theme.radius / 2))

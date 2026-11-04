@@ -64,7 +64,7 @@ enum MotionExporter {
         } catch let error as EditorError {
             throw error
         } catch {
-            throw EditorError.logged(.encodeFailed, "motion export: \(error)")
+            throw ExportErrors.map(error, context: "motion export")
         }
         try Task.checkCancellation()
         try FileManager.default.moveItemSafely(work, to: partial)
@@ -114,14 +114,14 @@ enum MotionExporter {
         ])
         guard writer.canAdd(input) else { throw EditorError.logged(.encodeFailed, "writer input") }
         writer.add(input)
-        guard writer.startWriting() else { throw EditorError.logged(.encodeFailed, "start: \(String(describing: writer.error))") }
+        guard writer.startWriting() else { throw ExportErrors.map(writer.error, context: "start") }
         writer.startSession(atSourceTime: .zero)
         do {
             var lastTime: Int64 = -1
             for (i, f) in frames.enumerated() {
                 let image = try render(f)
                 while !input.isReadyForMoreMediaData {
-                    if writer.status == .failed { throw EditorError.logged(.encodeFailed, "writer: \(String(describing: writer.error))") }
+                    if writer.status == .failed { throw ExportErrors.map(writer.error, context: "writer") }
                     try await Task.sleep(for: .milliseconds(5))
                 }
                 guard let pool = adaptor.pixelBufferPool else { throw EditorError.logged(.encodeFailed, "pixel pool") }
@@ -133,14 +133,14 @@ enum MotionExporter {
                 let time = max(f.timeMs, lastTime + 1)
                 lastTime = time
                 guard adaptor.append(buffer, withPresentationTime: CMTime(value: time, timescale: 1000)) else {
-                    throw EditorError.logged(.encodeFailed, "append: \(String(describing: writer.error))")
+                    throw ExportErrors.map(writer.error, context: "append")
                 }
                 progress(Double(i + 1) / Double(frames.count))
             }
             input.markAsFinished()
             writer.endSession(atSourceTime: CMTime(value: max(durationMs, lastTime + 1), timescale: 1000))
             await writer.finishWriting()
-            guard writer.status == .completed else { throw EditorError.logged(.encodeFailed, "finish: \(String(describing: writer.error))") }
+            guard writer.status == .completed else { throw ExportErrors.map(writer.error, context: "finish") }
         } catch {
             writer.cancelWriting()
             throw error
@@ -213,7 +213,7 @@ enum MotionExporter {
             box.session.cancelExport()
         }
         if Task.isCancelled || session.status == .cancelled { throw CancellationError() }
-        guard session.status == .completed else { throw EditorError.logged(.encodeFailed, "audio export: \(String(describing: session.error))") }
+        guard session.status == .completed else { throw ExportErrors.map(session.error, context: "audio export") }
     }
 
     private final class ExportSessionBox: @unchecked Sendable {

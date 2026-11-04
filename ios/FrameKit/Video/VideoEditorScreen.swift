@@ -16,7 +16,12 @@ struct VideoEditorRoot: View {
             switch model.phase {
             case .awaitingSource:
                 if case .capture = model.request.input {
-                    VideoCameraPicker { model.picked($0.map { [$0] } ?? []) }.ignoresSafeArea()
+                    VideoCameraPicker { result in
+                        var files = PickedFiles()
+                        if let result { files.add(result) }
+                        model.picked(files)
+                    }
+                    .ignoresSafeArea()
                 } else {
                     VideoPicker(limit: model.initialPickLimit) { model.picked($0) }.ignoresSafeArea()
                 }
@@ -627,10 +632,10 @@ struct AudioPanel: View {
 
 // MARK: - 선택기
 
-/// 시스템 영상 선택기. 고른 파일을 임시 폴더에 복사해 넘긴다. 닫으면 빈 목록.
+/// 시스템 영상 선택기. 고른 파일을 임시 폴더에 복사해 넘긴다. 닫으면 빈 결과.
 struct VideoPicker: UIViewControllerRepresentable {
     var limit = 1
-    let onPick: ([URL]) -> Void
+    let onPick: (PickedFiles) -> Void
 
     func makeUIViewController(context: Context) -> PHPickerViewController {
         var config = PHPickerConfiguration()
@@ -647,29 +652,33 @@ struct VideoPicker: UIViewControllerRepresentable {
     func makeCoordinator() -> Coordinator { Coordinator(onPick: onPick) }
 
     final class Coordinator: NSObject, PHPickerViewControllerDelegate {
-        let onPick: ([URL]) -> Void
+        let onPick: (PickedFiles) -> Void
         private var done = false
-        init(onPick: @escaping ([URL]) -> Void) { self.onPick = onPick }
+        init(onPick: @escaping (PickedFiles) -> Void) { self.onPick = onPick }
 
         func picker(_: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
             guard !done else { return }
             done = true
             let providers = results.map(\.itemProvider)
-            guard !providers.isEmpty else { onPick([]); return }
+            guard !providers.isEmpty else { onPick(PickedFiles()); return }
             let onPick = onPick
             Task { @MainActor in
-                var urls: [URL] = []
+                var files = PickedFiles()
                 for provider in providers {
-                    if let url = await Self.copy(VideoEditorModel.ItemBox(provider: provider)) { urls.append(url) }
+                    files.add(await Self.copy(VideoEditorModel.ItemBox(provider: provider)))
                 }
-                onPick(urls)
+                onPick(files)
             }
         }
 
-        nonisolated static func copy(_ box: VideoEditorModel.ItemBox) async -> URL? {
+        nonisolated static func copy(_ box: VideoEditorModel.ItemBox) async -> Result<URL, EditorError> {
             await withCheckedContinuation { continuation in
-                box.provider.loadFileRepresentation(forTypeIdentifier: UTType.movie.identifier) { url, _ in
-                    continuation.resume(returning: url.flatMap { try? VideoEditorModel.copyToTemporary($0) })
+                box.provider.loadFileRepresentation(forTypeIdentifier: UTType.movie.identifier) { url, error in
+                    // 이 콜백이 끝나면 url은 지워지므로 그 전에 복사한다.
+                    continuation.resume(returning: Result { () throws(EditorError) -> URL in
+                        guard let url else { throw .logged(.sourceUnavailable, "video picker: \(String(describing: error))") }
+                        return try VideoEditorModel.copyToTemporary(url)
+                    })
                 }
             }
         }
@@ -678,7 +687,7 @@ struct VideoPicker: UIViewControllerRepresentable {
 
 /// 시스템 카메라(영상). 닫으면 `nil`.
 struct VideoCameraPicker: UIViewControllerRepresentable {
-    let onCapture: (URL?) -> Void
+    let onCapture: (Result<URL, EditorError>?) -> Void
 
     func makeUIViewController(context: Context) -> UIImagePickerController {
         let picker = UIImagePickerController()
@@ -693,14 +702,15 @@ struct VideoCameraPicker: UIViewControllerRepresentable {
     func makeCoordinator() -> Coordinator { Coordinator(onCapture: onCapture) }
 
     final class Coordinator: NSObject, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
-        let onCapture: (URL?) -> Void
+        let onCapture: (Result<URL, EditorError>?) -> Void
         private var done = false
-        init(onCapture: @escaping (URL?) -> Void) { self.onCapture = onCapture }
+        init(onCapture: @escaping (Result<URL, EditorError>?) -> Void) { self.onCapture = onCapture }
 
         func imagePickerController(_: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
             guard !done else { return }
             done = true
-            onCapture((info[.mediaURL] as? URL).flatMap { try? VideoEditorModel.copyToTemporary($0) })
+            guard let url = info[.mediaURL] as? URL else { onCapture(.failure(.logged(.sourceUnavailable, "capture: no media url"))); return }
+            onCapture(Result { () throws(EditorError) -> URL in try VideoEditorModel.copyToTemporary(url) })
         }
 
         func imagePickerControllerDidCancel(_: UIImagePickerController) {

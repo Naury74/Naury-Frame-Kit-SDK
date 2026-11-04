@@ -18,8 +18,12 @@ enum SourceKind: Hashable, Sendable {
 
 /// 원본 종류 판별, 작은 그림, 원본 그대로 보내기.
 enum SourceInspector {
-    /// 알 수 없으면 `nil`.
-    static func kind(_ url: URL) async -> SourceKind? {
+    /// 원본 종류. 보안 범위 URL은 판별하는 동안만 연다.
+    /// - Throws: 없는 파일 `sourceUnavailable`, 읽기 권한 없음 `permissionDenied`, 빈 파일 `decodeFailed`, 알 수 없는 종류 `unsupportedFormat`.
+    static func kind(_ url: URL) async throws(EditorError) -> SourceKind {
+        let scoped = url.startAccessingSecurityScopedResource()
+        defer { if scoped { url.stopAccessingSecurityScopedResource() } }
+        try OutputStore.checkReadable(url)
         if let source = CGImageSourceCreateWithURL(url as CFURL, [kCGImageSourceShouldCache: false] as CFDictionary),
            let typeId = CGImageSourceGetType(source) as String?, let type = UTType(typeId), type.conforms(to: .image) {
             let animated = CGImageSourceGetCount(source) > 1 && MotionSource.animatedTypes.contains { type.conforms(to: $0) }
@@ -32,7 +36,7 @@ enum SourceInspector {
         let asset = AVURLAsset(url: url)
         if let video = try? await asset.loadTracks(withMediaType: .video), !video.isEmpty { return .video }
         if let audio = try? await asset.loadTracks(withMediaType: .audio), !audio.isEmpty { return .audio }
-        return nil
+        throw .logged(.unsupportedFormat, "unknown source kind")
     }
 
     /// 긴 변 [maxSide]px 작은 그림. 소리는 `nil`.
@@ -58,10 +62,16 @@ enum SourceInspector {
     static func original(_ url: URL, kind: SourceKind) async throws -> EditedMedia {
         let ext = url.pathExtension.isEmpty ? defaultExtension(kind) : url.pathExtension.lowercased()
         let (slot, partial) = try OutputStore.reserve(extension: ext)
+        let scoped = url.startAccessingSecurityScopedResource()
+        defer { if scoped { url.stopAccessingSecurityScopedResource() } }
+        try OutputStore.checkReadable(url)
         do {
             try FileManager.default.copyItem(at: url, to: partial)
         } catch {
-            throw EditorError.logged(.outputWriteFailed, "original copy: \(error)")
+            try? FileManager.default.removeItem(at: partial)
+            let code = OutputStore.readErrorCode(error)
+            // 읽기 쪽 문제가 아니면 결과를 쓰지 못한 것이다.
+            throw EditorError.logged(code == .sourceUnavailable ? .outputWriteFailed : code, "original copy: \(error)")
         }
         let final = try OutputStore.publish(partial: partial, to: slot)
         let bytes = (try? final.resourceValues(forKeys: [.fileSizeKey]).fileSize).map { Int64($0) } ?? 0

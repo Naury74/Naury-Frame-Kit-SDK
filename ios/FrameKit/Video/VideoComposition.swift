@@ -165,7 +165,8 @@ enum VideoExporter {
             throw EditorError.logged(.unsupportedOperation, "export session")
         }
         let (slot, partial) = try OutputStore.reserve(extension: "mp4")
-        let output = partial.deletingPathExtension().appendingPathExtension("mp4")
+        // 내보내기는 확장자로 형식을 정하므로 임시 폴더에 mp4로 쓴 뒤 옮긴다. 종료로 남으면 다음 시작 때 지운다.
+        let output = try OutputStore.temporaryDirectory.appendingPathComponent("export-\(UUID().uuidString).mp4")
         session.outputURL = output
         session.outputFileType = .mp4
         session.videoComposition = built.videoComposition
@@ -193,7 +194,7 @@ enum VideoExporter {
         }
         guard session.status == .completed else {
             try? FileManager.default.removeItem(at: output)
-            throw EditorError.logged(.encodeFailed, "export: \(String(describing: session.error))")
+            throw ExportErrors.map(session.error, context: "video export")
         }
         // 다 쓴 파일을 다시 열어 영상 트랙과 길이를 확인한다.
         let check = AVURLAsset(url: output)

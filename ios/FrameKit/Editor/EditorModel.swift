@@ -81,6 +81,8 @@ final class EditorModel {
     var showDiscardDialog = false
     var showDraftDialog = false
     private(set) var notice: String?
+    /// 화면이 준비되면 보일 알림.
+    private var pendingNotice: String?
     private(set) var draggingCrop = false
     /// 배경 제거 상태.
     var cutoutBusy = false
@@ -187,7 +189,9 @@ final class EditorModel {
     private func openInput() {
         switch request.input {
         case .file(let url): load([{ try Self.copyToTemporary(url) }], append: false)
-        case .files(let urls): load(urls.prefix(request.config.maxImageCount).map { url in { try Self.copyToTemporary(url) } }, append: false)
+        case .files(let urls):
+            if urls.count > request.config.maxImageCount { pendingNotice = "items_truncated" }
+            load(urls.prefix(request.config.maxImageCount).map { url in { try Self.copyToTemporary(url) } }, append: false)
         case .data(let data): load([{ try Self.writeTemporary(data) }], append: false)
         case .pick, .pickMultiple: phase = .awaitingSource
         case .capture: startCapture()
@@ -206,11 +210,12 @@ final class EditorModel {
             finish(.failure(EditorError(code: .cameraUnavailable)))
             return
         }
-        switch AVCaptureDevice.authorizationStatus(for: .video) {
-        case .denied, .restricted:
-            finish(.failure(EditorError(code: .permissionDenied)))
-        default:
-            phase = .awaitingSource
+        // 촬영 화면을 띄우기 전에 묻는다. 거절하면 빈 카메라 화면 대신 오류로 끝낸다.
+        phase = .loading
+        Task {
+            let granted = await CameraPermission.request()
+            guard !delivered else { return }
+            if granted { phase = .awaitingSource } else { finish(.failure(.deviceAccessDenied)) }
         }
     }
 
@@ -239,7 +244,9 @@ final class EditorModel {
         }
         let room = append ? max(0, pageLimit - pages.count) : pageLimit
         let chosen = Array(providers.prefix(room))
-        if chosen.count < providers.count { showNotice("page_limit") }
+        if chosen.count < providers.count {
+            if append { showNotice("page_limit") } else { pendingNotice = "items_truncated" }
+        }
         guard !chosen.isEmpty else { return }
         if !append { phase = .loading }
         Task { @MainActor in
@@ -277,9 +284,21 @@ final class EditorModel {
             var opened: [(SourceImage, UprightImage)] = []
             do {
                 for prepare in prepares {
-                    let source = try SourceImage(url: try prepare(), removeOnClose: true)
+                    let url = try prepare()
+                    let source: SourceImage
+                    do {
+                        source = try SourceImage(url: url, removeOnClose: true)
+                    } catch {
+                        OutputStore.discardTemporary(url)
+                        throw error
+                    }
                     // 미리 보기는 긴 변 2048px로 디코딩한다.
-                    opened.append((source, try source.decode(maxLongEdge: 2048)))
+                    do {
+                        opened.append((source, try source.decode(maxLongEdge: 2048)))
+                    } catch {
+                        source.close()
+                        throw error
+                    }
                 }
                 let result = opened
                 await MainActor.run { self.opened(result, append: append) }
@@ -312,6 +331,10 @@ final class EditorModel {
             working = nil
             activeTool = nil
             phase = .ready
+            if let pendingNotice {
+                self.pendingNotice = nil
+                showNotice(pendingNotice)
+            }
         } else {
             selectPage(pages.count - 1)
         }
@@ -426,22 +449,7 @@ final class EditorModel {
     }
 
     nonisolated private static func copyToTemporary(_ url: URL) throws(EditorError) -> URL {
-        let scoped = url.startAccessingSecurityScopedResource()
-        defer { if scoped { url.stopAccessingSecurityScopedResource() } }
-        let target = try OutputStore.temporaryDirectory.appendingPathComponent(UUID().uuidString)
-            .appendingPathExtension(url.pathExtension.isEmpty ? "img" : url.pathExtension)
-        do {
-            try FileManager.default.copyItem(at: url, to: target)
-            return target
-        } catch let error as CocoaError where error.code == .fileReadNoPermission {
-            throw .logged(.permissionDenied, "copy: \(error)")
-        } catch let error as CocoaError where error.code == .fileReadNoSuchFile {
-            throw .logged(.sourceUnavailable, "copy: \(error)")
-        } catch let error as CocoaError where error.code == .fileWriteOutOfSpace {
-            throw .logged(.insufficientStorage, "copy: \(error)")
-        } catch {
-            throw .logged(.sourceUnavailable, "copy: \(error)")
-        }
+        try OutputStore.copyToTemporary(url, fallbackExtension: "img")
     }
 
     nonisolated private static func writeTemporary(_ data: Data) throws(EditorError) -> URL {

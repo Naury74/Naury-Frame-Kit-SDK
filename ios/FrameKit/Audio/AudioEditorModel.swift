@@ -47,6 +47,8 @@ final class AudioEditorModel {
     var showDiscardDialog = false
     var showFilePicker = false
     private(set) var notice: String?
+    /// 화면이 준비되면 보일 알림.
+    private var pendingNotice: String?
     private(set) var busy = false
 
     private let player = AVPlayer()
@@ -104,6 +106,11 @@ final class AudioEditorModel {
         }
         observePlayer()
         recorder.onLimit = { [weak self] in self?.recordingLimitReached() }
+        recorder.onPermissionDenied = { [weak self] in
+            // 녹음만 하는 화면이면 할 수 있는 것이 없으므로 끝낸다.
+            guard let self, self.phase == .recording else { return }
+            self.finish(.failure(.deviceAccessDenied))
+        }
         if !restoreSession() { openInput() }
     }
 
@@ -115,24 +122,36 @@ final class AudioEditorModel {
                 finish(.failure(EditorError(code: .invalidConfiguration)))
                 return
             }
+            if MicPermission.state == .denied {
+                finish(.failure(.deviceAccessDenied))
+                return
+            }
         case .file(let url): add([url], at: 0, target: .insert, copy: true, initial: true)
-        case .files(let urls): add(Array(urls.prefix(request.config.maxSourceCount)), at: 0, target: .insert, copy: true, initial: true)
+        case .files(let urls):
+            if urls.count > request.config.maxSourceCount { pendingNotice = "items_truncated" }
+            add(Array(urls.prefix(request.config.maxSourceCount)), at: 0, target: .insert, copy: true, initial: true)
         default: break
         }
     }
 
     /// 처음 고른 파일. 비어 있으면 닫은 것이다.
-    func picked(_ urls: [URL]) {
-        guard !urls.isEmpty else { finish(.cancelled); return }
-        add(Array(urls.prefix(request.config.maxSourceCount)), at: 0, target: .insert, copy: false, initial: true)
+    func picked(_ files: PickedFiles) {
+        guard !files.urls.isEmpty else { finish(.cancelled); return }
+        let limit = request.config.maxSourceCount
+        files.urls.dropFirst(limit).forEach { try? FileManager.default.removeItem(at: $0) }
+        if files.truncated || files.urls.count > limit { pendingNotice = "items_truncated" }
+        add(Array(files.urls.prefix(limit)), at: 0, target: .insert, copy: false, initial: true)
     }
 
     /// 편집 중 고른 파일을 재생 위치에 끼워 넣는다.
-    func importFiles(_ urls: [URL]) {
+    func importFiles(_ files: PickedFiles) {
         showFilePicker = false
-        let room = request.config.maxSourceCount - sources.count
+        guard !files.urls.isEmpty else { return }
+        let room = max(0, request.config.maxSourceCount - sources.count)
+        files.urls.dropFirst(room).forEach { try? FileManager.default.removeItem(at: $0) }
         guard room > 0 else { showNotice("audio_add_failed"); return }
-        add(Array(urls.prefix(room)), at: position, target: .insert, copy: false, initial: false)
+        if files.truncated || files.urls.count > room { showNotice("items_truncated") }
+        add(Array(files.urls.prefix(room)), at: position, target: .insert, copy: false, initial: false)
     }
 
     private func add(_ urls: [URL], at: Micros, target: RecordTarget, copy: Bool, initial: Bool) {
@@ -143,8 +162,15 @@ final class AudioEditorModel {
             var failure: EditorError?
             for url in urls {
                 do {
-                    let local = copy ? try VideoEditorModel.copyToTemporary(url) : url
-                    let source = try await AudioSource.open(url: local, name: url.deletingPathExtension().lastPathComponent)
+                    let local = copy ? try await OutputStore.copyToTemporaryInBackground(url, fallbackExtension: "m4a") : url
+                    let source: AudioSource
+                    do {
+                        source = try await AudioSource.open(url: local, name: url.deletingPathExtension().lastPathComponent)
+                    } catch {
+                        // 넘겨받은 파일도 SDK가 맡은 임시 파일이므로 지운다.
+                        try? FileManager.default.removeItem(at: local)
+                        throw error
+                    }
                     guard source.duration > 0 else { source.close(); throw EditorError.logged(.unsupportedFormat, "empty audio") }
                     opened.append(source)
                 } catch {
@@ -165,6 +191,10 @@ final class AudioEditorModel {
                 draft = nil
                 position = 0
                 phase = .ready
+                if let pendingNotice {
+                    self.pendingNotice = nil
+                    showNotice(pendingNotice)
+                }
             }
         }
     }
@@ -595,6 +625,7 @@ final class AudioEditorModel {
         session?.discard()
         rebuildTask?.cancel()
         exportTask?.cancel()
+        recorder.cancelPendingStart()
         if recorder.state != .idle { recorder.discard() }
         player.pause()
         player.replaceCurrentItem(with: nil)

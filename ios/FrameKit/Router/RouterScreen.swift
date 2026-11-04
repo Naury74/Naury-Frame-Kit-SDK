@@ -23,6 +23,8 @@ struct RouterRoot: View {
                 }
             case .chooser(let choice):
                 ChooserScreen(model: model, choice: choice)
+            case .failed(let error):
+                RouterFailureView(model: model, error: error)
             case .editor(let editor):
                 switch editor {
                 case .image(let editorModel): EditorRoot(model: editorModel)
@@ -33,6 +35,11 @@ struct RouterRoot: View {
                 }
             }
         }
+        .overlay(alignment: .bottom) {
+            if let notice = model.notice {
+                NoticeToast(text: Strings(localeIdentifier: ui.localeIdentifier)(notice), theme: theme).padding(.bottom, 96)
+            }
+        }
         .environment(\.editorTheme, theme)
         .environment(\.strings, Strings(localeIdentifier: ui.localeIdentifier))
         .environment(\.haptics, Haptics(enabled: ui.enableHaptics))
@@ -41,6 +48,28 @@ struct RouterRoot: View {
         .tint(theme.accent)
         .dynamicTypeSize(...DynamicTypeSize.accessibility1)
         .onAppear { model.start() }
+    }
+}
+
+/// 고른 원본을 열 수 없을 때.
+private struct RouterFailureView: View {
+    let model: RouterModel
+    let error: EditorError
+    @Environment(\.editorTheme) private var theme
+    @Environment(\.strings) private var strings
+
+    var body: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "exclamationmark.triangle").font(.system(size: 36)).foregroundStyle(theme.error)
+            Text(strings(errorKey(error.code))).scaledFont(16).foregroundStyle(theme.foreground)
+                .multilineTextAlignment(.center).padding(.horizontal, 32)
+            if model.canChooseAnother && error.suggestedAction == .chooseAnotherSource {
+                EditorButton(title: strings("action_choose_another")) { model.chooseAnother() }
+            }
+            EditorButton(title: strings("action_close"), kind: .tonal) { model.finish(.failure(error)) }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(theme.background.ignoresSafeArea())
     }
 }
 
@@ -159,11 +188,11 @@ struct ChooserScreen: View {
     }
 }
 
-/// 사진·영상 선택기. 영상은 영상으로, 사진은 움직이는 형식을 먼저 골라 임시 폴더에 복사한다. 닫으면 빈 목록.
+/// 사진·영상 선택기. 영상은 영상으로, 사진은 움직이는 형식을 먼저 골라 임시 폴더에 복사한다. 닫으면 빈 결과.
 struct MediaPicker: UIViewControllerRepresentable {
     let kind: MediaKind
     let limit: Int
-    let onPick: ([URL]) -> Void
+    let onPick: (PickedFiles) -> Void
 
     func makeUIViewController(context: Context) -> PHPickerViewController {
         var config = PHPickerConfiguration()
@@ -184,26 +213,26 @@ struct MediaPicker: UIViewControllerRepresentable {
     func makeCoordinator() -> Coordinator { Coordinator(onPick: onPick) }
 
     final class Coordinator: NSObject, PHPickerViewControllerDelegate {
-        let onPick: ([URL]) -> Void
+        let onPick: (PickedFiles) -> Void
         private var done = false
-        init(onPick: @escaping ([URL]) -> Void) { self.onPick = onPick }
+        init(onPick: @escaping (PickedFiles) -> Void) { self.onPick = onPick }
 
         func picker(_: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
             guard !done else { return }
             done = true
             let providers = results.map(\.itemProvider)
-            guard !providers.isEmpty else { onPick([]); return }
+            guard !providers.isEmpty else { onPick(PickedFiles()); return }
             let onPick = onPick
             Task { @MainActor in
-                var urls: [URL] = []
+                var files = PickedFiles()
                 for provider in providers {
                     if provider.hasItemConformingToTypeIdentifier(UTType.movie.identifier) {
-                        if let url = await VideoPicker.Coordinator.copy(VideoEditorModel.ItemBox(provider: provider)) { urls.append(url) }
-                    } else if case .success(let url) = await MotionEditorModel.copy(MotionEditorModel.ItemProviderBox(provider: provider)) {
-                        urls.append(url)
+                        files.add(await VideoPicker.Coordinator.copy(VideoEditorModel.ItemBox(provider: provider)))
+                    } else {
+                        files.add(await MotionEditorModel.copy(MotionEditorModel.ItemProviderBox(provider: provider)))
                     }
                 }
-                onPick(urls)
+                onPick(files)
             }
         }
     }

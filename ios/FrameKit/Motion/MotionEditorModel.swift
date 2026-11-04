@@ -52,6 +52,8 @@ final class MotionEditorModel {
     var saveFormat: MotionFormat
     var saveSize: MotionSize
     private(set) var notice: String?
+    /// 화면이 준비되면 보일 알림.
+    private var pendingNotice: String?
     var busy = false
     var showAddPicker = false
     var showMusicPicker = false
@@ -154,7 +156,9 @@ final class MotionEditorModel {
     private func openInput() {
         switch request.input {
         case .file(let url): load([{ try Self.copyToTemporary(url) }], append: false)
-        case .files(let urls): load(urls.prefix(maxImageCount).map { url in { try Self.copyToTemporary(url) } }, append: false)
+        case .files(let urls):
+            if urls.count > maxImageCount { pendingNotice = "motion_notice_slide_limit" }
+            load(urls.prefix(maxImageCount).map { url in { try Self.copyToTemporary(url) } }, append: false)
         case .data(let data): load([{ try Self.writeTemporary(data) }], append: false)
         default: break
         }
@@ -174,7 +178,9 @@ final class MotionEditorModel {
         }
         let room = append ? max(0, maxImageCount - displayed.slides.count) : maxImageCount
         let chosen = Array(providers.prefix(room))
-        if chosen.count < providers.count { showNotice("motion_notice_slide_limit") }
+        if chosen.count < providers.count {
+            if append { showNotice("motion_notice_slide_limit") } else { pendingNotice = "motion_notice_slide_limit" }
+        }
         guard !chosen.isEmpty else { return }
         if !append { phase = .loading } else { busy = true }
         Task {
@@ -196,7 +202,13 @@ final class MotionEditorModel {
                 var opened: [MotionSource] = []
                 do {
                     for prepare in prepares {
-                        opened.append(try MotionSource(url: try prepare(), removeOnClose: true))
+                        let url = try prepare()
+                        do {
+                            opened.append(try MotionSource(url: url, removeOnClose: true))
+                        } catch {
+                            OutputStore.discardTemporary(url)
+                            throw error
+                        }
                     }
                     // 한 장이 움직이는 원본이면 그것만 편집한다. 여러 장 가운데 움직이는 원본은 첫 프레임만 쓴다.
                     if !append, opened.count == 1, opened[0].isAnimated {
@@ -257,6 +269,10 @@ final class MotionEditorModel {
             showNotice("motion_notice_restored")
         }
         phase = .ready
+        if let pendingNotice {
+            self.pendingNotice = nil
+            showNotice(pendingNotice)
+        }
         makeThumbnails(opened.indices)
         requestRender()
     }
@@ -361,20 +377,7 @@ final class MotionEditorModel {
     }
 
     nonisolated static func copyToTemporary(_ url: URL) throws(EditorError) -> URL {
-        let scoped = url.startAccessingSecurityScopedResource()
-        defer { if scoped { url.stopAccessingSecurityScopedResource() } }
-        let target = try OutputStore.temporaryDirectory.appendingPathComponent(UUID().uuidString)
-            .appendingPathExtension(url.pathExtension.isEmpty ? "img" : url.pathExtension)
-        do {
-            try FileManager.default.copyItem(at: url, to: target)
-            return target
-        } catch let error as CocoaError where error.code == .fileReadNoPermission {
-            throw .logged(.permissionDenied, "copy: \(error)")
-        } catch let error as CocoaError where error.code == .fileWriteOutOfSpace {
-            throw .logged(.insufficientStorage, "copy: \(error)")
-        } catch {
-            throw .logged(.sourceUnavailable, "copy: \(error)")
-        }
+        try OutputStore.copyToTemporary(url, fallbackExtension: "img")
     }
 
     nonisolated static func writeTemporary(_ data: Data) throws(EditorError) -> URL {
@@ -698,8 +701,14 @@ final class MotionEditorModel {
         busy = true
         Task {
             do {
-                let local = copy ? try Self.copyToTemporary(url) : url
-                let source = try await AudioSource.open(url: local, name: url.deletingPathExtension().lastPathComponent)
+                let local = copy ? try await OutputStore.copyToTemporaryInBackground(url, fallbackExtension: "m4a") : url
+                let source: AudioSource
+                do {
+                    source = try await AudioSource.open(url: local, name: url.deletingPathExtension().lastPathComponent)
+                } catch {
+                    OutputStore.discardTemporary(local)
+                    throw error
+                }
                 audioSources.append(source)
                 loadWave(audioSources.count - 1)
                 let id = "\(role.rawValue)-\(UUID().uuidString.prefix(8))"

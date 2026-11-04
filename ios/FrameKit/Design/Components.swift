@@ -169,3 +169,17 @@ extension View {
         modifier(ScaledFont(size: size, weight: weight, monospacedDigit: monospacedDigit))
     }
 }
+
+/// 짧은 알림 띠.
+struct NoticeToast: View {
+    let text: String
+    let theme: EditorTheme
+
+    var body: some View {
+        Text(text).scaledFont(14).foregroundStyle(theme.foreground).multilineTextAlignment(.center)
+            .padding(.horizontal, 16).padding(.vertical, 10)
+            .background(theme.raised.opacity(0.94), in: RoundedRectangle(cornerRadius: theme.radius))
+            .padding(12)
+            .accessibilityAddTraits(.updatesFrequently)
+    }
+}

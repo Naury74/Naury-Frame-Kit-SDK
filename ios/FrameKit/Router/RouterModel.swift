@@ -19,6 +19,8 @@ final class RouterModel {
 
     enum Phase {
         case starting, picking(MediaKind, Int), working, chooser(Choice), editor(Editor)
+        /// 고른 원본을 열 수 없다. 닫으면 이 오류로 끝난다.
+        case failed(EditorError)
     }
 
     static let thumbnailPx = 192
@@ -29,10 +31,17 @@ final class RouterModel {
     private var delivered = false
     private(set) var phase = Phase.starting
     private(set) var thumbnails: [Int: CGImage] = [:]
+    /// 짧게 보일 알림(문자열 키). 편집기 화면 위에도 보인다.
+    private(set) var notice: String?
     /// 진입점이 만든 임시 파일. 끝나면 지운다.
     private var temporary: [URL] = []
     /// 연 편집기가 마지막으로 적용한 편집을 남기는 곳. 사진과 영상을 함께 편집하면 남기지 않는다.
     private let session: EditSession?
+    /// 판별·복사 작업. 끝나면 멈춘다.
+    private var tasks: [Task<Void, Never>] = []
+    private var noticeTask: Task<Void, Never>?
+    /// 마지막으로 연 선택기. 실패 화면에서 다시 고를 때 쓴다.
+    private var lastPick: (MediaKind, Int)?
 
     init(request: FrameKitRequest, onFinish: @escaping (FrameKitResult) -> Void) {
         self.request = request
@@ -72,7 +81,7 @@ final class RouterModel {
             let limit = if case .pickMultiple(let max) = request.input { max } else { 1 }
             // 묻기·사진과 영상·움직이는 이미지 판별이 필요하면 진입점이 직접 고른다.
             if request.chooser == .ask || kind == .any || (kind == .image && limit == 1 && request.openAnimatedInMotionEditor) {
-                phase = .picking(kind, limit)
+                pick(kind, limit)
             } else {
                 delegatePick(kind, limit: limit)
             }
@@ -95,29 +104,63 @@ final class RouterModel {
         case .image: open(.image(EditorModel(request: request.imageRequest(input(request.image.maxImageCount)), session: session(.image), onFinish: finishEditor)))
         case .video: open(.video(VideoEditorModel(request: request.videoRequest(input(request.video.maxClipCount)), session: session(.video), onFinish: finishEditor)))
         case .audio: open(.audio(AudioEditorModel(request: request.audioRequest(input(request.audio.maxSourceCount)), session: session(.audio), onFinish: finishEditor)))
-        case .any: phase = .picking(kind, limit)
+        case .any: pick(kind, limit)
         }
     }
 
-    /// 진입점 선택기 결과. 비어 있으면 닫은 것이다.
-    func picked(_ urls: [URL]) {
-        temporary += urls
-        guard !urls.isEmpty else { finish(.cancelled); return }
-        route(urls)
+    private func pick(_ kind: MediaKind, _ limit: Int) {
+        lastPick = (kind, limit)
+        phase = .picking(kind, limit)
+    }
+
+    /// 진입점 선택기 결과. 비어 있으면 닫은 것이다. 모두 복사하지 못했으면 실패 화면, 일부만 못 했으면 알림을 보인다.
+    func picked(_ files: PickedFiles) {
+        temporary += files.urls
+        guard !files.isEmpty else { finish(.cancelled); return }
+        guard !files.urls.isEmpty else { phase = .failed(files.errors[0]); return }
+        if !files.errors.isEmpty { showNotice("add_failed") }
+        if files.truncated { showNotice("items_truncated") }
+        route(files.urls)
+    }
+
+    /// 실패 화면에서 다른 원본을 고른다. 선택기로 들어온 경우에만 된다.
+    var canChooseAnother: Bool { lastPick != nil }
+
+    func chooseAnother() {
+        guard case .failed = phase, let (kind, limit) = lastPick else { return }
+        phase = .picking(kind, limit)
     }
 
     private func route(_ urls: [URL]) {
         phase = .working
-        Task {
+        track {
             var kinds: [SourceKind] = []
             for url in urls {
-                guard let kind = await SourceInspector.kind(url) else {
-                    finish(.failure(.logged(urls.count > 1 ? .unsupportedOperation : .unsupportedFormat, "unknown source kind")))
+                do throws(EditorError) {
+                    kinds.append(try await SourceInspector.kind(url))
+                } catch {
+                    guard !self.delivered else { return }
+                    // 여러 개 가운데 하나라도 열 수 없으면 무엇을 할지 정할 수 없다.
+                    if self.lastPick != nil { self.phase = .failed(error) } else { self.finish(.failure(error)) }
                     return
                 }
-                kinds.append(kind)
+                if Task.isCancelled || self.delivered { return }
             }
-            if request.chooser == .ask { showChooser(urls, kinds) } else { openAutomatically(urls, kinds) }
+            if self.request.chooser == .ask { self.showChooser(urls, kinds) } else { self.openAutomatically(urls, kinds) }
+        }
+    }
+
+    /// 끝나면 멈출 작업으로 돌린다.
+    private func track(_ operation: @escaping @MainActor () async -> Void) {
+        tasks.append(Task { await operation() })
+    }
+
+    func showNotice(_ key: String) {
+        notice = key
+        noticeTask?.cancel()
+        noticeTask = Task {
+            try? await Task.sleep(nanoseconds: 4_000_000_000)
+            if !Task.isCancelled { notice = nil }
         }
     }
 
@@ -151,7 +194,10 @@ final class RouterModel {
         phase = .chooser(Choice(items: urls, kinds: kinds, actions: actions, mixed: mixed))
         for (i, url) in urls.prefix(Self.maxThumbnails).enumerated() {
             let kind = kinds[i]
-            Task { thumbnails[i] = await SourceInspector.thumbnail(url, kind: kind, maxSide: Self.thumbnailPx) }
+            track {
+                let image = await SourceInspector.thumbnail(url, kind: kind, maxSide: Self.thumbnailPx)
+                if !self.delivered { self.thumbnails[i] = image }
+            }
         }
     }
 
@@ -161,27 +207,33 @@ final class RouterModel {
     }
 
     private func perform(_ action: EditorAction, _ urls: [URL], _ kinds: [SourceKind]) {
-        func files(_ limit: Int) -> EditorInput {
-            let chosen = Array(urls.prefix(max(1, limit)))
-            return chosen.count == 1 ? .file(chosen[0]) : .files(chosen)
-        }
+        // 한도를 넘는 목록은 편집기가 자르고 알림을 보인다.
+        let files: EditorInput = urls.count == 1 ? .file(urls[0]) : .files(urls)
         switch action {
-        case .editPhoto: open(.image(EditorModel(request: request.imageRequest(files(request.image.maxImageCount)), session: session(.image), onFinish: finishEditor)))
-        case .makePDF: open(.image(EditorModel(request: request.imageRequest(files(request.image.maxImageCount), pdf: true), session: session(.pdf), onFinish: finishEditor)))
-        case .motion: open(.motion(MotionEditorModel(request: request.motionRequest(files(request.motion.maxImageCount)), session: session(.motion), onFinish: finishEditor)))
-        case .editVideo: open(.video(VideoEditorModel(request: request.videoRequest(files(request.video.maxClipCount)), session: session(.video), onFinish: finishEditor)))
-        case .editAudio: open(.audio(AudioEditorModel(request: request.audioRequest(files(request.audio.maxSourceCount)), session: session(.audio), onFinish: finishEditor)))
-        case .editEach: open(.mixed(MixedEditorModel(request: request, urls: urls, kinds: kinds, onFinish: finishEditor)))
+        case .editPhoto: open(.image(EditorModel(request: request.imageRequest(files), session: session(.image), onFinish: finishEditor)))
+        case .makePDF: open(.image(EditorModel(request: request.imageRequest(files, pdf: true), session: session(.pdf), onFinish: finishEditor)))
+        case .motion: open(.motion(MotionEditorModel(request: request.motionRequest(files), session: session(.motion), onFinish: finishEditor)))
+        case .editVideo: open(.video(VideoEditorModel(request: request.videoRequest(files), session: session(.video), onFinish: finishEditor)))
+        case .editAudio: open(.audio(AudioEditorModel(request: request.audioRequest(files), session: session(.audio), onFinish: finishEditor)))
+        case .editEach:
+            if urls.count > MixedEditorModel.maxItems { showNotice("items_truncated") }
+            open(.mixed(MixedEditorModel(request: request, urls: urls, kinds: kinds, onFinish: finishEditor)))
         case .sendOriginal:
             phase = .working
-            Task {
+            track {
+                var outputs: [EditedMedia] = []
                 do {
-                    var outputs: [EditedMedia] = []
-                    for (url, kind) in zip(urls, kinds) { outputs.append(try await SourceInspector.original(url, kind: kind)) }
+                    for (url, kind) in zip(urls, kinds) {
+                        outputs.append(try await SourceInspector.original(url, kind: kind))
+                        // 그 사이 화면이 닫혔으면 만든 복사본을 지운다.
+                        if self.delivered || Task.isCancelled { outputs.forEach { FrameKitOutputs.delete($0.url) }; return }
+                    }
                     guard let first = outputs.first else { throw EditorError.logged(.sourceUnavailable, "no original") }
-                    finish(.success(output: first, outputs: outputs))
+                    self.finish(.success(output: first, outputs: outputs))
                 } catch {
-                    finish(.failure((error as? EditorError) ?? .logged(.sourceUnavailable, "original: \(error)")))
+                    // 일부만 남지 않게 지운다.
+                    outputs.forEach { FrameKitOutputs.delete($0.url) }
+                    self.finish(.failure((error as? EditorError) ?? .logged(.sourceUnavailable, "original: \(error)")))
                 }
             }
         }
@@ -232,6 +284,9 @@ final class RouterModel {
         guard !delivered else { return }
         delivered = true
         session?.discard()
+        tasks.forEach { $0.cancel() }
+        tasks = []
+        noticeTask?.cancel()
         temporary.forEach { try? FileManager.default.removeItem(at: $0) }
         onFinish(result)
     }

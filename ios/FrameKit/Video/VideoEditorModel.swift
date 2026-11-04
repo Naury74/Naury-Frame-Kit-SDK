@@ -95,6 +95,8 @@ final class VideoEditorModel: ColorToolHost {
     var showDiscardDialog = false
     var showDraftDialog = false
     private(set) var notice: String?
+    /// 화면이 준비되면 보일 알림.
+    private var pendingNotice: String?
     var busy = false
     private(set) var thumbnailer: VideoThumbnailer?
     /// 자르기·회전 도구에서 보여 줄 클립 프레임(똑바로 선 원본).
@@ -197,7 +199,9 @@ final class VideoEditorModel: ColorToolHost {
     private func openInput() {
         switch request.input {
         case .file(let url): open([url], append: false, copy: true)
-        case .files(let urls): open(Array(urls.prefix(request.config.maxClipCount)), append: false, copy: true)
+        case .files(let urls):
+            if urls.count > request.config.maxClipCount { pendingNotice = "items_truncated" }
+            open(Array(urls.prefix(request.config.maxClipCount)), append: false, copy: true)
         case .capture:
             guard Bundle.main.object(forInfoDictionaryKey: "NSCameraUsageDescription") != nil else {
                 frameKitLog.error("NSCameraUsageDescription is missing in the host Info.plist")
@@ -211,8 +215,12 @@ final class VideoEditorModel: ColorToolHost {
                 return
             }
             guard UIImagePickerController.isSourceTypeAvailable(.camera) else { finish(.failure(EditorError(code: .cameraUnavailable))); return }
-            if [.denied, .restricted].contains(AVCaptureDevice.authorizationStatus(for: .video)) {
-                finish(.failure(EditorError(code: .permissionDenied)))
+            // 촬영 화면을 띄우기 전에 묻는다. 거절하면 빈 카메라 화면 대신 오류로 끝낸다.
+            phase = .loading
+            Task {
+                let granted = await CameraPermission.request()
+                guard !delivered else { return }
+                if granted { phase = .awaitingSource } else { finish(.failure(.deviceAccessDenied)) }
             }
         default: break
         }
@@ -224,14 +232,21 @@ final class VideoEditorModel: ColorToolHost {
     }
 
     /// 선택기·카메라 결과. 비어 있으면 닫은 것이다.
-    func picked(_ urls: [URL], append: Bool = false) {
+    func picked(_ files: PickedFiles, append: Bool = false) {
         showAddPicker = false
-        guard !urls.isEmpty else {
+        guard !files.isEmpty else {
             if !append { finish(.cancelled) }
             return
         }
+        guard !files.urls.isEmpty else {
+            if append { showNotice("add_failed") } else { phase = .failed(files.errors[0]) }
+            return
+        }
+        if !files.errors.isEmpty {
+            if append { showNotice("add_failed") } else { pendingNotice = "add_failed" }
+        }
         // 선택기·카메라가 이미 임시 폴더에 복사했다.
-        open(urls, append: append, copy: false)
+        open(files.urls, append: append, copy: false)
     }
 
     private func open(_ urls: [URL], append: Bool, copy: Bool) {
@@ -244,8 +259,14 @@ final class VideoEditorModel: ColorToolHost {
             var failure: EditorError?
             for url in urls {
                 do {
-                    let local = copy ? try Self.copyToTemporary(url) : url
-                    let source = try await VideoSource.open(url: local, removeOnClose: true)
+                    let local = copy ? try await OutputStore.copyToTemporaryInBackground(url, fallbackExtension: "mov") : url
+                    let source: VideoSource
+                    do {
+                        source = try await VideoSource.open(url: local, removeOnClose: true)
+                    } catch {
+                        OutputStore.discardTemporary(local)
+                        throw error
+                    }
                     guard source.duration >= minClip else {
                         source.close()
                         throw EditorError.logged(.invalidSource, "shorter than minimum clip")
@@ -284,6 +305,12 @@ final class VideoEditorModel: ColorToolHost {
                 selectedClipId = edit.clips.first?.id
                 phase = .ready
                 observePlayer()
+                if let pendingNotice {
+                    self.pendingNotice = nil
+                    showNotice(pendingNotice)
+                } else if skipped {
+                    showNotice(edit.clips.count >= limit ? "clip_limit" : "timeline_full")
+                }
             }
             rebuildPreview(immediately: true)
         }
@@ -354,18 +381,7 @@ final class VideoEditorModel: ColorToolHost {
     struct ItemBox: @unchecked Sendable { let provider: NSItemProvider }
 
     nonisolated static func copyToTemporary(_ url: URL) throws(EditorError) -> URL {
-        let scoped = url.startAccessingSecurityScopedResource()
-        defer { if scoped { url.stopAccessingSecurityScopedResource() } }
-        let target = try OutputStore.temporaryDirectory.appendingPathComponent(UUID().uuidString)
-            .appendingPathExtension(url.pathExtension.isEmpty ? "mov" : url.pathExtension)
-        do {
-            try FileManager.default.copyItem(at: url, to: target)
-            return target
-        } catch let error as CocoaError where error.code == .fileReadNoPermission {
-            throw .logged(.permissionDenied, "copy: \(error)")
-        } catch {
-            throw .logged(.sourceUnavailable, "copy: \(error)")
-        }
+        try OutputStore.copyToTemporary(url, fallbackExtension: "mov")
     }
 
     // MARK: - 재생

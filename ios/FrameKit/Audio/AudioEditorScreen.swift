@@ -388,7 +388,7 @@ struct RecordSheet: View {
 /// 소리 파일 여러 개 고르기(파일 앱). 고른 순서대로 사본을 넘긴다. 닫으면 빈 목록.
 struct AudioFilesPicker: UIViewControllerRepresentable {
     var limit = 1
-    let onPick: ([URL]) -> Void
+    let onPick: (PickedFiles) -> Void
 
     func makeUIViewController(context: Context) -> UIDocumentPickerViewController {
         let picker = UIDocumentPickerViewController(forOpeningContentTypes: [.audio], asCopy: true)
@@ -402,12 +402,21 @@ struct AudioFilesPicker: UIViewControllerRepresentable {
 
     final class Coordinator: NSObject, UIDocumentPickerDelegate {
         let limit: Int
-        let onPick: ([URL]) -> Void
-        init(limit: Int, onPick: @escaping ([URL]) -> Void) {
+        let onPick: (PickedFiles) -> Void
+        init(limit: Int, onPick: @escaping (PickedFiles) -> Void) {
             self.limit = limit
             self.onPick = onPick
         }
-        func documentPicker(_: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) { onPick(Array(urls.prefix(limit))) }
-        func documentPickerWasCancelled(_: UIDocumentPickerViewController) { onPick([]) }
+
+        func documentPicker(_: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
+            // 복사본이므로 한도를 넘는 것은 지운다.
+            let keep = max(1, limit)
+            urls.dropFirst(keep).forEach { try? FileManager.default.removeItem(at: $0) }
+            var files = PickedFiles(urls: Array(urls.prefix(keep)))
+            files.truncated = urls.count > keep
+            onPick(files)
+        }
+
+        func documentPickerWasCancelled(_: UIDocumentPickerViewController) { onPick(PickedFiles()) }
     }
 }
