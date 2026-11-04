@@ -112,7 +112,7 @@ dependencyResolutionManagement {
 
 // app/build.gradle.kts
 dependencies {
-    implementation("com.naurylab:framekit:1.0.0-alpha10")
+    implementation("com.naurylab:framekit:1.0.0-alpha11")
 }
 ```
 
@@ -142,7 +142,7 @@ https://github.com/Naury74/Naury-Frame-Kit-SDK
 
 ```swift
 // Package.swift
-.package(url: "https://github.com/Naury74/Naury-Frame-Kit-SDK", exact: "1.0.0-alpha10")
+.package(url: "https://github.com/Naury74/Naury-Frame-Kit-SDK", exact: "1.0.0-alpha11")
 ```
 
 카메라나 마이크를 쓰는 기능이 있으면 앱 Info.plist에 아래 권한 사용 설명을 추가하세요. 사진·영상 고르기는 시스템 선택기를 써서 사진 접근 권한이 필요 없습니다.

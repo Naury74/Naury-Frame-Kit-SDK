@@ -23,7 +23,7 @@ https://github.com/Naury74/Naury-Frame-Kit-SDK
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/Naury74/Naury-Frame-Kit-SDK", exact: "1.0.0-alpha10"),
+    .package(url: "https://github.com/Naury74/Naury-Frame-Kit-SDK", exact: "1.0.0-alpha11"),
 ],
 targets: [
     .target(name: "MyApp", dependencies: [.product(name: "FrameKit", package: "Naury-Frame-Kit-SDK")]),
