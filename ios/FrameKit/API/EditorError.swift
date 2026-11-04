@@ -4,7 +4,7 @@ import Foundation
 public enum EditorErrorCode: String, Sendable, CaseIterable {
     /// 형식·종류·메타데이터가 이 편집기가 여는 것과 맞지 않는다.
     case invalidSource
-    /// 원본을 읽을 권한이 없다.
+    /// 원본을 읽을 권한이 없다. 카메라·마이크 권한이 없을 때도 쓰며, 그때 권장 행동은 `openSettings`다.
     case permissionDenied
     /// 원본이 지워졌거나 옮겨졌거나 내려받을 수 없다.
     case sourceUnavailable
@@ -66,6 +66,8 @@ public enum SuggestedAction: String, Sendable {
     case freeStorage
     case retry
     case relaunch
+    /// 카메라·마이크 권한을 설정 앱에서 허용한다.
+    case openSettings
 }
 
 /// 편집기 오류.
@@ -82,4 +84,9 @@ public struct EditorError: Error, Sendable, Hashable {
         self.suggestedAction = suggestedAction ?? code.defaultAction
         self.diagnosticId = String(UUID().uuidString.prefix(8)).lowercased()
     }
+}
+
+extension EditorError {
+    /// 카메라·마이크 권한이 없다.
+    static var deviceAccessDenied: EditorError { EditorError(code: .permissionDenied, suggestedAction: .openSettings) }
 }

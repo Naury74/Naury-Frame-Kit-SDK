@@ -212,7 +212,9 @@ struct VoiceRecorderSheet: View {
     }
 
     private func start() async {
-        guard await AVAudioApplication.requestRecordPermission() else { state = .error("voice_permission_denied"); return }
+        guard await MicPermission.request() else { state = .error("voice_permission_denied"); return }
+        // 권한을 묻는 사이 시트가 닫혔으면 시작하지 않는다.
+        guard !Task.isCancelled else { return }
         do {
             try audioSession.begin()
             let file = try OutputStore.temporaryDirectory.appendingPathComponent("voice-\(UUID().uuidString).m4a")
