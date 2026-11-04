@@ -98,6 +98,8 @@
     <string name="example_audio_record_description">Enregistrez votre voix (appui ou maintien), puis coupez, divisez et ajoutez-en</string>
     <string name="example_audio_hold_title">Dictaphone à maintenir</string>
     <string name="example_audio_hold_description">Maintenez le bouton pour enregistrer et recevez le fichier tout de suite, sans montage</string>
+    <string name="example_audio_sheet_title">Enregistrer seulement, feuille du bas</string>
+    <string name="example_audio_sheet_description">Enregistrez dans une feuille au-dessus de cet écran et recevez le fichier tout de suite</string>
     <string name="example_audio_file_title">Modifier des fichiers audio</string>
     <string name="example_audio_file_description">Choisissez jusqu\'à 5 fichiers audio, assemblez-les, coupez ou ajoutez des enregistrements</string>
     <string name="result_audio">Audio</string>

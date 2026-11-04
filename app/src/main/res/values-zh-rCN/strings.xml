@@ -96,6 +96,8 @@
     <string name="example_audio_record_description">录下声音（点按或按住），然后剪辑、分割并继续录音</string>
     <string name="example_audio_hold_title">按住说话录音机</string>
     <string name="example_audio_hold_description">按住按钮录音，不编辑直接拿到文件</string>
+    <string name="example_audio_sheet_title">仅录音，底部面板</string>
+    <string name="example_audio_sheet_description">在当前界面上方的面板中录音，直接拿到文件</string>
     <string name="example_audio_file_title">编辑音频文件</string>
     <string name="example_audio_file_description">最多选择 5 个音频文件拼接，剪辑或添加录音</string>
     <string name="result_audio">音频</string>

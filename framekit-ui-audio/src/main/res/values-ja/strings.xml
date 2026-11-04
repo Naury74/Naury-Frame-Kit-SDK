@@ -47,4 +47,6 @@
     <string name="framekit_audio_overlay_hint">録音は再生位置から重ねて再生されます。</string>
     <string name="framekit_audio_target_insert">挿入</string>
     <string name="framekit_audio_target_overlay">重ねる</string>
+    <string name="framekit_audio_discard_recording">この録音を破棄しますか？</string>
+    <string name="framekit_audio_keep_recording">録音を続ける</string>
 </resources>

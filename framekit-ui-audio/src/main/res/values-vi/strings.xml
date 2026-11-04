@@ -47,4 +47,6 @@
     <string name="framekit_audio_overlay_hint">Bản ghi phát chồng lên, bắt đầu từ đầu phát.</string>
     <string name="framekit_audio_target_insert">Chèn</string>
     <string name="framekit_audio_target_overlay">Phủ chồng</string>
+    <string name="framekit_audio_discard_recording">Bỏ bản ghi âm này?</string>
+    <string name="framekit_audio_keep_recording">Tiếp tục ghi âm</string>
 </resources>

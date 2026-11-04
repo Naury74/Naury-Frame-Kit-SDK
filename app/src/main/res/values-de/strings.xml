@@ -98,6 +98,8 @@
     <string name="example_audio_record_description">Stimme aufnehmen (tippen oder halten), dann schneiden, teilen und weiter aufnehmen</string>
     <string name="example_audio_hold_title">Halten-zum-Sprechen-Recorder</string>
     <string name="example_audio_hold_description">Taste halten zum Aufnehmen und die Datei sofort ohne Bearbeitung erhalten</string>
+    <string name="example_audio_sheet_title">Nur aufnehmen, unteres Blatt</string>
+    <string name="example_audio_sheet_description">In einem Blatt über diesem Bildschirm aufnehmen und die Datei sofort erhalten</string>
     <string name="example_audio_file_title">Audiodateien bearbeiten</string>
     <string name="example_audio_file_description">Bis zu 5 Audiodateien wählen, zusammenfügen, schneiden oder Aufnahmen hinzufügen</string>
     <string name="result_audio">Audio</string>

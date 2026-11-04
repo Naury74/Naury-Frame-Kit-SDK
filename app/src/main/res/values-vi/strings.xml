@@ -96,6 +96,8 @@
     <string name="example_audio_record_description">Ghi giọng nói (chạm hoặc giữ), rồi cắt, tách và ghi thêm</string>
     <string name="example_audio_hold_title">Máy ghi âm giữ để nói</string>
     <string name="example_audio_hold_description">Giữ nút để ghi và nhận tệp ngay, không chỉnh sửa</string>
+    <string name="example_audio_sheet_title">Chỉ ghi âm, bảng dưới</string>
+    <string name="example_audio_sheet_description">Ghi âm trong bảng trên màn hình này và nhận tệp ngay</string>
     <string name="example_audio_file_title">Chỉnh sửa tệp âm thanh</string>
     <string name="example_audio_file_description">Chọn tối đa 5 tệp âm thanh, nối lại, cắt hoặc thêm bản ghi</string>
     <string name="result_audio">Âm thanh</string>

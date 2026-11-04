@@ -310,6 +310,9 @@ internal class AudioEditorViewModel(
         deliverRecording(file)
     }
 
+    /** 돌려주지 못한 녹음 파일이 남아 있으면 `true`. 닫을 때 버릴지 묻는 데 쓴다. */
+    fun hasPendingRecording(): Boolean = savedState.get<String>(KEY_PENDING_RECORDING)?.let { File(it).isFile } == true
+
     /** 실패 안내를 닫는다. 녹음 파일은 다시 녹음하거나 닫을 때까지 남긴다. */
     fun dismissRecordingFailure() {
         _recordingFailure.value = null

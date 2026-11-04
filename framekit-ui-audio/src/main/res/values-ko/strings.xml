@@ -47,4 +47,6 @@
     <string name="framekit_audio_overlay_hint">재생 위치부터 기존 소리 위에 겹쳐서 들려요.</string>
     <string name="framekit_audio_target_insert">끼워 넣기</string>
     <string name="framekit_audio_target_overlay">겹쳐 넣기</string>
+    <string name="framekit_audio_discard_recording">녹음을 버릴까요?</string>
+    <string name="framekit_audio_keep_recording">계속 녹음</string>
 </resources>

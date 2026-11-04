@@ -47,4 +47,6 @@
     <string name="framekit_audio_overlay_hint">The recording plays on top, starting at the playhead.</string>
     <string name="framekit_audio_target_insert">Insert</string>
     <string name="framekit_audio_target_overlay">Overlay</string>
+    <string name="framekit_audio_discard_recording">Discard this recording?</string>
+    <string name="framekit_audio_keep_recording">Keep recording</string>
 </resources>

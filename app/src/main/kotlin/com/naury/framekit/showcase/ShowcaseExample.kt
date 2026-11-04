@@ -4,6 +4,7 @@ import androidx.annotation.StringRes
 import com.naury.framekit.FrameKitRequest
 import com.naury.framekit.ui.audioeditor.contract.AudioEditorConfig
 import com.naury.framekit.ui.audioeditor.contract.RecordMode
+import com.naury.framekit.ui.audioeditor.contract.RecorderPresentation
 import com.naury.framekit.EditorChooser
 import com.naury.framekit.motion.export.MotionExportConfig
 import com.naury.framekit.motion.export.MotionFormat
@@ -75,6 +76,14 @@ enum class ShowcaseExample(
         R.string.example_audio_hold_title,
         R.string.example_audio_hold_description,
         FrameKitRequest(EditorInput.Capture(MediaKind.AUDIO), audio = AudioEditorConfig(recordMode = RecordMode.HOLD, editAfterRecording = false)),
+    ),
+    AUDIO_SHEET(
+        R.string.example_audio_sheet_title,
+        R.string.example_audio_sheet_description,
+        FrameKitRequest(
+            EditorInput.Capture(MediaKind.AUDIO),
+            audio = AudioEditorConfig(editAfterRecording = false, recorderPresentation = RecorderPresentation.SHEET),
+        ),
     ),
     AUDIO_FILE(
         R.string.example_audio_file_title,

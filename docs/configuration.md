@@ -255,7 +255,7 @@ AudioEditorRequest(
 )
 ```
 
-`AudioEditorConfig`와 `AudioExportConfig`의 옵션은 [연동 가이드](integration.md#음성-편집기)의 표를 보세요. `allowRedo = true`이면 `allowUndo`도 `true`여야 합니다. 저장 크기는 비트레이트와 길이로 어림해 공간이 모자라면 저장을 시작하지 않고 `INSUFFICIENT_STORAGE`를 알립니다.
+`AudioEditorConfig`와 `AudioExportConfig`의 옵션은 [연동 가이드](integration.md#음성-편집기)의 표를 보세요. `allowRedo = true`이면 `allowUndo`도 `true`여야 합니다. `recorderPresentation = RecorderPresentation.SHEET`는 `Capture(MediaKind.AUDIO)`이고 `editAfterRecording = false`일 때만 쓰고, 그 밖에는 검증 오류 없이 무시합니다. 저장 크기는 비트레이트와 길이로 어림해 공간이 모자라면 저장을 시작하지 않고 `INSUFFICIENT_STORAGE`를 알립니다.
 
 ## FrameKitRequest
 

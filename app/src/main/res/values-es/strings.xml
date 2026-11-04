@@ -98,6 +98,8 @@
     <string name="example_audio_record_description">Graba tu voz (tocando o manteniendo) y luego recorta, divide y añade más</string>
     <string name="example_audio_hold_title">Grabadora de mantener para hablar</string>
     <string name="example_audio_hold_description">Mantén el botón para grabar y recibe el archivo al instante, sin editar</string>
+    <string name="example_audio_sheet_title">Solo grabar, hoja inferior</string>
+    <string name="example_audio_sheet_description">Graba en una hoja sobre esta pantalla y recibe el archivo al instante</string>
     <string name="example_audio_file_title">Editar archivos de audio</string>
     <string name="example_audio_file_description">Elige hasta 5 audios, únelos y recorta o añade grabaciones</string>
     <string name="result_audio">Audio</string>

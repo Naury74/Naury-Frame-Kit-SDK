@@ -10,7 +10,11 @@ import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.core.content.IntentCompat
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.Companion.APPLICATION_KEY
 import androidx.lifecycle.createSavedStateHandle
 import androidx.lifecycle.lifecycleScope
@@ -39,9 +43,15 @@ import kotlinx.coroutines.launch
 import java.io.File
 
 /** 음성 녹음·편집기를 담는다. [AudioEditorContract]로 열며 exported되지 않는다. */
-internal class AudioEditorActivity : ComponentActivity() {
+internal open class AudioEditorActivity : ComponentActivity() {
 
     private var delivered = false
+
+    /** 시트로 닫는 중이면 `true`. 닫힘 애니메이션이 끝나면 [finish]한다. */
+    private var closing by mutableStateOf(false)
+
+    /** `true`면 녹음 화면을 호스트 화면 위 시트로 띄운다([AudioRecorderSheetActivity]). */
+    protected open val presentsSheet: Boolean get() = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -58,13 +68,44 @@ internal class AudioEditorActivity : ComponentActivity() {
             navigationBarStyle = if (darkBars) SystemBarStyle.dark(Color.TRANSPARENT) else SystemBarStyle.auto(Color.TRANSPARENT, Color.TRANSPARENT),
         )
         val viewModel: AudioEditorViewModel by viewModels { factory(request) }
+        // 녹음할 수 없어 바로 실패하면 시트를 띄우지 않는다.
+        viewModel.result.value?.let { return deliver(it) }
         // 결과가 나오면 화면이 백그라운드여도 바로 돌려준다. setResult·finish로 넘긴 결과는 시스템이 보관하므로 이 프로세스가 끝나도 남는다.
-        lifecycleScope.launch { deliver(viewModel.result.filterNotNull().first()) }
-        setContent {
-            ProvideEditorLocale(request.ui.localeTag) {
-                FrameKitTheme(request.ui) { AudioEditorScreen(viewModel) }
+        // 시트는 결과를 먼저 넘겨 두고, 보이는 동안이면 닫힘 애니메이션 뒤에 끝낸다.
+        lifecycleScope.launch {
+            val result = viewModel.result.filterNotNull().first()
+            if (presentsSheet && lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) {
+                setResultOnce(result)
+                closing = true
+            } else {
+                deliver(result)
             }
         }
+        setContent {
+            ProvideEditorLocale(request.ui.localeTag) {
+                FrameKitTheme(request.ui) {
+                    if (presentsSheet) {
+                        RecorderSheet(viewModel, closing = closing, onClosed = ::finishSheet)
+                    } else {
+                        AudioEditorScreen(viewModel)
+                    }
+                }
+            }
+        }
+    }
+
+    override fun onStop() {
+        super.onStop()
+        // 닫는 중에 화면이 가려지면 애니메이션을 기다리지 않는다.
+        if (closing) finishSheet()
+    }
+
+    // 시트는 호스트 화면 위에 그대로 사라지도록 창 전환 애니메이션 없이 끝낸다.
+    private fun finishSheet() {
+        if (isFinishing) return
+        finish()
+        @Suppress("DEPRECATION")
+        overridePendingTransition(0, 0)
     }
 
     private fun factory(request: AudioEditorRequest) = viewModelFactory {
@@ -92,11 +133,15 @@ internal class AudioEditorActivity : ComponentActivity() {
     }
 
     private fun deliver(result: FrameKitResult) {
+        setResultOnce(result)
+        if (presentsSheet) finishSheet() else finish()
+    }
+
+    private fun setResultOnce(result: FrameKitResult) {
         if (delivered) return
         delivered = true
         val (code, data) = FrameKitResultCodec.encode(result)
         setResult(code, data)
-        finish()
     }
 
     private companion object {

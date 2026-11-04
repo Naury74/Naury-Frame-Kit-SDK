@@ -4,11 +4,13 @@
 
 ### 추가
 
+- Android: `AudioEditorConfig.recorderPresentation`(`RecorderPresentation.FULL_SCREEN` 기본, `SHEET`). `SHEET`면 녹음만 하는 요청(`Capture(MediaKind.AUDIO)` + `editAfterRecording = false`)을 호스트 화면 위 아래쪽 시트로 띄움. `FrameKitContract`·`AudioEditorContract` 모두 적용되고, 그 밖의 요청에서는 무시함(검증 오류 아님). 끌어 내리기·바깥 누름·뒤로 가기로 닫을 때 녹음이 있으면 버릴지 물음
 - iOS: `AudioEditorConfig.recorderPresentation`(`RecorderPresentation.fullScreen`·`.sheet`, 기본 `.fullScreen`). 녹음만 하는 요청(`.capture`, `editAfterRecording: false`)을 녹음 조작부 높이의 아래 시트로 띄움. 아래로 끌어 닫으면 닫기 단추와 같고(녹음 중이면 녹음을 버림) 결과는 `cancelled` 한 번. UIKit 화면·SwiftUI 수정자·진입점 모두 지원. 그 밖의 요청에서는 무시
 - iOS: `FrameKitEditorControl`. 앱이 만든 몸짓(화면 가장자리 밀어 닫기 등)으로 편집기를 닫을 수 있음. `requestClose()`는 닫기 단추와 같은 흐름(바꾼 내용이 있으면 버리기 확인, 녹음 중이면 녹음을 버리고 닫기, 저장 중에는 무시)이고, `canDismissInteractively`로 지금 닫을 수 있는지 알 수 있음. 모든 편집기 화면(`FrameKit*ViewController`의 `control`, `init(request:control:completion:)`)과 SwiftUI 수정자·뷰의 `control:` 인자로 넘김. 결과는 한 번만 옴
 
 ### 바뀜
 
+- Android: 음성 편집기의 녹음 도구가 화면 너비와 상관없이 낮은 아래쪽 시트로 열림(예전에는 넓은 화면에서 가운데 카드, 취소 버튼 포함). 가로 화면처럼 높이가 낮으면 시간·파형과 녹음 버튼을 나란히 두어 버튼이 가려지지 않음
 - iOS: 음성 편집기 안의 녹음 시트가 큰 시트 대신 녹음 조작부 높이로 뜸(iOS 16 이상)
 - iOS: alpha12의 자르기 저장 오류 수정 포함
 

@@ -47,4 +47,6 @@
     <string name="framekit_audio_overlay_hint">錄音從播放頭位置開始疊加播放。</string>
     <string name="framekit_audio_target_insert">插入</string>
     <string name="framekit_audio_target_overlay">疊加</string>
+    <string name="framekit_audio_discard_recording">要捨棄這段錄音嗎？</string>
+    <string name="framekit_audio_keep_recording">繼續錄音</string>
 </resources>

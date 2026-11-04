@@ -28,7 +28,7 @@ val ShowcaseExample.group: ExampleGroup?
         ShowcaseExample.SHORT_CLIP, ShowcaseExample.VIDEO_MOSAIC -> ExampleGroup.VIDEO
         ShowcaseExample.DOCUMENT_SCAN, ShowcaseExample.DOCUMENT_PDF -> ExampleGroup.DOCUMENT
         ShowcaseExample.MOTION_MAKE, ShowcaseExample.MOTION_EDIT -> ExampleGroup.MOTION
-        ShowcaseExample.AUDIO_RECORD, ShowcaseExample.AUDIO_HOLD, ShowcaseExample.AUDIO_FILE -> ExampleGroup.AUDIO
+        ShowcaseExample.AUDIO_RECORD, ShowcaseExample.AUDIO_HOLD, ShowcaseExample.AUDIO_SHEET, ShowcaseExample.AUDIO_FILE -> ExampleGroup.AUDIO
         ShowcaseExample.WATERMARK, ShowcaseExample.WATERMARK_LOCKED -> ExampleGroup.WATERMARK
         ShowcaseExample.HOST_CATALOG, ShowcaseExample.CUSTOM_BRAND, ShowcaseExample.ENGLISH -> ExampleGroup.CUSTOM
     }
@@ -51,7 +51,7 @@ val ShowcaseExample.icon: Int
         ShowcaseExample.DOCUMENT_PDF -> UiR.drawable.framekit_ic_document
         ShowcaseExample.MOTION_MAKE -> UiR.drawable.framekit_ic_play
         ShowcaseExample.MOTION_EDIT -> UiR.drawable.framekit_ic_speed
-        ShowcaseExample.AUDIO_RECORD, ShowcaseExample.AUDIO_HOLD -> UiR.drawable.framekit_ic_mic
+        ShowcaseExample.AUDIO_RECORD, ShowcaseExample.AUDIO_HOLD, ShowcaseExample.AUDIO_SHEET -> UiR.drawable.framekit_ic_mic
         ShowcaseExample.AUDIO_FILE -> UiR.drawable.framekit_ic_volume
         ShowcaseExample.WATERMARK -> UiR.drawable.framekit_ic_watermark
         ShowcaseExample.HOST_CATALOG -> UiR.drawable.framekit_ic_sticker

@@ -96,6 +96,8 @@
     <string name="example_audio_record_description">Rekam suara (ketuk atau tahan), lalu pangkas, pisahkan, dan rekam lagi</string>
     <string name="example_audio_hold_title">Perekam tahan untuk bicara</string>
     <string name="example_audio_hold_description">Tahan tombol untuk merekam dan langsung dapatkan file tanpa edit</string>
+    <string name="example_audio_sheet_title">Rekam saja, lembar bawah</string>
+    <string name="example_audio_sheet_description">Rekam di lembar di atas layar ini dan langsung dapatkan file</string>
     <string name="example_audio_file_title">Edit file audio</string>
     <string name="example_audio_file_description">Pilih hingga 5 file audio, gabungkan, pangkas, atau tambahkan rekaman</string>
     <string name="result_audio">Audio</string>

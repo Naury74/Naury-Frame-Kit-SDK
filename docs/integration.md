@@ -77,6 +77,7 @@ Button(onClick = { editor.launch(FrameKitRequest(EditorInput.Pick(MediaKind.ANY)
 | 여러 장을 PDF 한 개로 | 위 입력 + `imageExport = ImageExportConfig(format = ImageFormat.PDF)` |
 | 새로 녹음하고 편집 | `EditorInput.Capture(MediaKind.AUDIO)` |
 | 녹음만 하고 바로 받기 | `Capture(MediaKind.AUDIO)` + `audio = AudioEditorConfig(editAfterRecording = false)` |
+| 지금 화면 위 시트에서 녹음만 | 위 설정 + `recorderPresentation = RecorderPresentation.SHEET` |
 | 소리 파일 고르게 해서 편집 | `EditorInput.Pick(MediaKind.AUDIO, maxItems = 5)` |
 | 가진 소리 파일 편집 | `FrameKitRequest(EditorInput.UriSource(audioUri))` — MIME이 `audio/`면 음성 편집기가 열림 |
 
@@ -365,6 +366,14 @@ editor.launch(
     ),
 )
 
+// 호스트 화면 위 아래쪽 시트에서 녹음만 하기
+editor.launch(
+    FrameKitRequest(
+        EditorInput.Capture(MediaKind.AUDIO),
+        audio = AudioEditorConfig(editAfterRecording = false, recorderPresentation = RecorderPresentation.SHEET),
+    ),
+)
+
 // 소리 파일 최대 5개를 골라 이어 붙여 편집
 editor.launch(FrameKitRequest(EditorInput.Pick(MediaKind.AUDIO, maxItems = 5)))
 
@@ -378,6 +387,7 @@ audio.launch(AudioEditorRequest(EditorInput.UriSource(audioUri), export = AudioE
 | `recordMode` | `BOTH` | `TAP`(눌러 시작·다시 눌러 끝, 잠시 멈춤·이어 녹음), `HOLD`(누르는 동안 녹음, 위로 밀면 고정·왼쪽으로 밀면 취소), `BOTH`(사용자가 고름) |
 | `maxRecordingMs` | 10분 | 한 번 녹음 최대 길이(1초..60분). 닿으면 저절로 멈춤 |
 | `editAfterRecording` | `true` | `Capture`로 시작했을 때 녹음 후 편집 화면으로 갈지. `false`면 녹음 파일을 바로 돌려줌 |
+| `recorderPresentation` | `FULL_SCREEN` | 녹음 화면을 띄우는 방식. `SHEET`면 호스트 화면 위에 아래쪽 시트로 띄움. `Capture(MediaKind.AUDIO)` + `editAfterRecording = false`일 때만 쓰고 그 밖에는 무시(검증 오류 아님) |
 | `enabledTools` | 전부 | `RECORD`(재생 위치에 끼워 넣기·겹쳐 넣기), `IMPORT`(파일 더하기), `SPLIT`, `RANGE`(구간 잘라 내기·그 구간만 남기기), `VOLUME`(볼륨·페이드) |
 | `maxSourceCount` | 10 | `Pick`·`Multiple`로 한 번에 여는 파일 수(1..20) |
 | `allowUndo`/`allowRedo` | `true` | 실행 취소·다시 실행 버튼 |
@@ -387,6 +397,7 @@ audio.launch(AudioEditorRequest(EditorInput.UriSource(audioUri), export = AudioE
 - 조각을 누르면 양 끝 손잡이로 자르고, 나누기·반복·삭제·볼륨(0~200%)·페이드인/아웃을 합니다. 모든 편집은 실행 취소 한 단계입니다.
 - 결과는 AAC(M4A, `audio/mp4`), `MediaType.AUDIO`이며 `width`·`height`는 0입니다.
 - 편집할 때마다 편집 내용을 저장해 프로세스가 끝났다가 돌아와도 이어서 편집합니다.
+- 편집 화면의 녹음 도구는 아래쪽 시트로 열립니다. 끌어 내리기·바깥 누름·뒤로 가기로 닫으면 진행 중인 녹음은 버립니다.
 
 ## 음성 녹음
 
@@ -399,7 +410,8 @@ audio.launch(AudioEditorRequest(EditorInput.UriSource(audioUri), export = AudioE
 - 음성 편집기도 선언하지 않으면 녹음 도구를 숨깁니다. 이때 `Capture(MediaKind.AUDIO)`로 열면 바로 `PERMISSION_DENIED`로, 마이크가 없는 기기면 `UNSUPPORTED_OPERATION`으로 실패합니다.
 - 권한은 녹음 버튼을 처음 누를 때 묻습니다. 거부하면 설정에서 허용하라는 안내가 나옵니다.
 - 녹음 파일(AAC, m4a)은 `files/framekit/recordings`에 둡니다. 편집을 이어 가는 데 필요해 편집이 끝나도 바로 지우지 않고, 마지막으로 바뀐 지 7일이 지났고 남은 편집 세션이 쓰지 않는 파일을 다음 편집기(영상·움직이는 이미지·음성) 실행 때 정리합니다.
-- 한 번에 최대 10분까지 녹음합니다.
+- 한 번에 최대 10분까지 녹음합니다(`maxRecordingMs`).
+- `recorderPresentation = RecorderPresentation.SHEET`이면 녹음만 하는 요청을 호스트 화면 위 시트로 띄웁니다. 뒤 화면은 어둡게 비치고, 결과·권한 처리·저장 실패 시 다시 시도는 전체 화면과 같습니다. 끌어 내리기·바깥 누름·뒤로 가기는 모두 닫기이며, 녹음 중이거나 돌려주지 못한 녹음이 있으면 버릴지 묻고 버리면 녹음을 지운 뒤 `Cancelled`를 한 번 돌려줍니다. `FrameKitContract`와 `AudioEditorContract` 모두 같습니다.
 
 ## 앱 안 갤러리 (사진·영상 고르기)
 

@@ -47,4 +47,6 @@
     <string name="framekit_audio_overlay_hint">L\'enregistrement est joué par-dessus, à partir de la tête de lecture.</string>
     <string name="framekit_audio_target_insert">Insérer</string>
     <string name="framekit_audio_target_overlay">Superposer</string>
+    <string name="framekit_audio_discard_recording">Supprimer cet enregistrement ?</string>
+    <string name="framekit_audio_keep_recording">Continuer l\'enregistrement</string>
 </resources>

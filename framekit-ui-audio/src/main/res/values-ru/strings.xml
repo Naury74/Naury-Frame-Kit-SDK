@@ -47,4 +47,6 @@
     <string name="framekit_audio_overlay_hint">Запись звучит поверх, начиная с позиции курсора.</string>
     <string name="framekit_audio_target_insert">Вставить</string>
     <string name="framekit_audio_target_overlay">Наложить</string>
+    <string name="framekit_audio_discard_recording">Удалить эту запись?</string>
+    <string name="framekit_audio_keep_recording">Продолжить запись</string>
 </resources>

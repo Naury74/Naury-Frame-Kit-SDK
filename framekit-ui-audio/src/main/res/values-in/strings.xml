@@ -47,4 +47,6 @@
     <string name="framekit_audio_overlay_hint">Rekaman diputar di atasnya, mulai dari playhead.</string>
     <string name="framekit_audio_target_insert">Sisipkan</string>
     <string name="framekit_audio_target_overlay">Tumpuk</string>
+    <string name="framekit_audio_discard_recording">Buang rekaman ini?</string>
+    <string name="framekit_audio_keep_recording">Lanjutkan merekam</string>
 </resources>

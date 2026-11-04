@@ -98,6 +98,8 @@
     <string name="example_audio_record_description">Grave sua voz (tocando ou segurando) e depois corte, divida e grave mais</string>
     <string name="example_audio_hold_title">Gravador segure para falar</string>
     <string name="example_audio_hold_description">Segure o botão para gravar e receba o arquivo na hora, sem editar</string>
+    <string name="example_audio_sheet_title">Só gravar, painel inferior</string>
+    <string name="example_audio_sheet_description">Grave em um painel sobre esta tela e receba o arquivo na hora</string>
     <string name="example_audio_file_title">Editar arquivos de áudio</string>
     <string name="example_audio_file_description">Escolha até 5 áudios, junte, corte ou adicione gravações</string>
     <string name="result_audio">Áudio</string>

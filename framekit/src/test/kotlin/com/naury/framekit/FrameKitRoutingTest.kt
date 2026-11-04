@@ -97,6 +97,35 @@ class FrameKitRoutingTest {
     }
 
     @Test
+    fun `record-only capture with the sheet option reaches the recorder sheet`() {
+        val sheet = com.naury.framekit.ui.audioeditor.contract.AudioEditorConfig(
+            editAfterRecording = false,
+            recorderPresentation = com.naury.framekit.ui.audioeditor.contract.RecorderPresentation.SHEET,
+        )
+        val request = FrameKitRequest(EditorInput.Capture(MediaKind.AUDIO), audio = sheet)
+        val context = ApplicationProvider.getApplicationContext<Application>()
+        val contract = com.naury.framekit.ui.audioeditor.contract.AudioEditorContract()
+
+        val audio = request.forAudio(request.input)
+        assertThat(audio.config.recorderPresentation).isEqualTo(com.naury.framekit.ui.audioeditor.contract.RecorderPresentation.SHEET)
+        assertThat(contract.createIntent(context, audio).component?.className).endsWith(".AudioRecorderSheetActivity")
+        // 녹음 뒤 편집하면 시트 설정을 무시한다.
+        val editing = request.copy(audio = sheet.copy(editAfterRecording = true))
+        assertThat(contract.createIntent(context, editing.forAudio(editing.input)).component?.className).endsWith(".AudioEditorActivity")
+        assertThat(editing.validate()).isEqualTo(ValidationResult.Valid)
+
+        val parcel = android.os.Parcel.obtain()
+        try {
+            parcel.writeParcelable(request, 0)
+            parcel.setDataPosition(0)
+            @Suppress("DEPRECATION")
+            assertThat(parcel.readParcelable<FrameKitRequest>(FrameKitRequest::class.java.classLoader)).isEqualTo(request)
+        } finally {
+            parcel.recycle()
+        }
+    }
+
+    @Test
     fun `a pick where everything was skipped is told apart from closing`() {
         val contract = RouterPickerContract()
         val skipped = android.content.Intent()
