@@ -54,7 +54,7 @@ public class MotionExporter(
      * @param audioUri 소리 원본 id를 읽을 수 있는 Uri로 바꾼다. MP4이고 [MotionProject.audio]가 있으면 소리를 섞는다(생성자에 context가 있어야 한다).
      * @param onProgress `0..1` 진행률. 저장 스레드에서 불린다.
      * @throws FrameKitException 인코더를 만들 수 없으면 `ENCODE_FAILED`, 메모리가 모자라면 `INSUFFICIENT_MEMORY`,
-     *   파일을 쓰지 못하면 `OUTPUT_WRITE_FAILED`.
+     *   파일을 쓰지 못하면 `OUTPUT_WRITE_FAILED`, 남은 저장 공간이 5MB보다 적거나 쓰는 도중 모자라면 `INSUFFICIENT_STORAGE`.
      */
     public suspend fun export(
         project: MotionProject,
@@ -63,6 +63,7 @@ public class MotionExporter(
         onProgress: (Float) -> Unit,
         audioUri: (String) -> Uri? = { null },
     ): EditedMedia {
+        if (freeBytes() < MIN_FREE_BYTES) throw FrameKitException(EditorErrorCode.INSUFFICIENT_STORAGE, "Not enough free space")
         val tracks = if (settings.format == MotionFormat.MP4 && context != null) {
             project.audio.mapNotNull { audio -> audioUri(audio.sourceId)?.let { AudioMixTrack(it, audio.toAudioClip(), audio.sourceDurationMs * 1000) } }
         } else {
@@ -80,7 +81,11 @@ public class MotionExporter(
         if (tracks.isEmpty()) return video.media
         val partial = outputStore.createPartial(settings.format.extension)
         try {
-            AudioTrackMixer.mix(checkNotNull(context), video.file, (video.media.durationMs ?: 0L) * 1000, tracks, partial) { onProgress(videoShare + it * (1 - videoShare)) }
+            try {
+                AudioTrackMixer.mix(checkNotNull(context), video.file, (video.media.durationMs ?: 0L) * 1000, tracks, partial) { onProgress(videoShare + it * (1 - videoShare)) }
+            } catch (error: IOException) {
+                throw FrameKitException(storageAwareCode(EditorErrorCode.ENCODE_FAILED), "Mixing sound failed", error)
+            }
             val published = try {
                 outputStore.publish(partial, settings.format.extension)
             } catch (error: IOException) {
@@ -165,7 +170,7 @@ public class MotionExporter(
         } catch (error: OutOfMemoryError) {
             throw FrameKitException(EditorErrorCode.INSUFFICIENT_MEMORY, "Not enough memory to export", error)
         } catch (error: IOException) {
-            throw FrameKitException(EditorErrorCode.ENCODE_FAILED, "Motion export failed", error)
+            throw FrameKitException(storageAwareCode(EditorErrorCode.ENCODE_FAILED), "Motion export failed", error)
         } finally {
             frame?.recycle()
             colorRenderer.release()
@@ -173,7 +178,15 @@ public class MotionExporter(
         }
     }
 
+    private fun freeBytes(): Long = runCatching { outputStore.allocatableBytes() }.getOrDefault(Long.MAX_VALUE)
+
+    // 쓰기 실패는 공간이 다 찬 탓인지 구분해 알린다.
+    private fun storageAwareCode(fallback: EditorErrorCode): EditorErrorCode =
+        if (freeBytes() < MIN_FREE_BYTES) EditorErrorCode.INSUFFICIENT_STORAGE else fallback
+
     private companion object {
+        // 저장을 시작하거나 쓰기 실패를 공간 부족으로 볼 남은 공간 기준(byte).
+        const val MIN_FREE_BYTES = 5L * 1024 * 1024
         const val VIDEO_SHARE = 0.8f
     }
 

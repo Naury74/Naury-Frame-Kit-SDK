@@ -17,6 +17,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.naury.framekit.android.input.EditorInput
+import com.naury.framekit.android.result.EditorError
 import com.naury.framekit.android.result.EditorErrorCode
 import com.naury.framekit.android.result.FrameKitException
 import com.naury.framekit.android.result.FrameKitResult
@@ -892,7 +893,10 @@ internal class MotionEditorViewModel(
 
     fun requestClose() {
         val ready = ready()
+        val current = _state.value
         when {
+            // 원본을 열지 못해 닫으면 그 이유를 돌려준다(사진·영상 편집기와 같다).
+            current is MotionEditorUiState.LoadFailed -> finish(FrameKitResult.Failure(EditorError(current.code)))
             ready == null -> finish(FrameKitResult.Cancelled)
             ready.export is MotionExportUiState.Running -> cancelExport()
             ready.isDirty -> updateReady { it.copy(showDiscardDialog = true) }

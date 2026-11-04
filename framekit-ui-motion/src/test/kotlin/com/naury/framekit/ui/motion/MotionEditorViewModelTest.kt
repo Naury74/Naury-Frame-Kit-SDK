@@ -185,7 +185,34 @@ class MotionEditorViewModelTest {
         return EditorInput.FileSource(file.absolutePath)
     }
 
-    private fun viewModel(input: EditorInput, savedState: SavedStateHandle = SavedStateHandle()): MotionEditorViewModel {
+    @Test
+    fun `closing after a source fails to open returns that failure`() {
+        val viewModel = viewModel(EditorInput.FileSource(File(context.cacheDir, "missing.png").absolutePath))
+        val failed = viewModel.state.value as MotionEditorUiState.LoadFailed
+
+        viewModel.requestClose()
+        assertThat((viewModel.result.value as FrameKitResult.Failure).error.code).isEqualTo(failed.code)
+    }
+
+    @Test
+    fun `saving with almost no free space fails with INSUFFICIENT_STORAGE`() {
+        val full = AppFileOutputStore(context, availableBytes = { 1024L })
+        val viewModel = viewModel(EditorInput.Multiple(listOf(photo("a.png", Color.RED), photo("b.png", Color.BLUE))), store = full)
+
+        viewModel.save(MotionFormat.GIF, MotionSize.SMALL)
+        runBlocking { withTimeout(30_000) { while (ready(viewModel).export !is com.naury.framekit.ui.motion.editor.MotionExportUiState.Failed) kotlinx.coroutines.delay(20) } }
+        val failed = ready(viewModel).export as com.naury.framekit.ui.motion.editor.MotionExportUiState.Failed
+        assertThat(failed.code).isEqualTo(com.naury.framekit.android.result.EditorErrorCode.INSUFFICIENT_STORAGE)
+    }
+
+    @Test
+    fun `redo without undo is rejected`() {
+        val config = com.naury.framekit.ui.motion.contract.MotionEditorConfig(allowUndo = false)
+        assertThat(config.validate()).isInstanceOf(com.naury.framekit.core.validation.ValidationResult.Invalid::class.java)
+        assertThat(config.copy(allowRedo = false).validate()).isEqualTo(com.naury.framekit.core.validation.ValidationResult.Valid)
+    }
+
+    private fun viewModel(input: EditorInput, savedState: SavedStateHandle = SavedStateHandle(), store: AppFileOutputStore = this.store): MotionEditorViewModel {
         val registry = SessionSourceRegistry(context)
         return MotionEditorViewModel(
             request = MotionEditorRequest(input),

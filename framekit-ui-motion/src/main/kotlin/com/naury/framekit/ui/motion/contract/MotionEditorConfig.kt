@@ -15,7 +15,7 @@ import kotlinx.parcelize.Parcelize
  * @property slideDurationMs 사진 한 장의 처음 시간(밀리초).
  * @property maxAnimationFrames 움직이는 원본에서 읽을 최대 프레임 수(10..[MAX_FRAMES]). 넘는 프레임은 버린다.
  * @property allowUndo 실행 취소 버튼을 보여 준다.
- * @property allowRedo 다시 실행 버튼을 보여 준다.
+ * @property allowRedo 다시 실행 버튼을 보여 준다. `true`면 [allowUndo]도 `true`여야 한다.
  */
 @Parcelize
 public data class MotionEditorConfig(
@@ -29,6 +29,7 @@ public data class MotionEditorConfig(
 
     public fun validate(): ValidationResult {
         val issues = mutableListOf<ValidationIssue>()
+        if (allowRedo && !allowUndo) issues += ValidationIssue(ValidationCode.OUT_OF_RANGE, "config.allowRedo", "Redo requires undo")
         if (maxImageCount !in 1..MAX_IMAGES) issues += ValidationIssue(ValidationCode.OUT_OF_RANGE, "config.maxImageCount", "Expected 1..$MAX_IMAGES")
         if (slideDurationMs !in MotionProject.MIN_SLIDE_MS..MotionProject.MAX_SLIDE_MS) {
             issues += ValidationIssue(ValidationCode.OUT_OF_RANGE, "config.slideDurationMs", "Expected ${MotionProject.MIN_SLIDE_MS}..${MotionProject.MAX_SLIDE_MS}")
