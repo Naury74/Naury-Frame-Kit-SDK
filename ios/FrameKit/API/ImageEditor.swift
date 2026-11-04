@@ -49,20 +49,16 @@ public final class FrameKitImageEditorViewController: UIViewController {
 
     override public func viewDidDisappear(_ animated: Bool) {
         super.viewDidDisappear(animated)
-        // 호스트가 직접 내린 경우에도 결과를 한 번 보낸다.
-        if isBeingDismissed || isMovingFromParent || presentingViewController == nil {
-            model.dismissedWithoutResult()
-            deliver()
+        // 호스트가 직접 내린 경우에도 결과를 한 번 보낸다. 위에 다른 화면을 띄우거나 탭을 바꾼 것은 내린 것이 아니다.
+        frameKitWatchRemoval(self) { [weak self] in
+            self?.model.dismissedWithoutResult()
+            self?.deliver()
         }
     }
 
     private func finished(_ result: FrameKitResult) {
         self.result = result
-        if let presenting = presentingViewController, !isBeingDismissed {
-            presenting.dismiss(animated: true) { [weak self] in self?.deliver() }
-        } else {
-            deliver()
-        }
+        frameKitClose(self) { [weak self] in self?.deliver() }
     }
 
     private func deliver() {
@@ -87,6 +83,10 @@ public struct FrameKitImageEditor: UIViewControllerRepresentable {
     }
 
     public func updateUIViewController(_: UIViewController, context _: Context) {}
+
+    public static func dismantleUIViewController(_ controller: UIViewController, coordinator _: ()) {
+        (controller as? EmbeddedEditorController)?.dismantled()
+    }
 }
 
 /// SwiftUI 안에 넣는 편집기. 표시는 호스트가 맡으므로 스스로 닫지 않는다.
@@ -105,7 +105,12 @@ private final class EmbeddedEditorController: UIHostingController<AnyView> {
 
     override func viewDidDisappear(_ animated: Bool) {
         super.viewDidDisappear(animated)
-        if isBeingDismissed || isMovingFromParent || parent?.isBeingDismissed == true { model.dismissedWithoutResult() }
+        if frameKitIsLeaving(self) { model.dismissedWithoutResult() }
+    }
+
+    /// SwiftUI가 이 화면을 뺐다(내비게이션 뒤로 가기·조건부 표시 해제 등).
+    func dismantled() {
+        model.dismissedWithoutResult()
     }
 }
 

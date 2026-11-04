@@ -43,19 +43,16 @@ public final class FrameKitViewController: UIViewController {
 
     override public func viewDidDisappear(_ animated: Bool) {
         super.viewDidDisappear(animated)
-        if isBeingDismissed || isMovingFromParent || presentingViewController == nil {
-            model.dismissedWithoutResult()
-            deliver()
+        // 호스트가 직접 내린 경우에도 결과를 한 번 보낸다. 위에 다른 화면을 띄우거나 탭을 바꾼 것은 내린 것이 아니다.
+        frameKitWatchRemoval(self) { [weak self] in
+            self?.model.dismissedWithoutResult()
+            self?.deliver()
         }
     }
 
     private func finished(_ result: FrameKitResult) {
         self.result = result
-        if let presenting = presentingViewController, !isBeingDismissed {
-            presenting.dismiss(animated: true) { [weak self] in self?.deliver() }
-        } else {
-            deliver()
-        }
+        frameKitClose(self) { [weak self] in self?.deliver() }
     }
 
     private func deliver() {
@@ -80,6 +77,10 @@ public struct FrameKitEditor: UIViewControllerRepresentable {
     }
 
     public func updateUIViewController(_: UIViewController, context _: Context) {}
+
+    public static func dismantleUIViewController(_ controller: UIViewController, coordinator _: ()) {
+        (controller as? EmbeddedRouterController)?.dismantled()
+    }
 }
 
 @MainActor
@@ -97,7 +98,12 @@ private final class EmbeddedRouterController: UIHostingController<AnyView> {
 
     override func viewDidDisappear(_ animated: Bool) {
         super.viewDidDisappear(animated)
-        if isBeingDismissed || isMovingFromParent || parent?.isBeingDismissed == true { model.dismissedWithoutResult() }
+        if frameKitIsLeaving(self) { model.dismissedWithoutResult() }
+    }
+
+    /// SwiftUI가 이 화면을 뺐다(내비게이션 뒤로 가기·조건부 표시 해제 등).
+    func dismantled() {
+        model.dismissedWithoutResult()
     }
 }
 
@@ -116,5 +122,41 @@ extension View {
             .ignoresSafeArea()
             .interactiveDismissDisabled()
         }
+    }
+}
+
+/// 이 화면이나 조상이 내려지거나 빠지는 중이면 `true`.
+@MainActor
+func frameKitIsLeaving(_ controller: UIViewController) -> Bool {
+    var current: UIViewController? = controller
+    while let vc = current {
+        if vc.isBeingDismissed || vc.isMovingFromParent { return true }
+        current = vc.parent
+    }
+    return false
+}
+
+/// 화면이 사라진 뒤 호스트가 치운 것이면 [removed]를 부른다.
+@MainActor
+func frameKitWatchRemoval(_ controller: UIViewController, removed: @escaping @MainActor () -> Void) {
+    if frameKitIsLeaving(controller) { removed(); return }
+    // 아래 화면에서 한꺼번에 내리거나 창의 첫 화면을 바꾸면 위 표시가 없을 수 있어 다음 차례에 다시 본다.
+    DispatchQueue.main.async { [weak controller] in
+        guard let controller else { return }
+        if controller.view.window == nil && controller.parent == nil && controller.presentingViewController == nil { removed() }
+    }
+}
+
+/// 띄운 화면이면 내리고, 내비게이션에 쌓인 화면이면 뺀다. 그 뒤 [completion]을 부른다.
+@MainActor
+func frameKitClose(_ controller: UIViewController, completion: @escaping @MainActor () -> Void) {
+    if let navigation = controller.navigationController, navigation.viewControllers.count > 1,
+       navigation.viewControllers.first !== controller, navigation.topViewController === controller {
+        navigation.popViewController(animated: true)
+        completion()
+    } else if let presenting = controller.presentingViewController, !controller.isBeingDismissed {
+        presenting.dismiss(animated: true) { completion() }
+    } else {
+        completion()
     }
 }
