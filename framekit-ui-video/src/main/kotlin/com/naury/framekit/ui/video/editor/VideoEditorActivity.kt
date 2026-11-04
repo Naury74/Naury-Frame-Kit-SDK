@@ -36,6 +36,7 @@ import com.naury.framekit.android.result.FrameKitResultCodec
 import com.naury.framekit.android.source.SessionSourceRegistry
 import com.naury.framekit.core.validation.ValidationResult
 import com.naury.framekit.ui.config.ThemeMode
+import com.naury.framekit.ui.audio.VoiceRecorder
 import com.naury.framekit.ui.design.FrameKitTheme
 import com.naury.framekit.ui.design.ProvideEditorLocale
 import com.naury.framekit.ui.layout.FoldPosture
@@ -70,6 +71,7 @@ internal class VideoEditorActivity : ComponentActivity() {
         val catalogUi = CatalogUi(request.catalog, CatalogAssets::sticker, CatalogAssets::typeface)
         // 이전에 끝나지 못한 촬영·내보내기가 남긴 임시 파일을 정리한다.
         lifecycleScope.launch(Dispatchers.IO) { runCatching { CaptureFiles.deleteStale(applicationContext) } }
+        lifecycleScope.launch(Dispatchers.IO) { runCatching { VoiceRecorder.deleteStale(applicationContext) } }
         val darkBars = request.ui.themeMode != ThemeMode.LIGHT
         enableEdgeToEdge(
             statusBarStyle = if (darkBars) SystemBarStyle.dark(Color.TRANSPARENT) else SystemBarStyle.auto(Color.TRANSPARENT, Color.TRANSPARENT),

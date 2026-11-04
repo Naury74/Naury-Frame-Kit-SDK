@@ -30,6 +30,7 @@ import com.naury.framekit.video.audio.WaveformExtractor
 import com.naury.framekit.ui.catalog.CatalogUi
 import com.naury.framekit.ui.catalog.LocalCatalogUi
 import com.naury.framekit.ui.config.ThemeMode
+import com.naury.framekit.ui.audio.VoiceRecorder
 import com.naury.framekit.ui.design.FrameKitTheme
 import com.naury.framekit.ui.design.ProvideEditorLocale
 import com.naury.framekit.ui.motion.contract.MotionEditorContract
@@ -53,6 +54,8 @@ internal class MotionEditorActivity : ComponentActivity() {
         }
         CatalogAssets.install(this, request.catalog)
         val catalogUi = CatalogUi(request.catalog, CatalogAssets::sticker, CatalogAssets::typeface)
+        // 오래되고 편집 세션이 쓰지 않는 녹음 파일을 정리한다.
+        lifecycleScope.launch(Dispatchers.IO) { runCatching { VoiceRecorder.deleteStale(applicationContext) } }
         val darkBars = request.ui.themeMode != ThemeMode.LIGHT
         enableEdgeToEdge(
             statusBarStyle = if (darkBars) SystemBarStyle.dark(Color.TRANSPARENT) else SystemBarStyle.auto(Color.TRANSPARENT, Color.TRANSPARENT),

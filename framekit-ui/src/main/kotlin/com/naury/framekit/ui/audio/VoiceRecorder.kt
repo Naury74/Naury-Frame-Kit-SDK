@@ -15,6 +15,7 @@ import java.util.UUID
  * @param minDurationMs 이보다 짧은 녹음은 버린다(밀리초).
  *
  * 녹음 파일은 앱 파일 폴더(`files/framekit/recordings`)에 둔다. 편집 세션이 프로세스 종료 뒤에도 원본으로 다시 열 수 있게 캐시가 아닌 곳에 둔다.
+ * 오래된 녹음은 [deleteStale]이 정리한다(편집기가 열릴 때 부른다).
  */
 public class VoiceRecorder(private val context: Context, private val minDurationMs: Long = MIN_MS) {
 
@@ -65,7 +66,7 @@ public class VoiceRecorder(private val context: Context, private val minDuration
     public fun start() {
         check(recorder == null) { "Already recording" }
         val directory = directory(context).apply { mkdirs() }
-        val target = File(directory, "voice_${UUID.randomUUID()}.m4a")
+        val target = File(directory, "$FILE_PREFIX${UUID.randomUUID()}.m4a")
         val next = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) MediaRecorder(context) else @Suppress("DEPRECATION") MediaRecorder()
         try {
             next.setAudioSource(MediaRecorder.AudioSource.MIC)
@@ -126,6 +127,30 @@ public class VoiceRecorder(private val context: Context, private val minDuration
 
         /** 녹음 파일을 두는 폴더. */
         public fun directory(context: Context): File = File(context.filesDir, "framekit/recordings")
+
+        /** [deleteStale]의 기본 보관 기간(밀리초, 7일). 편집 세션 보관 기간과 같다. */
+        public const val STALE_RECORDING_AGE_MILLIS: Long = 7L * 24 * 60 * 60 * 1000
+
+        /**
+         * [directory]에서 마지막으로 바뀐 지 [maxAgeMillis]보다 오래됐고 남은 편집 세션(`files/framekit/sessions`)이 가리키지 않는
+         * 녹음 파일을 지운다. 이 클래스가 만든 이름(`voice_*.m4a`)만 건드리며, 실패는 무시한다. 파일을 읽으므로 메인 스레드에서 부르지 않는다.
+         */
+        public fun deleteStale(context: Context, maxAgeMillis: Long = STALE_RECORDING_AGE_MILLIS, now: Long = System.currentTimeMillis()) {
+            deleteStale(directory(context), File(context.filesDir, SESSIONS_DIRECTORY), maxAgeMillis, now)
+        }
+
+        internal fun deleteStale(recordings: File, sessions: File, maxAgeMillis: Long, now: Long) {
+            val stale = recordings.listFiles()?.filter { file ->
+                file.isFile && file.name.startsWith(FILE_PREFIX) && now - file.lastModified() > maxAgeMillis
+            }.orEmpty()
+            if (stale.isEmpty()) return
+            // 녹음을 원본으로 쓰는 세션은 파일 경로를 담고 있다.
+            val referenced = sessions.walkTopDown().filter { it.isFile }.mapNotNull { runCatching { it.readText() }.getOrNull() }.toList()
+            stale.filter { file -> referenced.none { it.contains(file.name) } }.forEach { runCatching { it.delete() } }
+        }
+
+        private const val FILE_PREFIX = "voice_"
+        private const val SESSIONS_DIRECTORY = "framekit/sessions"
 
         /**
          * 호스트 앱이 manifest에 `RECORD_AUDIO`를 선언했으면 `true`. SDK는 권한을 직접 추가하지 않으므로 선언하지 않은 앱에서는 녹음 버튼을

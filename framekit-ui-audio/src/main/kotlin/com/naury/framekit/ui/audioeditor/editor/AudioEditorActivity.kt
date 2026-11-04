@@ -50,6 +50,8 @@ internal class AudioEditorActivity : ComponentActivity() {
             deliver(FrameKitResult.Failure(EditorError(EditorErrorCode.INVALID_CONFIGURATION)))
             return
         }
+        // 오래되고 편집 세션이 쓰지 않는 녹음 파일을 정리한다.
+        lifecycleScope.launch(Dispatchers.IO) { runCatching { VoiceRecorder.deleteStale(applicationContext) } }
         val darkBars = request.ui.themeMode != ThemeMode.LIGHT
         enableEdgeToEdge(
             statusBarStyle = if (darkBars) SystemBarStyle.dark(Color.TRANSPARENT) else SystemBarStyle.auto(Color.TRANSPARENT, Color.TRANSPARENT),
