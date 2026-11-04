@@ -1,6 +1,5 @@
 import CoreGraphics
 import Foundation
-import Observation
 import AVFoundation
 import UIKit
 import UniformTypeIdentifiers
@@ -32,8 +31,7 @@ enum ExportUI: Equatable {
 
 /// 편집기 상태와 동작. 화면은 이 값만 그린다.
 @MainActor
-@Observable
-final class EditorModel {
+final class EditorModel: ObservableObject {
     enum Phase: Equatable {
         case awaitingSource
         case loading
@@ -55,12 +53,12 @@ final class EditorModel {
     /// 세션을 이어 열지 못했을 때 부른다. 없으면 요청 입력으로 처음부터 연다.
     var onRestoreFailed: (() -> Void)?
 
-    private(set) var phase: Phase { didSet { persistSession() } }
+    @Published private(set) var phase: Phase { didSet { persistSession() } }
     /// 편집 중인 사진들. 순서가 저장 순서다.
-    var pages: [EditorPage] = [] { didSet { persistSession() } }
-    private(set) var pageIndex = 0
+    @Published var pages: [EditorPage] = [] { didSet { persistSession() } }
+    @Published private(set) var pageIndex = 0
     /// 사진 추가 선택기를 띄운다.
-    var showAddPicker = false
+    @Published var showAddPicker = false
 
     /// 현재 장의 실행 취소 기록.
     var history: EditHistory {
@@ -68,41 +66,43 @@ final class EditorModel {
         set { if pages.indices.contains(pageIndex) { pages[pageIndex].history = newValue } }
     }
     /// 적용 전 도구 편집이나 끌기 중인 값. 있으면 화면은 이것을 그린다.
-    var working: PhotoEdit?
-    private(set) var activeTool: ImageTool?
+    @Published var working: PhotoEdit?
+    @Published private(set) var activeTool: ImageTool?
     /// 마지막으로 연 도구(도구 줄 위치 기억용).
-    private(set) var lastTool: ImageTool?
-    private var toolEntry: PhotoEdit?
-    private(set) var cropAspect: CropAspect = .free
-    var adjustKind: AdjustKind = .brightness
-    private(set) var chromeHidden = false
-    var showingOriginal = false
-    private(set) var export: ExportUI?
-    var showDiscardDialog = false
-    var showDraftDialog = false
-    private(set) var notice: String?
-    private(set) var draggingCrop = false
+    @Published private(set) var lastTool: ImageTool?
+    @Published private var toolEntry: PhotoEdit?
+    @Published private(set) var cropAspect: CropAspect = .free
+    @Published var adjustKind: AdjustKind = .brightness
+    @Published private(set) var chromeHidden = false
+    @Published var showingOriginal = false
+    @Published private(set) var export: ExportUI?
+    @Published var showDiscardDialog = false
+    @Published var showDraftDialog = false
+    @Published private(set) var notice: String?
+    /// 화면이 준비되면 보일 알림.
+    private var pendingNotice: String?
+    @Published private(set) var draggingCrop = false
     /// 배경 제거 상태.
-    var cutoutBusy = false
+    @Published var cutoutBusy = false
     /// 이 기기에서 배경 제거를 할 수 있으면 `true`. 확인이 끝나기 전에는 도구를 보이지 않는다.
-    var cutoutAvailable = false
-    var cutoutError: EditorError?
+    @Published var cutoutAvailable = false
+    @Published var cutoutError: EditorError?
 
     /// 미리 보기 결과(현재 편집, 출력 화면 크기).
-    var rendered: CGImage?
+    @Published var rendered: CGImage?
     /// 자르기·회전 도구에서 보이는 자르기 전 이미지.
-    private(set) var boundsImage: CGImage?
-    var filterThumbnails: [String: CGImage] = [:]
+    @Published private(set) var boundsImage: CGImage?
+    @Published var filterThumbnails: [String: CGImage] = [:]
 
     /// 고른 요소(글자·스티커·도형).
-    var selectedOverlayId: String?
+    @Published var selectedOverlayId: String?
     /// 그리는 중인 획(캔버스 기준 0...1). 손을 떼면 편집에 들어간다.
-    var liveStroke: [NPoint]?
-    var brush = BrushSettings()
-    var privacy = PrivacySettings()
-    var stickerCategory = 0
+    @Published var liveStroke: [NPoint]?
+    @Published var brush = BrushSettings()
+    @Published var privacy = PrivacySettings()
+    @Published var stickerCategory = 0
     /// 미리 보기 결과의 캔버스 크기(px). 요소 배치 계산에 쓴다.
-    private(set) var renderedCanvas = CGSize(width: 1, height: 1)
+    @Published private(set) var renderedCanvas = CGSize(width: 1, height: 1)
     private let previewCache = PreviewCache()
     private var nextId = 0
 
@@ -187,7 +187,9 @@ final class EditorModel {
     private func openInput() {
         switch request.input {
         case .file(let url): load([{ try Self.copyToTemporary(url) }], append: false)
-        case .files(let urls): load(urls.prefix(request.config.maxImageCount).map { url in { try Self.copyToTemporary(url) } }, append: false)
+        case .files(let urls):
+            if urls.count > request.config.maxImageCount { pendingNotice = "items_truncated" }
+            load(urls.prefix(request.config.maxImageCount).map { url in { try Self.copyToTemporary(url) } }, append: false)
         case .data(let data): load([{ try Self.writeTemporary(data) }], append: false)
         case .pick, .pickMultiple: phase = .awaitingSource
         case .capture: startCapture()
@@ -206,11 +208,12 @@ final class EditorModel {
             finish(.failure(EditorError(code: .cameraUnavailable)))
             return
         }
-        switch AVCaptureDevice.authorizationStatus(for: .video) {
-        case .denied, .restricted:
-            finish(.failure(EditorError(code: .permissionDenied)))
-        default:
-            phase = .awaitingSource
+        // 촬영 화면을 띄우기 전에 묻는다. 거절하면 빈 카메라 화면 대신 오류로 끝낸다.
+        phase = .loading
+        Task {
+            let granted = await CameraPermission.request()
+            guard !delivered else { return }
+            if granted { phase = .awaitingSource } else { finish(.failure(.deviceAccessDenied)) }
         }
     }
 
@@ -239,7 +242,9 @@ final class EditorModel {
         }
         let room = append ? max(0, pageLimit - pages.count) : pageLimit
         let chosen = Array(providers.prefix(room))
-        if chosen.count < providers.count { showNotice("page_limit") }
+        if chosen.count < providers.count {
+            if append { showNotice("page_limit") } else { pendingNotice = "items_truncated" }
+        }
         guard !chosen.isEmpty else { return }
         if !append { phase = .loading }
         Task { @MainActor in
@@ -277,9 +282,21 @@ final class EditorModel {
             var opened: [(SourceImage, UprightImage)] = []
             do {
                 for prepare in prepares {
-                    let source = try SourceImage(url: try prepare(), removeOnClose: true)
+                    let url = try prepare()
+                    let source: SourceImage
+                    do {
+                        source = try SourceImage(url: url, removeOnClose: true)
+                    } catch {
+                        OutputStore.discardTemporary(url)
+                        throw error
+                    }
                     // 미리 보기는 긴 변 2048px로 디코딩한다.
-                    opened.append((source, try source.decode(maxLongEdge: 2048)))
+                    do {
+                        opened.append((source, try source.decode(maxLongEdge: 2048)))
+                    } catch {
+                        source.close()
+                        throw error
+                    }
                 }
                 let result = opened
                 await MainActor.run { self.opened(result, append: append) }
@@ -312,6 +329,10 @@ final class EditorModel {
             working = nil
             activeTool = nil
             phase = .ready
+            if let pendingNotice {
+                self.pendingNotice = nil
+                showNotice(pendingNotice)
+            }
         } else {
             selectPage(pages.count - 1)
         }
@@ -426,22 +447,7 @@ final class EditorModel {
     }
 
     nonisolated private static func copyToTemporary(_ url: URL) throws(EditorError) -> URL {
-        let scoped = url.startAccessingSecurityScopedResource()
-        defer { if scoped { url.stopAccessingSecurityScopedResource() } }
-        let target = try OutputStore.temporaryDirectory.appendingPathComponent(UUID().uuidString)
-            .appendingPathExtension(url.pathExtension.isEmpty ? "img" : url.pathExtension)
-        do {
-            try FileManager.default.copyItem(at: url, to: target)
-            return target
-        } catch let error as CocoaError where error.code == .fileReadNoPermission {
-            throw .logged(.permissionDenied, "copy: \(error)")
-        } catch let error as CocoaError where error.code == .fileReadNoSuchFile {
-            throw .logged(.sourceUnavailable, "copy: \(error)")
-        } catch let error as CocoaError where error.code == .fileWriteOutOfSpace {
-            throw .logged(.insufficientStorage, "copy: \(error)")
-        } catch {
-            throw .logged(.sourceUnavailable, "copy: \(error)")
-        }
+        try OutputStore.copyToTemporary(url, fallbackExtension: "img")
     }
 
     nonisolated private static func writeTemporary(_ data: Data) throws(EditorError) -> URL {
@@ -846,7 +852,7 @@ final class EditorModel {
         notice = key
         noticeTask?.cancel()
         noticeTask = Task { @MainActor in
-            try? await Task.sleep(for: .seconds(3))
+            try? await Task.sleep(nanoseconds: 3_000_000_000)
             if !Task.isCancelled { self.notice = nil }
         }
     }

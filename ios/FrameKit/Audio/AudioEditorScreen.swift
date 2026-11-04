@@ -3,7 +3,7 @@ import UniformTypeIdentifiers
 
 /// 음성 편집 화면 뿌리.
 struct AudioEditorRoot: View {
-    let model: AudioEditorModel
+    @ObservedObject var model: AudioEditorModel
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
@@ -44,7 +44,7 @@ struct AudioEditorRoot: View {
 
 /// `.capture`로 열었을 때 첫 녹음 화면.
 struct FirstRecordingScreen: View {
-    let model: AudioEditorModel
+    @ObservedObject var model: AudioEditorModel
     @Environment(\.editorTheme) private var theme
     @Environment(\.strings) private var strings
 
@@ -77,7 +77,7 @@ struct FirstRecordingScreen: View {
 }
 
 struct AudioEditorScreen: View {
-    @Bindable var model: AudioEditorModel
+    @ObservedObject var model: AudioEditorModel
     @Environment(\.editorTheme) private var theme
     @Environment(\.strings) private var strings
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -154,8 +154,10 @@ struct AudioEditorScreen: View {
 
     private var header: some View {
         VStack(spacing: 2) {
-            Text(clock(Double(model.position) / 1_000_000)).scaledFont(40, weight: .light, monospacedDigit: true)
-                .foregroundStyle(theme.foreground)
+            PlaybackReader(clock: model.playback) {
+                Text(clock(Double(model.position) / 1_000_000)).scaledFont(40, weight: .light, monospacedDigit: true)
+                    .foregroundStyle(theme.foreground)
+            }
             Text(strings("audio_total", clock(Double(model.duration) / 1_000_000))).scaledFont(14, monospacedDigit: true)
                 .foregroundStyle(theme.foregroundMuted)
         }
@@ -284,7 +286,7 @@ extension AudioTool {
 // MARK: - 패널
 
 struct RangePanel: View {
-    let model: AudioEditorModel
+    @ObservedObject var model: AudioEditorModel
     @Environment(\.strings) private var strings
     @Environment(\.editorTheme) private var theme
 
@@ -316,7 +318,7 @@ struct RangePanel: View {
 }
 
 struct ClipPanel: View {
-    let model: AudioEditorModel
+    @ObservedObject var model: AudioEditorModel
     @Environment(\.strings) private var strings
     @Environment(\.editorTheme) private var theme
 
@@ -357,7 +359,13 @@ struct ClipPanel: View {
 
 /// 녹음해서 끼워 넣거나 겹친다.
 struct RecordSheet: View {
-    @Bindable var model: AudioEditorModel
+    @ObservedObject var model: AudioEditorModel
+    @ObservedObject private var recorder: VoiceRecorder
+
+    init(model: AudioEditorModel) {
+        _model = ObservedObject(wrappedValue: model)
+        _recorder = ObservedObject(wrappedValue: model.recorder)
+    }
     @Environment(\.strings) private var strings
     @Environment(\.editorTheme) private var theme
 
@@ -368,7 +376,7 @@ struct RecordSheet: View {
                 .accessibilityAddTraits(.isHeader)
             Text(strings(target == .insert ? "audio_insert_hint" : "audio_overlay_hint")).scaledFont(14)
                 .foregroundStyle(theme.foregroundMuted).multilineTextAlignment(.center)
-            if model.recorder.state == .idle {
+            if recorder.state == .idle {
                 HStack(spacing: 8) {
                     ChoiceChip(title: strings("audio_target_insert"), selected: target == .insert) { model.recordTarget = .insert }
                     ChoiceChip(title: strings("audio_target_overlay"), selected: target == .overlay) { model.recordTarget = .overlay }
@@ -379,16 +387,16 @@ struct RecordSheet: View {
         }
         .padding(20)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .presentationBackground(theme.surface)
-        .presentationDetents([.large])
-        .interactiveDismissDisabled(model.recorder.state != .idle)
+        .sheetBackground(theme.surface)
+        .sheetSize(.large)
+        .interactiveDismissDisabled(recorder.state != .idle)
     }
 }
 
 /// 소리 파일 여러 개 고르기(파일 앱). 고른 순서대로 사본을 넘긴다. 닫으면 빈 목록.
 struct AudioFilesPicker: UIViewControllerRepresentable {
     var limit = 1
-    let onPick: ([URL]) -> Void
+    let onPick: (PickedFiles) -> Void
 
     func makeUIViewController(context: Context) -> UIDocumentPickerViewController {
         let picker = UIDocumentPickerViewController(forOpeningContentTypes: [.audio], asCopy: true)
@@ -402,12 +410,21 @@ struct AudioFilesPicker: UIViewControllerRepresentable {
 
     final class Coordinator: NSObject, UIDocumentPickerDelegate {
         let limit: Int
-        let onPick: ([URL]) -> Void
-        init(limit: Int, onPick: @escaping ([URL]) -> Void) {
+        let onPick: (PickedFiles) -> Void
+        init(limit: Int, onPick: @escaping (PickedFiles) -> Void) {
             self.limit = limit
             self.onPick = onPick
         }
-        func documentPicker(_: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) { onPick(Array(urls.prefix(limit))) }
-        func documentPickerWasCancelled(_: UIDocumentPickerViewController) { onPick([]) }
+
+        func documentPicker(_: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
+            // 복사본이므로 한도를 넘는 것은 지운다.
+            let keep = max(1, limit)
+            urls.dropFirst(keep).forEach { try? FileManager.default.removeItem(at: $0) }
+            var files = PickedFiles(urls: Array(urls.prefix(keep)))
+            files.truncated = urls.count > keep
+            onPick(files)
+        }
+
+        func documentPickerWasCancelled(_: UIDocumentPickerViewController) { onPick(PickedFiles()) }
     }
 }

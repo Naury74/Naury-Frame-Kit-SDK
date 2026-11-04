@@ -4,7 +4,7 @@ import UniformTypeIdentifiers
 
 /// 시간 범위 줄: 표시 구간, 여기서 시작·끝, 삭제.
 struct TimedRangeRow: View {
-    let model: VideoEditorModel
+    @ObservedObject var model: VideoEditorModel
     let help: String
     @Environment(\.strings) private var strings
     @Environment(\.editorTheme) private var theme
@@ -34,7 +34,7 @@ struct TimedRangeRow: View {
 
 /// 소리 도구: 원본 소리와 음악·음성 추가.
 struct VideoAudioPanel: View {
-    let model: VideoEditorModel
+    @ObservedObject var model: VideoEditorModel
     @Environment(\.strings) private var strings
     @Environment(\.editorTheme) private var theme
 
@@ -61,7 +61,7 @@ struct VideoAudioPanel: View {
 
 /// 타임라인에서 고른 것에 따라 도구 줄 대신 보이는 조작부.
 struct TimelineSelectionPanel: View {
-    @Bindable var model: VideoEditorModel
+    @ObservedObject var model: VideoEditorModel
     @Environment(\.strings) private var strings
     @Environment(\.editorTheme) private var theme
 
@@ -201,8 +201,8 @@ struct VoiceRecorderSheet: View {
         }
         .padding(24)
         .frame(maxWidth: .infinity)
-        .presentationBackground(theme.surface)
-        .presentationDetents([.height(320)])
+        .sheetBackground(theme.surface)
+        .sheetSize(.height(320))
         .interactiveDismissDisabled()
         .task { await start() }
         .onDisappear {
@@ -212,7 +212,9 @@ struct VoiceRecorderSheet: View {
     }
 
     private func start() async {
-        guard await AVAudioApplication.requestRecordPermission() else { state = .error("voice_permission_denied"); return }
+        guard await MicPermission.request() else { state = .error("voice_permission_denied"); return }
+        // 권한을 묻는 사이 시트가 닫혔으면 시작하지 않는다.
+        guard !Task.isCancelled else { return }
         do {
             try audioSession.begin()
             let file = try OutputStore.temporaryDirectory.appendingPathComponent("voice-\(UUID().uuidString).m4a")
@@ -224,7 +226,7 @@ struct VoiceRecorderSheet: View {
             url = file
             state = .recording
             while !Task.isCancelled, recorder.isRecording {
-                try? await Task.sleep(for: .milliseconds(100))
+                try? await Task.sleep(nanoseconds: 100_000_000)
                 recorder.updateMeters()
                 elapsed = recorder.currentTime
                 let level = CGFloat(max(0, min(1, (recorder.averagePower(forChannel: 0) + 50) / 50)))

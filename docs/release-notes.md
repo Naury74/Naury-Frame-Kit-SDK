@@ -4,6 +4,7 @@
 
 ### 바뀜
 
+- iOS: 최소 버전을 iOS 15로 낮춤(예전 17). 배경 제거는 iOS 17 이상에서만 보임. Swift Package의 `platforms`도 `.iOS(.v15)`
 - 사진·영상 혼합 편집의 영상 항목에서도 클립 줄(나누기·순서 바꾸기·지우기·추가)이 보임. 항목마다 결과는 하나
 - iOS: 고를 개수(`pickMultiple`)나 넘긴 파일(`files`)이 편집기 상한보다 많으면 `invalidConfiguration` 대신 Android처럼 상한까지만 엶. `maxItems`는 1~100
 - Android: 통합 계약이 `EditorChooser.AUTO`로 사진(또는 사진·영상)을 고르게 하면 열 편집기가 지원하는 사진 형식(JPEG·PNG·WebP, 한 장이면 GIF도)만 고를 수 있음. 고른 것이 모두 열 수 없는 형식이면 `Cancelled` 대신 `UNSUPPORTED_FORMAT`
@@ -12,6 +13,9 @@
 - Android: 음성 편집기에서 호스트가 `RECORD_AUDIO`를 선언하지 않았으면 녹음 도구를 숨기고, `Capture(MediaKind.AUDIO)`는 바로 `PERMISSION_DENIED`(마이크가 없으면 `UNSUPPORTED_OPERATION`)로 실패
 - Android: `MotionEditorConfig`·`AudioEditorConfig`도 `allowUndo = false`이면서 `allowRedo = true`이면 `INVALID_CONFIGURATION`
 - Android: `files/framekit/recordings`의 녹음 파일 중 7일이 지났고 남은 편집 세션이 쓰지 않는 것을 편집기 실행 때 정리함
+- iOS: 카메라·마이크 권한 거부는 `permissionDenied`에 `suggestedAction == .openSettings`(새 값)로 알림. 촬영 전에 카메라 권한을 먼저 물음
+- iOS: 저장 중 앱이 잠시 뒤로 가도 이어서 저장함. 저장 공간 부족은 `insufficientStorage`, 중단은 다시 시도할 수 있는 `outputWriteFailed`로 알림(예전에는 해상도를 낮추라는 `encodeFailed`)
+- iOS: 상한을 넘어 고르거나 넘긴 항목, 일부를 열 수 없는 항목이 있으면 화면에 알림
 
 ### 고침
 
@@ -23,6 +27,14 @@
 - Android: 문서 스캐너가 기기 카메라 앱으로 찍은 사진을 펴는 중 회전하면 빈 화면에 멈추던 문제
 - Android: 움직이는 이미지·음성 저장에서 저장 공간이 모자라도 `ENCODE_FAILED`로 알리던 문제. 이제 `INSUFFICIENT_STORAGE`
 - Android: 녹음기로만 쓰는 음성 편집기(`editAfterRecording = false`)에서 녹음 파일을 결과로 옮기지 못하면 바로 실패하고 녹음이 사라지던 문제. 이제 녹음을 남겨 두고 다시 시도를 물음
+- iOS: 통합 진입점이 파일 앱 등의 보안 범위 URL을 열지 못해 `unsupportedFormat`·`outputWriteFailed`로 끝나던 문제. 없는 파일은 `sourceUnavailable`, 권한 없음은 `permissionDenied`, 빈 파일은 `decodeFailed`
+- iOS: 선택기에서 고른 파일을 복사하지 못하면 취소로 끝나던 문제. 모두 실패하면 오류 화면, 일부만 실패하면 알림
+- iOS: 혼합 편집에서 열지 못한 항목 때문에 닫지도 저장하지도 못하던 문제. 그 항목만 뺄 수 있고, 여는 중인 항목은 기다렸다 저장함
+- iOS: UIKit 편집기 위에 다른 화면을 띄우거나 탭을 바꾸면 편집이 취소되던 문제. 내비게이션에 넣은 SwiftUI 편집기는 뒤로 가면 `cancelled`를 보냄
+- iOS: 마이크 권한을 묻는 사이 편집기나 녹음 시트를 닫아도 녹음이 시작되던 문제, 전화 등으로 녹음이 끊기면 상태가 어긋나던 문제
+- iOS: 녹음이 끝나면 앱이 쓰던 오디오 세션까지 꺼서 앱의 재생이 멈추던 문제
+- iOS: 호스트가 닫은 혼합 편집의 저장 파일, 닫힌 뒤 끝난 원본 보내기 복사본, 열기에 실패한 원본의 임시 복사본, 종료로 남은 영상 저장 임시 파일이 남던 문제
+- iOS: 영상·소리 원본 복사를 주 스레드에서 해 큰 파일에서 화면이 멈추던 문제
 
 ## 1.0.0-alpha10
 

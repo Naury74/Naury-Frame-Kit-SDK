@@ -52,6 +52,15 @@ IOS_OVERRIDES = {
         "th": "บันทึกรูปเป็น PDF ไฟล์เดียว", "vi": "Lưu các ảnh thành một tệp PDF", "zh-Hans": "将照片保存为一个 PDF",
         "zh-Hant": "將照片儲存為一個 PDF",
     },
+    # 한도를 넘어 고른 항목 일부를 열지 않았다(iOS 진입점·편집기).
+    "items_truncated": {
+        "en": "Some items weren't opened because the limit was reached.", "ko": "최대 개수를 넘어 일부 항목은 열지 않았어요.",
+        "ja": "上限を超えたため、一部の項目は開きませんでした。", "de": "Einige Elemente wurden nicht geöffnet, weil das Limit erreicht ist.",
+        "es": "Algunos elementos no se abrieron porque se alcanzó el límite.", "fr": "Certains éléments n'ont pas été ouverts, car la limite est atteinte.",
+        "id": "Beberapa item tidak dibuka karena batas sudah tercapai.", "pt-BR": "Alguns itens não foram abertos porque o limite foi atingido.",
+        "ru": "Некоторые элементы не открыты: достигнут предел.", "th": "บางรายการไม่ได้เปิดเพราะถึงจำนวนสูงสุดแล้ว",
+        "vi": "Một số mục không được mở vì đã đạt giới hạn.", "zh-Hans": "已达到上限，部分项目未打开。", "zh-Hant": "已達上限，部分項目未開啟。",
+    },
 }
 
 

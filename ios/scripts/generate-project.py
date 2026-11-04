@@ -23,7 +23,7 @@ common_proj = """				ALWAYS_SEARCH_USER_PATHS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
-				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MARKETING_VERSION = "1.0.0-alpha10";
 				SDKROOT = iphoneos;
@@ -70,6 +70,7 @@ fw = """				BUILD_LIBRARY_FOR_DISTRIBUTION = YES;
 				SKIP_INSTALL = NO;
 				SWIFT_INSTALL_OBJC_HEADER = NO;
 """
+# SDK는 iOS 15 이상. 샘플 앱은 iOS 17 화면 API(NavigationStack·ContentUnavailableView 등)를 쓰므로 17 이상이다.
 sample = """				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -80,12 +81,15 @@ sample = """				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortraitUpsideDown";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/Frameworks");
 				PRODUCT_BUNDLE_IDENTIFIER = com.naurylab.framekit.sample;
 				PRODUCT_NAME = FrameKitSample;
 """
+# Swift Testing이 iOS 17 이상이라 테스트도 17 이상이다.
 tests = """				CODE_SIGN_STYLE = Automatic;
 				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.naurylab.framekit.tests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 """

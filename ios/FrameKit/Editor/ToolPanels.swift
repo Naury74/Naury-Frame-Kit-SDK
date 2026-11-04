@@ -58,7 +58,7 @@ extension AdjustKind {
 
 /// 자르기·회전·보정·필터 패널이 쓰는 편집 동작. 사진·영상 편집기가 함께 쓴다.
 @MainActor
-protocol ColorToolHost: AnyObject, Observable {
+protocol ColorToolHost: AnyObject, ObservableObject {
     var cropAspect: CropAspect { get }
     func setAspect(_ aspect: CropAspect)
     func rotate(clockwise: Bool)
@@ -88,7 +88,7 @@ extension EditorModel: ColorToolHost {
 
 /// 열린 도구의 조작부와 아래 적용 막대.
 struct ToolPanel: View {
-    let model: EditorModel
+    @ObservedObject var model: EditorModel
     let tool: ImageTool
     @Environment(\.strings) private var strings
 
@@ -111,7 +111,7 @@ struct ToolPanel: View {
                 }
                 .padding(.vertical, 8)
             }
-            .scrollBounceBehavior(.basedOnSize)
+            .bounceWhenScrollable()
             HStack {
                 if tool.resettable {
                     EditorButton(title: strings("action_reset"), systemImage: "arrow.counterclockwise", kind: .tonal) { model.resetTool() }
@@ -128,7 +128,7 @@ struct ToolPanel: View {
 // MARK: - 자르기
 
 struct CropPanel<Host: ColorToolHost>: View {
-    let model: Host
+    @ObservedObject var model: Host
     @Environment(\.strings) private var strings
     @State private var showCustom = false
     @State private var customWidth = ""
@@ -188,7 +188,7 @@ struct CropPanel<Host: ColorToolHost>: View {
 // MARK: - 회전
 
 struct RotatePanel<Host: ColorToolHost>: View {
-    let model: Host
+    @ObservedObject var model: Host
     @Environment(\.strings) private var strings
 
     var body: some View {
@@ -221,7 +221,7 @@ struct RotatePanel<Host: ColorToolHost>: View {
 // MARK: - 보정
 
 struct AdjustPanel<Host: ColorToolHost>: View {
-    @Bindable var model: Host
+    @ObservedObject var model: Host
     @Environment(\.strings) private var strings
     @Environment(\.editorTheme) private var theme
     @Environment(\.haptics) private var haptics
@@ -252,7 +252,7 @@ struct AdjustPanel<Host: ColorToolHost>: View {
                     }
                     .padding(.horizontal, 12)
                 }
-                .onChange(of: kind) { _, new in withAnimation { proxy.scrollTo(new, anchor: .center) } }
+                .onValueChange(of: kind) { _, new in withAnimation { proxy.scrollTo(new, anchor: .center) } }
             }
         }
     }
@@ -297,7 +297,7 @@ struct AdjustPanel<Host: ColorToolHost>: View {
 // MARK: - 필터
 
 struct FilterPanel<Host: ColorToolHost>: View {
-    let model: Host
+    @ObservedObject var model: Host
     @Environment(\.strings) private var strings
     @Environment(\.editorTheme) private var theme
     @Environment(\.haptics) private var haptics

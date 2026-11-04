@@ -3,8 +3,16 @@ import SwiftUI
 /// 음성 타임라인. 재생 위치는 가운데 고정이고 내용이 움직인다.
 /// 손잡이(구간 > 고른 조각 양 끝 > 고른 겹친 조각 몸통)를 끌거나, 그 밖을 끌어 재생 위치를 옮긴다. 두 손가락으로 확대한다.
 struct AudioTimelineView: View {
-    let model: AudioEditorModel
+    @ObservedObject var model: AudioEditorModel
     let tall: Bool
+    /// 재생 위치가 바뀌면 이 줄만 다시 그린다.
+    @ObservedObject private var playback: PlaybackClock
+
+    init(model: AudioEditorModel, tall: Bool) {
+        _model = ObservedObject(wrappedValue: model)
+        self.tall = tall
+        _playback = ObservedObject(wrappedValue: model.playback)
+    }
     @Environment(\.editorTheme) private var theme
     @Environment(\.strings) private var strings
     @State private var pointsPerSecond: CGFloat?
@@ -30,13 +38,13 @@ struct AudioTimelineView: View {
             Canvas { context, size in draw(&context, size: size, pps: pps) }
                 .contentShape(Rectangle())
                 .gesture(dragGesture(width: width, pps: pps))
-                .simultaneousGesture(MagnifyGesture()
+                .simultaneousGesture(MagnificationGesture()
                     .onChanged { value in
                         if pinchStart == nil { pinchStart = pps }
-                        pointsPerSecond = min(max((pinchStart ?? pps) * value.magnification, 6), 320)
+                        pointsPerSecond = min(max((pinchStart ?? pps) * value, 6), 320)
                     }
                     .onEnded { _ in pinchStart = nil })
-                .onTapGesture { location in tap(location, width: width, pps: pps) }
+                .onLocatedTap { location in tap(location, width: width, pps: pps) }
                 .accessibilityElement()
                 .accessibilityLabel(strings("audio_timeline"))
                 .accessibilityValue(clock(Double(model.position) / 1_000_000))
@@ -73,7 +81,7 @@ struct AudioTimelineView: View {
             context.fill(Path(roundedRect: rect, cornerRadius: role == .voice ? 12 : 10), with: .color(theme.surface.opacity(role == .voice ? 1 : 0.6)))
         }
         if project.layerClips.isEmpty && model.tools.contains(.record) {
-            context.draw(Text("+ " + strings("audio_add_layer")).font(.system(size: 13)).foregroundStyle(theme.foregroundMuted),
+            context.draw(Text("+ " + strings("audio_add_layer")).font(.system(size: 13)).foregroundColor(theme.foregroundMuted),
                          at: CGPoint(x: width / 2, y: (layerLane.lowerBound + layerLane.upperBound) / 2))
         }
         for clip in project.clips {
@@ -90,7 +98,7 @@ struct AudioTimelineView: View {
             drawFades(&context, clip: clip, range: r, rect: rect, pps: pps)
             let name = model.sources.indices.contains(clip.source) ? model.sources[clip.source].name : ""
             let label = (clip.loop ? "↻ " : "") + (name.isEmpty ? strings(clip.role == .voice ? "audio_lane_voice" : "audio_lane_layer") : name)
-            var text = context.resolve(Text(label).font(.system(size: 11, weight: .medium)).foregroundStyle(.white))
+            var text = context.resolve(Text(label).font(.system(size: 11, weight: .medium)).foregroundColor(.white))
             text.shading = .color(.white)
             context.draw(text, in: CGRect(x: rect.minX + 6, y: rect.minY + 3, width: max(0, rect.width - 12), height: 14))
             if selected {

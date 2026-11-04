@@ -3,26 +3,28 @@ import SwiftUI
 
 /// 마이크 녹음. 끝나면 오디오 세션을 앱 설정으로 돌린다.
 @MainActor
-@Observable
-final class VoiceRecorder {
+final class VoiceRecorder: ObservableObject {
     enum State: Equatable { case idle, recording, paused, holding }
 
     static let minDuration: TimeInterval = 0.5
     static let levelCount = 240
 
-    private(set) var state = State.idle
-    private(set) var elapsed: TimeInterval = 0
-    private(set) var levels: [CGFloat] = []
+    @Published private(set) var state = State.idle
+    @Published private(set) var elapsed: TimeInterval = 0
+    @Published private(set) var levels: [CGFloat] = []
     /// 문자열 키. 권한 없음·마이크 실패.
-    private(set) var errorKey: String?
+    @Published private(set) var errorKey: String?
     private let maxDuration: TimeInterval
-    private var recorder: AVAudioRecorder?
-    private var url: URL?
+    @Published private var recorder: AVAudioRecorder?
+    @Published private var url: URL?
     private let session = RecordingAudioSession()
     private var meterTask: Task<Void, Never>?
-    private(set) var starting = false
+    @Published private(set) var starting = false
     private var cancelStart = false
     var onLimit: (() -> Void)?
+    /// 마이크 권한을 거절했다.
+    var onPermissionDenied: (() -> Void)?
+    private var interruptionObserver: NSObjectProtocol?
 
     init(maxDuration: TimeInterval) {
         self.maxDuration = maxDuration
@@ -37,7 +39,13 @@ final class VoiceRecorder {
         defer { starting = false }
         errorKey = nil
         guard Self.micDeclared else { errorKey = "audio_mic_failed"; return }
-        guard await AVAudioApplication.requestRecordPermission() else { errorKey = "audio_permission"; return }
+        guard await MicPermission.request() else {
+            errorKey = "audio_permission"
+            if !cancelStart { onPermissionDenied?() }
+            return
+        }
+        // 권한을 묻는 사이 손을 뗐거나 편집기가 닫혔으면 시작하지 않는다.
+        guard !cancelStart else { return }
         do {
             try session.begin()
             let file = try OutputStore.temporaryDirectory.appendingPathComponent("voice-\(UUID().uuidString).m4a")
@@ -57,6 +65,7 @@ final class VoiceRecorder {
             levels = []
             elapsed = 0
             state = holding ? .holding : .recording
+            observeInterruption()
             meter()
         } catch {
             session.end()
@@ -68,7 +77,7 @@ final class VoiceRecorder {
         meterTask?.cancel()
         meterTask = Task {
             while !Task.isCancelled, let recorder, state != .idle {
-                try? await Task.sleep(for: .milliseconds(50))
+                try? await Task.sleep(nanoseconds: 50_000_000)
                 guard state == .recording || state == .holding else { continue }
                 recorder.updateMeters()
                 elapsed = recorder.currentTime
@@ -87,7 +96,9 @@ final class VoiceRecorder {
 
     func resume() {
         guard state == .paused else { return }
-        recorder?.record()
+        // 끊긴 뒤에는 세션을 다시 켜야 녹음된다.
+        try? AVAudioSession.sharedInstance().setActive(true)
+        guard recorder?.record() == true else { errorKey = "audio_mic_failed"; return }
         state = .recording
     }
 
@@ -122,13 +133,29 @@ final class VoiceRecorder {
         meterTask?.cancel()
         recorder = nil
         state = .idle
+        if let interruptionObserver { NotificationCenter.default.removeObserver(interruptionObserver) }
+        interruptionObserver = nil
         session.end()
+    }
+
+    /// 전화 등으로 녹음이 끊기면 시스템이 녹음을 멈추므로 일시 정지 상태로 맞춘다. 이어서 녹음은 사용자가 고른다.
+    private func observeInterruption() {
+        guard interruptionObserver == nil else { return }
+        interruptionObserver = NotificationCenter.default.addObserver(forName: AVAudioSession.interruptionNotification, object: nil,
+                                                                      queue: .main) { [weak self] note in
+            let began = (note.userInfo?[AVAudioSessionInterruptionTypeKey] as? UInt).flatMap(AVAudioSession.InterruptionType.init) == .began
+            MainActor.assumeIsolated {
+                guard began, let self, self.state == .recording || self.state == .holding else { return }
+                self.recorder?.pause()
+                self.state = .paused
+            }
+        }
     }
 }
 
 /// 녹음 조작부. [onFinish]는 파일(짧으면 `nil`)을 받는다.
 struct RecorderPanel: View {
-    let recorder: VoiceRecorder
+    @ObservedObject var recorder: VoiceRecorder
     let mode: RecordMode
     var compact = false
     let onFinish: (URL?) -> Void
@@ -159,7 +186,10 @@ struct RecorderPanel: View {
             controls.frame(height: compact ? 128 : 168)
         }
         .onAppear { holdMode = mode == .hold }
-        .onDisappear { if recorder.state != .idle { recorder.discard() } }
+        .onDisappear {
+            recorder.cancelPendingStart()
+            if recorder.state != .idle { recorder.discard() }
+        }
     }
 
     private var status: String {

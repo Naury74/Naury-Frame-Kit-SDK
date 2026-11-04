@@ -83,7 +83,7 @@ struct AudioEditorModelTests {
     @Test func opensFilesSplitsAndUndoes() async throws {
         let model = AudioEditorModel(request: AudioEditorRequest(input: .files([try makeTestAudio(seconds: 1), try makeTestAudio(seconds: 1)]))) { _ in }
         model.start()
-        for _ in 0..<150 where model.phase != .ready { try await Task.sleep(for: .milliseconds(20)) }
+        for _ in 0..<150 where model.phase != .ready { try await Task.sleep(nanoseconds: 20_000_000) }
         #expect(model.phase == .ready)
         #expect(model.project.mainClips.count == 2)
         #expect(abs(model.duration - 2_000_000) < 50_000)

@@ -121,7 +121,7 @@ struct DialSlider: View {
             var velocity = start
             var current = lastSent ?? value
             while abs(velocity) > tickEvery * 2, !Task.isCancelled {
-                try? await Task.sleep(for: .milliseconds(16))
+                try? await Task.sleep(nanoseconds: 16_000_000)
                 current += velocity * 0.016
                 velocity *= 0.9
                 if current <= range.lowerBound || current >= range.upperBound {

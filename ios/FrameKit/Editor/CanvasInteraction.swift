@@ -2,7 +2,7 @@ import SwiftUI
 
 /// 편집 결과 위의 조작층. [rect]는 사진이 그려진 영역(뷰 좌표)이다.
 struct CanvasInteraction<Host: LayerToolHost>: View {
-    let model: Host
+    @ObservedObject var model: Host
     let rect: CGRect
     let zoom: CGFloat
     @Environment(\.editorTheme) private var theme
@@ -25,7 +25,7 @@ struct CanvasInteraction<Host: LayerToolHost>: View {
         }
         .gesture(drag)
         .simultaneousGesture(overlayPinch)
-        .onTapGesture { location in tap(location) }
+        .onLocatedTap { location in tap(location) }
     }
 
     private func isEmptyText(_ overlay: Overlay) -> Bool {
@@ -97,13 +97,13 @@ struct CanvasInteraction<Host: LayerToolHost>: View {
     }
 
     private var overlayPinch: some Gesture {
-        SimultaneousGesture(MagnifyGesture(), RotateGesture())
+        SimultaneousGesture(MagnificationGesture(), RotationGesture())
             .onChanged { value in
                 guard model.canManipulateOverlays, let overlay = model.selectedOverlay else { return }
                 if pinchStart == nil { pinchStart = overlay.transform }
                 guard let pinchStart else { return }
-                model.transformSelected(from: pinchStart, move: .zero, scale: Double(value.first?.magnification ?? 1),
-                                        rotation: value.second?.rotation.degrees ?? 0)
+                model.transformSelected(from: pinchStart, move: .zero, scale: Double(value.first ?? 1),
+                                        rotation: value.second?.degrees ?? 0)
             }
             .onEnded { _ in
                 if pinchStart != nil { model.commitGesture() }
@@ -150,7 +150,7 @@ struct CanvasInteraction<Host: LayerToolHost>: View {
             .contentShape(Rectangle())
             .position(handles[2])
             .gesture(
-                DragGesture(minimumDistance: 1, coordinateSpace: .named("canvasContent"))
+                DragGesture(minimumDistance: 1, coordinateSpace: CoordinateSpace.named("canvasContent"))
                     .onChanged { g in
                         if start == nil {
                             start = overlay.transform

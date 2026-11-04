@@ -6,7 +6,7 @@ internal import FrameKitCore
 
 /// 영상 편집 화면 뿌리.
 struct VideoEditorRoot: View {
-    let model: VideoEditorModel
+    @ObservedObject var model: VideoEditorModel
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
@@ -16,7 +16,12 @@ struct VideoEditorRoot: View {
             switch model.phase {
             case .awaitingSource:
                 if case .capture = model.request.input {
-                    VideoCameraPicker { model.picked($0.map { [$0] } ?? []) }.ignoresSafeArea()
+                    VideoCameraPicker { result in
+                        var files = PickedFiles()
+                        if let result { files.add(result) }
+                        model.picked(files)
+                    }
+                    .ignoresSafeArea()
                 } else {
                     VideoPicker(limit: model.initialPickLimit) { model.picked($0) }.ignoresSafeArea()
                 }
@@ -48,7 +53,7 @@ struct VideoEditorRoot: View {
 }
 
 struct VideoEditorScreen: View {
-    @Bindable var model: VideoEditorModel
+    @ObservedObject var model: VideoEditorModel
     @Environment(\.editorTheme) private var theme
     @Environment(\.strings) private var strings
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -188,7 +193,7 @@ struct VideoEditorScreen: View {
                                 .frame(width: rect.width, height: rect.height).position(x: rect.midX, y: rect.midY)
                                 .allowsHitTesting(false).accessibilityHidden(true)
                         }
-                        if model.activeTool == .privacy { maskOutlines(rect) }
+                        if model.activeTool == .privacy { PlaybackReader(clock: model.playback) { maskOutlines(rect) } }
                         if [VideoTool.text, .sticker, .privacy].contains(model.activeTool) {
                             CanvasInteraction(model: model, rect: rect, zoom: 1)
                             if model.activeTool == .privacy { MaskHandles(model: model, rect: rect) }
@@ -267,8 +272,10 @@ struct VideoEditorScreen: View {
                 }
                 .buttonStyle(PressFadeStyle())
                 .accessibilityLabel(strings(model.isPlaying ? "pause" : "play"))
-                Text(strings("time_position", formatTime(model.position), formatTime(model.duration)))
-                    .scaledFont(13, weight: .medium, monospacedDigit: true).foregroundStyle(theme.foregroundMuted)
+                PlaybackReader(clock: model.playback) {
+                    Text(strings("time_position", formatTime(model.position), formatTime(model.duration)))
+                        .scaledFont(13, weight: .medium, monospacedDigit: true).foregroundStyle(theme.foregroundMuted)
+                }
                 Spacer()
                 if model.selectedHasAudio && model.tools.contains(.audio) && model.export == nil {
                     let muted = model.selectedClip?.muted == true
@@ -326,7 +333,7 @@ struct VideoEditorScreen: View {
                     ScrollView(.vertical, showsIndicators: false) {
                         panel(tool).padding(.vertical, 8)
                     }
-                    .scrollBounceBehavior(.basedOnSize)
+                    .bounceWhenScrollable()
                     HStack {
                         if tool != .trim || true {
                             EditorButton(title: strings("action_reset"), systemImage: "arrow.counterclockwise", kind: .tonal) { model.resetTool() }
@@ -339,7 +346,7 @@ struct VideoEditorScreen: View {
                 .transition(.opacity)
             } else if model.hasTimelineSelection {
                 ScrollView(.vertical, showsIndicators: false) { TimelineSelectionPanel(model: model) }
-                    .scrollBounceBehavior(.basedOnSize)
+                    .bounceWhenScrollable()
                     .transition(.opacity)
             } else if !model.railTools.isEmpty {
                 rail(wide: wide).transition(.opacity)
@@ -473,7 +480,7 @@ struct PlayerSurface: UIViewRepresentable {
 
 /// 자르기·회전: 고른 클립의 지금 프레임 위에 자르기 틀을 그린다.
 struct VideoCropCanvas: View {
-    let model: VideoEditorModel
+    @ObservedObject var model: VideoEditorModel
     @Environment(\.editorTheme) private var theme
     @State private var bounds: CGImage?
     @State private var handle: CropHandle?
@@ -553,7 +560,7 @@ struct VideoCropCanvas: View {
 // MARK: - 패널
 
 struct CanvasPanel: View {
-    let model: VideoEditorModel
+    @ObservedObject var model: VideoEditorModel
     @Environment(\.strings) private var strings
     @Environment(\.editorTheme) private var theme
     private let ratios: [(Int, Int)?] = [nil, (9, 16), (16, 9), (1, 1), (4, 5), (3, 4)]
@@ -581,7 +588,7 @@ struct CanvasPanel: View {
 }
 
 struct SpeedPanel: View {
-    let model: VideoEditorModel
+    @ObservedObject var model: VideoEditorModel
     @Environment(\.strings) private var strings
     @Environment(\.editorTheme) private var theme
 
@@ -605,7 +612,7 @@ struct SpeedPanel: View {
 }
 
 struct AudioPanel: View {
-    let model: VideoEditorModel
+    @ObservedObject var model: VideoEditorModel
     @Environment(\.strings) private var strings
     @Environment(\.editorTheme) private var theme
 
@@ -627,10 +634,10 @@ struct AudioPanel: View {
 
 // MARK: - 선택기
 
-/// 시스템 영상 선택기. 고른 파일을 임시 폴더에 복사해 넘긴다. 닫으면 빈 목록.
+/// 시스템 영상 선택기. 고른 파일을 임시 폴더에 복사해 넘긴다. 닫으면 빈 결과.
 struct VideoPicker: UIViewControllerRepresentable {
     var limit = 1
-    let onPick: ([URL]) -> Void
+    let onPick: (PickedFiles) -> Void
 
     func makeUIViewController(context: Context) -> PHPickerViewController {
         var config = PHPickerConfiguration()
@@ -647,29 +654,33 @@ struct VideoPicker: UIViewControllerRepresentable {
     func makeCoordinator() -> Coordinator { Coordinator(onPick: onPick) }
 
     final class Coordinator: NSObject, PHPickerViewControllerDelegate {
-        let onPick: ([URL]) -> Void
+        let onPick: (PickedFiles) -> Void
         private var done = false
-        init(onPick: @escaping ([URL]) -> Void) { self.onPick = onPick }
+        init(onPick: @escaping (PickedFiles) -> Void) { self.onPick = onPick }
 
         func picker(_: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
             guard !done else { return }
             done = true
             let providers = results.map(\.itemProvider)
-            guard !providers.isEmpty else { onPick([]); return }
+            guard !providers.isEmpty else { onPick(PickedFiles()); return }
             let onPick = onPick
             Task { @MainActor in
-                var urls: [URL] = []
+                var files = PickedFiles()
                 for provider in providers {
-                    if let url = await Self.copy(VideoEditorModel.ItemBox(provider: provider)) { urls.append(url) }
+                    files.add(await Self.copy(VideoEditorModel.ItemBox(provider: provider)))
                 }
-                onPick(urls)
+                onPick(files)
             }
         }
 
-        nonisolated static func copy(_ box: VideoEditorModel.ItemBox) async -> URL? {
+        nonisolated static func copy(_ box: VideoEditorModel.ItemBox) async -> Result<URL, EditorError> {
             await withCheckedContinuation { continuation in
-                box.provider.loadFileRepresentation(forTypeIdentifier: UTType.movie.identifier) { url, _ in
-                    continuation.resume(returning: url.flatMap { try? VideoEditorModel.copyToTemporary($0) })
+                box.provider.loadFileRepresentation(forTypeIdentifier: UTType.movie.identifier) { url, error in
+                    // 이 콜백이 끝나면 url은 지워지므로 그 전에 복사한다.
+                    continuation.resume(returning: Result { () throws(EditorError) -> URL in
+                        guard let url else { throw .logged(.sourceUnavailable, "video picker: \(String(describing: error))") }
+                        return try VideoEditorModel.copyToTemporary(url)
+                    })
                 }
             }
         }
@@ -678,7 +689,7 @@ struct VideoPicker: UIViewControllerRepresentable {
 
 /// 시스템 카메라(영상). 닫으면 `nil`.
 struct VideoCameraPicker: UIViewControllerRepresentable {
-    let onCapture: (URL?) -> Void
+    let onCapture: (Result<URL, EditorError>?) -> Void
 
     func makeUIViewController(context: Context) -> UIImagePickerController {
         let picker = UIImagePickerController()
@@ -693,14 +704,15 @@ struct VideoCameraPicker: UIViewControllerRepresentable {
     func makeCoordinator() -> Coordinator { Coordinator(onCapture: onCapture) }
 
     final class Coordinator: NSObject, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
-        let onCapture: (URL?) -> Void
+        let onCapture: (Result<URL, EditorError>?) -> Void
         private var done = false
-        init(onCapture: @escaping (URL?) -> Void) { self.onCapture = onCapture }
+        init(onCapture: @escaping (Result<URL, EditorError>?) -> Void) { self.onCapture = onCapture }
 
         func imagePickerController(_: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
             guard !done else { return }
             done = true
-            onCapture((info[.mediaURL] as? URL).flatMap { try? VideoEditorModel.copyToTemporary($0) })
+            guard let url = info[.mediaURL] as? URL else { onCapture(.failure(.logged(.sourceUnavailable, "capture: no media url"))); return }
+            onCapture(Result { () throws(EditorError) -> URL in try VideoEditorModel.copyToTemporary(url) })
         }
 
         func imagePickerControllerDidCancel(_: UIImagePickerController) {
@@ -713,7 +725,7 @@ struct VideoCameraPicker: UIViewControllerRepresentable {
 
 /// 고른 가리기 상자 조작: 안을 끌면 옮기고, 모서리를 끌면 크기를 바꾼다. 밖을 끌면 새 가리기를 그린다.
 struct MaskHandles: View {
-    let model: VideoEditorModel
+    @ObservedObject var model: VideoEditorModel
     let rect: CGRect
     @Environment(\.editorTheme) private var theme
     @Environment(\.strings) private var strings

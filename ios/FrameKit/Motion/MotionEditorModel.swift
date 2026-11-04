@@ -1,13 +1,11 @@
 import AVFoundation
-import Observation
 import SwiftUI
 import UniformTypeIdentifiers
 internal import FrameKitCore
 
 /// 움직이는 이미지 편집기 상태와 동작.
 @MainActor
-@Observable
-final class MotionEditorModel {
+final class MotionEditorModel: ObservableObject {
     enum Phase: Equatable {
         case awaitingSource, loading, failed(EditorError), ready
     }
@@ -30,39 +28,46 @@ final class MotionEditorModel {
     var onRestoreFailed: (() -> Void)?
     private var restoring: (state: MotionSessionState, audio: [AudioSource])?
 
-    private(set) var phase: Phase { didSet { persistSession() } }
-    private(set) var sources: [MotionSource] = []
-    private(set) var media: MotionMedia?
-    var audioSources: [AudioSource] = []
+    @Published private(set) var phase: Phase { didSet { persistSession() } }
+    @Published private(set) var sources: [MotionSource] = []
+    @Published private(set) var media: MotionMedia?
+    @Published var audioSources: [AudioSource] = []
     /// 소리 원본 위치별 파형.
-    private(set) var audioWaves: [Int: Waveform] = [:]
-    var history = MotionHistory(MotionProject(kind: .slideshow, slides: [])) { didSet { persistSession() } }
-    var working: MotionProject?
-    private(set) var activeTool: MotionTool?
-    private var toolEntry: MotionProject?
-    private(set) var position: Int64 = 0
-    private(set) var isPlaying = false
-    private(set) var frame: CGImage?
-    private(set) var thumbnails: [Int: CGImage] = [:]
-    var selectedSlide = 0
-    private(set) var export: ExportUI?
-    var showDiscardDialog = false
-    var showDraftDialog = false
-    var showSaveSheet = false
-    var saveFormat: MotionFormat
-    var saveSize: MotionSize
-    private(set) var notice: String?
-    var busy = false
-    var showAddPicker = false
-    var showMusicPicker = false
-    var musicPickerRole = AudioRole.music
-    var showRecorder = false
-    var adjustKind: AdjustKind = .brightness
-    private(set) var filterThumbnails: [String: CGImage] = [:]
-    var selectedOverlayId: String?
-    var selectedAudioId: String?
-    var stickerCategory = 0
-    var privacy = PrivacySettings()
+    @Published private(set) var audioWaves: [Int: Waveform] = [:]
+    @Published var history = MotionHistory(MotionProject(kind: .slideshow, slides: [])) { didSet { persistSession() } }
+    @Published var working: MotionProject?
+    @Published private(set) var activeTool: MotionTool?
+    @Published private var toolEntry: MotionProject?
+    /// 재생 위치(ms)와 지금 프레임. 이것만 그리는 뷰가 따로 본다.
+    let playback = PlaybackClock()
+    private(set) var position: Int64 {
+        get { playback.position }
+        set { playback.set(position: newValue) }
+    }
+    @Published private(set) var isPlaying = false
+    var frame: CGImage? { playback.frame }
+    @Published private(set) var thumbnails: [Int: CGImage] = [:]
+    @Published var selectedSlide = 0
+    @Published private(set) var export: ExportUI?
+    @Published var showDiscardDialog = false
+    @Published var showDraftDialog = false
+    @Published var showSaveSheet = false
+    @Published var saveFormat: MotionFormat
+    @Published var saveSize: MotionSize
+    @Published private(set) var notice: String?
+    /// 화면이 준비되면 보일 알림.
+    private var pendingNotice: String?
+    @Published var busy = false
+    @Published var showAddPicker = false
+    @Published var showMusicPicker = false
+    @Published var musicPickerRole = AudioRole.music
+    @Published var showRecorder = false
+    @Published var adjustKind: AdjustKind = .brightness
+    @Published private(set) var filterThumbnails: [String: CGImage] = [:]
+    @Published var selectedOverlayId: String?
+    @Published var selectedAudioId: String?
+    @Published var stickerCategory = 0
+    @Published var privacy = PrivacySettings()
 
     private let audioPlayer = AVPlayer()
     private var audioKey = ""
@@ -154,7 +159,9 @@ final class MotionEditorModel {
     private func openInput() {
         switch request.input {
         case .file(let url): load([{ try Self.copyToTemporary(url) }], append: false)
-        case .files(let urls): load(urls.prefix(maxImageCount).map { url in { try Self.copyToTemporary(url) } }, append: false)
+        case .files(let urls):
+            if urls.count > maxImageCount { pendingNotice = "motion_notice_slide_limit" }
+            load(urls.prefix(maxImageCount).map { url in { try Self.copyToTemporary(url) } }, append: false)
         case .data(let data): load([{ try Self.writeTemporary(data) }], append: false)
         default: break
         }
@@ -174,7 +181,9 @@ final class MotionEditorModel {
         }
         let room = append ? max(0, maxImageCount - displayed.slides.count) : maxImageCount
         let chosen = Array(providers.prefix(room))
-        if chosen.count < providers.count { showNotice("motion_notice_slide_limit") }
+        if chosen.count < providers.count {
+            if append { showNotice("motion_notice_slide_limit") } else { pendingNotice = "motion_notice_slide_limit" }
+        }
         guard !chosen.isEmpty else { return }
         if !append { phase = .loading } else { busy = true }
         Task {
@@ -196,7 +205,13 @@ final class MotionEditorModel {
                 var opened: [MotionSource] = []
                 do {
                     for prepare in prepares {
-                        opened.append(try MotionSource(url: try prepare(), removeOnClose: true))
+                        let url = try prepare()
+                        do {
+                            opened.append(try MotionSource(url: url, removeOnClose: true))
+                        } catch {
+                            OutputStore.discardTemporary(url)
+                            throw error
+                        }
                     }
                     // 한 장이 움직이는 원본이면 그것만 편집한다. 여러 장 가운데 움직이는 원본은 첫 프레임만 쓴다.
                     if !append, opened.count == 1, opened[0].isAnimated {
@@ -257,6 +272,10 @@ final class MotionEditorModel {
             showNotice("motion_notice_restored")
         }
         phase = .ready
+        if let pendingNotice {
+            self.pendingNotice = nil
+            showNotice(pendingNotice)
+        }
         makeThumbnails(opened.indices)
         requestRender()
     }
@@ -361,20 +380,7 @@ final class MotionEditorModel {
     }
 
     nonisolated static func copyToTemporary(_ url: URL) throws(EditorError) -> URL {
-        let scoped = url.startAccessingSecurityScopedResource()
-        defer { if scoped { url.stopAccessingSecurityScopedResource() } }
-        let target = try OutputStore.temporaryDirectory.appendingPathComponent(UUID().uuidString)
-            .appendingPathExtension(url.pathExtension.isEmpty ? "img" : url.pathExtension)
-        do {
-            try FileManager.default.copyItem(at: url, to: target)
-            return target
-        } catch let error as CocoaError where error.code == .fileReadNoPermission {
-            throw .logged(.permissionDenied, "copy: \(error)")
-        } catch let error as CocoaError where error.code == .fileWriteOutOfSpace {
-            throw .logged(.insufficientStorage, "copy: \(error)")
-        } catch {
-            throw .logged(.sourceUnavailable, "copy: \(error)")
-        }
+        try OutputStore.copyToTemporary(url, fallbackExtension: "img")
     }
 
     nonisolated static func writeTemporary(_ data: Data) throws(EditorError) -> URL {
@@ -396,22 +402,21 @@ final class MotionEditorModel {
         if position >= duration - Self.frameMs { position = 0 }
         isPlaying = true
         let startPosition = position
-        let started = ContinuousClock.now
+        let started = DispatchTime.now().uptimeNanoseconds
         syncAudio(force: true)
         playTask?.cancel()
         playTask = Task {
             var previous = startPosition
             while !Task.isCancelled, isPlaying {
-                let begin = ContinuousClock.now
+                let begin = DispatchTime.now().uptimeNanoseconds
                 let total = max(1, duration)
-                let elapsed = (begin - started).components
-                let ms = elapsed.seconds * 1000 + elapsed.attoseconds / 1_000_000_000_000_000
+                let ms = Int64((begin - started) / 1_000_000)
                 position = (startPosition + ms) % total
                 syncAudio(force: position < previous)
                 previous = position
                 await renderFrame()
-                let spent = ContinuousClock.now - begin
-                try? await Task.sleep(for: max(.milliseconds(1), .milliseconds(Self.frameMs) - spent))
+                let spent = Int64((DispatchTime.now().uptimeNanoseconds - begin) / 1_000_000)
+                try? await Task.sleep(nanoseconds: UInt64(max(1, Self.frameMs - spent)) * 1_000_000)
             }
         }
     }
@@ -462,7 +467,7 @@ final class MotionEditorModel {
             autoreleasepool { MotionRenderer.render(job.project, media: job.media, timeMs: job.time, size: job.size, colorSpec: job.spec,
                                                     animateOverlays: job.animate) }
         }.value
-        if let image { frame = image }
+        if let image { playback.set(frame: image) }
     }
 
     /// 음악·음성 미리 보기. 소리 조각이 바뀌면 다시 만든다.
@@ -698,8 +703,14 @@ final class MotionEditorModel {
         busy = true
         Task {
             do {
-                let local = copy ? try Self.copyToTemporary(url) : url
-                let source = try await AudioSource.open(url: local, name: url.deletingPathExtension().lastPathComponent)
+                let local = copy ? try await OutputStore.copyToTemporaryInBackground(url, fallbackExtension: "m4a") : url
+                let source: AudioSource
+                do {
+                    source = try await AudioSource.open(url: local, name: url.deletingPathExtension().lastPathComponent)
+                } catch {
+                    OutputStore.discardTemporary(local)
+                    throw error
+                }
                 audioSources.append(source)
                 loadWave(audioSources.count - 1)
                 let id = "\(role.rawValue)-\(UUID().uuidString.prefix(8))"
@@ -851,7 +862,7 @@ final class MotionEditorModel {
         notice = key
         noticeTask?.cancel()
         noticeTask = Task {
-            try? await Task.sleep(for: .seconds(3))
+            try? await Task.sleep(nanoseconds: 3_000_000_000)
             if !Task.isCancelled { notice = nil }
         }
     }

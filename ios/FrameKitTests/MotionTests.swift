@@ -269,7 +269,7 @@ struct InputLimitTests {
         #expect(image.validate().isEmpty)
         let model = EditorModel(request: image) { _ in }
         model.start()
-        for _ in 0..<150 where model.phase != .ready { try await Task.sleep(for: .milliseconds(20)) }
+        for _ in 0..<150 where model.phase != .ready { try await Task.sleep(nanoseconds: 20_000_000) }
         #expect(model.phase == .ready)
         #expect(model.pages.count == 2)
         #expect(VideoEditorRequest(input: .pickMultiple(maxItems: 50)).validate().isEmpty)
@@ -283,7 +283,7 @@ struct MotionEditorModelTests {
     @Test func textToolKeepsTypedText() async throws {
         let model = MotionEditorModel(request: MotionEditorRequest(input: .files([stillFile(0xFFFF_0000), stillFile(0xFF00_00FF)]))) { _ in }
         model.start()
-        for _ in 0..<100 where model.phase != .ready { try await Task.sleep(for: .milliseconds(20)) }
+        for _ in 0..<100 where model.phase != .ready { try await Task.sleep(nanoseconds: 20_000_000) }
         #expect(model.phase == .ready)
         model.selectTool(.text)
         #expect(model.editingText?.text == "")

@@ -40,7 +40,9 @@ enum TrackLane: Hashable {
 /// 재생 위치가 가운데 고정되고 내용이 그 아래로 지나가는 트랙 타임라인.
 /// 끌어서 이동, 두 손가락으로 확대(초당 8~240pt), 누르면 그 줄의 항목을 고른다.
 struct TrackTimeline: View {
-    let model: VideoEditorModel
+    @ObservedObject var model: VideoEditorModel
+    /// 재생 위치가 바뀌면 이 줄만 다시 그린다.
+    @ObservedObject private var playback: PlaybackClock
     @Environment(\.editorTheme) private var theme
     @Environment(\.strings) private var strings
     @Environment(\.haptics) private var haptics
@@ -58,6 +60,11 @@ struct TrackTimeline: View {
     }
 
     static let gap: CGFloat = 6
+
+    init(model: VideoEditorModel) {
+        _model = ObservedObject(wrappedValue: model)
+        _playback = ObservedObject(wrappedValue: model.playback)
+    }
     static let musicColor = Color(argb: 0xFF2E_B67D)
     static let voiceColor = Color(argb: 0xFFF5_9F00)
 
@@ -96,10 +103,10 @@ struct TrackTimeline: View {
             .contentShape(Rectangle())
             .gesture(scrub(pps: pps, width: geo.size.width, tops: tops))
             .simultaneousGesture(zoom(pps: pps))
-            .onTapGesture { location in tap(location, pps: pps, width: geo.size.width, lanes: lanes, tops: tops) }
+            .onLocatedTap { location in tap(location, pps: pps, width: geo.size.width, lanes: lanes, tops: tops) }
             .onAppear { requestTiles(width: geo.size.width, pps: pps) }
-            .onChange(of: model.position) { _, _ in requestTiles(width: geo.size.width, pps: pps) }
-            .onChange(of: edit.clips) { _, _ in requestTiles(width: geo.size.width, pps: pps) }
+            .onValueChange(of: model.position) { _, _ in requestTiles(width: geo.size.width, pps: pps) }
+            .onValueChange(of: edit.clips) { _, _ in requestTiles(width: geo.size.width, pps: pps) }
             .accessibilityElement()
             .accessibilityLabel(strings("timeline"))
             .accessibilityValue(strings("time_position", formatTime(model.position), formatTime(model.duration)))
@@ -341,10 +348,10 @@ struct TrackTimeline: View {
     }
 
     private func zoom(pps: CGFloat) -> some Gesture {
-        MagnifyGesture()
+        MagnificationGesture()
             .onChanged { value in
                 if pinchStart == nil { pinchStart = pps }
-                pointsPerSecond = min(240, max(8, (pinchStart ?? pps) * value.magnification))
+                pointsPerSecond = min(240, max(8, (pinchStart ?? pps) * value))
             }
             .onEnded { _ in pinchStart = nil }
     }
@@ -391,7 +398,7 @@ struct TrackTimeline: View {
 
 /// 구간 도구: 고른 클립 원본 전체 위에서 남길 구간을 고른다.
 struct TrimStrip: View {
-    let model: VideoEditorModel
+    @ObservedObject var model: VideoEditorModel
     @Environment(\.editorTheme) private var theme
     @Environment(\.strings) private var strings
     @State private var frames: [Int: CGImage] = [:]

@@ -1,3 +1,4 @@
+import AVFoundation
 import CoreGraphics
 import Foundation
 import ImageIO
@@ -21,10 +22,55 @@ private func imageFile(frames: Int = 1, ext: String = "png") -> URL {
 
 struct RouterRuleTests {
     @Test func detectsKinds() async throws {
-        #expect(await SourceInspector.kind(imageFile()) == .image)
-        #expect(await SourceInspector.kind(imageFile(frames: 3, ext: "gif")) == .animated)
-        #expect(await SourceInspector.kind(try await makeTestVideo(seconds: 1)) == .video)
-        #expect(await SourceInspector.kind(try makeTestAudio()) == .audio)
+        #expect(try await SourceInspector.kind(imageFile()) == .image)
+        #expect(try await SourceInspector.kind(imageFile(frames: 3, ext: "gif")) == .animated)
+        #expect(try await SourceInspector.kind(try await makeTestVideo(seconds: 1)) == .video)
+        #expect(try await SourceInspector.kind(try makeTestAudio()) == .audio)
+    }
+
+    @Test func unreadableSourcesMapToCodes() async throws {
+        func code(_ url: URL) async -> EditorErrorCode? {
+            do throws(EditorError) { _ = try await SourceInspector.kind(url); return nil } catch { return error.code }
+        }
+        let dir = FileManager.default.temporaryDirectory
+        #expect(await code(dir.appendingPathComponent("missing-\(UUID().uuidString).png")) == .sourceUnavailable)
+        let empty = dir.appendingPathComponent("empty-\(UUID().uuidString).png")
+        try Data().write(to: empty)
+        #expect(await code(empty) == .decodeFailed)
+        let junk = dir.appendingPathComponent("junk-\(UUID().uuidString).bin")
+        try Data(repeating: 7, count: 64).write(to: junk)
+        #expect(await code(junk) == .unsupportedFormat)
+        [empty, junk].forEach { try? FileManager.default.removeItem(at: $0) }
+    }
+
+    @Test func temporaryCopyReportsMissingAndEmptyFiles() throws {
+        let dir = FileManager.default.temporaryDirectory
+        #expect(throws: EditorError.self) { try OutputStore.copyToTemporary(dir.appendingPathComponent("none.png"), fallbackExtension: "img") }
+        do throws(EditorError) {
+            _ = try OutputStore.copyToTemporary(dir.appendingPathComponent("none.png"), fallbackExtension: "img")
+        } catch {
+            #expect(error.code == .sourceUnavailable)
+        }
+        let source = imageFile()
+        let copy = try OutputStore.copyToTemporary(source, fallbackExtension: "img")
+        #expect(FileManager.default.fileExists(atPath: copy.path))
+        OutputStore.discardTemporary(copy)
+        #expect(!FileManager.default.fileExists(atPath: copy.path))
+        // 임시 폴더 밖 파일은 지우지 않는다.
+        OutputStore.discardTemporary(source)
+        #expect(FileManager.default.fileExists(atPath: source.path))
+    }
+
+    @Test func exportErrorsMapToRecoverableCodes() {
+        #expect(ExportErrors.code(NSError(domain: AVFoundationErrorDomain, code: AVError.Code.diskFull.rawValue)) == .insufficientStorage)
+        #expect(ExportErrors.code(NSError(domain: AVFoundationErrorDomain, code: AVError.Code.operationInterrupted.rawValue)) == .outputWriteFailed)
+        #expect(ExportErrors.code(NSError(domain: NSPOSIXErrorDomain, code: Int(ENOSPC))) == .insufficientStorage)
+        let wrapped = NSError(domain: AVFoundationErrorDomain, code: AVError.Code.unknown.rawValue,
+                              userInfo: [NSUnderlyingErrorKey: NSError(domain: NSPOSIXErrorDomain, code: Int(ENOSPC))])
+        #expect(ExportErrors.code(wrapped) == .insufficientStorage)
+        #expect(ExportErrors.code(NSError(domain: AVFoundationErrorDomain, code: AVError.Code.unknown.rawValue)) == .encodeFailed)
+        #expect(EditorErrorCode.outputWriteFailed.defaultRecoverable && EditorErrorCode.outputWriteFailed.defaultAction == .retry)
+        #expect(EditorError.deviceAccessDenied.suggestedAction == .openSettings)
     }
 
     @Test func chooserActionsFollowAndroidRules() {
@@ -75,7 +121,7 @@ struct RouterModelTests {
             if result != nil { break }
             if case .editor = model.phase { break }
             if case .chooser = model.phase { break }
-            try await Task.sleep(for: .milliseconds(20))
+            try await Task.sleep(nanoseconds: 20_000_000)
         }
         return (model, { result })
     }
@@ -95,7 +141,7 @@ struct RouterModelTests {
         if case .failure(let error) = auto() { #expect(error.code == .unsupportedOperation) } else { Issue.record("expected failure") }
         // 할 일이 원본 보내기 하나라 바로 보낸다.
         let (_, result) = try await run(FrameKitRequest(input: .files([imageFile(), video]), chooser: .ask, mixedSelection: .reject))
-        for _ in 0..<100 where result() == nil { try await Task.sleep(for: .milliseconds(20)) }
+        for _ in 0..<100 where result() == nil { try await Task.sleep(nanoseconds: 20_000_000) }
         guard case .success(_, let outputs) = result() else { Issue.record("expected originals"); return }
         #expect(outputs.count == 2 && outputs.allSatisfy(\.isOriginal))
         #expect(outputs[0].mediaType == .image && outputs[1].mediaType == .video && outputs[1].width == 320)
@@ -116,12 +162,12 @@ struct RouterModelTests {
                 }
             }
             if ready { break }
-            try await Task.sleep(for: .milliseconds(20))
+            try await Task.sleep(nanoseconds: 20_000_000)
         }
         mixed.select(1)
         #expect(mixed.selected == 1)
         mixed.saveAll()
-        for _ in 0..<500 where result() == nil { try await Task.sleep(for: .milliseconds(20)) }
+        for _ in 0..<500 where result() == nil { try await Task.sleep(nanoseconds: 20_000_000) }
         guard case .success(let first, let outputs) = result() else { Issue.record("expected outputs \(String(describing: result()))"); return }
         #expect(outputs.map(\.mediaType) == [.image, .video, .image])
         #expect(first.url == outputs[0].url && !outputs.contains(where: \.isOriginal))
@@ -136,5 +182,61 @@ struct RouterModelTests {
         guard case .editor(.image(let editor)) = model.phase else { Issue.record("no editor"); return }
         #expect(editor.request.export.format == .pdf)
         model.dismissedWithoutResult()
+    }
+
+    @Test func pickerFailuresShowErrorOrNotice() async throws {
+        var result: FrameKitResult?
+        let model = RouterModel(request: FrameKitRequest(input: .pick)) { result = $0 }
+        model.start()
+        guard case .picking = model.phase else { Issue.record("not picking"); return }
+        model.picked(PickedFiles(errors: [EditorError(code: .sourceUnavailable)]))
+        guard case .failed(let error) = model.phase else { Issue.record("no failure screen"); return }
+        #expect(error.code == .sourceUnavailable && model.canChooseAnother && result == nil)
+        model.chooseAnother()
+        guard case .picking = model.phase else { Issue.record("not picking again"); return }
+        model.picked(PickedFiles(urls: [imageFile()], errors: [EditorError(code: .sourceUnavailable)]))
+        #expect(model.notice == "add_failed")
+        for _ in 0..<150 {
+            if case .editor = model.phase { break }
+            try await Task.sleep(nanoseconds: 20_000_000)
+        }
+        guard case .editor(.image) = model.phase else { Issue.record("no editor"); return }
+        model.dismissedWithoutResult()
+        if case .cancelled = result {} else { Issue.record("expected cancelled") }
+    }
+
+    @Test func mixedTruncationShowsNotice() async throws {
+        let video = try await makeTestVideo(seconds: 1)
+        let urls = [video] + (0..<MixedEditorModel.maxItems).map { _ in imageFile() }
+        let (router, _) = try await run(FrameKitRequest(input: .files(urls)))
+        guard case .editor(.mixed(let mixed)) = router.phase else { Issue.record("no mixed editor"); return }
+        #expect(mixed.items.count == MixedEditorModel.maxItems && router.notice == "items_truncated")
+        router.dismissedWithoutResult()
+    }
+
+    @Test func mixedRemovesFailedItemAndDeletesSavedOnDismiss() async throws {
+        let video = try await makeTestVideo(seconds: 1)
+        let broken = FileManager.default.temporaryDirectory.appendingPathComponent("broken-\(UUID().uuidString).png")
+        try Data(repeating: 1, count: 32).write(to: broken)
+        var result: FrameKitResult?
+        let mixed = MixedEditorModel(request: FrameKitRequest(input: .pick), urls: [imageFile(), broken, video],
+                                     kinds: [.image, .image, .video]) { result = $0 }
+        for _ in 0..<200 {
+            if case .image(let model) = mixed.items[1].editor, case .failed = model.phase { break }
+            try await Task.sleep(nanoseconds: 20_000_000)
+        }
+        guard case .image(let failed) = mixed.items[1].editor, case .failed(let error) = failed.phase else { Issue.record("item did not fail"); return }
+        // 열기 실패 화면의 닫기는 그 항목만 뺀다.
+        failed.finish(.failure(error))
+        #expect(mixed.items.count == 2 && result == nil)
+        // 저장해 둔 파일은 호스트가 닫으면 지운다.
+        let (slot, partial) = try OutputStore.reserve(extension: "png")
+        try FileManager.default.copyItem(at: imageFile(), to: partial)
+        let saved = try OutputStore.publish(partial: partial, to: slot)
+        mixed.items[0].outputs = [EditedMedia(url: saved, mediaType: .image, width: 1, height: 1, mimeType: "image/png", fileSize: 1,
+                                              warnings: [], durationMs: nil, pageCount: nil, recognizedText: nil, isOriginal: false)]
+        mixed.finish(.cancelled)
+        #expect(!FileManager.default.fileExists(atPath: saved.path))
+        if case .cancelled = result {} else { Issue.record("expected cancelled") }
     }
 }

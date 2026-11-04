@@ -113,7 +113,7 @@ enum AudioExporter {
         } catch let error as EditorError {
             throw error
         } catch {
-            throw EditorError.logged(.encodeFailed, "audio export: \(error)")
+            throw ExportErrors.map(error, context: "audio export")
         }
         try FileManager.default.moveItemSafely(work, to: partial)
         let final = try OutputStore.publish(partial: partial, to: slot)
@@ -148,22 +148,22 @@ enum AudioExporter {
         guard writer.canAdd(input) else { throw EditorError.logged(.encodeFailed, "writer input") }
         writer.add(input)
         guard reader.startReading() else { throw EditorError.logged(.decodeFailed, "read: \(String(describing: reader.error))") }
-        guard writer.startWriting() else { throw EditorError.logged(.encodeFailed, "write: \(String(describing: writer.error))") }
+        guard writer.startWriting() else { throw ExportErrors.map(writer.error, context: "write") }
         writer.startSession(atSourceTime: .zero)
         do {
             while let buffer = output.copyNextSampleBuffer() {
                 try Task.checkCancellation()
                 while !input.isReadyForMoreMediaData {
-                    if writer.status == .failed { throw EditorError.logged(.encodeFailed, "writer: \(String(describing: writer.error))") }
-                    try await Task.sleep(for: .milliseconds(5))
+                    if writer.status == .failed { throw ExportErrors.map(writer.error, context: "writer") }
+                    try await Task.sleep(nanoseconds: 5_000_000)
                 }
-                guard input.append(buffer) else { throw EditorError.logged(.encodeFailed, "append: \(String(describing: writer.error))") }
+                guard input.append(buffer) else { throw ExportErrors.map(writer.error, context: "append") }
                 progress(min(1, Double(CMSampleBufferGetPresentationTimeStamp(buffer).micros) / Double(duration)))
             }
             guard reader.status == .completed else { throw EditorError.logged(.decodeFailed, "read: \(String(describing: reader.error))") }
             input.markAsFinished()
             await writer.finishWriting()
-            guard writer.status == .completed else { throw EditorError.logged(.encodeFailed, "finish: \(String(describing: writer.error))") }
+            guard writer.status == .completed else { throw ExportErrors.map(writer.error, context: "finish") }
             progress(1)
         } catch {
             reader.cancelReading()

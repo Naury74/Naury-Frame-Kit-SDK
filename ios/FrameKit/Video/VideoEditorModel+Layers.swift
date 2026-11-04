@@ -30,7 +30,7 @@ extension VideoEditorModel: LayerToolHost {
         let key = active.map { "\($0.overlay)" }.joined(separator: "|") + "\(String(describing: edit.watermark))" + "\(renderSize)"
         guard force || key != overlayKey else { return }
         overlayKey = key
-        guard !active.isEmpty || edit.watermark?.isValid == true else { overlayImage = nil; return }
+        guard !active.isEmpty || edit.watermark?.isValid == true else { if overlayImage != nil { overlayImage = nil }; return }
         let size = renderSize
         guard let context = BitmapContext.make(width: Int(size.width), height: Int(size.height)) else { return }
         context.translateBy(x: 0, y: size.height)
@@ -255,8 +255,14 @@ extension VideoEditorModel: LayerToolHost {
         busy = true
         Task {
             do {
-                let local = copy ? try Self.copyToTemporary(url) : url
-                let source = try await AudioSource.open(url: local, name: url.deletingPathExtension().lastPathComponent)
+                let local = copy ? try await OutputStore.copyToTemporaryInBackground(url, fallbackExtension: "m4a") : url
+                let source: AudioSource
+                do {
+                    source = try await AudioSource.open(url: local, name: url.deletingPathExtension().lastPathComponent)
+                } catch {
+                    OutputStore.discardTemporary(local)
+                    throw error
+                }
                 audioSources.append(source)
                 loadWave(audioSources.count - 1)
                 let id = "\(role.rawValue)-\(UUID().uuidString.prefix(8))"
