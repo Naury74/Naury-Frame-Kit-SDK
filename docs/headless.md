@@ -23,6 +23,14 @@ val result = handle.awaitResult()
 processor.close()
 ```
 
+### 자르기
+
+`GeometryEdit.crop`은 90° 회전 뒤 영역 기준 정규화 좌표(0~1)입니다.
+
+- 기울인(`straightenDegrees`) 이미지 안에 들어가야 하고, 각 변은 원본 픽셀로 16px 이상이어야 합니다. 원본이 작거나 크게 기울여 가장 큰 자르기가 이보다 작으면 그 크기까지 허용합니다.
+- 경계는 계산 오차(1e-9)만큼 넘어도 됩니다. 그보다 벗어나면 `INVALID_PROJECT`입니다.
+- `CropBoundsCalculator.maxCrop`·`clampCrop`으로 조건에 맞는 값을 얻을 수 있습니다.
+
 ### 도형
 
 `ImageOverlay.Shape`는 사각형·둥근 사각형·원·삼각형·별·선·화살표·양쪽 화살표(`ShapeKind`)를 그립니다.
