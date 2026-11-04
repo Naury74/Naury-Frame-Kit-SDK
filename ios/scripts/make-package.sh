@@ -1,6 +1,6 @@
 #!/bin/sh
 # 배포용 Package.swift를 만든다. build-xcframework.sh로 만든 zip을 GitHub Release에 올린 뒤 실행한다.
-# 사용: make-package.sh <버전>   예) make-package.sh 1.0.0-alpha11
+# 사용: make-package.sh <버전>   예) make-package.sh 1.0.0-alpha12
 # 결과: 저장소 루트 Package.swift (zip URL과 checksum이 들어간 바이너리 패키지)
 set -eu
 VERSION="${1:?버전을 넘기세요}"
