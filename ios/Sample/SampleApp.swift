@@ -53,10 +53,12 @@ struct RootView: View {
     @State private var tab = 0
     /// 편집기 닫기 연결점. 왼쪽 가장자리 밀기를 여기에 잇는다.
     @State private var control = FrameKitEditorControl()
+    /// 녹음만 하는 시트.
+    @State private var recorderSheet = false
 
     var body: some View {
         TabView(selection: $tab) {
-            HomeView(launch: $launch)
+            HomeView(launch: $launch, recorderSheet: $recorderSheet)
                 .tabItem { Label("편집", systemImage: "wand.and.stars") }.tag(0)
             ResultsView()
                 .tabItem { Label("결과", systemImage: "tray.full") }.tag(1)
@@ -72,7 +74,24 @@ struct RootView: View {
                 .interactiveDismissDisabled()
                 .overlay(alignment: .leading) { EdgeSwipeToClose(control: control) }
         }
+        .frameKitAudioEditor(isPresented: $recorderSheet, request: recorderRequest, control: control) { store.add($0, from: "녹음") }
         .onAppear(perform: autoOpen)
+    }
+
+    /// UIKit 화면으로 녹음 시트를 띄운다.
+    private func presentRecorderSheetUIKit() {
+        let scene = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first
+        guard var top = scene?.windows.first(where: \.isKeyWindow)?.rootViewController ?? scene?.windows.first?.rootViewController else { return }
+        while let presented = top.presentedViewController { top = presented }
+        let editor = FrameKitAudioEditorViewController(request: recorderRequest, control: control) { store.add($0, from: "녹음(UIKit)") }
+        top.present(editor, animated: true)
+    }
+
+    private var recorderRequest: AudioEditorRequest {
+        var request = settings.audio(.capture)
+        request.config.editAfterRecording = false
+        request.config.recorderPresentation = .sheet
+        return request
     }
 
     @ViewBuilder
@@ -109,6 +128,8 @@ struct RootView: View {
                 launch = .router(settings.router(.files([photos[0], videos[0], photos[1], videos[1]])))
             }
         }
+        if arguments.contains("-openRecorderSheet") { recorderSheet = true }
+        if arguments.contains("-openRecorderSheetUIKit") { Task { try? await Task.sleep(for: .seconds(1)); presentRecorderSheetUIKit() } }
         if arguments.contains("-openVideo") { Task { launch = .video(settings.video(.files(await SampleVideo.files()))) } }
         // 편집기가 열리고 몇 초 뒤 호스트 닫기를 요청한다.
         if arguments.contains("-requestClose") {
@@ -141,6 +162,7 @@ struct EdgeSwipeToClose: View {
 
 struct HomeView: View {
     @Binding var launch: Launch?
+    @Binding var recorderSheet: Bool
     @Environment(SampleSettings.self) private var settings
 
     var body: some View {
@@ -197,6 +219,7 @@ struct HomeView: View {
 
                 Section("음성") {
                     row("녹음하기", "mic", nil) { launch = .audio(settings.audio(.capture)) }
+                    row("녹음만 하기(시트)", "mic.badge.plus", "편집 없이 녹음 파일을 바로 받습니다.") { recorderSheet = true }
                     row("샘플 소리 2개", "waveform", nil) { launch = .audio(settings.audio(.files(SampleAudio.files()))) }
                     row("소리 파일 고르기", "folder", nil) { launch = .audio(settings.audio(.pickMultiple(maxItems: 5))) }
                 }
