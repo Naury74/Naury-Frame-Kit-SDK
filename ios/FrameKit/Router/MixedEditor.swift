@@ -1,10 +1,9 @@
-import Observation
+import Combine
 import SwiftUI
 
 /// 사진·영상을 섞어 고른 것을 하나씩 편집한다. 아래 줄에서 고른 항목의 종류에 맞는 편집 화면을 보이고, 저장은 한 번에 한다.
 @MainActor
-@Observable
-final class MixedEditorModel {
+final class MixedEditorModel: ObservableObject {
     /// 한 번에 편집할 수 있는 최대 수.
     static let maxItems = 20
 
@@ -33,11 +32,16 @@ final class MixedEditorModel {
     let request: FrameKitRequest
     private let onFinish: (FrameKitResult) -> Void
     private var delivered = false
-    private(set) var items: [Item] = []
-    private(set) var thumbnails: [UUID: CGImage] = [:]
-    var selected = 0
-    private(set) var save: SaveState?
-    var showDiscardDialog = false
+    @Published private(set) var items: [Item] = []
+    @Published private(set) var thumbnails: [UUID: CGImage] = [:]
+    @Published var selected = 0 { didSet { refreshChildState() } }
+    /// 지금 편집기에서 도구를 쓰는 중이면 혼합 화면의 상단 바·항목 줄을 숨긴다.
+    @Published private(set) var toolActive = false
+    /// 편집한 항목. 항목 줄의 표시에 쓴다.
+    @Published private(set) var dirtyItems: Set<UUID> = []
+    private var childObservers: [AnyCancellable] = []
+    @Published private(set) var save: SaveState?
+    @Published var showDiscardDialog = false
     private var saveTask: Task<Void, Never>?
 
     init(request: FrameKitRequest, urls: [URL], kinds: [SourceKind], onFinish: @escaping (FrameKitResult) -> Void) {
@@ -71,6 +75,7 @@ final class MixedEditorModel {
                 self?.thumbnails[id] = image
             }
         }
+        observeChildren()
     }
 
     /// 항목 편집기가 결과를 냈다. 저장 성공은 `saveOne`이 받고, 실패·취소는 그 항목을 뺀다.
@@ -88,17 +93,35 @@ final class MixedEditorModel {
         thumbnails[item.id] = nil
         item.outputs?.forEach { FrameKitOutputs.delete($0.url) }
         guard !items.isEmpty else { finish(result); return }
+        observeChildren()
         selected = min(selected > index ? selected - 1 : selected, items.count - 1)
     }
 
     var current: Item? { items.indices.contains(selected) ? items[selected] : nil }
 
-    /// 지금 편집기에서 도구를 쓰는 중이면 혼합 화면의 상단 바·항목 줄을 숨긴다.
-    var toolActive: Bool {
-        switch current?.editor {
+    /// 항목 편집기가 바뀐 뒤 혼합 화면이 보이는 값을 맞춘다. 같으면 알리지 않는다.
+    private func refreshChildState() {
+        let active = switch current?.editor {
         case .image(let model): model.activeTool != nil
         case .video(let model): model.activeTool != nil
         default: false
+        }
+        if active != toolActive { toolActive = active }
+        let dirty = Set(items.filter { isDirty($0) }.map(\.id))
+        if dirty != dirtyItems { dirtyItems = dirty }
+    }
+
+    private func observeChildren() {
+        childObservers = items.map { item in
+            let changes: ObservableObjectPublisher = switch item.editor {
+            case .image(let model): model.objectWillChange
+            case .video(let model): model.objectWillChange
+            case .motion(let model): model.objectWillChange
+            case .audio(let model): model.objectWillChange
+            case .mixed(let model): model.objectWillChange
+            }
+            // 바뀌기 직전에 알리므로 다음 차례에 읽는다.
+            return changes.receive(on: RunLoop.main).sink { [weak self] _ in self?.refreshChildState() }
         }
     }
 
@@ -267,7 +290,7 @@ final class MixedEditorModel {
 
 /// 혼합 편집 화면.
 struct MixedEditorScreen: View {
-    @Bindable var model: MixedEditorModel
+    @ObservedObject var model: MixedEditorModel
     @Environment(\.editorTheme) private var theme
     @Environment(\.strings) private var strings
 
@@ -348,7 +371,7 @@ struct MixedEditorScreen: View {
                 .padding(.horizontal, 16)
                 .padding(.vertical, 8)
             }
-            .onChange(of: model.selected) { _, new in proxy.scrollTo(new, anchor: .center) }
+            .onValueChange(of: model.selected) { _, new in proxy.scrollTo(new, anchor: .center) }
         }
         .background(theme.surface)
     }
@@ -368,7 +391,7 @@ struct MixedEditorScreen: View {
                 if item.outputs != nil {
                     Image(systemName: "checkmark.circle.fill").font(.system(size: 16)).foregroundStyle(theme.accent)
                         .background(Circle().fill(.white)).frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing).padding(3)
-                } else if model.isDirty(item) {
+                } else if model.dirtyItems.contains(item.id) {
                     Circle().fill(theme.accent).frame(width: 8, height: 8)
                         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing).padding(5)
                 }

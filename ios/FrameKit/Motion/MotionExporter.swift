@@ -122,7 +122,7 @@ enum MotionExporter {
                 let image = try render(f)
                 while !input.isReadyForMoreMediaData {
                     if writer.status == .failed { throw ExportErrors.map(writer.error, context: "writer") }
-                    try await Task.sleep(for: .milliseconds(5))
+                    try await Task.sleep(nanoseconds: 5_000_000)
                 }
                 guard let pool = adaptor.pixelBufferPool else { throw EditorError.logged(.encodeFailed, "pixel pool") }
                 var buffer: CVPixelBuffer?

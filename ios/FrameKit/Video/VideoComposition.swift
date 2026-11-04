@@ -177,7 +177,7 @@ enum VideoExporter {
         let poll = Task {
             while !Task.isCancelled {
                 progress(Double(box.session.progress))
-                try? await Task.sleep(for: .milliseconds(200))
+                try? await Task.sleep(nanoseconds: 200_000_000)
             }
         }
         defer { poll.cancel() }
@@ -256,7 +256,7 @@ final class VideoThumbnailer: @unchecked Sendable {
         let bucket = time / 250_000 * 250_000
         let key = "\(source)/\(bucket)" as NSString
         if let cached = cache.object(forKey: key) { return cached }
-        guard let image = try? await generators[source].image(at: bucket.cmTime).image else { return nil }
+        guard let image = try? await generators[source].frameImage(at: bucket.cmTime) else { return nil }
         cache.setObject(image, forKey: key)
         return image
     }

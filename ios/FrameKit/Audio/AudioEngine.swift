@@ -155,7 +155,7 @@ enum AudioExporter {
                 try Task.checkCancellation()
                 while !input.isReadyForMoreMediaData {
                     if writer.status == .failed { throw ExportErrors.map(writer.error, context: "writer") }
-                    try await Task.sleep(for: .milliseconds(5))
+                    try await Task.sleep(nanoseconds: 5_000_000)
                 }
                 guard input.append(buffer) else { throw ExportErrors.map(writer.error, context: "append") }
                 progress(min(1, Double(CMSampleBufferGetPresentationTimeStamp(buffer).micros) / Double(duration)))

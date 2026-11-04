@@ -2,7 +2,7 @@ import SwiftUI
 
 /// 텍스트·스티커·가리기·워터마크 패널과 사진 위 조작층이 쓰는 동작. 사진·영상 편집기가 함께 쓴다.
 @MainActor
-protocol LayerToolHost: AnyObject, Observable {
+protocol LayerToolHost: AnyObject, ObservableObject {
     var catalog: EditorCatalog { get }
     var editingText: (text: String, style: TextStyle)? { get }
     func setText(_ text: String)
@@ -139,7 +139,7 @@ struct ToggleChip: View {
 
     var body: some View {
         ChoiceChip(title: title, selected: isOn, action: action)
-            .accessibilityAddTraits(.isToggle)
+            .toggleTrait()
     }
 }
 
@@ -148,7 +148,7 @@ private func percent(_ v: Double) -> String { "\(Int((v * 100).rounded()))%" }
 // MARK: - 글자
 
 struct TextPanel<Host: LayerToolHost>: View {
-    let model: Host
+    @ObservedObject var model: Host
     @Environment(\.strings) private var strings
     @FocusState private var focused: Bool
 
@@ -158,8 +158,7 @@ struct TextPanel<Host: LayerToolHost>: View {
         if let editing = model.editingText {
             let style = editing.style
             VStack(alignment: .leading, spacing: 8) {
-                TextField(strings("text_hint"), text: Binding(get: { editing.text }, set: { model.setText($0) }), axis: .vertical)
-                    .lineLimit(1...4)
+                GrowingTextField(title: strings("text_hint"), text: Binding(get: { editing.text }, set: { model.setText($0) }))
                     .focused($focused)
                     .padding(12)
                     .background(RoundedRectangle(cornerRadius: 10).fill(Color.gray.opacity(0.18)))
@@ -251,7 +250,7 @@ func chips(_ ids: [String], selected: String, title: @escaping (String) -> Strin
 // MARK: - 스티커
 
 struct StickerPanel<Host: LayerToolHost>: View {
-    @Bindable var model: Host
+    @ObservedObject var model: Host
     @Environment(\.strings) private var strings
     @Environment(\.editorTheme) private var theme
 
@@ -301,7 +300,7 @@ struct StickerPanel<Host: LayerToolHost>: View {
 // MARK: - 그리기
 
 struct DrawPanel: View {
-    @Bindable var model: EditorModel
+    @ObservedObject var model: EditorModel
     @Environment(\.strings) private var strings
 
     var body: some View {
@@ -345,7 +344,7 @@ struct DrawPanel: View {
 // MARK: - 가리기
 
 struct PrivacyPanel<Host: LayerToolHost>: View {
-    @Bindable var model: Host
+    @ObservedObject var model: Host
     @Environment(\.strings) private var strings
     @Environment(\.editorTheme) private var theme
 
@@ -376,7 +375,7 @@ struct PrivacyPanel<Host: LayerToolHost>: View {
 // MARK: - 워터마크
 
 struct WatermarkPanel<Host: LayerToolHost>: View {
-    let model: Host
+    @ObservedObject var model: Host
     @Environment(\.strings) private var strings
     @Environment(\.editorTheme) private var theme
 

@@ -6,7 +6,7 @@ internal import FrameKitCore
 
 /// 영상 편집 화면 뿌리.
 struct VideoEditorRoot: View {
-    let model: VideoEditorModel
+    @ObservedObject var model: VideoEditorModel
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
@@ -53,7 +53,7 @@ struct VideoEditorRoot: View {
 }
 
 struct VideoEditorScreen: View {
-    @Bindable var model: VideoEditorModel
+    @ObservedObject var model: VideoEditorModel
     @Environment(\.editorTheme) private var theme
     @Environment(\.strings) private var strings
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -193,7 +193,7 @@ struct VideoEditorScreen: View {
                                 .frame(width: rect.width, height: rect.height).position(x: rect.midX, y: rect.midY)
                                 .allowsHitTesting(false).accessibilityHidden(true)
                         }
-                        if model.activeTool == .privacy { maskOutlines(rect) }
+                        if model.activeTool == .privacy { PlaybackReader(clock: model.playback) { maskOutlines(rect) } }
                         if [VideoTool.text, .sticker, .privacy].contains(model.activeTool) {
                             CanvasInteraction(model: model, rect: rect, zoom: 1)
                             if model.activeTool == .privacy { MaskHandles(model: model, rect: rect) }
@@ -272,8 +272,10 @@ struct VideoEditorScreen: View {
                 }
                 .buttonStyle(PressFadeStyle())
                 .accessibilityLabel(strings(model.isPlaying ? "pause" : "play"))
-                Text(strings("time_position", formatTime(model.position), formatTime(model.duration)))
-                    .scaledFont(13, weight: .medium, monospacedDigit: true).foregroundStyle(theme.foregroundMuted)
+                PlaybackReader(clock: model.playback) {
+                    Text(strings("time_position", formatTime(model.position), formatTime(model.duration)))
+                        .scaledFont(13, weight: .medium, monospacedDigit: true).foregroundStyle(theme.foregroundMuted)
+                }
                 Spacer()
                 if model.selectedHasAudio && model.tools.contains(.audio) && model.export == nil {
                     let muted = model.selectedClip?.muted == true
@@ -331,7 +333,7 @@ struct VideoEditorScreen: View {
                     ScrollView(.vertical, showsIndicators: false) {
                         panel(tool).padding(.vertical, 8)
                     }
-                    .scrollBounceBehavior(.basedOnSize)
+                    .bounceWhenScrollable()
                     HStack {
                         if tool != .trim || true {
                             EditorButton(title: strings("action_reset"), systemImage: "arrow.counterclockwise", kind: .tonal) { model.resetTool() }
@@ -344,7 +346,7 @@ struct VideoEditorScreen: View {
                 .transition(.opacity)
             } else if model.hasTimelineSelection {
                 ScrollView(.vertical, showsIndicators: false) { TimelineSelectionPanel(model: model) }
-                    .scrollBounceBehavior(.basedOnSize)
+                    .bounceWhenScrollable()
                     .transition(.opacity)
             } else if !model.railTools.isEmpty {
                 rail(wide: wide).transition(.opacity)
@@ -478,7 +480,7 @@ struct PlayerSurface: UIViewRepresentable {
 
 /// 자르기·회전: 고른 클립의 지금 프레임 위에 자르기 틀을 그린다.
 struct VideoCropCanvas: View {
-    let model: VideoEditorModel
+    @ObservedObject var model: VideoEditorModel
     @Environment(\.editorTheme) private var theme
     @State private var bounds: CGImage?
     @State private var handle: CropHandle?
@@ -558,7 +560,7 @@ struct VideoCropCanvas: View {
 // MARK: - 패널
 
 struct CanvasPanel: View {
-    let model: VideoEditorModel
+    @ObservedObject var model: VideoEditorModel
     @Environment(\.strings) private var strings
     @Environment(\.editorTheme) private var theme
     private let ratios: [(Int, Int)?] = [nil, (9, 16), (16, 9), (1, 1), (4, 5), (3, 4)]
@@ -586,7 +588,7 @@ struct CanvasPanel: View {
 }
 
 struct SpeedPanel: View {
-    let model: VideoEditorModel
+    @ObservedObject var model: VideoEditorModel
     @Environment(\.strings) private var strings
     @Environment(\.editorTheme) private var theme
 
@@ -610,7 +612,7 @@ struct SpeedPanel: View {
 }
 
 struct AudioPanel: View {
-    let model: VideoEditorModel
+    @ObservedObject var model: VideoEditorModel
     @Environment(\.strings) private var strings
     @Environment(\.editorTheme) private var theme
 
@@ -723,7 +725,7 @@ struct VideoCameraPicker: UIViewControllerRepresentable {
 
 /// 고른 가리기 상자 조작: 안을 끌면 옮기고, 모서리를 끌면 크기를 바꾼다. 밖을 끌면 새 가리기를 그린다.
 struct MaskHandles: View {
-    let model: VideoEditorModel
+    @ObservedObject var model: VideoEditorModel
     let rect: CGRect
     @Environment(\.editorTheme) private var theme
     @Environment(\.strings) private var strings

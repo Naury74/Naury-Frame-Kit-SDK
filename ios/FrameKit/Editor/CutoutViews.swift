@@ -2,7 +2,7 @@ import SwiftUI
 
 /// 문서 보정 조작부.
 struct CutoutPanel: View {
-    let model: EditorModel
+    @ObservedObject var model: EditorModel
     @Environment(\.strings) private var strings
     @Environment(\.editorTheme) private var theme
 

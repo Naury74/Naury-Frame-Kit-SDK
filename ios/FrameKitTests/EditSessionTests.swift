@@ -7,7 +7,7 @@ private func sessionRoot() -> URL {
 }
 
 private func waitReady(_ ready: @MainActor () -> Bool) async throws {
-    for _ in 0..<200 where await !ready() { try await Task.sleep(for: .milliseconds(20)) }
+    for _ in 0..<200 where await !ready() { try await Task.sleep(nanoseconds: 20_000_000) }
 }
 
 @MainActor

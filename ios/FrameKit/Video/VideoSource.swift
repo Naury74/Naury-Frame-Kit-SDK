@@ -73,7 +73,7 @@ final class VideoSource: @unchecked Sendable {
         let generator = AVAssetImageGenerator(asset: asset)
         generator.appliesPreferredTrackTransform = true
         generator.maximumSize = CGSize(width: maxSide, height: maxSide)
-        guard let image = try? await generator.image(at: time.cmTime).image else { return nil }
+        guard let image = try? await generator.frameImage(at: time.cmTime) else { return nil }
         return UprightImage(cgImage: image)
     }
 
@@ -124,3 +124,22 @@ extension Micros {
 extension CMTime {
     var micros: Micros { isNumeric ? Micros((seconds * 1_000_000).rounded()) : 0 }
 }
+
+extension AVAssetImageGenerator {
+    /// [time]의 한 장. iOS 15에서도 쓴다.
+    func frameImage(at time: CMTime) async throws -> CGImage {
+        if #available(iOS 16, *) { return try await image(at: time).image }
+        let box = GeneratorBox(generator: self)
+        return try await withCheckedThrowingContinuation { continuation in
+            box.generator.generateCGImagesAsynchronously(forTimes: [NSValue(time: time)]) { _, image, _, result, error in
+                if let image, result == .succeeded {
+                    continuation.resume(returning: image)
+                } else {
+                    continuation.resume(throwing: error ?? CancellationError())
+                }
+            }
+        }
+    }
+}
+
+private struct GeneratorBox: @unchecked Sendable { let generator: AVAssetImageGenerator }

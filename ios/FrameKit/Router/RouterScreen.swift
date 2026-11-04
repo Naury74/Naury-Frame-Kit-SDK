@@ -4,7 +4,7 @@ import UniformTypeIdentifiers
 
 /// 진입점 화면 뿌리.
 struct RouterRoot: View {
-    let model: RouterModel
+    @ObservedObject var model: RouterModel
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
@@ -53,7 +53,7 @@ struct RouterRoot: View {
 
 /// 고른 원본을 열 수 없을 때.
 private struct RouterFailureView: View {
-    let model: RouterModel
+    @ObservedObject var model: RouterModel
     let error: EditorError
     @Environment(\.editorTheme) private var theme
     @Environment(\.strings) private var strings
@@ -75,7 +75,7 @@ private struct RouterFailureView: View {
 
 /// 할 일 고르기.
 struct ChooserScreen: View {
-    let model: RouterModel
+    @ObservedObject var model: RouterModel
     let choice: RouterModel.Choice
     @Environment(\.editorTheme) private var theme
     @Environment(\.strings) private var strings

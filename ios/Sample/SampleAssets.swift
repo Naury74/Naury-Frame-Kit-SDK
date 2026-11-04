@@ -81,7 +81,7 @@ enum SampleVideo {
         format.scale = 1
         let renderer = UIGraphicsImageRenderer(size: CGSize(width: width, height: height), format: format)
         for i in 0..<frames {
-            while !input.isReadyForMoreMediaData { try await Task.sleep(for: .milliseconds(5)) }
+            while !input.isReadyForMoreMediaData { try await Task.sleep(nanoseconds: 5_000_000) }
             let image = renderer.image { _ in
                 UIColor(hue: hue, saturation: 0.7, brightness: 0.8, alpha: 1).setFill()
                 UIRectFill(CGRect(x: 0, y: 0, width: width, height: height))

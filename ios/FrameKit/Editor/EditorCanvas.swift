@@ -3,7 +3,7 @@ internal import FrameKitCore
 
 /// 사진 영역. 자르기·회전 도구에서는 자르기 전 이미지 위에 자르기 틀을 그린다.
 struct EditorCanvas: View {
-    let model: EditorModel
+    @ObservedObject var model: EditorModel
     @Environment(\.editorTheme) private var theme
     @Environment(\.strings) private var strings
     @Environment(\.displayScale) private var displayScale
@@ -32,7 +32,7 @@ struct EditorCanvas: View {
                 }
             }
             .onAppear { model.setViewport(CGSize(width: area.width * displayScale, height: area.height * displayScale)) }
-            .onChange(of: geo.size) { _, _ in
+            .onValueChange(of: geo.size) { _, _ in
                 model.setViewport(CGSize(width: area.width * displayScale, height: area.height * displayScale))
             }
         }
@@ -61,7 +61,7 @@ struct EditorCanvas: View {
                     CanvasInteraction(model: model, rect: rect, zoom: zoom)
                 }
             }
-            .coordinateSpace(.named("canvasContent"))
+            .coordinateSpace(name: "canvasContent")
             .scaleEffect(zoom, anchor: .center)
             .offset(pan)
             if original {
@@ -111,12 +111,12 @@ struct EditorCanvas: View {
 
     /// 요소를 고르지 않았을 때 두 손가락으로 사진을 확대·이동한다.
     private func canvasZoom(area: CGRect) -> some Gesture {
-        MagnifyGesture()
+        MagnificationGesture()
             .onChanged { value in
                 guard model.selectedOverlayId == nil || !model.canManipulateOverlays else { return }
                 if zoomStart == nil { zoomStart = (zoom, pan) }
                 guard let zoomStart else { return }
-                zoom = min(Self.maxZoom, max(1, zoomStart.zoom * value.magnification))
+                zoom = min(Self.maxZoom, max(1, zoomStart.zoom * value))
                 let limitX = area.width * (zoom - 1) / 2, limitY = area.height * (zoom - 1) / 2
                 pan = CGSize(width: min(limitX, max(-limitX, zoomStart.pan.width)), height: min(limitY, max(-limitY, zoomStart.pan.height)))
             }

@@ -8,7 +8,7 @@
 <p align="center">
   <a href="https://central.sonatype.com/artifact/com.naurylab/framekit"><img src="https://img.shields.io/maven-central/v/com.naurylab/framekit?label=Maven%20Central&color=6C5CE7" alt="Maven Central"></a>
   <img src="https://img.shields.io/badge/minSdk-26-3DDC84" alt="minSdk 26">
-  <img src="https://img.shields.io/badge/iOS-17%2B-000000" alt="iOS 17+">
+  <img src="https://img.shields.io/badge/iOS-15%2B-000000" alt="iOS 15+">
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache%202.0-blue" alt="License"></a>
 </p>
 
@@ -21,7 +21,7 @@
 
 | | Android | iOS |
 | --- | --- | --- |
-| 최소 버전 | Android 8.0 (API 26) | iOS 17 |
+| 최소 버전 | Android 8.0 (API 26) | iOS 15 |
 | 개발 환경 | Kotlin 2.2 이상, Compose 없이도 사용 | Xcode 16 이상, Swift 5·6 |
 | 배포 | Maven Central `com.naurylab:framekit` | Swift Package Manager (컴파일된 `FrameKit.xcframework`) |
 | 진입점 | `FrameKitContract` (Activity Result) | `.frameKitEditor` (SwiftUI), `FrameKitViewController` (UIKit) |
@@ -267,7 +267,7 @@ FrameKitRequest(
 
 - SDK에는 권한 사용 설명이 들어 있지 않습니다. 카메라·마이크 사용 설명이 없으면 촬영은 `invalidConfiguration`으로 끝나고 녹음 도구는 보이지 않습니다.
 - 앱 확장(공유 확장 등)에서는 쓸 수 없습니다.
-- 배경 제거와 PDF 글자 인식은 기기 안 Vision으로 처리해 따로 넣을 모듈이나 내려받을 모델이 없습니다. 배경 제거를 지원하지 않는 기기(시뮬레이터 포함)에서는 도구가 보이지 않습니다.
+- 배경 제거와 PDF 글자 인식은 기기 안 Vision으로 처리해 따로 넣을 모듈이나 내려받을 모델이 없습니다. 배경 제거를 지원하지 않는 기기(iOS 17 미만, 시뮬레이터 포함)에서는 도구가 보이지 않습니다.
 - 앱이 종료된 뒤 이어 편집하려면 같은 편집기를 같은 입력으로 다시 엽니다.
 - 미리 보기 소리는 앱의 오디오 세션 설정을 따르고, 녹음이 끝나면 앱이 쓰던 오디오 세션 설정으로 돌립니다.
 

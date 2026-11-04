@@ -20,7 +20,7 @@ func makeTestVideo(seconds: Double = 2, width: Int = 320, height: Int = 240, fps
     writer.startSession(atSourceTime: .zero)
     let frames = Int(seconds * Double(fps))
     for i in 0..<frames {
-        while !input.isReadyForMoreMediaData { try await Task.sleep(for: .milliseconds(5)) }
+        while !input.isReadyForMoreMediaData { try await Task.sleep(nanoseconds: 5_000_000) }
         var buffer: CVPixelBuffer?
         CVPixelBufferPoolCreatePixelBuffer(nil, adaptor.pixelBufferPool!, &buffer)
         let pb = buffer!
@@ -60,7 +60,7 @@ private func frame(of url: URL, at seconds: Double) async throws -> CGImage {
     generator.appliesPreferredTrackTransform = true
     generator.requestedTimeToleranceBefore = .zero
     generator.requestedTimeToleranceAfter = .zero
-    return try await generator.image(at: CMTime(seconds: seconds, preferredTimescale: 600)).image
+    return try await generator.frameImage(at: CMTime(seconds: seconds, preferredTimescale: 600))
 }
 
 struct VideoEngineTests {
@@ -117,8 +117,8 @@ struct VideoLayerTests {
         let generator = AVAssetImageGenerator(asset: AVURLAsset(url: media.url))
         generator.requestedTimeToleranceBefore = .zero
         generator.requestedTimeToleranceAfter = .zero
-        let early = try await generator.image(at: CMTime(seconds: 0.5, preferredTimescale: 600)).image
-        let late = try await generator.image(at: CMTime(seconds: 1.5, preferredTimescale: 600)).image
+        let early = try await generator.frameImage(at: CMTime(seconds: 0.5, preferredTimescale: 600))
+        let late = try await generator.frameImage(at: CMTime(seconds: 1.5, preferredTimescale: 600))
         let pe = pixel(early, x: early.width * 3 / 4, y: early.height / 2)
         let pl = pixel(late, x: late.width * 3 / 4, y: late.height / 2)
         #expect(pe.r > 200 && pe.g > 200 && pe.b < 80)   // 노란 상자
@@ -135,7 +135,7 @@ struct VideoEditorModelTests {
     private func readyModel() async throws -> VideoEditorModel {
         let model = VideoEditorModel(request: VideoEditorRequest(input: .file(try await makeTestVideo()))) { _ in }
         model.start()
-        for _ in 0..<200 where model.phase != .ready { try await Task.sleep(for: .milliseconds(20)) }
+        for _ in 0..<200 where model.phase != .ready { try await Task.sleep(nanoseconds: 20_000_000) }
         #expect(model.phase == .ready)
         return model
     }
@@ -162,7 +162,7 @@ struct VideoEditorModelTests {
         let model = try await readyModel()
         defer { model.finish(.cancelled) }
         model.addAudio(url: try makeTestAudio(seconds: 1), role: .voice)
-        for _ in 0..<100 where model.displayed.audio.isEmpty { try await Task.sleep(for: .milliseconds(20)) }
+        for _ in 0..<100 where model.displayed.audio.isEmpty { try await Task.sleep(nanoseconds: 20_000_000) }
         guard let clip = model.selectedAudio else { Issue.record("no audio"); return }
         model.trimSelectedAudio(from: clip, start: false, by: -5_000_000)
         model.commitGesture()

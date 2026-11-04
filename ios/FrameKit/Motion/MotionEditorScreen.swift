@@ -2,7 +2,7 @@ import SwiftUI
 
 /// 움직이는 이미지 편집 화면 뿌리.
 struct MotionEditorRoot: View {
-    let model: MotionEditorModel
+    @ObservedObject var model: MotionEditorModel
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
@@ -40,7 +40,7 @@ struct MotionEditorRoot: View {
 }
 
 struct MotionEditorScreen: View {
-    @Bindable var model: MotionEditorModel
+    @ObservedObject var model: MotionEditorModel
     @Environment(\.editorTheme) private var theme
     @Environment(\.strings) private var strings
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -159,16 +159,18 @@ struct MotionEditorScreen: View {
             GeometryReader { geo in
                 let rect = fit(model.renderSize, in: CGRect(origin: .zero, size: geo.size).insetBy(dx: 16, dy: 16))
                 ZStack {
-                    if let frame = model.frame {
-                        Image(decorative: frame, scale: 1).resizable().interpolation(.high)
-                            .frame(width: rect.width, height: rect.height).position(x: rect.midX, y: rect.midY)
-                            .accessibilityHidden(true)
+                    PlaybackReader(clock: model.playback) {
+                        if let frame = model.frame {
+                            Image(decorative: frame, scale: 1).resizable().interpolation(.high)
+                                .frame(width: rect.width, height: rect.height).position(x: rect.midX, y: rect.midY)
+                                .accessibilityHidden(true)
+                        }
                     }
                     if model.activeTool == .text || model.activeTool == .sticker {
                         CanvasInteraction(model: model, rect: rect, zoom: 1)
                     } else {
                         Color.clear.contentShape(Rectangle())
-                            .onTapGesture { location in
+                            .onLocatedTap { location in
                                 guard model.activeTool == nil else { return }
                                 model.selectOverlayFromIdle(at: CGPoint(x: (location.x - rect.minX) / max(1, rect.width),
                                                                         y: (location.y - rect.minY) / max(1, rect.height)))
@@ -216,13 +218,15 @@ struct MotionEditorScreen: View {
             }
             .buttonStyle(PressFadeStyle())
             .accessibilityLabel(strings(model.isPlaying ? "motion_pause" : "motion_play"))
-            Slider(value: Binding(get: { Double(model.position) }, set: { model.seek(to: Int64($0)) }), in: 0...Double(max(1, model.duration - 1)))
-                .tint(theme.accent)
-                .accessibilityLabel(strings("motion_time", seconds(model.position), seconds(model.duration)))
-            Text(strings("motion_time", seconds(model.position), seconds(model.duration)))
-                .scaledFont(13, weight: .medium, monospacedDigit: true).foregroundStyle(theme.foregroundMuted)
-                .fixedSize()
-                .accessibilityHidden(true)
+            PlaybackReader(clock: model.playback) {
+                Slider(value: Binding(get: { Double(model.position) }, set: { model.seek(to: Int64($0)) }), in: 0...Double(max(1, model.duration - 1)))
+                    .tint(theme.accent)
+                    .accessibilityLabel(strings("motion_time", seconds(model.position), seconds(model.duration)))
+                Text(strings("motion_time", seconds(model.position), seconds(model.duration)))
+                    .scaledFont(13, weight: .medium, monospacedDigit: true).foregroundStyle(theme.foregroundMuted)
+                    .fixedSize()
+                    .accessibilityHidden(true)
+            }
         }
         .padding(.horizontal, 8)
         if model.tools.contains(.audio) && (model.hasAudio || model.activeTool == .audio) {
@@ -242,7 +246,7 @@ struct MotionEditorScreen: View {
                     ScrollView(.vertical, showsIndicators: false) {
                         panel(tool).padding(.vertical, 8)
                     }
-                    .scrollBounceBehavior(.basedOnSize)
+                    .bounceWhenScrollable()
                     HStack {
                         if model.resettable {
                             EditorButton(title: strings("action_reset"), systemImage: "arrow.counterclockwise", kind: .tonal) { model.resetTool() }
@@ -391,7 +395,7 @@ extension MotionTool {
 
 /// 슬라이드쇼 사진 목록. 누르면 그 사진으로 가고, 단추로 순서를 바꾸거나 뺀다.
 struct SlideStrip: View {
-    let model: MotionEditorModel
+    @ObservedObject var model: MotionEditorModel
     @Environment(\.editorTheme) private var theme
     @Environment(\.strings) private var strings
 
@@ -434,7 +438,7 @@ struct SlideStrip: View {
                     .padding(.horizontal, 16)
                     .padding(.vertical, 2)
                 }
-                .onChange(of: model.selectedSlide) { _, new in proxy.scrollTo(new, anchor: .center) }
+                .onValueChange(of: model.selectedSlide) { _, new in proxy.scrollTo(new, anchor: .center) }
             }
         }
         .padding(.top, 4)
@@ -470,7 +474,7 @@ struct SlideStrip: View {
 // MARK: - 패널
 
 struct CameraMotionPanel: View {
-    let model: MotionEditorModel
+    @ObservedObject var model: MotionEditorModel
     @Environment(\.strings) private var strings
     @Environment(\.editorTheme) private var theme
 
@@ -496,7 +500,7 @@ struct CameraMotionPanel: View {
 }
 
 struct TransitionPanel: View {
-    let model: MotionEditorModel
+    @ObservedObject var model: MotionEditorModel
     @Environment(\.strings) private var strings
 
     var body: some View {
@@ -518,7 +522,7 @@ struct TransitionPanel: View {
 }
 
 struct TimingPanel: View {
-    let model: MotionEditorModel
+    @ObservedObject var model: MotionEditorModel
     @Environment(\.strings) private var strings
     @Environment(\.editorTheme) private var theme
 
@@ -558,7 +562,7 @@ struct TimingPanel: View {
 }
 
 struct LoopPanel: View {
-    let model: MotionEditorModel
+    @ObservedObject var model: MotionEditorModel
     @Environment(\.strings) private var strings
     @Environment(\.editorTheme) private var theme
 
@@ -573,7 +577,7 @@ struct LoopPanel: View {
 }
 
 struct MotionCanvasPanel: View {
-    let model: MotionEditorModel
+    @ObservedObject var model: MotionEditorModel
     @Environment(\.strings) private var strings
     @Environment(\.editorTheme) private var theme
 
@@ -606,7 +610,7 @@ struct MotionCanvasPanel: View {
 
 /// 고른 텍스트·스티커의 움직임.
 struct OverlayAnimationChips: View {
-    let model: MotionEditorModel
+    @ObservedObject var model: MotionEditorModel
     @Environment(\.strings) private var strings
     @Environment(\.editorTheme) private var theme
 
@@ -639,7 +643,7 @@ struct OverlayAnimationChips: View {
 
 /// 음악·음성 줄. 조각을 누르면 고르고, 고른 조각은 끌어서 옮긴다.
 struct MotionAudioLanes: View {
-    let model: MotionEditorModel
+    @ObservedObject var model: MotionEditorModel
     @Environment(\.editorTheme) private var theme
     @Environment(\.strings) private var strings
     @State private var drag: Drag?
@@ -656,9 +660,11 @@ struct MotionAudioLanes: View {
                     lane(.music, width: width, total: total)
                     lane(.voice, width: width, total: total)
                 }
-                Rectangle().fill(theme.foreground).frame(width: 2, height: 58)
-                    .offset(x: Double(model.positionUs) / total * width - 1)
-                    .allowsHitTesting(false)
+                PlaybackReader(clock: model.playback) {
+                    Rectangle().fill(theme.foreground).frame(width: 2, height: 58)
+                        .offset(x: Double(model.positionUs) / total * width - 1)
+                        .allowsHitTesting(false)
+                }
             }
         }
         .frame(height: 58)
@@ -725,7 +731,7 @@ struct MotionAudioLanes: View {
 }
 
 struct MotionAudioPanel: View {
-    let model: MotionEditorModel
+    @ObservedObject var model: MotionEditorModel
     @Environment(\.strings) private var strings
     @Environment(\.editorTheme) private var theme
 
@@ -789,7 +795,7 @@ struct MotionAudioPanel: View {
 // MARK: - 저장 시트
 
 struct MotionSaveSheet: View {
-    @Bindable var model: MotionEditorModel
+    @ObservedObject var model: MotionEditorModel
     @Environment(\.strings) private var strings
     @Environment(\.editorTheme) private var theme
 
@@ -822,7 +828,7 @@ struct MotionSaveSheet: View {
             .padding(20)
         }
         .background(theme.surface.ignoresSafeArea())
-        .presentationDetents([.medium, .large])
+        .sheetSize(.mediumLarge)
         .environment(\.editorTheme, theme)
     }
 

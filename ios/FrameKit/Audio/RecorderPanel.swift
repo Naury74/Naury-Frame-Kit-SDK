@@ -3,24 +3,23 @@ import SwiftUI
 
 /// 마이크 녹음. 끝나면 오디오 세션을 앱 설정으로 돌린다.
 @MainActor
-@Observable
-final class VoiceRecorder {
+final class VoiceRecorder: ObservableObject {
     enum State: Equatable { case idle, recording, paused, holding }
 
     static let minDuration: TimeInterval = 0.5
     static let levelCount = 240
 
-    private(set) var state = State.idle
-    private(set) var elapsed: TimeInterval = 0
-    private(set) var levels: [CGFloat] = []
+    @Published private(set) var state = State.idle
+    @Published private(set) var elapsed: TimeInterval = 0
+    @Published private(set) var levels: [CGFloat] = []
     /// 문자열 키. 권한 없음·마이크 실패.
-    private(set) var errorKey: String?
+    @Published private(set) var errorKey: String?
     private let maxDuration: TimeInterval
-    private var recorder: AVAudioRecorder?
-    private var url: URL?
+    @Published private var recorder: AVAudioRecorder?
+    @Published private var url: URL?
     private let session = RecordingAudioSession()
     private var meterTask: Task<Void, Never>?
-    private(set) var starting = false
+    @Published private(set) var starting = false
     private var cancelStart = false
     var onLimit: (() -> Void)?
     /// 마이크 권한을 거절했다.
@@ -78,7 +77,7 @@ final class VoiceRecorder {
         meterTask?.cancel()
         meterTask = Task {
             while !Task.isCancelled, let recorder, state != .idle {
-                try? await Task.sleep(for: .milliseconds(50))
+                try? await Task.sleep(nanoseconds: 50_000_000)
                 guard state == .recording || state == .holding else { continue }
                 recorder.updateMeters()
                 elapsed = recorder.currentTime
@@ -156,7 +155,7 @@ final class VoiceRecorder {
 
 /// 녹음 조작부. [onFinish]는 파일(짧으면 `nil`)을 받는다.
 struct RecorderPanel: View {
-    let recorder: VoiceRecorder
+    @ObservedObject var recorder: VoiceRecorder
     let mode: RecordMode
     var compact = false
     let onFinish: (URL?) -> Void

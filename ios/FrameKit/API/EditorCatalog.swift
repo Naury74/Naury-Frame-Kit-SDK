@@ -32,11 +32,14 @@ public struct EditorCatalog: Sendable, Hashable {
 
     func issues() -> [ConfigurationIssue] {
         var issues: [ConfigurationIssue] = []
-        let idPattern = /^[a-z0-9_.-]{1,64}$/
+        // 영문 소문자·숫자·`_`·`.`·`-` 1~64자.
+        func validId(_ id: String) -> Bool {
+            (1...64).contains(id.count) && id.unicodeScalars.allSatisfy { ("a"..."z").contains($0) || ("0"..."9").contains($0) || "_.-".unicodeScalars.contains($0) }
+        }
         func check(_ ids: [String], labels: [String], reserved: Set<String>, path: String, limit: Int) {
             if ids.count > limit { issues.append(.init(path: path, reason: .outOfRange)) }
             if Set(ids).count != ids.count { issues.append(.init(path: path, reason: .invalidValue)) }
-            for (index, id) in ids.enumerated() where (try? idPattern.wholeMatch(in: id)) == nil || reserved.contains(id) {
+            for (index, id) in ids.enumerated() where !validId(id) || reserved.contains(id) {
                 issues.append(.init(path: "\(path)[\(index)].id", reason: .invalidValue))
             }
             for (index, label) in labels.enumerated() where label.trimmingCharacters(in: .whitespaces).isEmpty {

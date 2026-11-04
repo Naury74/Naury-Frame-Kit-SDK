@@ -121,7 +121,7 @@ struct RouterModelTests {
             if result != nil { break }
             if case .editor = model.phase { break }
             if case .chooser = model.phase { break }
-            try await Task.sleep(for: .milliseconds(20))
+            try await Task.sleep(nanoseconds: 20_000_000)
         }
         return (model, { result })
     }
@@ -141,7 +141,7 @@ struct RouterModelTests {
         if case .failure(let error) = auto() { #expect(error.code == .unsupportedOperation) } else { Issue.record("expected failure") }
         // 할 일이 원본 보내기 하나라 바로 보낸다.
         let (_, result) = try await run(FrameKitRequest(input: .files([imageFile(), video]), chooser: .ask, mixedSelection: .reject))
-        for _ in 0..<100 where result() == nil { try await Task.sleep(for: .milliseconds(20)) }
+        for _ in 0..<100 where result() == nil { try await Task.sleep(nanoseconds: 20_000_000) }
         guard case .success(_, let outputs) = result() else { Issue.record("expected originals"); return }
         #expect(outputs.count == 2 && outputs.allSatisfy(\.isOriginal))
         #expect(outputs[0].mediaType == .image && outputs[1].mediaType == .video && outputs[1].width == 320)
@@ -162,12 +162,12 @@ struct RouterModelTests {
                 }
             }
             if ready { break }
-            try await Task.sleep(for: .milliseconds(20))
+            try await Task.sleep(nanoseconds: 20_000_000)
         }
         mixed.select(1)
         #expect(mixed.selected == 1)
         mixed.saveAll()
-        for _ in 0..<500 where result() == nil { try await Task.sleep(for: .milliseconds(20)) }
+        for _ in 0..<500 where result() == nil { try await Task.sleep(nanoseconds: 20_000_000) }
         guard case .success(let first, let outputs) = result() else { Issue.record("expected outputs \(String(describing: result()))"); return }
         #expect(outputs.map(\.mediaType) == [.image, .video, .image])
         #expect(first.url == outputs[0].url && !outputs.contains(where: \.isOriginal))

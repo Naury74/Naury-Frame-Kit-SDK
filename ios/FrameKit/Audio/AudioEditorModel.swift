@@ -1,11 +1,9 @@
 import AVFoundation
-import Observation
 import SwiftUI
 
 /// 음성 편집기 상태와 동작.
 @MainActor
-@Observable
-final class AudioEditorModel {
+final class AudioEditorModel: ObservableObject {
     enum Phase: Equatable {
         case awaitingSource, recording, loading, failed(EditorError), ready
     }
@@ -33,23 +31,28 @@ final class AudioEditorModel {
     /// 세션을 이어 열지 못했을 때 부른다. 없으면 요청 입력으로 처음부터 연다.
     var onRestoreFailed: (() -> Void)?
 
-    private(set) var phase: Phase { didSet { persistSession() } }
-    private(set) var sources: [AudioSource] = []
-    private(set) var waveforms: [Int: Waveform] = [:]
-    private(set) var history = AudioHistory(AudioProjectState()) { didSet { persistSession() } }
-    private(set) var draft: AudioProjectState?
-    private(set) var position: Micros = 0
-    private(set) var isPlaying = false
-    var selectedClipId: String?
-    private(set) var range: TimeRangeUs?
-    var recordTarget: RecordTarget?
-    private(set) var export: ExportUI?
-    var showDiscardDialog = false
-    var showFilePicker = false
-    private(set) var notice: String?
+    @Published private(set) var phase: Phase { didSet { persistSession() } }
+    @Published private(set) var sources: [AudioSource] = []
+    @Published private(set) var waveforms: [Int: Waveform] = [:]
+    @Published private(set) var history = AudioHistory(AudioProjectState()) { didSet { persistSession() } }
+    @Published private(set) var draft: AudioProjectState?
+    /// 재생 위치(µs). 이것만 그리는 뷰가 따로 본다.
+    let playback = PlaybackClock()
+    private(set) var position: Micros {
+        get { playback.position }
+        set { playback.set(position: newValue) }
+    }
+    @Published private(set) var isPlaying = false
+    @Published var selectedClipId: String?
+    @Published private(set) var range: TimeRangeUs?
+    @Published var recordTarget: RecordTarget?
+    @Published private(set) var export: ExportUI?
+    @Published var showDiscardDialog = false
+    @Published var showFilePicker = false
+    @Published private(set) var notice: String?
     /// 화면이 준비되면 보일 알림.
     private var pendingNotice: String?
-    private(set) var busy = false
+    @Published private(set) var busy = false
 
     private let player = AVPlayer()
     private var timeObserver: Any?
@@ -365,7 +368,7 @@ final class AudioEditorModel {
         rebuildTask?.cancel()
         let project = project, sources = sources
         rebuildTask = Task {
-            if !immediately { try? await Task.sleep(for: .milliseconds(120)) }
+            if !immediately { try? await Task.sleep(nanoseconds: 120_000_000) }
             guard !Task.isCancelled else { return }
             let (composition, mix) = AudioComposer.build(project, sources: sources)
             let item = AVPlayerItem(asset: composition)
@@ -614,7 +617,7 @@ final class AudioEditorModel {
         notice = key
         noticeTask?.cancel()
         noticeTask = Task {
-            try? await Task.sleep(for: .seconds(3))
+            try? await Task.sleep(nanoseconds: 3_000_000_000)
             if !Task.isCancelled { notice = nil }
         }
     }

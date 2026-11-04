@@ -16,7 +16,7 @@ import PackageDescription
 
 let package = Package(
     name: "FrameKit",
-    platforms: [.iOS(.v17)],
+    platforms: [.iOS(.v15)],
     products: [
         .library(name: "FrameKit", targets: ["FrameKit"]),
     ],

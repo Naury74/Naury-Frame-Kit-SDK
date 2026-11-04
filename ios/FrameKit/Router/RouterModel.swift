@@ -1,11 +1,9 @@
-import Observation
 import SwiftUI
 import UniformTypeIdentifiers
 
 /// 하나의 진입점. 원본을 고르고, 종류를 보고, 알맞은 편집기를 연다.
 @MainActor
-@Observable
-final class RouterModel {
+final class RouterModel: ObservableObject {
     enum Editor {
         case image(EditorModel), video(VideoEditorModel), motion(MotionEditorModel), audio(AudioEditorModel), mixed(MixedEditorModel)
     }
@@ -29,10 +27,10 @@ final class RouterModel {
     let request: FrameKitRequest
     private let onFinish: (FrameKitResult) -> Void
     private var delivered = false
-    private(set) var phase = Phase.starting
-    private(set) var thumbnails: [Int: CGImage] = [:]
+    @Published private(set) var phase = Phase.starting
+    @Published private(set) var thumbnails: [Int: CGImage] = [:]
     /// 짧게 보일 알림(문자열 키). 편집기 화면 위에도 보인다.
-    private(set) var notice: String?
+    @Published private(set) var notice: String?
     /// 진입점이 만든 임시 파일. 끝나면 지운다.
     private var temporary: [URL] = []
     /// 연 편집기가 마지막으로 적용한 편집을 남기는 곳. 사진과 영상을 함께 편집하면 남기지 않는다.

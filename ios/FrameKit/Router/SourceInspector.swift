@@ -52,7 +52,7 @@ enum SourceInspector {
             let generator = AVAssetImageGenerator(asset: AVURLAsset(url: url))
             generator.appliesPreferredTrackTransform = true
             generator.maximumSize = CGSize(width: maxSide, height: maxSide)
-            return try? await generator.image(at: .zero).image
+            return try? await generator.frameImage(at: .zero)
         case .audio:
             return nil
         }

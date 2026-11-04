@@ -183,3 +183,103 @@ struct NoticeToast: View {
             .accessibilityAddTraits(.updatesFrequently)
     }
 }
+
+extension View {
+    /// 값이 바뀌면 앞 값과 새 값으로 [action]을 부른다(iOS 17의 두 값 `onChange`와 같다).
+    func onValueChange<V: Equatable>(of value: V, _ action: @escaping (_ old: V, _ new: V) -> Void) -> some View {
+        modifier(ValueChangeModifier(value: value, action: action))
+    }
+}
+
+private struct ValueChangeModifier<V: Equatable>: ViewModifier {
+    let value: V
+    let action: (V, V) -> Void
+
+    func body(content: Content) -> some View {
+        if #available(iOS 17, *) {
+            content.onChange(of: value) { old, new in action(old, new) }
+        } else {
+            // 붙잡은 값은 바뀌기 전 화면의 값이다.
+            content.onChange(of: value) { [value] new in action(value, new) }
+        }
+    }
+}
+
+extension View {
+    /// 누른 위치(이 뷰 기준)와 함께 [action]을 부른다. iOS 15에서는 거의 움직이지 않은 끌기를 누르기로 본다.
+    @ViewBuilder
+    func onLocatedTap(perform action: @escaping (CGPoint) -> Void) -> some View {
+        if #available(iOS 16, *) {
+            onTapGesture(count: 1, coordinateSpace: .local, perform: action)
+        } else {
+            simultaneousGesture(DragGesture(minimumDistance: 0).onEnded { value in
+                if hypot(value.translation.width, value.translation.height) < 10 { action(value.location) }
+            })
+        }
+    }
+}
+
+/// 시트 높이.
+enum SheetSize {
+    case height(CGFloat), mediumLarge, large
+}
+
+extension View {
+    /// 시트 높이. iOS 15에서는 큰 시트로 보인다.
+    @ViewBuilder
+    func sheetSize(_ size: SheetSize) -> some View {
+        if #available(iOS 16, *) {
+            switch size {
+            case .height(let height): presentationDetents([.height(height)])
+            case .mediumLarge: presentationDetents([.medium, .large])
+            case .large: presentationDetents([.large])
+            }
+        } else {
+            self
+        }
+    }
+
+    /// 시트 바탕색. iOS 16.4 미만에서는 내용 뒤에 칠한다.
+    @ViewBuilder
+    func sheetBackground(_ color: Color) -> some View {
+        if #available(iOS 16.4, *) {
+            presentationBackground(color)
+        } else {
+            background(color.ignoresSafeArea())
+        }
+    }
+
+    /// 내용이 넘칠 때만 튕긴다(iOS 16.4 이상).
+    @ViewBuilder
+    func bounceWhenScrollable() -> some View {
+        if #available(iOS 16.4, *) {
+            scrollBounceBehavior(.basedOnSize)
+        } else {
+            self
+        }
+    }
+
+    /// 켜고 끄는 단추로 읽힌다. iOS 17 미만에서는 단추로 읽힌다.
+    @ViewBuilder
+    func toggleTrait() -> some View {
+        if #available(iOS 17, *) {
+            accessibilityAddTraits(.isToggle)
+        } else {
+            accessibilityAddTraits(.isButton)
+        }
+    }
+}
+
+/// 네 줄까지 늘어나는 입력란. iOS 15에서는 한 줄이다.
+struct GrowingTextField: View {
+    let title: String
+    @Binding var text: String
+
+    var body: some View {
+        if #available(iOS 16, *) {
+            TextField(title, text: $text, axis: .vertical).lineLimit(1...4)
+        } else {
+            TextField(title, text: $text)
+        }
+    }
+}

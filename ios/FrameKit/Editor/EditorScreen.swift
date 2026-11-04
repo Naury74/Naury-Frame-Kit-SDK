@@ -3,7 +3,7 @@ import SwiftUI
 
 /// 편집 화면 뿌리. 상태에 따라 사진 선택·불러오기·오류·편집 화면을 보인다.
 struct EditorRoot: View {
-    let model: EditorModel
+    @ObservedObject var model: EditorModel
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
@@ -42,7 +42,7 @@ struct EditorRoot: View {
 
 /// 불러오는 중 또는 열기 실패 화면.
 private struct StatusView: View {
-    let model: EditorModel
+    @ObservedObject var model: EditorModel
     let error: EditorError?
     @Environment(\.editorTheme) private var theme
     @Environment(\.strings) private var strings
@@ -75,7 +75,7 @@ func errorKey(_ code: EditorErrorCode) -> String {
 
 /// 편집 화면. 폭이 넓거나 가로면 도구를 오른쪽 360pt 열에, 아니면 아래에 둔다.
 struct EditorScreen: View {
-    @Bindable var model: EditorModel
+    @ObservedObject var model: EditorModel
     @Environment(\.editorTheme) private var theme
     @Environment(\.strings) private var strings
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -135,7 +135,7 @@ struct EditorScreen: View {
             PhotoPicker(limit: max(1, model.pageLimit - model.pages.count)) { model.picked($0, append: true) }
                 .ignoresSafeArea()
         }
-        .onChange(of: model.export) { old, new in
+        .onValueChange(of: model.export) { old, new in
             if old == nil && new != nil { IdleTimerHold.acquire() } else if old != nil && new == nil { IdleTimerHold.release() }
         }
         .onDisappear { if model.export != nil { IdleTimerHold.release() } }
@@ -372,7 +372,7 @@ struct EditorScreen: View {
 
 /// 누르는 동안 원본을 보인다. VoiceOver에서는 눌러서 켜고 끈다.
 private struct CompareButton: View {
-    let model: EditorModel
+    @ObservedObject var model: EditorModel
     @Environment(\.strings) private var strings
     @Environment(\.editorTheme) private var theme
     @Environment(\.accessibilityVoiceOverEnabled) private var voiceOver
@@ -389,7 +389,7 @@ private struct CompareButton: View {
             })
             .accessibilityElement()
             .accessibilityLabel(strings("action_compare"))
-            .accessibilityAddTraits(.isToggle)
+            .toggleTrait()
             .accessibilityValue(model.showingOriginal ? "1" : "0")
             .accessibilityAction { model.showingOriginal.toggle() }
     }
@@ -433,7 +433,7 @@ struct PhotoPicker: UIViewControllerRepresentable {
 
 /// 여러 장 목록. 누르면 그 장을 편집하고, 길게 누르면 순서 바꾸기·빼기가 나온다.
 struct PageStrip: View {
-    let model: EditorModel
+    @ObservedObject var model: EditorModel
     @Environment(\.editorTheme) private var theme
     @Environment(\.strings) private var strings
 
@@ -459,7 +459,7 @@ struct PageStrip: View {
                 .padding(.horizontal, 16)
                 .padding(.vertical, 6)
             }
-            .onChange(of: model.pageIndex) { _, new in proxy.scrollTo(new, anchor: .center) }
+            .onValueChange(of: model.pageIndex) { _, new in proxy.scrollTo(new, anchor: .center) }
         }
     }
 

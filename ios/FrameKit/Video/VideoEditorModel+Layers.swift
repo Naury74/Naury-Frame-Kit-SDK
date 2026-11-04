@@ -30,7 +30,7 @@ extension VideoEditorModel: LayerToolHost {
         let key = active.map { "\($0.overlay)" }.joined(separator: "|") + "\(String(describing: edit.watermark))" + "\(renderSize)"
         guard force || key != overlayKey else { return }
         overlayKey = key
-        guard !active.isEmpty || edit.watermark?.isValid == true else { overlayImage = nil; return }
+        guard !active.isEmpty || edit.watermark?.isValid == true else { if overlayImage != nil { overlayImage = nil }; return }
         let size = renderSize
         guard let context = BitmapContext.make(width: Int(size.width), height: Int(size.height)) else { return }
         context.translateBy(x: 0, y: size.height)
