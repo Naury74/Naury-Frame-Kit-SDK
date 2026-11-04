@@ -51,6 +51,8 @@ struct RootView: View {
     @Environment(ResultStore.self) private var store
     @State private var launch: Launch?
     @State private var tab = 0
+    /// 편집기 닫기 연결점. 왼쪽 가장자리 밀기를 여기에 잇는다.
+    @State private var control = FrameKitEditorControl()
 
     var body: some View {
         TabView(selection: $tab) {
@@ -68,6 +70,7 @@ struct RootView: View {
             editor(item)
                 .ignoresSafeArea()
                 .interactiveDismissDisabled()
+                .overlay(alignment: .leading) { EdgeSwipeToClose(control: control) }
         }
         .onAppear(perform: autoOpen)
     }
@@ -79,11 +82,11 @@ struct RootView: View {
             store.add(result, from: item.title)
         }
         switch item {
-        case .router(let request): FrameKitEditor(request: request, onResult: done)
-        case .image(let request): FrameKitImageEditor(request: request, onResult: done)
-        case .video(let request): FrameKitVideoEditor(request: request, onResult: done)
-        case .motion(let request): FrameKitMotionEditor(request: request, onResult: done)
-        case .audio(let request): FrameKitAudioEditor(request: request, onResult: done)
+        case .router(let request): FrameKitEditor(request: request, control: control, onResult: done)
+        case .image(let request): FrameKitImageEditor(request: request, control: control, onResult: done)
+        case .video(let request): FrameKitVideoEditor(request: request, control: control, onResult: done)
+        case .motion(let request): FrameKitMotionEditor(request: request, control: control, onResult: done)
+        case .audio(let request): FrameKitAudioEditor(request: request, control: control, onResult: done)
         }
     }
 
@@ -107,6 +110,30 @@ struct RootView: View {
             }
         }
         if arguments.contains("-openVideo") { Task { launch = .video(settings.video(.files(await SampleVideo.files()))) } }
+        // 편집기가 열리고 몇 초 뒤 호스트 닫기를 요청한다.
+        if arguments.contains("-requestClose") {
+            Task {
+                try? await Task.sleep(for: .seconds(4))
+                control.requestClose()
+            }
+        }
+    }
+}
+
+/// 왼쪽 가장자리에서 오른쪽으로 밀면 편집기 닫기를 요청한다. 닫을 수 없는 동안에는 손을 받지 않는다.
+struct EdgeSwipeToClose: View {
+    @ObservedObject var control: FrameKitEditorControl
+
+    var body: some View {
+        Color.clear
+            .frame(width: 10)
+            .frame(maxHeight: .infinity)
+            .contentShape(Rectangle())
+            .gesture(DragGesture(minimumDistance: 20).onEnded { value in
+                if value.translation.width > 80 && abs(value.translation.height) < 120 { control.requestClose() }
+            })
+            .allowsHitTesting(control.canDismissInteractively)
+            .ignoresSafeArea()
     }
 }
 
