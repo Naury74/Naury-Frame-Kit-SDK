@@ -522,6 +522,7 @@ AudioEditorRequest(input: .file(audioURL), export: AudioExportConfig(bitrate: 96
 | `recordMode` | `.both` | `.tap`(눌러 시작·다시 눌러 끝, 잠시 멈춤), `.hold`(누르는 동안 녹음, 위로 밀면 고정·왼쪽으로 밀면 취소), `.both`(사용자가 고름) |
 | `maxRecordingDuration` | 600초 | 한 번 녹음 최대 길이(1~3600초). 닿으면 저절로 멈춤 |
 | `editAfterRecording` | `true` | `.capture`로 시작했을 때 녹음 후 편집 화면으로 갈지 |
+| `recorderPresentation` | `.fullScreen` | 녹음만 하는 화면(`.capture`, `editAfterRecording: false`)을 띄우는 방식. `.sheet`는 녹음 조작부 높이의 아래 시트. 다른 경우에는 무시하고 전체 화면 |
 | `enabledTools` | 전부 | `record`, `importFile`, `split`, `range`, `volume` |
 | `maxSourceCount` | 10 | 한 번에 여는 파일 수(1~20) |
 | `AudioExportConfig.bitrate` | 128 000 | AAC 비트레이트(32 000~320 000). 64kbps 미만은 모노 |
@@ -530,6 +531,24 @@ AudioEditorRequest(input: .file(audioURL), export: AudioExportConfig(bitrate: 96
 - 편집 화면은 위 줄(본 줄)과 아래 줄(겹친 소리)로 나뉩니다. 본 줄은 빈틈 없이 이어지고, 녹음·파일을 끼워 넣으면 뒤가 밀리고 지우면 당겨집니다. 타임라인은 두 손가락으로 확대합니다.
 - 결과는 AAC M4A(`audio/mp4`, `.audio`)이며 너비·높이는 0입니다.
 - 0.5초보다 짧은 녹음은 버립니다.
+
+### 녹음 시트
+
+```swift
+// 편집 없이 녹음만 하고, 아래 시트로 띄우기
+let config = AudioEditorConfig(editAfterRecording: false, recorderPresentation: .sheet)
+present(FrameKitAudioEditorViewController(request: AudioEditorRequest(input: .capture, config: config)) { result in ... }, animated: true)
+
+// SwiftUI
+.frameKitAudioEditor(isPresented: $recording, request: AudioEditorRequest(input: .capture, config: config)) { result in ... }
+// 진입점도 같음
+.frameKitEditor(isPresented: $recording, request: FrameKitRequest(input: .capture, mediaKind: .audio, audio: config)) { result in ... }
+```
+
+- iOS 16 이상은 녹음 조작부에 맞춘 높이의 시트, iOS 15는 UIKit에서 중간 높이(`.medium`), SwiftUI에서 큰 시트입니다. 손잡이가 보입니다.
+- 아래로 끌어 닫으면 닫기 단추와 같습니다. 결과는 `cancelled` 한 번입니다. 녹음 중이면 녹음을 멈추고 그 파일을 지운 뒤 닫습니다(UIKit은 시트를 되돌린 뒤 닫고, SwiftUI는 그대로 내려갑니다). 녹음 파일을 넘기는 중에는 끌어 닫을 수 없습니다.
+- `FrameKitEditorControl`도 그대로 씁니다.
+- 편집 화면 안의 녹음 시트(녹음 도구)도 조작부 높이에 맞춰 뜹니다.
 
 ### 녹음과 오디오 세션
 

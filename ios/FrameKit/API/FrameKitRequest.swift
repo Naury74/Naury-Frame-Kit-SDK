@@ -138,3 +138,8 @@ public struct FrameKitRequest: Sendable, Hashable {
         AudioEditorRequest(input: input, config: audio, export: audioExport, ui: ui)
     }
 }
+
+extension FrameKitRequest {
+    /// 소리 녹음만 하는 요청이라 녹음 시트로 띄운다.
+    var usesRecorderSheet: Bool { mediaKind == .audio && audio.usesRecorderSheet(input) }
+}

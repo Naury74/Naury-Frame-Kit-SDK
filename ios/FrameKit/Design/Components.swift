@@ -219,6 +219,56 @@ extension View {
     }
 }
 
+/// 내용에 맞는 높이(가장 컸던 값).
+private struct FittedHeightKey: PreferenceKey {
+    static let defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) { value = max(value, nextValue()) }
+}
+
+/// 내용을 맞는 높이로 위에 붙이고, 지금까지 가장 컸던 높이를 알린다. 내용이 줄어도 시트가 출렁이지 않게 줄이지 않는다.
+private struct FittedHeightReader: ViewModifier {
+    let onChange: (CGFloat) -> Void
+    @State private var height: CGFloat = 0
+
+    func body(content: Content) -> some View {
+        content
+            .fixedSize(horizontal: false, vertical: true)
+            .background(GeometryReader { proxy in Color.clear.preference(key: FittedHeightKey.self, value: proxy.size.height) })
+            .onPreferenceChange(FittedHeightKey.self) { [binding = $height] value in
+                if value > binding.wrappedValue + 0.5 { binding.wrappedValue = ceil(value) }
+            }
+            .onValueChange(of: height) { _, new in onChange(new) }
+            .frame(maxHeight: .infinity, alignment: .top)
+    }
+}
+
+/// 내용 높이에 맞춘 시트. iOS 15에서는 큰 시트로 보인다.
+private struct FittedSheetSize: ViewModifier {
+    @State private var height: CGFloat = 0
+
+    func body(content: Content) -> some View {
+        if #available(iOS 16, *) {
+            content
+                .modifier(FittedHeightReader { [binding = $height] in binding.wrappedValue = $0 })
+                .presentationDetents([.height(height > 0 ? height : 320)])
+        } else {
+            content
+        }
+    }
+}
+
+extension View {
+    /// 내용을 맞는 높이로 위에 붙이고 그 높이(가장 컸던 값)를 [onChange]로 알린다.
+    func measureFittedHeight(_ onChange: @escaping (CGFloat) -> Void) -> some View {
+        modifier(FittedHeightReader(onChange: onChange))
+    }
+
+    /// 시트 높이를 내용에 맞춘다. 내용이 줄어도 줄이지 않는다.
+    func fittedSheetSize() -> some View {
+        modifier(FittedSheetSize())
+    }
+}
+
 /// 시트 높이.
 enum SheetSize {
     case height(CGFloat), mediumLarge, large

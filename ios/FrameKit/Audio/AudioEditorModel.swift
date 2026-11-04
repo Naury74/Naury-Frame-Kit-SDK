@@ -674,6 +674,9 @@ extension AudioEditorModel: HostCloseTarget {
         }
     }
 
+    /// 녹음 중이거나 녹음을 시작하는 중이다.
+    var hostRecording: Bool { recorder.state != .idle || recorder.starting }
+
     private func discardRecording() {
         recorder.cancelPendingStart()
         if recorder.state != .idle { recorder.discard() }

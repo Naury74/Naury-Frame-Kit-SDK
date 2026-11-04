@@ -94,11 +94,21 @@ private struct FontIdKey: EnvironmentKey {
     static let defaultValue: String? = nil
 }
 
+private struct RecorderSheetKey: EnvironmentKey {
+    static let defaultValue: (@MainActor @Sendable (CGFloat) -> Void)? = nil
+}
+
 extension EnvironmentValues {
     /// 혼합 편집 화면 안에 들어 있다. 편집기 자체의 닫기·저장을 숨긴다.
     var editorEmbedded: Bool {
         get { self[EmbeddedKey.self] }
         set { self[EmbeddedKey.self] = newValue }
+    }
+
+    /// 녹음 시트로 떠 있으면 녹음 화면의 맞는 높이를 받는다. `nil`이면 전체 화면이다.
+    var recorderSheetHeight: (@MainActor @Sendable (CGFloat) -> Void)? {
+        get { self[RecorderSheetKey.self] }
+        set { self[RecorderSheetKey.self] = newValue }
     }
 
     /// 편집기 글자에 쓸 사용자 글꼴 id.

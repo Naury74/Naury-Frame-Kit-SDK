@@ -1,5 +1,6 @@
 import Foundation
 import Testing
+import UIKit
 @testable import FrameKit
 
 private func waitFor(_ condition: @MainActor () -> Bool) async throws {
@@ -270,5 +271,56 @@ struct HostCloseTests {
         control.requestClose()
         #expect(second.isFinished && !first.isFinished)
         first.finish(.cancelled)
+    }
+}
+
+@MainActor
+struct RecorderSheetTests {
+    @Test func sheetOnlyForRecordOnlyCapture() {
+        var config = AudioEditorConfig(editAfterRecording: false, recorderPresentation: .sheet)
+        #expect(AudioEditorRequest(input: .capture, config: config).usesRecorderSheet)
+        #expect(!AudioEditorRequest(input: .pick, config: config).usesRecorderSheet)
+        #expect(AudioEditorRequest(input: .pick, config: config).validate().isEmpty)
+        #expect(FrameKitRequest(input: .capture, mediaKind: .audio, audio: config).usesRecorderSheet)
+        #expect(!FrameKitRequest(input: .capture, mediaKind: .image, audio: config).usesRecorderSheet)
+        config.editAfterRecording = true
+        #expect(!AudioEditorRequest(input: .capture, config: config).usesRecorderSheet)
+        #expect(AudioEditorRequest(input: .capture, config: config).validate().isEmpty)
+        #expect(AudioEditorConfig().recorderPresentation == .fullScreen)
+    }
+
+    @Test func controllersPickPresentation() {
+        let config = AudioEditorConfig(editAfterRecording: false, recorderPresentation: .sheet)
+        let sheet = FrameKitAudioEditorViewController(request: AudioEditorRequest(input: .capture, config: config)) { _ in }
+        #expect(sheet.modalPresentationStyle == .pageSheet && !sheet.isModalInPresentation)
+        #expect(sheet.presentationController?.delegate != nil)
+        #expect(sheet.sheetPresentationController?.prefersGrabberVisible == true)
+        let full = FrameKitAudioEditorViewController(request: AudioEditorRequest(input: .capture)) { _ in }
+        #expect(full.modalPresentationStyle == .fullScreen && full.isModalInPresentation)
+        let router = FrameKitViewController(request: FrameKitRequest(input: .capture, mediaKind: .audio, audio: config)) { _ in }
+        #expect(router.modalPresentationStyle == .pageSheet)
+        let routerFull = FrameKitViewController(request: FrameKitRequest(input: .capture, mediaKind: .image, audio: config)) { _ in }
+        #expect(routerFull.modalPresentationStyle == .fullScreen)
+    }
+
+    @Test func swipeWhileRecordingGoesThroughClose() throws {
+        let sink = Sink()
+        let config = AudioEditorConfig(editAfterRecording: false, recorderPresentation: .sheet)
+        let model = AudioEditorModel(request: AudioEditorRequest(input: .capture, config: config)) { sink.results.append($0) }
+        let controller = UIViewController()
+        let control = FrameKitEditorControl()
+        let presenter = RecorderSheetPresenter(controller: controller, target: model, control: control) { model.hostRecording }
+        let presentation = try #require(controller.presentationController)
+        #expect(presenter.presentationControllerShouldDismiss(presentation))
+
+        let file = FileManager.default.temporaryDirectory.appendingPathComponent("rec-\(UUID().uuidString).m4a")
+        try Data([0]).write(to: file)
+        try model.recorder.simulateRecording(into: file)
+        #expect(!presenter.presentationControllerShouldDismiss(presentation))
+        presenter.presentationControllerDidAttemptToDismiss(presentation)
+        presenter.presentationControllerDidAttemptToDismiss(presentation)
+        #expect(sink.results.count == 1 && sink.cancelled == 1)
+        #expect(!FileManager.default.fileExists(atPath: file.path))
+        #expect(!presenter.presentationControllerShouldDismiss(presentation))
     }
 }

@@ -47,32 +47,52 @@ struct FirstRecordingScreen: View {
     @ObservedObject var model: AudioEditorModel
     @Environment(\.editorTheme) private var theme
     @Environment(\.strings) private var strings
+    @Environment(\.recorderSheetHeight) private var sheetHeight
 
     var body: some View {
-        VStack(spacing: 0) {
-            ZStack {
-                Text(strings("audio_new_recording")).scaledFont(17, weight: .semibold).foregroundStyle(theme.foreground)
-                    .accessibilityAddTraits(.isHeader)
-                HStack {
-                    Button { model.finish(.cancelled) } label: {
-                        Image(systemName: "xmark").font(.system(size: 17, weight: .semibold)).foregroundStyle(theme.foreground)
-                            .frame(width: 42, height: 42).editorGlass(Circle(), theme: theme).frame(minWidth: 48, minHeight: 48)
-                    }
-                    .buttonStyle(PressFadeStyle())
-                    .accessibilityLabel(strings("action_close"))
-                    Spacer()
+        if let sheetHeight {
+            // 시트에서는 조작부 높이만큼만 쓴다.
+            VStack(spacing: 0) {
+                header.padding(.top, 8)
+                RecorderPanel(recorder: model.recorder, mode: model.request.config.recordMode, compact: true) { model.recorded($0) }
+                    .frame(maxWidth: 520).padding(.horizontal, 24)
+                if let notice = model.notice {
+                    Text(strings(notice)).scaledFont(14).foregroundStyle(theme.error).padding(.top, 8)
                 }
             }
-            .padding(.horizontal, 12).frame(height: 60)
-            Spacer()
-            RecorderPanel(recorder: model.recorder, mode: model.request.config.recordMode) { model.recorded($0) }
-                .frame(maxWidth: 520).padding(.horizontal, 24)
-            if let notice = model.notice {
-                Text(strings(notice)).scaledFont(14).foregroundStyle(theme.error).padding(.top, 12)
+            .padding(.bottom, 16)
+            .measureFittedHeight { sheetHeight($0) }
+            .background(theme.background.ignoresSafeArea())
+        } else {
+            VStack(spacing: 0) {
+                header
+                Spacer()
+                RecorderPanel(recorder: model.recorder, mode: model.request.config.recordMode) { model.recorded($0) }
+                    .frame(maxWidth: 520).padding(.horizontal, 24)
+                if let notice = model.notice {
+                    Text(strings(notice)).scaledFont(14).foregroundStyle(theme.error).padding(.top, 12)
+                }
+                Spacer()
             }
-            Spacer()
+            .background(theme.background.ignoresSafeArea())
         }
-        .background(theme.background.ignoresSafeArea())
+    }
+
+    private var header: some View {
+        ZStack {
+            Text(strings("audio_new_recording")).scaledFont(17, weight: .semibold).foregroundStyle(theme.foreground)
+                .accessibilityAddTraits(.isHeader)
+            HStack {
+                Button { model.finish(.cancelled) } label: {
+                    Image(systemName: "xmark").font(.system(size: 17, weight: .semibold)).foregroundStyle(theme.foreground)
+                        .frame(width: 42, height: 42).editorGlass(Circle(), theme: theme).frame(minWidth: 48, minHeight: 48)
+                }
+                .buttonStyle(PressFadeStyle())
+                .accessibilityLabel(strings("action_close"))
+                Spacer()
+            }
+        }
+        .padding(.horizontal, 12).frame(height: 60)
     }
 }
 
@@ -386,9 +406,11 @@ struct RecordSheet: View {
             EditorButton(title: strings("action_cancel"), kind: .tonal) { model.closeRecordSheet() }
         }
         .padding(20)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .frame(maxWidth: .infinity)
+        // 시트는 편집기 화면의 글자 크기 상한을 물려받지 않는다.
+        .dynamicTypeSize(...DynamicTypeSize.accessibility1)
+        .fittedSheetSize()
         .sheetBackground(theme.surface)
-        .sheetSize(.large)
         .interactiveDismissDisabled(recorder.state != .idle)
     }
 }

@@ -10,6 +10,7 @@ public final class FrameKitViewController: UIViewController {
     private var completed = false
     /// 호스트 닫기 연결점. 화면 가장자리 밀어 닫기 같은 호스트 몸짓을 여기에 잇는다.
     public let control: FrameKitEditorControl
+    private var sheet: RecorderSheetPresenter?
 
     public init(request: FrameKitRequest, control: FrameKitEditorControl? = nil, completion: @escaping @MainActor (FrameKitResult) -> Void) {
         self.completion = completion
@@ -18,8 +19,13 @@ public final class FrameKitViewController: UIViewController {
         model = RouterModel(request: request) { finish?($0) }
         super.init(nibName: nil, bundle: nil)
         finish = { [weak self] in self?.finished($0) }
-        modalPresentationStyle = .fullScreen
-        isModalInPresentation = true
+        if request.usesRecorderSheet {
+            let model = model
+            sheet = RecorderSheetPresenter(controller: self, target: model, control: self.control) { [weak model] in model?.hostRecording ?? false }
+        } else {
+            modalPresentationStyle = .fullScreen
+            isModalInPresentation = true
+        }
     }
 
     @available(*, unavailable)
@@ -27,7 +33,13 @@ public final class FrameKitViewController: UIViewController {
 
     override public func viewDidLoad() {
         super.viewDidLoad()
-        let host = UIHostingController(rootView: RouterRoot(model: model))
+        let root = RouterRoot(model: model)
+        let host: UIViewController
+        if let sheet {
+            host = UIHostingController(rootView: root.environment(\.recorderSheetHeight) { [weak sheet] in sheet?.contentHeight($0) })
+        } else {
+            host = UIHostingController(rootView: root)
+        }
         addChild(host)
         host.view.frame = view.bounds
         host.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
@@ -135,6 +147,7 @@ private final class EmbeddedRouterController: UIHostingController<AnyView> {
 
 extension View {
     /// [isPresented]가 `true`가 되면 FrameKit 진입점을 전체 화면으로 띄운다. 끝나면 닫고 [onResult]를 한 번 부른다.
+    /// 소리 녹음만 하는 요청에 `audio.recorderPresentation == .sheet`이면 녹음 조작부 높이의 시트로 띄운다(iOS 15는 큰 시트).
     /// [control]을 넘기면 호스트가 닫기를 요청할 수 있다. 닫히면 SDK가 [isPresented]를 `false`로 바꾼다.
     public func frameKitEditor(
         isPresented: Binding<Bool>,
@@ -142,13 +155,35 @@ extension View {
         control: FrameKitEditorControl? = nil,
         onResult: @escaping @MainActor (FrameKitResult) -> Void
     ) -> some View {
-        fullScreenCover(isPresented: isPresented) {
-            FrameKitEditor(request: request, control: control) { result in
-                isPresented.wrappedValue = false
-                onResult(result)
+        modifier(FrameKitEditorPresentation(isPresented: isPresented, request: request, control: control, onResult: onResult))
+    }
+}
+
+private struct FrameKitEditorPresentation: ViewModifier {
+    let isPresented: Binding<Bool>
+    let request: FrameKitRequest
+    let control: FrameKitEditorControl?
+    let onResult: @MainActor (FrameKitResult) -> Void
+
+    func body(content: Content) -> some View {
+        if request.usesRecorderSheet {
+            content.sheet(isPresented: isPresented) {
+                RecorderSheetContent(control: control, make: { [isPresented, request, onResult] in
+                    RouterModel(request: request) { result in
+                        isPresented.wrappedValue = false
+                        onResult(result)
+                    }
+                }, dismissed: { $0.dismissedWithoutResult() }, root: { RouterRoot(model: $0) })
             }
-            .ignoresSafeArea()
-            .interactiveDismissDisabled()
+        } else {
+            content.fullScreenCover(isPresented: isPresented) {
+                FrameKitEditor(request: request, control: control) { result in
+                    isPresented.wrappedValue = false
+                    onResult(result)
+                }
+                .ignoresSafeArea()
+                .interactiveDismissDisabled()
+            }
         }
     }
 }

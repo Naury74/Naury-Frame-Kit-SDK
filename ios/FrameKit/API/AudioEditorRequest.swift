@@ -26,6 +26,15 @@ public enum RecordMode: String, Sendable, CaseIterable {
     case both
 }
 
+/// 녹음만 하는 화면을 띄우는 방식.
+public enum RecorderPresentation: String, Sendable, CaseIterable {
+    /// 전체 화면.
+    case fullScreen
+    /// 녹음 조작부 높이의 아래 시트. 아래로 끌어 닫으면 닫기 단추와 같다(녹음 중이면 녹음을 버리고 `.cancelled`).
+    /// `.capture`이고 `editAfterRecording == false`일 때만 쓰고, 그 밖에는 전체 화면으로 띄운다.
+    case sheet
+}
+
 /// 음성 편집기 동작 설정.
 public struct AudioEditorConfig: Sendable, Hashable {
     public var recordMode: RecordMode
@@ -38,11 +47,14 @@ public struct AudioEditorConfig: Sendable, Hashable {
     public var maxSourceCount: Int
     public var allowUndo: Bool
     public var allowRedo: Bool
+    /// 녹음만 하는 화면(`.capture`, `editAfterRecording == false`)을 띄우는 방식. 다른 경우에는 무시하고 전체 화면으로 띄운다.
+    public var recorderPresentation: RecorderPresentation
 
     public static let maxSources = 20
 
     public init(recordMode: RecordMode = .both, maxRecordingDuration: TimeInterval = 600, editAfterRecording: Bool = true,
-                enabledTools: [AudioTool] = AudioTool.defaults, maxSourceCount: Int = 10, allowUndo: Bool = true, allowRedo: Bool = true) {
+                enabledTools: [AudioTool] = AudioTool.defaults, maxSourceCount: Int = 10, allowUndo: Bool = true, allowRedo: Bool = true,
+                recorderPresentation: RecorderPresentation = .fullScreen) {
         self.recordMode = recordMode
         self.maxRecordingDuration = maxRecordingDuration
         self.editAfterRecording = editAfterRecording
@@ -50,6 +62,13 @@ public struct AudioEditorConfig: Sendable, Hashable {
         self.maxSourceCount = maxSourceCount
         self.allowUndo = allowUndo
         self.allowRedo = allowRedo
+        self.recorderPresentation = recorderPresentation
+    }
+
+    /// [input]으로 열면 녹음 시트로 띄운다.
+    func usesRecorderSheet(_ input: EditorInput) -> Bool {
+        guard case .capture = input else { return false }
+        return recorderPresentation == .sheet && !editAfterRecording
     }
 }
 
@@ -99,4 +118,7 @@ public struct AudioEditorRequest: Sendable, Hashable {
         issues += ui.issues(catalog: nil)
         return issues
     }
+
+    /// 녹음 시트로 띄운다.
+    var usesRecorderSheet: Bool { config.usesRecorderSheet(input) }
 }

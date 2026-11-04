@@ -350,3 +350,11 @@ extension RouterModel: HostCloseTarget {
         return own.merge(with: editor).eraseToAnyPublisher()
     }
 }
+
+extension RouterModel {
+    /// 연 음성 편집기가 녹음 중이다.
+    var hostRecording: Bool {
+        if case .editor(.audio(let model)) = phase { return model.hostRecording }
+        return false
+    }
+}

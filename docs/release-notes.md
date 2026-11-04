@@ -4,10 +4,12 @@
 
 ### 추가
 
+- iOS: `AudioEditorConfig.recorderPresentation`(`RecorderPresentation.fullScreen`·`.sheet`, 기본 `.fullScreen`). 녹음만 하는 요청(`.capture`, `editAfterRecording: false`)을 녹음 조작부 높이의 아래 시트로 띄움. 아래로 끌어 닫으면 닫기 단추와 같고(녹음 중이면 녹음을 버림) 결과는 `cancelled` 한 번. UIKit 화면·SwiftUI 수정자·진입점 모두 지원. 그 밖의 요청에서는 무시
 - iOS: `FrameKitEditorControl`. 앱이 만든 몸짓(화면 가장자리 밀어 닫기 등)으로 편집기를 닫을 수 있음. `requestClose()`는 닫기 단추와 같은 흐름(바꾼 내용이 있으면 버리기 확인, 녹음 중이면 녹음을 버리고 닫기, 저장 중에는 무시)이고, `canDismissInteractively`로 지금 닫을 수 있는지 알 수 있음. 모든 편집기 화면(`FrameKit*ViewController`의 `control`, `init(request:control:completion:)`)과 SwiftUI 수정자·뷰의 `control:` 인자로 넘김. 결과는 한 번만 옴
 
 ### 바뀜
 
+- iOS: 음성 편집기 안의 녹음 시트가 큰 시트 대신 녹음 조작부 높이로 뜸(iOS 16 이상)
 - iOS: alpha12의 자르기 저장 오류 수정 포함
 
 ## 1.0.0-alpha12
