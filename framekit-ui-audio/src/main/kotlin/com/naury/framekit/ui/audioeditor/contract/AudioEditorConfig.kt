@@ -45,7 +45,7 @@ public enum class AudioTool {
  * @property enabledTools 보여 줄 도구.
  * @property maxSourceCount `Pick`·`Multiple`로 한 번에 열 수 있는 최대 소리 파일 수(1..20).
  * @property allowUndo 실행 취소 버튼을 보여 준다.
- * @property allowRedo 다시 실행 버튼을 보여 준다.
+ * @property allowRedo 다시 실행 버튼을 보여 준다. `true`면 [allowUndo]도 `true`여야 한다.
  */
 @Parcelize
 public data class AudioEditorConfig(
@@ -60,6 +60,7 @@ public data class AudioEditorConfig(
 
     public fun validate(): ValidationResult {
         val issues = mutableListOf<ValidationIssue>()
+        if (allowRedo && !allowUndo) issues += ValidationIssue(ValidationCode.OUT_OF_RANGE, "config.allowRedo", "Redo requires undo")
         if (maxRecordingMs !in 1_000L..3_600_000L) issues += ValidationIssue(ValidationCode.OUT_OF_RANGE, "config.maxRecordingMs", "Expected 1000..3600000")
         if (maxSourceCount !in 1..MAX_SOURCES) issues += ValidationIssue(ValidationCode.OUT_OF_RANGE, "config.maxSourceCount", "Expected 1..$MAX_SOURCES")
         return ValidationResult.of(issues)

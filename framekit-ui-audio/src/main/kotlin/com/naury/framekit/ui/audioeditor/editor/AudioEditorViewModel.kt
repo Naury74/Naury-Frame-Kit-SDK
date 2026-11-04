@@ -53,6 +53,9 @@ internal typealias AudioMixer = suspend (durationUs: Long, tracks: List<AudioMix
 
 /**
  * 음성 편집기의 상태와 동작. 모든 편집은 실행 취소 한 단계로 기록한다(슬라이더·끌기는 손을 뗄 때 한 단계).
+ *
+ * @param recordBlocked 녹음할 수 없는 이유. 호스트가 `RECORD_AUDIO`를 선언하지 않았으면 `PERMISSION_DENIED`, 마이크가 없으면
+ *   `UNSUPPORTED_OPERATION`. 이때 녹음 도구를 숨기고, `Capture`로 열면 이 코드로 실패한다. 녹음할 수 있으면 `null`.
  */
 internal class AudioEditorViewModel(
     private val request: AudioEditorRequest,
@@ -64,6 +67,7 @@ internal class AudioEditorViewModel(
     private val mixer: AudioMixer,
     private val waveformLoader: (Uri) -> Waveform? = { null },
     private val player: AudioClipPlayer? = null,
+    private val recordBlocked: EditorErrorCode? = null,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow<AudioEditorUiState>(AudioEditorUiState.Loading)
@@ -87,6 +91,11 @@ internal class AudioEditorViewModel(
     private var playStartPosition = 0L
     private var drag: Pair<DragKind, AudioClip>? = null
 
+    private val _recordingFailure = MutableStateFlow<EditorErrorCode?>(null)
+
+    /** 녹음기로만 쓸 때 녹음 파일을 돌려주지 못한 이유. 녹음 파일은 다시 시도하거나 닫을 때까지 남긴다. */
+    val recordingFailure: StateFlow<EditorErrorCode?> = _recordingFailure.asStateFlow()
+
     init {
         val sessionSources = savedState.get<ArrayList<EditorInput>>(KEY_SESSION_SOURCES)
         val session = savedState.get<String>(KEY_SESSION)
@@ -96,7 +105,7 @@ internal class AudioEditorViewModel(
             inputs != null -> load(inputs)
             else -> when (val input = request.input) {
                 is EditorInput.Pick -> _state.value = AudioEditorUiState.AwaitingPick(input.maxItems)
-                is EditorInput.Capture -> _state.value = AudioEditorUiState.Recording
+                is EditorInput.Capture -> startRecording()
                 is EditorInput.Multiple -> load(input.items)
                 else -> load(listOf(input))
             }
@@ -120,10 +129,17 @@ internal class AudioEditorViewModel(
         if (ready == null) load(inputs) else addFiles(inputs)
     }
 
+    // 녹음할 수 없으면 바로 실패로 끝낸다. 돌려주지 못한 녹음이 남아 있으면(프로세스 재시작) 다시 돌려준다.
+    private fun startRecording() {
+        recordBlocked?.let { return finish(FrameKitResult.Failure(EditorError(it))) }
+        _state.value = AudioEditorUiState.Recording
+        savedState.get<String>(KEY_PENDING_RECORDING)?.let(::File)?.takeIf { it.isFile }?.let(::deliverRecording)
+    }
+
     fun retry() {
         when (request.input) {
             is EditorInput.Pick -> _state.value = AudioEditorUiState.AwaitingPick((request.input as EditorInput.Pick).maxItems)
-            is EditorInput.Capture -> _state.value = AudioEditorUiState.Recording
+            is EditorInput.Capture -> startRecording()
             else -> savedState.get<ArrayList<EditorInput>>(KEY_INPUTS)?.let(::load) ?: finish(FrameKitResult.Cancelled)
         }
     }
@@ -132,24 +148,51 @@ internal class AudioEditorViewModel(
         savedState[KEY_INPUTS] = ArrayList(inputs)
         _state.value = AudioEditorUiState.Loading
         viewModelScope.launch {
-            val opened = withContext(ioDispatcher) { inputs.map { open(it) } }
-            if (opened.any { it == null }) {
-                _state.value = AudioEditorUiState.LoadFailed(EditorErrorCode.UNSUPPORTED_FORMAT, canRetry = request.input is EditorInput.Pick)
+            val opened = try {
+                withContext(ioDispatcher) { inputs.map { openOrThrow(it) } }
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: FrameKitException) {
+                Log.w(TAG, "load failed: ${error.code}")
+                _state.value = AudioEditorUiState.LoadFailed(error.code, canRetry = request.input is EditorInput.Pick)
                 return@launch
             }
             var project = AudioProject(emptyList())
-            opened.filterNotNull().forEach { (id, source) -> project = AudioProjectEditing.append(project, clipOf(id, source), ::newId) }
-            _state.value = AudioEditorUiState.Ready(HistoryTransaction.start(project), opened.filterNotNull().toMap())
-            opened.filterNotNull().forEach { loadWaveform(it.first) }
+            opened.forEach { (id, source) -> project = AudioProjectEditing.append(project, clipOf(id, source), ::newId) }
+            _state.value = AudioEditorUiState.Ready(HistoryTransaction.start(project), opened.toMap())
+            opened.forEach { loadWaveform(it.first) }
         }
     }
 
     // 원본을 등록하고 길이를 읽는다. 소리가 아니거나 열 수 없으면 null.
-    private fun open(input: EditorInput): Pair<String, AudioSource>? = runCatching {
-        val id = registry.register(input).value
-        val source = describe(input) ?: return null
-        if (source.durationUs <= 0) null else id to source
-    }.getOrNull()
+    private fun open(input: EditorInput): Pair<String, AudioSource>? = try {
+        openOrThrow(input)
+    } catch (_: FrameKitException) {
+        null
+    }
+
+    /**
+     * 원본을 등록하고 길이를 읽는다.
+     *
+     * @throws FrameKitException 읽기 권한이 없으면 `PERMISSION_DENIED`, 원본이 없으면 `SOURCE_UNAVAILABLE`, 잘못된 참조면
+     *   `INVALID_SOURCE`, 소리가 없거나 읽을 수 없는 형식이면 `UNSUPPORTED_FORMAT`, 길이가 0 이하면 `DECODE_FAILED`.
+     */
+    private fun openOrThrow(input: EditorInput): Pair<String, AudioSource> {
+        val id = try {
+            registry.register(input).value
+        } catch (error: FrameKitException) {
+            throw error
+        } catch (error: Exception) {
+            throw FrameKitException(EditorErrorCode.SOURCE_UNAVAILABLE, "Source could not be opened", error)
+        }
+        val source = try {
+            describe(input)
+        } catch (error: Exception) {
+            throw FrameKitException(EditorErrorCode.DECODE_FAILED, "Audio could not be read", error)
+        } ?: throw FrameKitException(EditorErrorCode.UNSUPPORTED_FORMAT, "No readable audio")
+        if (source.durationUs <= 0) throw FrameKitException(EditorErrorCode.DECODE_FAILED, "Audio has no length")
+        return id to source
+    }
 
     private fun clipOf(id: String, source: AudioSource): AudioClip =
         AudioClip(newId(), SourceId(id), TimeRangeUs(0, source.durationUs), timelineStartUs = 0, role = AudioRole.VOICE)
@@ -197,10 +240,16 @@ internal class AudioEditorViewModel(
 
     /** 녹음을 그만두고 닫는다(처음 녹음 화면에서). */
     fun cancelRecording() {
-        if (_state.value is AudioEditorUiState.Recording) finish(FrameKitResult.Cancelled) else updateReady { it.copy(recordSheet = null) }
+        if (_state.value is AudioEditorUiState.Recording) {
+            discardPendingRecording()
+            finish(FrameKitResult.Cancelled)
+        } else {
+            updateReady { it.copy(recordSheet = null) }
+        }
     }
 
     fun openRecordSheet(target: RecordTarget) {
+        if (!hasTool(AudioTool.RECORD)) return
         pause()
         updateReady { it.copy(recordSheet = target, selectedClipId = null, range = null) }
     }
@@ -210,20 +259,72 @@ internal class AudioEditorViewModel(
     fun closeRecordSheet() = updateReady { it.copy(recordSheet = null) }
 
     // 편집 없이 녹음 파일만 돌려준다(녹음기로만 쓰기). 결과 폴더에 복사해 호스트가 소유하게 한다.
+    // 실패하면 녹음 파일을 지우지 않고 다시 시도할 수 있게 남긴다.
     private fun deliverRecording(file: File) {
+        // 돌려주지 못한 채 새로 녹음했으면 예전 녹음은 지운다.
+        savedState.get<String>(KEY_PENDING_RECORDING)?.takeIf { it != file.absolutePath }?.let { File(it).delete() }
+        savedState[KEY_PENDING_RECORDING] = file.absolutePath
+        _recordingFailure.value = null
         viewModelScope.launch {
+            var partial: File? = null
             val media = withContext(ioDispatcher) {
-                runCatching {
-                    val partial = outputStore.createPartial(EXTENSION)
-                    file.copyTo(partial, overwrite = true)
-                    val published = outputStore.publish(partial, EXTENSION)
-                    val duration = describe(EditorInput.FileSource(published.absolutePath))?.durationUs?.div(1000)
-                    file.delete()
+                try {
+                    if (outputStore.allocatableBytes() < file.length() + MIN_FREE_BYTES) {
+                        throw FrameKitException(EditorErrorCode.INSUFFICIENT_STORAGE, "Not enough free space")
+                    }
+                    val output = outputStore.createPartial(EXTENSION)
+                    partial = output
+                    file.copyTo(output, overwrite = true)
+                    val published = outputStore.publish(output, EXTENSION)
+                    val duration = runCatching { describe(EditorInput.FileSource(published.absolutePath)) }.getOrNull()?.durationUs?.div(1000)
                     EditedMedia(outputStore.uriFor(published), MediaType.AUDIO, 0, 0, duration, MIME, published.length())
-                }.getOrNull()
+                } catch (error: FrameKitException) {
+                    Log.w(TAG, "recording delivery failed: ${error.code}")
+                    error.code
+                } catch (error: Exception) {
+                    Log.w(TAG, "recording delivery failed", error)
+                    storageAwareCode(EditorErrorCode.OUTPUT_WRITE_FAILED)
+                } finally {
+                    partial?.takeIf { it.exists() }?.delete()
+                }
             }
-            finish(if (media != null) FrameKitResult.Success(media) else FrameKitResult.Failure(EditorError(EditorErrorCode.OUTPUT_WRITE_FAILED)))
+            when (media) {
+                is EditedMedia -> {
+                    file.delete()
+                    savedState.remove<String>(KEY_PENDING_RECORDING)
+                    finish(FrameKitResult.Success(media))
+                }
+                is EditorErrorCode -> _recordingFailure.value = media
+            }
         }
+    }
+
+    /** 돌려주지 못한 녹음을 다시 돌려준다. */
+    fun retryRecordingDelivery() {
+        val file = savedState.get<String>(KEY_PENDING_RECORDING)?.let(::File)
+        if (file == null || !file.isFile) {
+            _recordingFailure.value = null
+            savedState.remove<String>(KEY_PENDING_RECORDING)
+            return
+        }
+        deliverRecording(file)
+    }
+
+    /** 실패 안내를 닫는다. 녹음 파일은 다시 녹음하거나 닫을 때까지 남긴다. */
+    fun dismissRecordingFailure() {
+        _recordingFailure.value = null
+    }
+
+    // 돌려주지 못한 녹음을 버린다.
+    private fun discardPendingRecording() {
+        _recordingFailure.value = null
+        savedState.get<String>(KEY_PENDING_RECORDING)?.let { File(it).delete() }
+        savedState.remove<String>(KEY_PENDING_RECORDING)
+    }
+
+    private fun storageAwareCode(fallback: EditorErrorCode): EditorErrorCode {
+        val free = runCatching { outputStore.allocatableBytes() }.getOrDefault(Long.MAX_VALUE)
+        return if (free < MIN_FREE_BYTES) EditorErrorCode.INSUFFICIENT_STORAGE else fallback
     }
 
     // ---- 파일 더하기 ----
@@ -465,13 +566,17 @@ internal class AudioEditorViewModel(
 
     fun dismissNotice() = updateReady { it.copy(notice = null) }
 
-    fun hasTool(tool: AudioTool): Boolean = tool in config.enabledTools
+    /** [tool]을 보여 줄지. 녹음할 수 없는 환경([recordBlocked])이면 녹음 도구를 숨긴다. */
+    fun hasTool(tool: AudioTool): Boolean = tool in config.enabledTools && (tool != AudioTool.RECORD || recordBlocked == null)
 
     // ---- 닫기·저장 ----
 
     fun requestClose() {
         val ready = ready()
+        val current = _state.value
         when {
+            // 원본을 열지 못해 닫으면 그 이유를 돌려준다(사진·영상 편집기와 같다).
+            current is AudioEditorUiState.LoadFailed -> finish(FrameKitResult.Failure(EditorError(current.code)))
             ready == null -> finish(FrameKitResult.Cancelled)
             ready.export is AudioExportUiState.Running -> cancelExport()
             ready.isDirty -> updateReady { it.copy(showDiscardDialog = true) }
@@ -504,6 +609,12 @@ internal class AudioEditorViewModel(
         val project = ready.transaction.history.current
         val duration = project.durationUs
         if (duration <= 0) return
+        // AAC 비트레이트로 크기를 어림해 공간이 모자라면 시작하지 않는다.
+        val estimate = request.export.bitrate.toLong() / 8 * duration / 1_000_000 + MIN_FREE_BYTES
+        if (runCatching { outputStore.allocatableBytes() }.getOrDefault(Long.MAX_VALUE) < estimate) {
+            updateReady { it.copy(export = AudioExportUiState.Failed(EditorErrorCode.INSUFFICIENT_STORAGE)) }
+            return
+        }
         updateReady { it.copy(export = AudioExportUiState.Running(0f), selectedClipId = null, range = null) }
         exportJob = viewModelScope.launch {
             var partial: File? = null
@@ -533,7 +644,7 @@ internal class AudioEditorViewModel(
                 updateReady { it.copy(export = AudioExportUiState.Failed(error.code)) }
             } catch (error: Exception) {
                 Log.w(TAG, "export failed", error)
-                updateReady { it.copy(export = AudioExportUiState.Failed(EditorErrorCode.ENCODE_FAILED)) }
+                updateReady { it.copy(export = AudioExportUiState.Failed(storageAwareCode(EditorErrorCode.ENCODE_FAILED))) }
             } finally {
                 partial?.takeIf { it.exists() && _result.value == null }?.delete()
             }
@@ -600,6 +711,8 @@ internal class AudioEditorViewModel(
         private const val KEY_INPUTS = "framekit_audio_inputs"
         private const val KEY_SESSION = "framekit_audio_session"
         private const val KEY_SESSION_SOURCES = "framekit_audio_session_sources"
+        private const val KEY_PENDING_RECORDING = "framekit_audio_pending_recording"
+        private const val MIN_FREE_BYTES = 5L * 1024 * 1024
         private const val FRAME_MS = 33L
         const val MIN_PIECE_US = 200_000L
         private const val DEFAULT_RANGE_US = 3_000_000L

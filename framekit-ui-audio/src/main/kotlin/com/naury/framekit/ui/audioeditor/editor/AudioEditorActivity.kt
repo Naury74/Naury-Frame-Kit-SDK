@@ -27,6 +27,7 @@ import com.naury.framekit.core.validation.ValidationResult
 import com.naury.framekit.ui.audioeditor.contract.AudioEditorContract
 import com.naury.framekit.ui.audioeditor.contract.AudioEditorRequest
 import com.naury.framekit.ui.config.ThemeMode
+import com.naury.framekit.ui.audio.VoiceRecorder
 import com.naury.framekit.ui.design.FrameKitTheme
 import com.naury.framekit.ui.design.ProvideEditorLocale
 import com.naury.framekit.video.audio.WaveformExtractor
@@ -78,6 +79,11 @@ internal class AudioEditorActivity : ComponentActivity() {
                 mixer = { duration, tracks, output, bitrate, progress -> AudioTrackMixer.mixAudioOnly(application, duration, tracks, output, bitrate, progress) },
                 waveformLoader = { uri -> WaveformExtractor.extract(application, uri) },
                 player = AudioClipPlayer(application) { id -> model.uriOf(id) },
+                recordBlocked = when {
+                    !VoiceRecorder.isDeclared(application) -> EditorErrorCode.PERMISSION_DENIED
+                    !VoiceRecorder.hasMicrophone(application) -> EditorErrorCode.UNSUPPORTED_OPERATION
+                    else -> null
+                },
             )
             model
         }

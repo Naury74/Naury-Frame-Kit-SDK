@@ -143,6 +143,10 @@ private fun FirstRecording(viewModel: AudioEditorViewModel) {
         }
         Spacer(Modifier.weight(1.2f))
     }
+    val failure by viewModel.recordingFailure.collectAsStateWithLifecycle()
+    failure?.let { code ->
+        ExportErrorDialog(code = code, onRetry = viewModel::retryRecordingDelivery, onDismiss = viewModel::dismissRecordingFailure)
+    }
 }
 
 @Composable

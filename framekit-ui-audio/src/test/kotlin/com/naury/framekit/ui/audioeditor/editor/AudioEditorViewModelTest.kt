@@ -8,12 +8,14 @@ import com.google.common.truth.Truth.assertThat
 import com.naury.framekit.android.input.EditorInput
 import com.naury.framekit.android.input.MediaKind
 import com.naury.framekit.android.output.AppFileOutputStore
+import com.naury.framekit.android.result.EditorErrorCode
 import com.naury.framekit.android.result.FrameKitResult
 import com.naury.framekit.android.source.SessionSourceRegistry
 import com.naury.framekit.core.model.MediaType
 import com.naury.framekit.core.video.AudioRole
 import com.naury.framekit.ui.audioeditor.contract.AudioEditorConfig
 import com.naury.framekit.ui.audioeditor.contract.AudioEditorRequest
+import com.naury.framekit.ui.audioeditor.contract.AudioTool
 import com.naury.framekit.video.media3.AudioMixTrack
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -33,7 +35,8 @@ class AudioEditorViewModelTest {
 
     private val context = ApplicationProvider.getApplicationContext<Application>()
     private val dispatcher = StandardTestDispatcher()
-    private val store = AppFileOutputStore(context, availableBytes = { Long.MAX_VALUE })
+    private var freeBytes = Long.MAX_VALUE
+    private val store = AppFileOutputStore(context, availableBytes = { freeBytes })
     private val mixed = mutableListOf<Pair<Long, List<AudioMixTrack>>>()
 
     // 파일 이름별 길이(µs). 없는 이름은 열 수 없는 파일이다.
@@ -223,6 +226,66 @@ class AudioEditorViewModelTest {
         assertThat(viewModel.result.value).isNull()
     }
 
+    @Test
+    fun `closing after a failed open returns the real error`() {
+        val viewModel = viewModel(EditorInput.FileSource(File(context.cacheDir, "missing.m4a").absolutePath))
+        assertThat((viewModel.state.value as AudioEditorUiState.LoadFailed).code).isEqualTo(EditorErrorCode.SOURCE_UNAVAILABLE)
+
+        viewModel.requestClose()
+        assertThat((viewModel.result.value as FrameKitResult.Failure).error.code).isEqualTo(EditorErrorCode.SOURCE_UNAVAILABLE)
+    }
+
+    @Test
+    fun `a file without readable audio is an unsupported format`() {
+        val viewModel = viewModel(EditorInput.FileSource(File(context.cacheDir, "noise.bin").apply { writeBytes(ByteArray(4)) }.absolutePath))
+        assertThat((viewModel.state.value as AudioEditorUiState.LoadFailed).code).isEqualTo(EditorErrorCode.UNSUPPORTED_FORMAT)
+    }
+
+    @Test
+    fun `without the microphone permission declared recording is hidden and capture fails`() {
+        val editing = viewModel(file("a.m4a", 2_000_000), recordBlocked = EditorErrorCode.PERMISSION_DENIED)
+        assertThat(editing.hasTool(AudioTool.RECORD)).isFalse()
+        editing.openRecordSheet(RecordTarget.OVERLAY)
+        assertThat(ready(editing).recordSheet).isNull()
+
+        val capture = viewModel(EditorInput.Capture(MediaKind.AUDIO), recordBlocked = EditorErrorCode.PERMISSION_DENIED)
+        assertThat((capture.result.value as FrameKitResult.Failure).error.code).isEqualTo(EditorErrorCode.PERMISSION_DENIED)
+    }
+
+    @Test
+    fun `a recording that could not be returned is kept for retry`() {
+        val viewModel = viewModel(EditorInput.Capture(MediaKind.AUDIO), AudioEditorConfig(editAfterRecording = false))
+        freeBytes = 1024
+        val recording = fileOf("rec.m4a", 4_000_000)
+        viewModel.onRecorded(recording)
+        dispatcher.scheduler.advanceUntilIdle()
+
+        assertThat(viewModel.recordingFailure.value).isEqualTo(EditorErrorCode.INSUFFICIENT_STORAGE)
+        assertThat(viewModel.result.value).isNull()
+        assertThat(recording.exists()).isTrue()
+
+        freeBytes = Long.MAX_VALUE
+        viewModel.retryRecordingDelivery()
+        dispatcher.scheduler.advanceUntilIdle()
+        assertThat(viewModel.result.value).isInstanceOf(FrameKitResult.Success::class.java)
+        assertThat(recording.exists()).isFalse()
+    }
+
+    @Test
+    fun `saving without enough space fails with INSUFFICIENT_STORAGE`() {
+        val viewModel = viewModel(file("a.m4a", 2_000_000))
+        freeBytes = 1024
+        viewModel.save()
+        dispatcher.scheduler.advanceUntilIdle()
+        assertThat((ready(viewModel).export as AudioExportUiState.Failed).code).isEqualTo(EditorErrorCode.INSUFFICIENT_STORAGE)
+        assertThat(mixed).isEmpty()
+    }
+
+    @Test
+    fun `redo without undo is rejected`() {
+        assertThat(AudioEditorConfig(allowUndo = false).validate()).isInstanceOf(com.naury.framekit.core.validation.ValidationResult.Invalid::class.java)
+    }
+
     private fun fileOf(name: String, durationUs: Long): File {
         durations[name] = durationUs
         return File(context.cacheDir, name).apply { writeBytes(ByteArray(16)) }
@@ -239,6 +302,7 @@ class AudioEditorViewModelTest {
         input: EditorInput,
         config: AudioEditorConfig = AudioEditorConfig(),
         savedState: SavedStateHandle = SavedStateHandle(),
+        recordBlocked: EditorErrorCode? = null,
     ): AudioEditorViewModel {
         val viewModel = AudioEditorViewModel(
             request = AudioEditorRequest(input, config = config),
@@ -255,6 +319,7 @@ class AudioEditorViewModelTest {
                 output.writeBytes(ByteArray(8))
                 mixed += duration to tracks
             },
+            recordBlocked = recordBlocked,
         )
         dispatcher.scheduler.advanceUntilIdle()
         return viewModel
