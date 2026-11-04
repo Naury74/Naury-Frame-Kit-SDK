@@ -272,6 +272,25 @@ class AudioEditorViewModelTest {
     }
 
     @Test
+    fun `closing the sheet recorder with an undelivered recording discards it once`() {
+        val config = AudioEditorConfig(editAfterRecording = false, recorderPresentation = com.naury.framekit.ui.audioeditor.contract.RecorderPresentation.SHEET)
+        val viewModel = viewModel(EditorInput.Capture(MediaKind.AUDIO), config)
+        assertThat(viewModel.hasPendingRecording()).isFalse()
+        freeBytes = 1024
+        val recording = fileOf("rec.m4a", 4_000_000)
+        viewModel.onRecorded(recording)
+        dispatcher.scheduler.advanceUntilIdle()
+        assertThat(viewModel.hasPendingRecording()).isTrue()
+
+        viewModel.cancelRecording()
+        viewModel.cancelRecording()
+        dispatcher.scheduler.advanceUntilIdle()
+        assertThat(viewModel.result.value).isEqualTo(FrameKitResult.Cancelled)
+        assertThat(recording.exists()).isFalse()
+        assertThat(viewModel.hasPendingRecording()).isFalse()
+    }
+
+    @Test
     fun `saving without enough space fails with INSUFFICIENT_STORAGE`() {
         val viewModel = viewModel(file("a.m4a", 2_000_000))
         freeBytes = 1024

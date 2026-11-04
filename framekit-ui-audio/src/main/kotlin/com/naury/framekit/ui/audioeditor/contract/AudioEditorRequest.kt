@@ -16,7 +16,7 @@ import kotlinx.parcelize.Parcelize
  *
  * | 입력 | 동작 |
  * | --- | --- |
- * | `Capture(MediaKind.AUDIO)` | 바로 녹음 화면을 연다. 녹음이 끝나면 편집 화면으로 넘어가거나([AudioEditorConfig.editAfterRecording]) 바로 돌려준다 |
+ * | `Capture(MediaKind.AUDIO)` | 바로 녹음 화면을 연다. 녹음이 끝나면 편집 화면으로 넘어가거나([AudioEditorConfig.editAfterRecording]) 바로 돌려준다. 바로 돌려줄 때는 [AudioEditorConfig.recorderPresentation]으로 시트로 띄울 수 있다 |
  * | `Pick(MediaKind.AUDIO, n)` | 시스템 파일 선택기로 소리 파일을 고른 뒤 편집한다(여러 개면 순서대로 이어 붙임) |
  * | `UriSource`·`FileSource`·`Multiple` | 넘긴 소리 파일을 편집한다 |
  */
@@ -47,4 +47,9 @@ public data class AudioEditorRequest(
         listOf(config.validate(), export.validate(), ui.validate()).forEach { if (it is ValidationResult.Invalid) issues += it.issues }
         return ValidationResult.of(issues)
     }
+
+    /** 녹음 화면을 시트로 띄울지. 녹음만 하는 요청에서만 [AudioEditorConfig.recorderPresentation]을 따른다. */
+    internal val usesRecorderSheet: Boolean
+        get() = config.recorderPresentation == RecorderPresentation.SHEET && !config.editAfterRecording &&
+            input is EditorInput.Capture && input.kind == MediaKind.AUDIO
 }

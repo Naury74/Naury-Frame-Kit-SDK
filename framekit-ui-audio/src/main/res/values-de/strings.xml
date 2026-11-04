@@ -47,4 +47,6 @@
     <string name="framekit_audio_overlay_hint">Die Aufnahme wird ab dem Abspielkopf darübergelegt.</string>
     <string name="framekit_audio_target_insert">Einfügen</string>
     <string name="framekit_audio_target_overlay">Überlagern</string>
+    <string name="framekit_audio_discard_recording">Diese Aufnahme verwerfen?</string>
+    <string name="framekit_audio_keep_recording">Weiter aufnehmen</string>
 </resources>

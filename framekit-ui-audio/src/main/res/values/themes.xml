@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 녹음 시트는 호스트 화면 위에 뜨므로 창을 투명하게 두고, 시트가 직접 올라오고 내려가므로 창 전환 애니메이션을 끈다. -->
+    <style name="framekit_Theme.RecorderSheet" parent="android:Theme.Translucent.NoTitleBar">
+        <item name="android:windowAnimationStyle">@null</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+    </style>
+</resources>

@@ -18,6 +18,15 @@ public enum class RecordMode {
     BOTH,
 }
 
+/** 녹음만 할 때 녹음 화면을 띄우는 방식. */
+public enum class RecorderPresentation {
+    /** 전체 화면. */
+    FULL_SCREEN,
+
+    /** 호스트 화면 위에 아래쪽 시트로 띄운다. 뒤 화면은 어둡게 비친다. */
+    SHEET,
+}
+
 /** 음성 편집기의 도구. */
 public enum class AudioTool {
     /** 재생 위치에 녹음을 끼워 넣거나 겹쳐 넣기. */
@@ -42,6 +51,8 @@ public enum class AudioTool {
  * @property recordMode 녹음 방식.
  * @property maxRecordingMs 한 번 녹음할 수 있는 최대 길이(밀리초, 1초..60분). 닿으면 저절로 멈춘다.
  * @property editAfterRecording `Capture`로 녹음을 시작했을 때 녹음이 끝나면 편집 화면으로 넘어갈지. `false`면 녹음 파일을 바로 돌려준다(녹음기로만 쓰기).
+ * @property recorderPresentation 녹음 화면을 띄우는 방식. `Capture(MediaKind.AUDIO)`이고 [editAfterRecording]이 `false`일 때만
+ *   쓰고, 그 밖의 입력에서는 무시한다(검증 오류 아님).
  * @property enabledTools 보여 줄 도구.
  * @property maxSourceCount `Pick`·`Multiple`로 한 번에 열 수 있는 최대 소리 파일 수(1..20).
  * @property allowUndo 실행 취소 버튼을 보여 준다.
@@ -56,6 +67,7 @@ public data class AudioEditorConfig(
     val maxSourceCount: Int = 10,
     val allowUndo: Boolean = true,
     val allowRedo: Boolean = true,
+    val recorderPresentation: RecorderPresentation = RecorderPresentation.FULL_SCREEN,
 ) : Parcelable {
 
     public fun validate(): ValidationResult {

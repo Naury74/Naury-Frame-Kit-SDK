@@ -47,4 +47,6 @@
     <string name="framekit_audio_overlay_hint">La grabación suena encima, desde el cabezal.</string>
     <string name="framekit_audio_target_insert">Insertar</string>
     <string name="framekit_audio_target_overlay">Superponer</string>
+    <string name="framekit_audio_discard_recording">¿Descartar esta grabación?</string>
+    <string name="framekit_audio_keep_recording">Seguir grabando</string>
 </resources>

@@ -13,6 +13,8 @@ import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -53,6 +55,7 @@ import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -65,6 +68,7 @@ import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
@@ -88,9 +92,10 @@ private enum class RecState { IDLE, RECORDING, PAUSED, HOLDING }
  * - 탭: 눌러서 시작, 녹음 중에는 버리기·잠시 멈춤/이어 녹음·완료.
  * - 누르고 말하기: 누르는 동안만 녹음하고 떼면 끝난다. 위로 밀면 손을 떼도 계속 녹음하고(고정), 왼쪽으로 밀면 취소한다.
  *
- * @param compact 시트 안에 넣을 때 `true`(조금 작게).
+ * @param compact 시트 안에 넣을 때 `true`(조금 작게). 창 높이가 낮으면(가로 화면 등) 시간·파형과 버튼을 나란히 둔다.
  * @param onRecorded 녹음을 마친 파일.
  * @param onTooShort 너무 짧아 버렸을 때.
+ * @param onActiveChange 녹음 중(잠시 멈춤 포함)이 되거나 끝날 때.
  */
 @Composable
 internal fun RecorderPanel(
@@ -100,6 +105,7 @@ internal fun RecorderPanel(
     onRecorded: (File) -> Unit,
     onTooShort: () -> Unit,
     modifier: Modifier = Modifier,
+    onActiveChange: (Boolean) -> Unit = {},
 ) {
     val context = LocalContext.current
     val colors = FrameKitTheme.colors
@@ -111,8 +117,10 @@ internal fun RecorderPanel(
     var elapsed by remember { mutableLongStateOf(0L) }
     var error by remember { mutableStateOf<Int?>(null) }
     val levels = remember { mutableStateListOf<Float>() }
+    val short = compact && LocalConfiguration.current.screenHeightDp < SHORT_SCREEN_DP
     val recorded by rememberUpdatedState(onRecorded)
     val tooShort by rememberUpdatedState(onTooShort)
+    val activeChange by rememberUpdatedState(onActiveChange)
 
     fun hasPermission() = ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
     val permission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
@@ -152,6 +160,7 @@ internal fun RecorderPanel(
     }
 
     LaunchedEffect(state) {
+        activeChange(state != RecState.IDLE)
         while (state == RecState.RECORDING || state == RecState.HOLDING || state == RecState.PAUSED) {
             elapsed = recorder.elapsedMs
             if (state != RecState.PAUSED) {
@@ -168,7 +177,7 @@ internal fun RecorderPanel(
     // 화면이 사라지면(뒤로 가기, 시트 닫기) 녹음을 버려 마이크를 놓는다.
     DisposableEffect(Unit) { onDispose { recorder.cancel() } }
 
-    Column(modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+    val info: @Composable ColumnScope.() -> Unit = {
         Text(
             formatClock(elapsed),
             color = if (state == RecState.IDLE) colors.foregroundMuted else colors.foreground,
@@ -188,8 +197,18 @@ internal fun RecorderPanel(
             ),
             color = if (error != null) colors.error else colors.foregroundMuted,
             style = MaterialTheme.typography.bodySmall,
+            textAlign = TextAlign.Center,
         )
-        LiveWave(levels, recording = state == RecState.RECORDING || state == RecState.HOLDING, modifier = Modifier.fillMaxWidth().height(if (compact) 64.dp else 120.dp).padding(vertical = 12.dp))
+        val waveHeight = when {
+            short -> 40.dp
+            compact -> 64.dp
+            else -> 120.dp
+        }
+        LiveWave(
+            levels,
+            recording = state == RecState.RECORDING || state == RecState.HOLDING,
+            modifier = Modifier.fillMaxWidth().height(waveHeight).padding(vertical = if (short) 8.dp else 12.dp),
+        )
         if (mode == RecordMode.BOTH && state == RecState.IDLE) {
             ChoiceChips(
                 options = listOf(RecordMode.TAP, RecordMode.HOLD),
@@ -197,48 +216,60 @@ internal fun RecorderPanel(
                 label = { stringResource(if (it == RecordMode.TAP) R.string.framekit_audio_mode_tap else R.string.framekit_audio_mode_hold) },
                 onSelect = { activeMode = it },
             )
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(if (short) 0.dp else 8.dp))
         }
-        Box(Modifier.fillMaxWidth().height(if (compact) 128.dp else 168.dp), contentAlignment = Alignment.Center) {
-            when {
-                state == RecState.RECORDING || state == RecState.PAUSED -> Row(
-                    Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly,
-                    verticalAlignment = Alignment.CenterVertically,
+    }
+    val controls: @Composable BoxScope.() -> Unit = {
+        when {
+            state == RecState.RECORDING || state == RecState.PAUSED -> Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                SideButton(rememberVectorPainter(Icons.Filled.Delete), stringResource(R.string.framekit_audio_discard), colors.foregroundMuted) { discard() }
+                BigButton(
+                    icon = painterResource(if (state == RecState.PAUSED) UiR.drawable.framekit_ic_mic else UiR.drawable.framekit_ic_pause),
+                    description = stringResource(if (state == RecState.PAUSED) R.string.framekit_audio_resume else R.string.framekit_audio_pause),
+                    color = RECORD_RED,
+                    level = if (state == RecState.RECORDING) levels.lastOrNull() ?: 0f else 0f,
                 ) {
-                    SideButton(rememberVectorPainter(Icons.Filled.Delete), stringResource(R.string.framekit_audio_discard), colors.foregroundMuted) { discard() }
-                    BigButton(
-                        icon = painterResource(if (state == RecState.PAUSED) UiR.drawable.framekit_ic_mic else UiR.drawable.framekit_ic_pause),
-                        description = stringResource(if (state == RecState.PAUSED) R.string.framekit_audio_resume else R.string.framekit_audio_pause),
-                        color = RECORD_RED,
-                        level = if (state == RecState.RECORDING) levels.lastOrNull() ?: 0f else 0f,
-                    ) {
-                        if (state == RecState.PAUSED) {
-                            recorder.resume()
-                            state = RecState.RECORDING
-                        } else {
-                            recorder.pause()
-                            state = RecState.PAUSED
-                        }
-                    }
-                    SideButton(rememberVectorPainter(Icons.Filled.Check), stringResource(R.string.framekit_audio_done), colors.accent) { finish() }
-                }
-                activeMode == RecordMode.HOLD -> HoldButton(
-                    holding = state == RecState.HOLDING,
-                    level = levels.lastOrNull() ?: 0f,
-                    onPress = { start(RecState.HOLDING) },
-                    onRelease = { finish() },
-                    onLock = {
+                    if (state == RecState.PAUSED) {
+                        recorder.resume()
                         state = RecState.RECORDING
-                        if (hapticsOn) haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                    },
-                    onCancel = {
-                        discard()
-                        if (hapticsOn) haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                    },
-                )
-                else -> BigButton(painterResource(UiR.drawable.framekit_ic_mic), stringResource(R.string.framekit_audio_record), RECORD_RED, 0f) { start(RecState.RECORDING) }
+                    } else {
+                        recorder.pause()
+                        state = RecState.PAUSED
+                    }
+                }
+                SideButton(rememberVectorPainter(Icons.Filled.Check), stringResource(R.string.framekit_audio_done), colors.accent) { finish() }
             }
+            activeMode == RecordMode.HOLD -> HoldButton(
+                holding = state == RecState.HOLDING,
+                level = levels.lastOrNull() ?: 0f,
+                onPress = { start(RecState.HOLDING) },
+                onRelease = { finish() },
+                onLock = {
+                    state = RecState.RECORDING
+                    if (hapticsOn) haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                },
+                onCancel = {
+                    discard()
+                    if (hapticsOn) haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                },
+            )
+            else -> BigButton(painterResource(UiR.drawable.framekit_ic_mic), stringResource(R.string.framekit_audio_record), RECORD_RED, 0f) { start(RecState.RECORDING) }
+        }
+    }
+    if (short) {
+        // 낮은 창에서는 시트가 화면 높이를 넘지 않도록 시간·파형과 버튼을 나란히 둔다.
+        Row(modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally, content = info)
+            Box(Modifier.weight(1f).height(120.dp), contentAlignment = Alignment.Center, content = controls)
+        }
+    } else {
+        Column(modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+            info()
+            Box(Modifier.fillMaxWidth().height(if (compact) 128.dp else 168.dp), contentAlignment = Alignment.Center, content = controls)
         }
     }
 }
@@ -375,4 +406,5 @@ internal fun formatClock(ms: Long): String {
 
 private val RECORD_RED = Color(0xFFFF4D5E)
 private const val TICK_MS = 50L
+private const val SHORT_SCREEN_DP = 500
 private const val MAX_BARS = 240

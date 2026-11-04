@@ -9,6 +9,11 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
+import com.naury.kinetica.ui.KSheet
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.semantics.heading
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -65,8 +70,6 @@ import com.naury.framekit.core.video.AudioRole
 import com.naury.framekit.ui.audioeditor.R
 import com.naury.framekit.ui.audioeditor.contract.AudioTool
 import com.naury.framekit.ui.component.ChoiceChips
-import com.naury.framekit.ui.component.DialogAction
-import com.naury.framekit.ui.component.DialogActionStyle
 import com.naury.framekit.ui.component.DiscardChangesDialog
 import com.naury.framekit.ui.component.EditorErrorView
 import com.naury.framekit.ui.component.EditorLoadingView
@@ -76,7 +79,6 @@ import com.naury.framekit.ui.component.NavigationIcon
 import com.naury.framekit.ui.component.ExportErrorDialog
 import com.naury.framekit.ui.component.ExportOverlay
 import com.naury.framekit.ui.component.ExportStageUi
-import com.naury.framekit.ui.component.FrameKitDialog
 import com.naury.framekit.ui.component.FrameKitSnackbarHost
 import com.naury.framekit.ui.component.ToolRail
 import com.naury.framekit.ui.component.ToolRailItem
@@ -393,21 +395,37 @@ private fun ClipPanel(state: AudioEditorUiState.Ready, viewModel: AudioEditorVie
     }
 }
 
-/** 녹음 시트. 끼워 넣기(뒤를 밀기)와 겹쳐 넣기를 고르고 녹음한다. */
+/**
+ * 녹음 시트. 끼워 넣기(뒤를 밀기)와 겹쳐 넣기를 고르고 녹음한다.
+ * 화면 너비와 상관없이 아래쪽 시트로 띄우고, 끌어 내리기·바깥 누름·뒤로 가기로 닫는다. 닫으면 진행 중인 녹음은 버린다.
+ */
 @Composable
 private fun RecordSheet(target: RecordTarget, viewModel: AudioEditorViewModel) {
-    FrameKitDialog(
-        title = stringResource(R.string.framekit_audio_record_title),
-        message = stringResource(if (target == RecordTarget.INSERT) R.string.framekit_audio_insert_hint else R.string.framekit_audio_overlay_hint),
-        onDismiss = viewModel::closeRecordSheet,
-        actions = listOf(DialogAction(stringResource(UiR.string.framekit_action_cancel), DialogActionStyle.SECONDARY, onClick = viewModel::closeRecordSheet)),
-    ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+    val colors = FrameKitTheme.colors
+    var visible by remember { mutableStateOf(true) }
+    val title = stringResource(R.string.framekit_audio_record_title)
+    KSheet(visible = visible, onDismissRequest = { visible = false }, title = title, onDismissed = viewModel::closeRecordSheet) {
+        // 글자를 크게 하거나 가로 화면이라 높이가 모자라면 스크롤한다.
+        Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()), horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(
+                title,
+                color = colors.foreground,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.semantics { heading() },
+            )
             ChoiceChips(
                 options = RecordTarget.entries,
                 selected = target,
                 label = { stringResource(if (it == RecordTarget.INSERT) R.string.framekit_audio_target_insert else R.string.framekit_audio_target_overlay) },
                 onSelect = viewModel::setRecordTarget,
+            )
+            Text(
+                stringResource(if (target == RecordTarget.INSERT) R.string.framekit_audio_insert_hint else R.string.framekit_audio_overlay_hint),
+                color = colors.foregroundMuted,
+                style = MaterialTheme.typography.bodySmall,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(bottom = 4.dp),
             )
             RecorderPanel(
                 mode = viewModel.config.recordMode,

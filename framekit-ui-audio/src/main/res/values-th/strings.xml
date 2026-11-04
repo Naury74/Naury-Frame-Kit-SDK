@@ -47,4 +47,6 @@
     <string name="framekit_audio_overlay_hint">เสียงที่อัดจะเล่นซ้อนทับ เริ่มจากหัวเล่น</string>
     <string name="framekit_audio_target_insert">แทรก</string>
     <string name="framekit_audio_target_overlay">ซ้อนทับ</string>
+    <string name="framekit_audio_discard_recording">ทิ้งการบันทึกเสียงนี้ไหม</string>
+    <string name="framekit_audio_keep_recording">บันทึกต่อ</string>
 </resources>
