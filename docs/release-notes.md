@@ -1,5 +1,15 @@
 # Release Notes
 
+## 1.0.0-alpha13
+
+### 추가
+
+- Android: `AudioEditorConfig.recorderPresentation`(`RecorderPresentation.FULL_SCREEN` 기본, `SHEET`). `SHEET`면 녹음만 하는 요청(`Capture(MediaKind.AUDIO)` + `editAfterRecording = false`)을 호스트 화면 위 아래쪽 시트로 띄움. `FrameKitContract`·`AudioEditorContract` 모두 적용되고, 그 밖의 요청에서는 무시함(검증 오류 아님). 끌어 내리기·바깥 누름·뒤로 가기로 닫을 때 녹음이 있으면 버릴지 물음
+
+### 바뀜
+
+- Android: 음성 편집기의 녹음 도구가 화면 너비와 상관없이 낮은 아래쪽 시트로 열림(예전에는 넓은 화면에서 가운데 카드, 취소 버튼 포함). 가로 화면처럼 높이가 낮으면 시간·파형과 녹음 버튼을 나란히 두어 버튼이 가려지지 않음
+
 ## 1.0.0-alpha12
 
 ### 고침
