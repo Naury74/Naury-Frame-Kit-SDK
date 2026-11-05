@@ -1,7 +1,8 @@
 package com.naury.framekit.ui.component
 
 import com.naury.kinetica.ui.KButton
-import com.naury.kinetica.ui.KProgressRing
+import com.naury.kinetica.ui.KWavyProgressLook
+import com.naury.kinetica.ui.KWavyProgressRing
 import com.naury.kinetica.ui.KTone
 import com.naury.kinetica.ui.KVariant
 import kotlin.math.roundToInt
@@ -84,15 +85,15 @@ public fun ExportOverlay(stage: ExportStageUi, onCancel: () -> Unit, modifier: M
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            // 진행률을 알 수 있으면 링 안에 퍼센트를 크게 보여 준다.
+            // 진행률을 알 수 있으면 링 안에 퍼센트를 크게 보여 준다. 진행된 원호는 값이 바뀌는 동안 물결치고 멈추면 잦아든다.
             Box(Modifier.size(84.dp), contentAlignment = Alignment.Center) {
-                // 링은 진행률을 스스로 부드럽게 따라가고, 퍼센트 글자도 같은 속도로 맞춘다.
-                val target = if (determinate) progress!!.coerceIn(0f, 1f) else null
-                KProgressRing(target, Modifier.size(84.dp)) {
-                    if (target != null) {
-                        val animated by animateFloatAsState(target, label = "export-progress")
-                        Text("${(animated * 100).roundToInt()}%", color = colors.foreground, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                    }
+                if (determinate) {
+                    // 링과 퍼센트 글자가 같은 속도로 진행률을 따라간다.
+                    val animated by animateFloatAsState(progress!!.coerceIn(0f, 1f), label = "export-progress")
+                    KWavyProgressRing({ animated }, Modifier.size(84.dp), look = RING_LOOK)
+                    Text("${(animated * 100).roundToInt()}%", color = colors.foreground, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                } else {
+                    KWavyProgressRing(Modifier.size(84.dp), look = RING_LOOK)
                 }
             }
             Text(
@@ -114,3 +115,5 @@ public fun ExportOverlay(stage: ExportStageUi, onCancel: () -> Unit, modifier: M
         }
     }
 }
+
+private val RING_LOOK = KWavyProgressLook(thickness = 6.dp, amplitude = 1.6.dp, wavelength = 15.dp)

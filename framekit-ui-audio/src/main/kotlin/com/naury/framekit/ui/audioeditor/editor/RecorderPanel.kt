@@ -6,7 +6,6 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitEachGesture
@@ -37,9 +36,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
@@ -47,9 +47,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
@@ -65,6 +62,7 @@ import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -77,6 +75,7 @@ import com.naury.framekit.ui.audioeditor.R
 import com.naury.framekit.ui.audioeditor.contract.RecordMode
 import com.naury.framekit.ui.component.ChoiceChips
 import com.naury.framekit.ui.design.FrameKitTheme
+import com.naury.kinetica.ui.KLiveWaveform
 import kotlinx.coroutines.delay
 import java.io.File
 import java.util.Locale
@@ -116,7 +115,9 @@ internal fun RecorderPanel(
     var activeMode by remember { mutableStateOf(if (mode == RecordMode.HOLD) RecordMode.HOLD else RecordMode.TAP) }
     var elapsed by remember { mutableLongStateOf(0L) }
     var error by remember { mutableStateOf<Int?>(null) }
-    val levels = remember { mutableStateListOf<Float>() }
+    var level by remember { mutableFloatStateOf(0f) }
+    // 새 녹음마다 파형을 비운다.
+    var take by remember { mutableIntStateOf(0) }
     val short = compact && LocalConfiguration.current.screenHeightDp < SHORT_SCREEN_DP
     val recorded by rememberUpdatedState(onRecorded)
     val tooShort by rememberUpdatedState(onTooShort)
@@ -134,7 +135,8 @@ internal fun RecorderPanel(
         }
         return try {
             recorder.start()
-            levels.clear()
+            level = 0f
+            take++
             error = null
             state = next
             if (hapticsOn) haptics.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -156,17 +158,15 @@ internal fun RecorderPanel(
         recorder.cancel()
         state = RecState.IDLE
         elapsed = 0
-        levels.clear()
+        level = 0f
+        take++
     }
 
     LaunchedEffect(state) {
         activeChange(state != RecState.IDLE)
         while (state == RecState.RECORDING || state == RecState.HOLDING || state == RecState.PAUSED) {
             elapsed = recorder.elapsedMs
-            if (state != RecState.PAUSED) {
-                levels.add(recorder.level())
-                if (levels.size > MAX_BARS) levels.removeAt(0)
-            }
+            level = if (state == RecState.PAUSED) 0f else recorder.level()
             if (elapsed >= maxRecordingMs) {
                 finish()
                 break
@@ -204,11 +204,17 @@ internal fun RecorderPanel(
             compact -> 64.dp
             else -> 120.dp
         }
-        LiveWave(
-            levels,
-            recording = state == RecState.RECORDING || state == RecState.HOLDING,
-            modifier = Modifier.fillMaxWidth().height(waveHeight).padding(vertical = if (short) 8.dp else 12.dp),
-        )
+        val recording = state == RecState.RECORDING || state == RecState.HOLDING
+        key(take) {
+            KLiveWaveform(
+                level = { level },
+                modifier = Modifier.fillMaxWidth().height(waveHeight).padding(vertical = if (short) 8.dp else 12.dp),
+                active = recording,
+                color = if (recording) RECORD_RED else colors.foregroundMuted.copy(alpha = 0.4f),
+                barGap = 2.5.dp,
+                sampleIntervalMs = TICK_MS,
+            )
+        }
         if (mode == RecordMode.BOTH && state == RecState.IDLE) {
             ChoiceChips(
                 options = listOf(RecordMode.TAP, RecordMode.HOLD),
@@ -231,7 +237,7 @@ internal fun RecorderPanel(
                     icon = painterResource(if (state == RecState.PAUSED) UiR.drawable.framekit_ic_mic else UiR.drawable.framekit_ic_pause),
                     description = stringResource(if (state == RecState.PAUSED) R.string.framekit_audio_resume else R.string.framekit_audio_pause),
                     color = RECORD_RED,
-                    level = if (state == RecState.RECORDING) levels.lastOrNull() ?: 0f else 0f,
+                    level = if (state == RecState.RECORDING) level else 0f,
                 ) {
                     if (state == RecState.PAUSED) {
                         recorder.resume()
@@ -245,8 +251,9 @@ internal fun RecorderPanel(
             }
             activeMode == RecordMode.HOLD -> HoldButton(
                 holding = state == RecState.HOLDING,
-                level = levels.lastOrNull() ?: 0f,
+                level = level,
                 onPress = { start(RecState.HOLDING) },
+                onAccessibilityStart = { start(RecState.RECORDING) },
                 onRelease = { finish() },
                 onLock = {
                     state = RecState.RECORDING
@@ -270,26 +277,6 @@ internal fun RecorderPanel(
         Column(modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
             info()
             Box(Modifier.fillMaxWidth().height(if (compact) 128.dp else 168.dp), contentAlignment = Alignment.Center, content = controls)
-        }
-    }
-}
-
-/** 소리 크기에 맞춰 오른쪽에서 흘러 들어오는 막대 파형. */
-@Composable
-private fun LiveWave(levels: List<Float>, recording: Boolean, modifier: Modifier) {
-    val accent = if (recording) RECORD_RED else FrameKitTheme.colors.foregroundMuted.copy(alpha = 0.4f)
-    Canvas(modifier) {
-        val bar = 3.dp.toPx()
-        val gap = 2.5.dp.toPx()
-        val step = bar + gap
-        val count = (size.width / step).toInt()
-        val middle = size.height / 2
-        for (i in 0 until count) {
-            // 오른쪽 끝이 가장 최근 소리다.
-            val level = levels.getOrNull(levels.size - count + i) ?: 0f
-            val half = (size.height / 2 * (0.06f + 0.94f * level)).coerceAtLeast(1.dp.toPx())
-            val x = i * step
-            drawRoundRect(accent.copy(alpha = if (level > 0f) 1f else 0.35f), Offset(x, middle - half), Size(bar, half * 2), CornerRadius(bar / 2))
         }
     }
 }
@@ -329,10 +316,20 @@ private fun SideButton(icon: Painter, label: String, tint: Color, onClick: () ->
 
 /**
  * 누르고 말하기 버튼. 누르면 [onPress], 떼면 [onRelease]. 위로 밀면 [onLock], 왼쪽으로 밀면 [onCancel]하고 손을 떼도 녹음 결과를 내지 않는다.
+ * TalkBack에서는 누른 채 있을 수 없으므로 두 번 탭하면 [onAccessibilityStart]로 탭 녹음을 시작한다.
  */
 @Composable
-private fun HoldButton(holding: Boolean, level: Float, onPress: () -> Boolean, onRelease: () -> Unit, onLock: () -> Unit, onCancel: () -> Unit) {
+private fun HoldButton(
+    holding: Boolean,
+    level: Float,
+    onPress: () -> Boolean,
+    onAccessibilityStart: () -> Unit,
+    onRelease: () -> Unit,
+    onLock: () -> Unit,
+    onCancel: () -> Unit,
+) {
     val colors = FrameKitTheme.colors
+    val description = stringResource(R.string.framekit_audio_mode_hold)
     val density = LocalDensity.current
     val lockPx = with(density) { 72.dp.toPx() }
     val cancelPx = with(density) { 96.dp.toPx() }
@@ -361,7 +358,12 @@ private fun HoldButton(holding: Boolean, level: Float, onPress: () -> Boolean, o
                 .size(120.dp)
                 .offset { IntOffset((dragX.coerceIn(-cancelPx, 0f)).roundToInt(), (dragY.coerceIn(-lockPx, 0f)).roundToInt()) }
                 .semantics {
+                    contentDescription = description
                     role = Role.Button
+                    onClick {
+                        onAccessibilityStart()
+                        true
+                    }
                 }
                 .pointerInput(Unit) {
                     awaitEachGesture {
@@ -392,7 +394,7 @@ private fun HoldButton(holding: Boolean, level: Float, onPress: () -> Boolean, o
         ) {
             Box(Modifier.size(92.dp).scale(scale * if (holding) ring else 1f).background(RECORD_RED.copy(alpha = 0.18f), CircleShape))
             Box(Modifier.size(80.dp).scale(scale).background(RECORD_RED, CircleShape), contentAlignment = Alignment.Center) {
-                Icon(painterResource(UiR.drawable.framekit_ic_mic), contentDescription = stringResource(R.string.framekit_audio_mode_hold), tint = Color.White, modifier = Modifier.size(34.dp))
+                Icon(painterResource(UiR.drawable.framekit_ic_mic), contentDescription = null, tint = Color.White, modifier = Modifier.size(34.dp))
             }
         }
     }
@@ -407,4 +409,3 @@ internal fun formatClock(ms: Long): String {
 private val RECORD_RED = Color(0xFFFF4D5E)
 private const val TICK_MS = 50L
 private const val SHORT_SCREEN_DP = 500
-private const val MAX_BARS = 240

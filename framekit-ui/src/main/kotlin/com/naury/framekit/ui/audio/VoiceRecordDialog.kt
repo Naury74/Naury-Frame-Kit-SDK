@@ -4,24 +4,18 @@ import android.Manifest
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableLongStateOf
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -41,6 +35,7 @@ import com.naury.framekit.ui.component.DialogAction
 import com.naury.framekit.ui.component.DialogActionStyle
 import com.naury.framekit.ui.component.FrameKitDialog
 import com.naury.framekit.ui.design.FrameKitTheme
+import com.naury.kinetica.ui.KLiveWaveform
 import kotlinx.coroutines.delay
 import java.io.File
 import java.util.Locale
@@ -57,7 +52,7 @@ public fun VoiceRecordDialog(onRecorded: (File) -> Unit, onDismiss: () -> Unit) 
     var error by remember { mutableStateOf<Int?>(null) }
     var recording by remember { mutableStateOf(false) }
     var elapsed by remember { mutableLongStateOf(0L) }
-    val levels = remember { mutableStateListOf<Float>() }
+    var level by remember { mutableFloatStateOf(0f) }
 
     fun begin() {
         try {
@@ -78,8 +73,7 @@ public fun VoiceRecordDialog(onRecorded: (File) -> Unit, onDismiss: () -> Unit) 
     LaunchedEffect(recording) {
         while (recording) {
             elapsed = recorder.elapsedMs
-            levels.add(recorder.level())
-            if (levels.size > BARS) levels.removeAt(0)
+            level = recorder.level()
             if (elapsed >= MAX_MS) {
                 recording = false
                 recorder.stop()?.let(onRecorded)
@@ -130,20 +124,19 @@ public fun VoiceRecordDialog(onRecorded: (File) -> Unit, onDismiss: () -> Unit) 
                     color = colors.foregroundMuted,
                     style = MaterialTheme.typography.bodySmall,
                 )
-                Row(
-                    Modifier.fillMaxWidth().height(48.dp).padding(top = 12.dp),
-                    horizontalArrangement = Arrangement.spacedBy(3.dp, Alignment.CenterHorizontally),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    levels.forEach { level ->
-                        Box(Modifier.width(4.dp).height((4 + level * 32).dp).background(colors.accent, RoundedCornerShape(2.dp)))
-                    }
-                }
+                KLiveWaveform(
+                    level = { level },
+                    modifier = Modifier.fillMaxWidth().height(48.dp).padding(top = 12.dp),
+                    active = recording,
+                    color = colors.accent,
+                    barWidth = 4.dp,
+                    barGap = 3.dp,
+                    sampleIntervalMs = TICK_MS,
+                )
             }
         }
     }
 }
 
 private const val TICK_MS = 100L
-private const val BARS = 40
 private const val MAX_MS = 10 * 60_000L
