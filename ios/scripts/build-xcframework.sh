@@ -20,7 +20,8 @@ for platform in "iOS" "iOS Simulator"; do
     -destination "generic/platform=$platform" \
     -archivePath "$OUT/$name.xcarchive" \
     -derivedDataPath "$IOS/build/dd-release" \
-    SKIP_INSTALL=NO BUILD_LIBRARY_FOR_DISTRIBUTION=YES
+    SKIP_INSTALL=NO BUILD_LIBRARY_FOR_DISTRIBUTION=YES \
+    OTHER_SWIFT_FLAGS='$(inherited) -Xfrontend -disable-module-selectors-in-module-interface'
 done
 
 xcodebuild -create-xcframework \
@@ -31,6 +32,12 @@ xcodebuild -create-xcframework \
 # 공개 인터페이스가 core를 참조하면 호스트 앱에서 빌드가 깨지므로 막는다.
 if grep -R "FrameKitCore" "$OUT/FrameKit.xcframework" --include="*.swiftinterface" >/dev/null; then
   echo "error: swiftinterface가 FrameKitCore를 참조합니다." >&2
+  exit 1
+fi
+
+# 모듈 선택자(`Swift::Bool`)는 최신 컴파일러만 읽는다. 남아 있으면 예전 Xcode에서 모듈을 만들지 못한다.
+if grep -R -E "[A-Za-z_]::[A-Za-z_]" "$OUT/FrameKit.xcframework" --include="*.swiftinterface" >/dev/null; then
+  echo "error: swiftinterface에 모듈 선택자(::)가 남아 있습니다." >&2
   exit 1
 fi
 
