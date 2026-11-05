@@ -1,5 +1,13 @@
 # Release Notes
 
+## 1.0.0-alpha14 (iOS)
+
+iOS만 새로 냅니다. Android는 1.0.0-alpha13 그대로입니다.
+
+### 고침
+
+- iOS: Xcode 27에서 만든 결과물의 모듈 인터페이스에 최신 컴파일러만 읽는 문법(`Swift::Bool` 같은 모듈 선택자)이 들어 있어, Xcode 26 이하에서 FrameKit 모듈을 만들지 못하던 문제. 이제 Xcode 16(Swift 6.0) 이상에서 빌드됨
+
 ## 1.0.0-alpha13
 
 ### 추가
