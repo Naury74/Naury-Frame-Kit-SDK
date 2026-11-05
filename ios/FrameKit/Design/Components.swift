@@ -118,33 +118,79 @@ struct ChoiceChip: View {
     }
 }
 
-/// 진행 원. [progress]가 `nil`이면 계속 돈다.
+/// 진행 원. [progress]가 `nil`이면 계속 돈다. 진행된 원호는 값이 바뀌는 동안 바깥쪽으로 물결치고, 1.5초 넘게 그대로이면 잦아든다.
+/// 동작 줄이기 설정에서는 물결 없이 그린다.
 struct ProgressRing: View {
     let progress: Double?
     @Environment(\.editorTheme) private var theme
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var spin = false
+    @State private var changedAt = Date()
 
     var body: some View {
         ZStack {
-            Circle().stroke(theme.raised, lineWidth: 6)
+            TimelineView(.animation(paused: reduceMotion)) { timeline in
+                Canvas { context, size in
+                    draw(&context, size: size, time: timeline.date)
+                }
+            }
             if let progress {
-                Circle().trim(from: 0, to: max(0.02, min(1, progress)))
-                    .stroke(theme.accent, style: StrokeStyle(lineWidth: 6, lineCap: .round))
-                    .rotationEffect(.degrees(-90))
-                Text("\(Int((progress * 100).rounded()))%").scaledFont(17, weight: .semibold).foregroundStyle(theme.foreground)
-            } else {
-                Circle().trim(from: 0, to: 0.28)
-                    .stroke(theme.accent, style: StrokeStyle(lineWidth: 6, lineCap: .round))
-                    .rotationEffect(.degrees(spin ? 360 : 0))
-                    .onAppear {
-                        guard !reduceMotion else { return }
-                        withAnimation(.linear(duration: 1).repeatForever(autoreverses: false)) { spin = true }
-                    }
+                Text("\(Int((min(1, max(0, progress)) * 100).rounded()))%").scaledFont(17, weight: .semibold).foregroundStyle(theme.foreground)
             }
         }
         .frame(width: 84, height: 84)
+        .onValueChange(of: progress) { _, _ in changedAt = Date() }
+        .accessibilityElement(children: .ignore)
+        .accessibilityValue(progress.map { "\(Int((min(1, max(0, $0)) * 100).rounded()))%" } ?? "")
     }
+
+    private func draw(_ context: inout GraphicsContext, size: CGSize, time: Date) {
+        let line: CGFloat = 6
+        let wave: CGFloat = 1.6
+        let center = CGPoint(x: size.width / 2, y: size.height / 2)
+        let radius = min(size.width, size.height) / 2 - line / 2 - wave
+        let t = time.timeIntervalSinceReferenceDate
+        let start: Double
+        let sweep: Double
+        var amplitude: CGFloat
+        if let progress {
+            let level = min(1, max(0, progress))
+            start = -.pi / 2
+            sweep = max(0.02, level) * 2 * .pi
+            // 값이 멈추면 물결을 잦아들게 하고, 0과 1 가까이에서는 낮춘다.
+            let idle = time.timeIntervalSince(changedAt) - Self.settleDelay
+            amplitude = wave * CGFloat(min(1, max(0, 1 - idle / Self.settleDuration))) * CGFloat(min(1, min(level, 1 - level) * 10))
+        } else {
+            start = (t.truncatingRemainder(dividingBy: Self.spinPeriod) / Self.spinPeriod) * 2 * .pi - .pi / 2
+            sweep = 0.28 * 2 * .pi
+            amplitude = wave
+        }
+        if reduceMotion { amplitude = 0 }
+        let style = StrokeStyle(lineWidth: line, lineCap: .round, lineJoin: .round)
+        // 남은 트랙은 진행된 원호와 틈을 두고 매끈하게 그린다.
+        let gap = Double((line + 4) / radius)
+        if sweep + 2 * gap < 2 * .pi {
+            var track = Path()
+            track.addArc(center: center, radius: radius, startAngle: .radians(start + sweep + gap), endAngle: .radians(start + 2 * .pi - gap), clockwise: false)
+            context.stroke(track, with: .color(theme.raised), style: style)
+        }
+        var arc = Path()
+        let waves = max(1, (2 * .pi * Double(radius) / Self.wavelength).rounded())
+        let phase = t * Self.cyclesPerSecond * 2 * .pi
+        let steps = max(8, Int(sweep / (2 * .pi) * 180))
+        for i in 0...steps {
+            let angle = start + sweep * Double(i) / Double(steps)
+            let r = radius + amplitude * CGFloat(sin(angle * waves - phase))
+            let point = CGPoint(x: center.x + r * CGFloat(cos(angle)), y: center.y + r * CGFloat(sin(angle)))
+            if i == 0 { arc.move(to: point) } else { arc.addLine(to: point) }
+        }
+        context.stroke(arc, with: .color(theme.accent), style: style)
+    }
+
+    private static let settleDelay: TimeInterval = 1.5
+    private static let settleDuration: TimeInterval = 0.5
+    private static let spinPeriod: TimeInterval = 1
+    private static let wavelength: Double = 15
+    private static let cyclesPerSecond: Double = 1
 }
 
 /// 시스템 글자 크기 설정을 따르는 글꼴. [size]는 기본 크기(pt)다.
