@@ -113,7 +113,7 @@ dependencyResolutionManagement {
 
 // app/build.gradle.kts
 dependencies {
-    implementation("com.naurylab:framekit:1.0.0-alpha13")
+    implementation("com.naurylab:framekit:1.0.0-alpha15")
 }
 ```
 
@@ -264,7 +264,7 @@ FrameKitRequest(
 - 앱 안 갤러리는 앱이 `READ_MEDIA_IMAGES`, `READ_MEDIA_VIDEO`를 선언했을 때만 열립니다. Google Play 정책상 사진 전체 접근이 핵심 기능인 앱만 선언할 수 있고, 선언하지 않으면 시스템 사진 선택기를 씁니다.
 - 녹음은 앱이 `RECORD_AUDIO`를 선언해야 보입니다. 실시간 문서 스캐너는 `CAMERA`를 선언했을 때만 쓰고, 아니면 기기 카메라 앱으로 찍습니다.
 - 배경 제거와 글자 검색은 Google Play 서비스가 필요하고 `INTERNET` 권한이 함께 들어옵니다. 처음 쓸 때 모델을 내려받을 수 있습니다.
-- 앱이 kinetica-ui를 직접 쓴다면 1.0.0-alpha05 이상을 쓰세요.
+- 앱이 kinetica-ui를 직접 쓴다면 1.0.0-alpha06 이상을 쓰세요.
 
 **iOS**
 
