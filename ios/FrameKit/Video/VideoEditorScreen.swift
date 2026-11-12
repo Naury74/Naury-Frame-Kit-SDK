@@ -579,7 +579,7 @@ struct CanvasPanel: View {
                 }
                 .padding(.horizontal, 16)
             }
-            chips(CanvasFit.allCases.map(\.rawValue), selected: canvas.fit.rawValue, title: { strings("canvas_\($0)") }) {
+            chips(CanvasFit.allCases.map(\.rawValue), selected: canvas.fit.rawValue, title: { strings(CanvasFit(rawValue: $0)?.labelKey ?? $0) }) {
                 model.setCanvas(aspect: current, fit: CanvasFit(rawValue: $0) ?? .fit)
             }
             Text(strings("canvas_help")).scaledFont(13).foregroundStyle(theme.foregroundMuted).padding(.horizontal, 16)

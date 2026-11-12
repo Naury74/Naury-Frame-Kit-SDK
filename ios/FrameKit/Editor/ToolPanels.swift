@@ -346,7 +346,7 @@ struct FilterPanel<Host: ColorToolHost>: View {
     }
 
     private func thumbnail(_ id: String, selected: Bool) -> some View {
-        let label = FilterLabels.label(for: id) ?? strings("filter_\(id.replacingOccurrences(of: "-", with: "_"))")
+        let label = FilterLabels.label(for: id) ?? strings(CatalogLabelKeys.filter(id))
         return Button {
             haptics.selection()
             model.selectFilter(id)

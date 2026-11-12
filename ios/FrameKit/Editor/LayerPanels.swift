@@ -165,11 +165,11 @@ struct TextPanel<Host: LayerToolHost>: View {
                     .padding(.horizontal, 16)
                     .onAppear { focused = editing.text.isEmpty }
                 chips((model.catalog.showDefaultFonts ? fonts : ["sans"]) + FontAssets.ids, selected: style.fontId, title: { id in
-                    FontAssets.label(for: id) ?? strings("font_\(id.replacingOccurrences(of: "-", with: "_"))")
+                    FontAssets.label(for: id) ?? strings(CatalogLabelKeys.font(id))
                 }) { id in model.setTextStyle { $0.fontId = id } }
                 label("text_color")
                 ColorPalette(selected: style.color) { color in model.setTextStyle { $0.color = color } }
-                chips(TextAlign.allCases.map(\.rawValue), selected: style.alignment.rawValue, title: { strings("align_\($0)") }) { raw in
+                chips(TextAlign.allCases.map(\.rawValue), selected: style.alignment.rawValue, title: { strings(TextAlign(rawValue: $0)?.labelKey ?? $0) }) { raw in
                     model.setTextStyle { $0.alignment = TextAlign(rawValue: raw) ?? .center }
                 }
                 ScrollView(.horizontal, showsIndicators: false) {
@@ -308,7 +308,7 @@ struct DrawPanel: View {
         VStack(alignment: .leading, spacing: 8) {
             let modes = ["pen", "marker", "highlighter", "shapes", "eraser"]
             let current = brush.shapes ? "shapes" : brush.kind.rawValue
-            chips(modes, selected: current, title: { $0 == "shapes" ? strings("draw_shapes") : strings("brush_\($0)") }) { mode in
+            chips(modes, selected: current, title: { $0 == "shapes" ? strings("draw_shapes") : strings(BrushKind(rawValue: $0)?.labelKey ?? $0) }) { mode in
                 if mode == "shapes" {
                     model.brush.shapes = true
                 } else {
@@ -317,11 +317,9 @@ struct DrawPanel: View {
                 }
             }
             if brush.shapes {
-                chips(ShapeKind.allCases.map(\.rawValue), selected: brush.shape.rawValue, title: { raw in
-                    strings("shape_\(raw.replacingOccurrences(of: "([a-z])([A-Z])", with: "$1_$2", options: .regularExpression).lowercased())")
-                }) { model.brush.shape = ShapeKind(rawValue: $0) ?? .rectangle }
+                chips(ShapeKind.allCases.map(\.rawValue), selected: brush.shape.rawValue, title: { strings(ShapeKind(rawValue: $0)?.labelKey ?? $0) }) { model.brush.shape = ShapeKind(rawValue: $0) ?? .rectangle }
                 let fills = brush.shape.isLine ? [ShapeFill.outline, .dashed] : ShapeFill.allCases
-                chips(fills.map(\.rawValue), selected: brush.fill.rawValue, title: { strings("shape_\($0)") }) {
+                chips(fills.map(\.rawValue), selected: brush.fill.rawValue, title: { strings(ShapeFill(rawValue: $0)?.labelKey ?? $0) }) {
                     model.brush.fill = ShapeFill(rawValue: $0) ?? .outline
                 }
                 Text(strings("draw_shapes_help")).scaledFont(13).foregroundStyle(.secondary).padding(.horizontal, 16)
@@ -354,7 +352,7 @@ struct PrivacyPanel<Host: LayerToolHost>: View {
             chips(["mosaic", "blur"], selected: settings.mosaic ? "mosaic" : "blur", title: { strings("privacy_\($0)") }) {
                 model.privacy.mosaic = $0 == "mosaic"
             }
-            chips(model.privacyModes.map(\.rawValue), selected: settings.mode.rawValue, title: { strings("privacy_\($0)") }) {
+            chips(model.privacyModes.map(\.rawValue), selected: settings.mode.rawValue, title: { strings(PrivacySettings.Mode(rawValue: $0)?.labelKey ?? $0) }) {
                 model.privacy.mode = PrivacySettings.Mode(rawValue: $0) ?? .brush
             }
             ValueSlider(label: strings("privacy_strength"), value: settings.strength * 100, range: 0...100, format: { "\(Int($0.rounded()))" }) {
@@ -395,7 +393,7 @@ struct WatermarkPanel<Host: LayerToolHost>: View {
                 let suggestions = model.watermarkSuggestions
                 chips(suggestions, selected: spec.text, title: { $0 }) { v in model.setWatermark { $0.text = v } }
             }
-            chips(WatermarkPattern.allCases.map(\.rawValue), selected: spec.pattern.rawValue, title: { strings("watermark_\($0)") }) { raw in
+            chips(WatermarkPattern.allCases.map(\.rawValue), selected: spec.pattern.rawValue, title: { strings(WatermarkPattern(rawValue: $0)?.labelKey ?? $0) }) { raw in
                 model.setWatermark { $0.pattern = WatermarkPattern(rawValue: raw) ?? .single }
             }
             if spec.pattern == .single || spec.pattern == .band {
@@ -447,7 +445,7 @@ struct WatermarkPanel<Host: LayerToolHost>: View {
                             .contentShape(Rectangle())
                     }
                     .buttonStyle(PressFadeStyle())
-                    .accessibilityLabel(strings("watermark_\(position.rawValue.replacingOccurrences(of: "([a-z])([A-Z])", with: "$1_$2", options: .regularExpression).lowercased())"))
+                    .accessibilityLabel(strings(position.labelKey))
                     .accessibilityAddTraits(selected ? [.isSelected] : [])
                 }
             }

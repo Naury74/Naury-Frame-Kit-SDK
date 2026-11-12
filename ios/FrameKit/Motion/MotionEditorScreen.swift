@@ -507,7 +507,7 @@ struct TransitionPanel: View {
         let project = model.displayed
         VStack(alignment: .leading, spacing: 8) {
             chips(MotionTransition.allCases.map(\.rawValue), selected: project.transition.rawValue,
-                  title: { $0 == "none" ? strings("motion_none") : strings("motion_transition_\($0)") }) { id in
+                  title: { strings(MotionTransition(rawValue: $0)?.labelKey ?? $0) }) { id in
                 model.change { $0.transition = MotionTransition(rawValue: id) ?? .fade }
             }
             if project.transition != .none {
@@ -569,7 +569,7 @@ struct LoopPanel: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(strings("motion_loop_help")).scaledFont(13).foregroundStyle(theme.foregroundMuted).padding(.horizontal, 16)
-            chips(LoopMode.allCases.map(\.rawValue), selected: model.displayed.loop.rawValue, title: { strings("motion_loop_\($0)") }) { id in
+            chips(LoopMode.allCases.map(\.rawValue), selected: model.displayed.loop.rawValue, title: { strings(LoopMode(rawValue: $0)?.labelKey ?? $0) }) { id in
                 model.change { $0.loop = LoopMode(rawValue: id) ?? .forward }
             }
         }
@@ -587,7 +587,7 @@ struct MotionCanvasPanel: View {
             chips(MotionAspect.allCases.map(\.rawValue), selected: project.aspect.rawValue, title: { Self.title($0, strings) }) { id in
                 model.change { $0.aspect = MotionAspect(rawValue: id) ?? .original }
             }
-            chips(MotionFit.allCases.map(\.rawValue), selected: project.fit.rawValue, title: { strings("motion_fit_\($0)") }) { id in
+            chips(MotionFit.allCases.map(\.rawValue), selected: project.fit.rawValue, title: { strings(MotionFit(rawValue: $0)?.labelKey ?? $0) }) { id in
                 model.change { $0.fit = MotionFit(rawValue: id) ?? .fill }
             }
             if project.fit == .fit {
@@ -805,8 +805,8 @@ struct MotionSaveSheet: View {
                 Text(strings("motion_save_title")).scaledFont(20, weight: .bold).foregroundStyle(theme.foreground)
                     .accessibilityAddTraits(.isHeader)
                 ForEach(model.request.export.formats, id: \.self) { format in
-                    card(selected: model.saveFormat == format, title: strings("motion_format_\(format.rawValue)"),
-                         detail: strings("motion_format_\(format.rawValue)_help")) { model.saveFormat = format }
+                    card(selected: model.saveFormat == format, title: strings(format.labelKey),
+                         detail: strings(format.helpKey)) { model.saveFormat = format }
                 }
                 if model.hasAudio && model.saveFormat != .mp4 {
                     Label(strings("track_sound_mp4_only"), systemImage: "speaker.slash").scaledFont(13).foregroundStyle(theme.error)
@@ -814,7 +814,7 @@ struct MotionSaveSheet: View {
                 Text(strings("motion_size")).scaledFont(15, weight: .semibold).foregroundStyle(theme.foreground).padding(.top, 4)
                 HStack(spacing: 8) {
                     ForEach(MotionSize.allCases, id: \.self) { size in
-                        card(selected: model.saveSize == size, title: strings("motion_size_\(size.rawValue)"),
+                        card(selected: model.saveSize == size, title: strings(size.labelKey),
                              detail: strings("motion_size_px", size.longEdge(model.saveFormat))) { model.saveSize = size }
                     }
                 }
