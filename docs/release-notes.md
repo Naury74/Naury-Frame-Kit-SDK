@@ -1,6 +1,8 @@
 # Release Notes
 
-## 다음 판
+## 1.0.0-alpha15 (iOS)
+
+iOS도 1.0.0-alpha15로 맞춥니다. Android 1.0.0-alpha15 내용은 아래 절에 있습니다.
 
 ### 고침
 
