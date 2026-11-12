@@ -153,11 +153,13 @@ struct MotionEditorScreen: View {
 
     // MARK: - 화면
 
+    private var showsHistory: Bool { model.activeTool != .text && model.request.config.allowUndo }
+
     private var canvas: some View {
         ZStack {
             theme.canvas
             GeometryReader { geo in
-                let rect = fit(model.renderSize, in: CGRect(origin: .zero, size: geo.size).insetBy(dx: 16, dy: 16))
+                let rect = fit(model.renderSize, in: previewArea(geo.size, padding: 16, reservesHistory: showsHistory))
                 ZStack {
                     PlaybackReader(clock: model.playback) {
                         if let frame = model.frame {
@@ -183,7 +185,7 @@ struct MotionEditorScreen: View {
             }
         }
         .overlay(alignment: .top) {
-            if model.activeTool != .text && model.request.config.allowUndo {
+            if showsHistory {
                 HStack(spacing: 0) {
                     IconButton(icon: Icons.image("undo"), label: strings("action_undo"), enabled: model.canUndo) { model.undo() }
                     if model.request.config.allowRedo {

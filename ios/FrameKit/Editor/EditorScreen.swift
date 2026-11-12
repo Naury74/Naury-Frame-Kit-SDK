@@ -212,9 +212,9 @@ struct EditorScreen: View {
     // MARK: - 사진 영역
 
     private var canvas: some View {
-        EditorCanvas(model: model)
+        EditorCanvas(model: model, reservesHistory: showsHistory)
             .overlay(alignment: .top) {
-                if model.activeTool == nil || model.activeTool?.isDraft == false {
+                if showsHistory {
                     historyPill
                         .padding(.top, 12)
                         .editorChrome(hidden: model.chromeHidden, reduceMotion: reduceMotion) { model.showChrome() }
@@ -230,6 +230,12 @@ struct EditorScreen: View {
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private var showsHistory: Bool {
+        let ui = model.request.config
+        guard model.activeTool == nil || model.activeTool?.isDraft == false else { return false }
+        return ui.allowUndo || (model.activeTool == nil && model.isDirty)
     }
 
     @ViewBuilder

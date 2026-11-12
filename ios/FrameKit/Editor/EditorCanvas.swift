@@ -4,6 +4,8 @@ internal import FrameKitCore
 /// 사진 영역. 자르기·회전 도구에서는 자르기 전 이미지 위에 자르기 틀을 그린다.
 struct EditorCanvas: View {
     @ObservedObject var model: EditorModel
+    /// 위에 되돌리기 버튼이 떠 있어 그 자리를 비운다.
+    var reservesHistory = false
     @Environment(\.editorTheme) private var theme
     @Environment(\.strings) private var strings
     @Environment(\.displayScale) private var displayScale
@@ -21,7 +23,7 @@ struct EditorCanvas: View {
     var body: some View {
         GeometryReader { geo in
             let padding: CGFloat = showsBounds ? 28 : 16
-            let area = CGRect(origin: .zero, size: geo.size).insetBy(dx: padding, dy: padding)
+            let area = previewArea(geo.size, padding: padding, reservesHistory: reservesHistory && !showsBounds)
             ZStack {
                 theme.canvas
                 if showsBounds {
@@ -225,6 +227,15 @@ struct EditorCanvas: View {
         return nil
     }
 }
+
+/// 사진·영상을 놓을 영역. [reservesHistory]면 위에 떠 있는 되돌리기 버튼(위 여백 12 + 높이 48) 아래부터 쓴다.
+func previewArea(_ size: CGSize, padding: CGFloat, reservesHistory: Bool) -> CGRect {
+    let top = reservesHistory ? max(padding, historyPillBottom + 4) : padding
+    return CGRect(x: padding, y: top, width: max(1, size.width - padding * 2), height: max(1, size.height - top - padding))
+}
+
+/// 되돌리기 버튼 아래 끝(사진 영역 위에서부터).
+let historyPillBottom: CGFloat = 60
 
 /// [size]를 비율을 지켜 [area] 가운데에 넣은 사각형.
 func fit(_ size: CGSize, in area: CGRect) -> CGRect {
